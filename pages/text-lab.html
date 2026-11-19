@@ -69,11 +69,16 @@
                  passage to read first, and is read only while it still pins
                  the piece's bytes. Each focus passage is a container in
                  md-diff's manner, an outline with its number and two stops,
-                 text and context: the passage, or the background on it (what
-                 it is, its length, and the piece's praise). Neutral, since
-                 colour here is a standing. The card's head holds the voice,
-                 the jump to the focus, which shows Text, and the door to the
-                 deck, whose header names the piece in view. Reading aloud
+                 context and text, that swipes between them: the background
+                 on the passage (what it is, its length, and the piece's
+                 praise), or the passage. Neutral, since colour here is a
+                 standing. A pad over the FAB (kits/mark-pad.js), two arrows
+                 and a bookmark between them counting the mark in view, steps
+                 through the caption and the focus passages, or the citations
+                 once the bookmark is tapped; the FAB leaves a handle in its
+                 corner while the pad is up. The card's head holds the voice
+                 and the door to the deck, whose header names the piece in
+                 view. Reading aloud
                  (kits/read-aloud.js) speaks Text alone, from the stored
                  Markdown: no front matter, no caption, and none of the spans
                  an optional second standoff, <slug>.citations.standoff.json,
@@ -123,14 +128,6 @@
                  filters beside it.
     ?run=<dir>   marks one run in the runs pane and implies that pane.
     ?exemplar=<slug> opens one piece and implies the exemplars pane.
-    ?marks=a|b|c|d trials a way through a piece's marks: a, a Marks tab in
-                 the FAB's drawer and a count on the launcher; b, a stepper on
-                 the FAB; c, a rail down the card's edge; d, a pad over the FAB
-                 (kits/mark-pad.js), two arrows and a bookmark between them
-                 that counts the mark in view inside itself, stepping through
-                 the caption and focus passages, or the citations once the
-                 bookmark is tapped; the FAB leaves a handle in its corner
-                 while the pad is up. Without it, nothing.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
 -->
@@ -292,18 +289,11 @@
       exemplarTab: 'text',
       voice: null,
       voiceAt: { state: 'idle', id: '' },
-      // ?marks=a|b|c|d, four trials of a way through a piece's marks (its
-      // focus, its caption, its citations): a, the FAB's Marks tab; b, a
-      // stepper on the FAB; c, a rail down the card's edge; d, the page's own
-      // pair of arrows beside the FAB (kits/mark-pad.js). Without it nothing
-      // changes.
-      marksMode: ['a', 'b', 'c', 'd'].includes(params.get('marks')) ? params.get('marks') : '',
+      // The way through a piece's marks (its caption, its focus passages, its
+      // citations): the page's own pad over the FAB (kits/mark-pad.js).
       padKind: 'marks',
       _stuckFrame: 0,
       pad: null,
-      marksAt: {},
-      focusAt: {},
-      citeMode: 'show',
       deckParam: params.get('deck') || '',
       deckAt: Math.max(0, parseInt(params.get('at'), 10) || 0),
       loading: true,
@@ -315,6 +305,14 @@
         // A focus passage's pills, stuck or not (focusStuck), in whichever
         // card or deck slide scrolled.
         document.addEventListener('scroll', e => this.focusStuck(e && e.target), { capture: true, passive: true });
+        // A focus passage's readings become a swipe track wherever its body is
+        // drawn (mountFocus).
+        if (typeof MutationObserver === 'function' && document.body) new MutationObserver(recs => {
+          for (const r of recs) for (const n of r.addedNodes) {
+            if (n.nodeType !== 1) continue;
+            for (const sec of n.matches('[data-focus]') ? [n] : n.querySelectorAll('[data-focus]')) this.mountFocus(sec);
+          }
+        }).observe(document.body, { childList: true, subtree: true });
         gh.load('kits/panel-tip.js').then(() => {
           if (!window.PanelTip || !this.$refs?.tip) return;
           this.tipClose = window.PanelTip.closeHTML(true);
@@ -349,7 +347,7 @@
           this.$watch(key, () => { this.variantLimit = this.VARIANT_BATCH; });
         for (const key of ['filterStanding', 'concept', 'probeBy', 'badgeFilter', 'probeRun', 'runBy'])
           this.$watch(key, () => this.$nextTick(() => this.mountDetail()));
-        if (['a', 'b', 'd'].includes(this.marksMode)) this.$watch('marksSig', () => { this.announceMarks(); this.pad?.refresh(); });
+        this.$watch('padSig', () => this.pad?.refresh());
         // Whatever ?pane= asked for, not just the one that used to need it:
         // each pane's own guard makes the call a no-op when it has nothing to
         // fetch, so naming a single pane here was a bug waiting for the second.
@@ -591,7 +589,6 @@
             onPick: id => {
               d.set(id); this.syncSel();
               if (kind === 'exemplar' && this.voice) this.voice.seek(this.exemplarIds().indexOf(id));
-              if (kind === 'exemplar' && this.marksMode === 'c') setTimeout(() => this.railDraw(), 300);
             },
             ...(d.deck ? { deck: d.deck } : {}),
             ...(d.head ? { head: d.head } : {}),
@@ -601,7 +598,6 @@
         }
         this.syncSel();
         requestAnimationFrame(() => this.swipers[kind]?.show(String(d.sel())));
-        if (kind === 'exemplar' && this.marksMode === 'c') { this.railMount(d.card); setTimeout(() => this.railDraw(), 300); }
       },
       // One listener per card and per list, for the lifetime of the page: the
       // kit redraws their contents and leaves the elements themselves alone.
@@ -1292,8 +1288,8 @@
           this.exemplars = pieces;
           if (!this.exemplarOf(this.exemplarSel)) this.exemplarSel = '';
           this.exemplarState = 'done';
-          this.announceMarks();
-          if (this.marksMode === 'd') { await gh.load('kits/mark-pad.js'); this.mountPad(); }
+          await gh.load('kits/mark-pad.js');
+          this.mountPad();
           if (this.deckParam === 'exemplars') {
             this.deckParam = '';
             this.$nextTick(() => this.openExemplarDeck(this.deckAt));
@@ -1464,22 +1460,12 @@
         const tab = (key, label) => `<button type="button" role="tab" data-exemplar-tab="${key}" aria-selected="${face === key}"`
           + ` class="${this.SEG.item} text-base-content/70 group-data-[tab=${key}]:bg-base-100 group-data-[tab=${key}]:font-medium`
           + ` group-data-[tab=${key}]:text-base-content group-data-[tab=${key}]:shadow-sm">${label}</button>`;
-        return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]${this.marksMode === 'c' ? ' pr-6' : ''}" data-exemplar-body="${esc(p.id)}" data-tab="${face}" data-cites="${this.citeMode}">`
+        return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]" data-exemplar-body="${esc(p.id)}" data-tab="${face}">`
           // Stuck above the slide's own top padding, so no line shows through it.
           + `<div class="sticky -top-8 z-[1] -mt-8 pt-8 -mx-1 px-1 pb-3 bg-base-100 flex items-center justify-between gap-2"><div class="${this.SEG.box}" role="tablist" aria-label="Show">`
-          + tab('text', 'Text') + tab('context', 'Context') + `</div>${this.citesControl(p)}</div>`
+          + tab('text', 'Text') + tab('context', 'Context') + `</div></div>`
           + `<div data-pane="text" class="min-w-0 pt-2 group-data-[tab=context]:hidden">${this.exemplarDoc(p)}</div>`
           + `<div data-pane="context" class="hidden group-data-[tab=context]:grid gap-8 min-w-0">${this.exemplarContextHtml(p)}</div></div>`;
-      },
-      // Trial c's way to the citations' look, which a and b keep in the FAB's
-      // list: three ways to draw them, beside the faces, while Text shows.
-      citesControl(p) {
-        if (this.marksMode !== 'c' || !(p.citationSpans || []).length) return '';
-        const one = (key, icon, label) => `<button type="button" data-exemplar-cites="${key}" aria-pressed="${this.citeMode === key}"`
-          + ` aria-label="${label}" data-title-tip="${label}" class="${this.SEG.item} px-2 text-base-content/70 group-data-[cites=${key}]:bg-base-100`
-          + ` group-data-[cites=${key}]:text-base-content group-data-[cites=${key}]:shadow-sm"><i class="ph ${icon} text-base"></i></button>`;
-        return `<div class="${this.SEG.box} group-data-[tab=context]:hidden" role="group" aria-label="Citations">`
-          + one('show', 'ph-eye', 'Citations shown') + one('dim', 'ph-circle-half', 'Citations dimmed') + one('hide', 'ph-eye-slash', 'Citations hidden') + `</div>`;
       },
       // Context: each part led by an icon, its sentences at the text's size and
       // its names, links and dates at the size of a label.
@@ -1533,7 +1519,6 @@
           for (const b of body.querySelectorAll('[data-exemplar-tab]')) b.setAttribute('aria-selected', String(b.getAttribute('data-exemplar-tab') === face));
           if (box) box.scrollTop = (body._at || {})[face] || 0;
         }
-        if (this.marksMode === 'c') requestAnimationFrame(() => this.railDraw());
       },
       // ── Reading aloud ──────────────────────────────────────────────────────
       // What Text shows, spoken: the stored Markdown with the front matter and
@@ -1627,27 +1612,15 @@
           + '!text-xl !leading-8 [&_p]:!my-4 [&_h1]:!text-2xl [&_h2]:!text-2xl [&_h3]:!text-xl [&_h4]:font-semibold'
           + ' [&_h2]:!mt-6 [&_h3]:!mt-5 [&_hr]:!my-8 [&_blockquote]:!pl-4 [&>:first-child]:!mt-0 [&>:last-child]:!mb-0';
       },
-      // The card's head: the kit's own row, with the voice and the jump to the
-      // focus beside the counter, in one place on every piece.
+      // The card's head: the kit's own row, with the voice beside the counter,
+      // in one place on every piece.
       exemplarHead(i, n, tight) {
         const id = this.exemplarIds()[i], p = this.exemplarOf(id) || {};
         const html = window.linkedSwiper.head({ when: this.shortYear(p.year), title: this.listTitle(p) },
           i, n, 'piece', { deck: true, tight });
         const at = html.indexOf('</h2>') + 5;
-        const own = this.speakButton(p) + this.focusButton(p);
+        const own = this.speakButton(p);
         return at > 4 ? html.slice(0, at) + own + html.slice(at) : html + own;
-      },
-      focusButton(p) {
-        if (!p.focusSpans || !p.focusSpans.length) return '';
-        return `<button type="button" data-exemplar-focus="${esc(p.id)}" class="btn btn-ghost btn-xs gap-1 px-1.5 font-normal flex-none -my-1 max-sm:h-8"`
-          + ` aria-label="Jump to the focus" data-title-tip="${esc(this.focusLine(p))}">`
-          + `<i class="ph ph-bookmark-simple text-base"></i><span class="font-mono text-xs tabular-nums">${this.marksMode === 'c'
-            ? `focus ${(this.focusAt[p.id] || 0) + 1}/${p.focusSpans.length}` : 'focus'}</span></button>`;
-      },
-      focusLine(p) {
-        const n = p.focusSpans.length, fw = p.focusSpans.reduce((s, f) => s + f.words, 0);
-        return [p.focus, `${fw.toLocaleString()} of ${p.words.toLocaleString()} words`, n > 1 ? `${n} passages` : '']
-          .filter(Boolean).join(' · ');
       },
 
       // The text proper, rendered once a piece and kept; the caption ahead of
@@ -1666,7 +1639,7 @@
         const box = document.createElement('div');
         box.className = this.readClass();
         box.innerHTML = G.render(p.text.slice(p.textAt), { knownRefs: [this.DATA_REF, 'main'] }).html;
-        const cites = this.marksMode && S ? p.citationSpans || [] : [];
+        const cites = S ? p.citationSpans || [] : [];
         if ((p.focusSpans.length || cites.length) && S) S.mapText(box, p.text, p.textAt);
         if (p.focusSpans.length && S) {
           const blocks = [...box.children];
@@ -1704,17 +1677,14 @@
       // fills. Neutral where md-diff's selection is yellow: colour on this page
       // is a standing.
       //
-      // TWO READINGS, `text` and `context`, where md-diff has old, inline and
-      // new: the passage, and the background on it (what the passage is, how
-      // long, and who praised the piece, in their words). The background is
-      // the piece's, not the passage's, so a piece's passages show the same
+      // TWO READINGS, `context` and `text`, where md-diff has old, inline and
+      // new: the background on the passage (what it is, how long, and who
+      // praised the piece, in their words), and the passage. The background
+      // is the piece's, not the passage's, so a piece's passages show the same
       // praise; only the description's place and the length are their own.
-      //
-      // A TAP ON A STOP, NOT A SWIPE. md-diff's readings swipe, which needs
-      // every reading the same height (its own account of iOS's snap), and a
-      // passage runs to thousands of words against a background of a few
-      // lines; the card also swipes, between pieces. So the box takes the
-      // height of the reading on screen, and the stops are tapped.
+      // They swipe, as md-diff's do (mountFocus), context then text, landing
+      // on text, so a swipe to the right brings the background in; the stops
+      // read in the track's order and a tap on one still goes there.
       //
       // THE PILLS STAY IN REACH: they ride a zero-height sticky row at the
       // passage's top, so a reader halfway down Part I still has them, under
@@ -1749,7 +1719,7 @@
           + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-[${mix(20)}] group-data-[on]/focus:!border-[${mix(60)}]"`
           + ` aria-label="Passage ${k + 1}${total > 1 ? ` of ${total}` : ''}">${k + 1}</button>`
           + `<div class="${PILL} right-1 gap-0.5 px-0.5 py-0.5 !border-[${mix(40)}]"`
-          + ` role="group" aria-label="Show this passage as">${stop('text')}${stop('context')}</div></div>`
+          + ` role="group" aria-label="Show this passage as">${stop('context')}${stop('text')}</div></div>`
           + `<div data-focus-text class="[&>:first-child]:!mt-0 [&>:first-child>:first-child]:!mt-0 [&>:last-child]:!mb-0 [&>:last-child>:last-child]:!mb-0 group-data-[reading=context]/focus:hidden"></div>`
           + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-3 pb-2">`
           + `<div class="grid gap-1"><div class="font-medium">${esc(p.focus || 'The passage to read first')}</div>`
@@ -1781,22 +1751,107 @@
         if (!sec) return;
         this.ringMark([sec]);
         const id = sec.closest('[data-exemplar-body]')?.getAttribute('data-exemplar-body');
-        if (id != null) { this.noteFocus(id, +sec.dataset.focus); this.padFollow(id, 'focus', +sec.dataset.focus); }
+        if (id != null) this.padFollow(id, 'focus', +sec.dataset.focus);
       },
       setFocusReading(sec, r) {
         if (!sec || (r !== 'text' && r !== 'context')) return;
+        // Mounted, the track goes there and its settling does the rest.
+        if (sec._focusGo) { sec._focusGo(r); this.focusChosen(sec, false); return; }
+        this.paintReading(sec, r);
+        this.focusChosen(sec, true);
+      },
+      paintReading(sec, r) {
+        if (sec.dataset.reading === r) return;
         sec.dataset.reading = r;
         for (const b of sec.querySelectorAll('[data-focus-reading]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-focus-reading') === r));
+      },
+      // A passage the reader turned is the one selected, and the pad counts
+      // it. `top` takes the card back to the passage's top, for a box whose
+      // height has just followed its reading.
+      focusChosen(sec, top) {
         const body = sec.closest('[data-exemplar-body]'), id = body?.getAttribute('data-exemplar-body');
-        if (body) this.scrollToMark(body, sec);
+        if (top && body) this.scrollToMark(body, sec);
         this.ringMark([sec]);
-        if (id != null) { this.noteFocus(id, +sec.dataset.focus); this.padFollow(id, 'focus', +sec.dataset.focus); }
-        if (this.marksMode === 'c') setTimeout(() => this.railDraw(), 50);
+        if (id != null) this.padFollow(id, 'focus', +sec.dataset.focus);
+      },
+      // THE READINGS SWIPE, as md-diff's container does (lib/kits/md-diff.js,
+      // swipe()): a swipeDeck.core track of two stops, context then text,
+      // landing on text, the slides handing the vertical axis to the card
+      // (slideScroll: false) and one stop per flick (snapStop). The pills
+      // ride the sticky row outside the track. Mounted wherever a body is
+      // drawn, a card's slide or the deck's, since both draw it from the one
+      // stored render (exemplarDoc), whose readings stand stacked and hidden
+      // by the reading until a track takes them.
+      //
+      // INSIDE THE DECK the track keeps a sideways swipe to itself: core()'s
+      // track is `overscroll-x-contain`, as every md-diff container's is when
+      // a deck holds it, so a swipe that starts on a passage turns its
+      // readings and, at either end, goes nowhere rather than to the next
+      // piece. A reader changes pieces with a swipe that starts outside a
+      // passage, or with the deck's footer, its arrows and its dots.
+      //
+      // THE HEIGHT HOLDS THROUGH THE GESTURE AND FOLLOWS THE READING ONCE THE
+      // SNAP HAS SETTLED. md-diff fixes its box at its tallest reading, since a
+      // box resized under a finger snapped between stops on iOS (swipe-deck's
+      // account, pages/probe-snap.html). Here the tallest reading can run to
+      // thousands of words and the other is a few lines, so a fixed box would
+      // leave the background in a screenful of empty outline. The box keeps
+      // its height while the track moves, and once it has been quiet for
+      // 160ms (or says scrollend) takes the height of the reading it rests
+      // on, then takes the card back to the passage's top if the reader was
+      // deep in it. That probe also found that deferring the write until the
+      // scroll went quiet did not, alone, cure iOS's snap; whether this holds
+      // there is for the device to say.
+      mountFocus(sec) {
+        if (!sec || sec._focusDeck || !window.swipeDeck?.core) return;
+        const ctx = sec.querySelector(':scope > [data-focus-context]'), txt = sec.querySelector(':scope > [data-focus-text]');
+        if (!ctx || !txt) return;
+        ctx.classList.remove('hidden', 'group-data-[reading=context]/focus:grid');
+        ctx.classList.add('grid');
+        txt.classList.remove('group-data-[reading=context]/focus:hidden');
+        const READ = ['context', 'text'];
+        const host = document.createElement('div');
+        host.className = 'flex min-h-0';
+        host.dataset.focusTrack = '';
+        const deck = window.swipeDeck.core(2, (n, slide) => slide.append(n ? txt : ctx),
+          { slideScroll: false, innerClass: 'w-full', slideClass: '', snapStop: true, start: 1 });
+        host.append(deck.track);
+        sec.firstElementChild.after(host);
+        deck.build(0); deck.build(1);
+        sec._focusDeck = deck;
+        // A reading's own height: its content's, from the top of its slide.
+        const fit = (n) => {
+          const slide = deck.track.children[n], c = slide?.firstElementChild?.firstElementChild;
+          if (!c) return;
+          const h = Math.ceil(c.getBoundingClientRect().top - slide.getBoundingClientRect().top) + c.scrollHeight;
+          if (h && host.style.height !== h + 'px') host.style.height = h + 'px';
+        };
+        let live = false, rest = 1, quiet = 0;
+        const settle = () => {
+          clearTimeout(quiet);
+          const a = deck.active();
+          fit(a);
+          if (live && a !== rest) {
+            const box = this.scrollerOf(sec);
+            const deep = box && sec.getBoundingClientRect().top < box.getBoundingClientRect().top;
+            this.focusChosen(sec, deep);
+          }
+          rest = a;
+        };
+        deck.onSlide(a => this.paintReading(sec, READ[a]));
+        deck.track.addEventListener('scroll', () => { clearTimeout(quiet); quiet = setTimeout(settle, 160); }, { passive: true });
+        deck.track.addEventListener('scrollend', settle);
+        deck.track.addEventListener('pointerdown', () => { live = true; });
+        sec._focusGo = (r) => { live = true; deck.go(READ.indexOf(r)); };
+        requestAnimationFrame(() => { deck.go(1, 'instant'); fit(1); });
+        if (typeof ResizeObserver === 'function') {
+          const ro = new ResizeObserver(() => fit(deck.active()));
+          ro.observe(txt); ro.observe(ctx);
+        }
       },
       // Each citation's text wrapped where the render drew it, cut at its own
-      // edges inside the mapped text nodes, so it can be found, dimmed or
-      // hidden in Text. One citation across an italic is several pieces with
-      // one index.
+      // edges inside the mapped text nodes, so the pad can find it and mark
+      // it. One citation across an italic is several pieces with one index.
       wrapCitations(box, cites) {
         for (const sp of [...box.querySelectorAll('[data-src]')]) {
           const node = sp.firstChild;
@@ -1811,7 +1866,6 @@
             if (a > cur) frag.append(raw.slice(cur - s, a - s));
             const w = document.createElement('span');
             w.dataset.cite = String(c.k);
-            w.className = 'transition-opacity group-data-[cites=dim]:opacity-40 group-data-[cites=hide]:hidden';
             w.textContent = raw.slice(a - s, b - s);
             frag.append(w);
             cur = b;
@@ -1827,47 +1881,19 @@
       exemplarClick(e) {
         const tab = e.target.closest('[data-exemplar-tab]');
         if (tab) { this.setExemplarTab(tab.getAttribute('data-exemplar-tab')); return true; }
-        const cites = e.target.closest('[data-exemplar-cites]');
-        if (cites) { this.setCiteMode(cites.getAttribute('data-exemplar-cites')); return true; }
         const reading = e.target.closest('[data-focus-reading]');
         if (reading) { this.setFocusReading(reading.closest('[data-focus]'), reading.getAttribute('data-focus-reading')); return true; }
         const claim = e.target.closest('[data-focus-claim]');
         if (claim) { this.claimFocus(claim.closest('[data-focus]')); return true; }
         const voice = e.target.closest('[data-exemplar-speak]');
         if (voice) { this.speakCard(voice.getAttribute('data-exemplar-speak')); return true; }
-        const focus = e.target.closest('[data-exemplar-focus]');
-        if (!focus) return false;
-        const id = focus.getAttribute('data-exemplar-focus');
-        const scope = focus.closest('[data-part="detail"]') || document;
-        this.jumpToFocus([...scope.querySelectorAll('[data-exemplar-body]')].find(el => el.getAttribute('data-exemplar-body') === id));
-        return true;
+        return false;
       },
       scrollerOf(el) {
         let box = el && el.parentElement;
         while (box && box !== document.body
           && !(/auto|scroll/.test(getComputedStyle(box).overflowY) && box.scrollHeight > box.clientHeight)) box = box.parentElement;
         return box && box !== document.body ? box : null;
-      },
-      // Scroll a piece's body, in a card's slide or the deck's, to its next
-      // focus passage, and back to the first after the last. The focus is in
-      // Text, so the jump shows Text first.
-      jumpToFocus(body) {
-        const marks = [...(body?.querySelectorAll('[data-focus]') || [])];
-        if (!marks.length) return;
-        if (body.getAttribute('data-tab') !== 'text') {
-          this.setExemplarTab('text');
-          return requestAnimationFrame(() => this.jumpToFocus(body));
-        }
-        const k = (Number(body.dataset.next) || 0) % marks.length;
-        body.dataset.next = String(k + 1);
-        this.scrollToMark(body, marks[k]);
-        this.ringMark([marks[k]]);
-        this.noteFocus(body.getAttribute('data-exemplar-body'), k);
-        this.padFollow(body.getAttribute('data-exemplar-body'), 'focus', k);
-      },
-      noteFocus(id, k) {
-        this.focusAt = { ...this.focusAt, [id]: k };
-        if (this.marksMode === 'c') this.swipers?.exemplar?.paint();
       },
       // Below the stuck face toggle, with a little room. On a phone the list
       // stands above the card and the card starts halfway down, so the page
@@ -1885,52 +1911,37 @@
         box.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - top - under - 12, behavior: 'smooth' });
       },
 
-      // ── Marks: three trials (?marks=a|b|c) ────────────────────────────────
-      // A piece's marks, one row a kind, in the order the file has them: the
-      // caption (shown in Context), each focus passage, and the citations as
-      // one row, since an opinion carries seventy to a hundred and twenty.
+      // ── Marks ─────────────────────────────────────────────────────────────
+      // A piece's marked passages, in the order the file has them: the
+      // caption (shown in Context) and each focus passage. The citations are
+      // the pad's other kind (padItems), one at a time.
       markItems(p) {
         if (!p) return [];
-        const items = [], n = p.focusSpans.length, c = p.citationSpans || [];
-        const prose = (a, b) => this.variantPreview(window.readAloud ? window.readAloud.speechText(p.text.slice(a, b)) : p.text.slice(a, b), 90);
-        if (p.captionSpans.length) items.push({ key: 'caption', at: p.captionSpans[0].start, icon: 'ph-scroll', label: 'Caption', short: 'caption',
-          sub: prose(p.captionSpans[0].start, p.captionSpans[0].end), go: () => this.goMark(p.id, 'caption') });
-        p.focusSpans.forEach((f, k) => items.push({ key: 'focus' + k, at: f.start, icon: 'ph-bookmark-simple',
-          label: n > 1 ? `Focus ${k + 1} of ${n}` : 'Focus', short: `focus ${k + 1}/${n}`,
-          sub: [p.focus, `${f.words.toLocaleString()} words`].filter(Boolean).join(' · '), go: () => this.goMark(p.id, 'focus', k) }));
-        if (c.length && this.marksMode) items.push({ key: 'citations', at: c[0].start, icon: 'ph-paperclip', label: 'Citations',
-          short: `citations ${c.length}`, count: c.length, sub: prose(c[0].start, c[0].end),
-          choice: { value: this.citeMode, options: [['show', 'Show'], ['dim', 'Dim'], ['hide', 'Hide']], set: v => this.setCiteMode(v) },
-          go: () => this.goMark(p.id, 'cite', 0) });
+        const items = [], n = p.focusSpans.length;
+        if (p.captionSpans.length) items.push({ key: 'caption', at: p.captionSpans[0].start, label: 'caption',
+          go: () => this.goMark(p.id, 'caption') });
+        p.focusSpans.forEach((f, k) => items.push({ key: 'focus' + k, at: f.start, label: `focus ${k + 1} of ${n}`,
+          go: () => this.goMark(p.id, 'focus', k) }));
         return items.sort((a, b) => a.at - b.at);
       },
-      // The FAB's word that the marks changed, to this window and to the one
-      // framing it: in a toss the FAB on screen is the renderer's, outside the
-      // frame, and cannot watch this page's state (fab.js, "the toss").
-      announceMarks() {
-        if (this.marksMode !== 'a' && this.marksMode !== 'b') return;
-        const say = w => { try { w.dispatchEvent(new w.CustomEvent('fab:marks')); } catch (_) {} };
-        say(window);
-        try { if (window.parent && window.parent !== window) say(window.parent); } catch (_) {}
+      // What the pad follows: a change in any of these refreshes it.
+      get padSig() {
+        return [this.pane, this.exemplarSel, this.exemplars.length, this.padKind].join('|');
       },
-      get marksSig() {
-        return [this.pane, this.exemplarSel, this.exemplars.length, JSON.stringify(this.marksAt), this.citeMode, this.padKind].join('|');
-      },
-      // Trial d: the arrows step through the piece's marked passages, the
-      // caption and each focus, in the order the file has them; a tap on the
-      // label turns them to the citations, one at a time, since an opinion's
-      // hundred are a different walk from its two passages.
+      // The pad's arrows step through the piece's marked passages, the caption
+      // and each focus, in the order the file has them; a tap on the bookmark
+      // turns them to the citations, one at a time, since an opinion's hundred
+      // are a different walk from its two passages.
       padItems() {
         const p = this.pane === 'exemplars' ? this.exemplarOf(this.exemplarSel) : null;
         if (!p) return [];
         const c = p.citationSpans || [];
         if (this.padKind === 'citations' && c.length)
           return c.map((_, k) => ({ key: 'cite' + k, label: `citation ${k + 1} of ${c.length}`, go: () => this.goMark(p.id, 'cite', k) }));
-        return this.markItems(p).filter(m => m.key !== 'citations')
-          .map(m => ({ key: m.key, label: m.key === 'caption' ? 'caption' : m.short.replace(/ (\d+)\/(\d+)$/, ' $1 of $2'), go: m.go }));
+        return this.markItems(p).map(m => ({ key: m.key, label: m.label, go: m.go }));
       },
-      // A mark the reader reached another way (its passage's stops, the
-      // focus jump, the rail, the FAB's list) is where they are, so the pad
+      // A mark the reader reached another way (its passage's stops or its
+      // number, or a swipe between its readings) is where they are, so the pad
       // counts it and its next arrow goes on from it, as md-diff's strip goes
       // on from the change a reader last claimed.
       padFollow(id, kind, k = 0) {
@@ -1940,7 +1951,7 @@
         if (i >= 0) this.pad.set(i);
       },
       mountPad() {
-        if (this.marksMode !== 'd' || this.pad || !window.MarkPad) return;
+        if (this.pad || !window.MarkPad) return;
         this.pad = window.MarkPad.mount({
           at: 'marks',
           items: () => this.padItems(),
@@ -1953,22 +1964,6 @@
           kind: () => this.padKind,
           choose: k => { this.padKind = k; },
         });
-      },
-      // What the FAB reads (its `marks` contract), in trials a and b only.
-      get marks() {
-        if ((this.marksMode !== 'a' && this.marksMode !== 'b') || this.pane !== 'exemplars') return null;
-        const p = this.exemplarOf(this.exemplarSel);
-        if (!p) return null;
-        const items = this.markItems(p);
-        return { title: this.listTitle(p), style: this.marksMode === 'b' ? 'stepper' : 'tab', items,
-                 at: items[this.marksAt[p.id]] || null, step: d => this.stepMark(d) };
-      },
-      stepMark(d) {
-        const p = this.exemplarOf(this.exemplarSel), items = this.markItems(p);
-        if (!items.length) return;
-        const i = this.marksAt[p.id] ?? -1;
-        const to = i < 0 ? (d > 0 ? 0 : items.length - 1) : Math.max(0, Math.min(items.length - 1, i + d));
-        items[to].go();
       },
       // The body on screen for a piece: the deck's when one is open over the
       // card, else the card's.
@@ -1983,10 +1978,7 @@
       goMark(id, kind, k = 0) {
         const body = this.visibleBody(id);
         if (!body) return;
-        const key = kind === 'focus' ? 'focus' + k : kind === 'cite' ? 'citations' : 'caption';
-        this.marksAt = { ...this.marksAt, [id]: this.markItems(this.exemplarOf(id)).findIndex(m => m.key === key) };
         this.padFollow(id, kind, k);
-        if (kind === 'cite' && this.citeMode === 'hide') this.setCiteMode('dim');
         const go = () => {
           // A citation across an italic is several pieces, and all of them ring.
           const els = kind === 'caption' ? [body.querySelector('[aria-label="Caption"]')?.parentElement]
@@ -1994,8 +1986,6 @@
           if (!els[0]) return;
           this.scrollToMark(body, els[0]);
           this.ringMark(kind === 'cite' ? els : [this.ringable(body, els[0])]);
-          if (kind === 'focus') { body.dataset.next = String(k + 1); this.noteFocus(id, k); }
-          setTimeout(() => this.railDraw(), 400);
         };
         const face = kind === 'caption' ? 'context' : 'text';
         if (body.getAttribute('data-tab') !== face) { this.setExemplarTab(face); requestAnimationFrame(go); } else go();
@@ -2034,120 +2024,6 @@
         this._ringEls = [].concat(els).filter(Boolean).map(e => [e, e.matches('[data-focus]') ? null : e.matches('[data-cite]') ? this.UNDERLINE : this.RING]);
         for (const [e, c] of this._ringEls) c ? e.classList.add(...c) : e.setAttribute('data-on', '');
       },
-      setCiteMode(v) {
-        this.citeMode = v;
-        for (const b of document.querySelectorAll('[data-exemplar-body]')) b.setAttribute('data-cites', v);
-        for (const b of document.querySelectorAll('[data-exemplar-cites]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-exemplar-cites') === v));
-        setTimeout(() => this.railDraw(), 50);
-      },
-
-      // Trial c: a rail down the card's right edge, a tick at each mark where
-      // the render has it (a bar the length of a focus passage, a short tick a
-      // citation) and a box for the part in view, as a diff's minimap draws
-      // one. A tick takes the reader to its mark; anywhere else on the rail
-      // to that point of the piece. Drawn over the card from outside the
-      // slides, so it stays put while the piece scrolls.
-      //
-      // A FINGER, NOT A POINTER. Each mark is a target the rail's full width
-      // across, out into the gutter on its left and to the card's edge on its
-      // right, its visible bar or tick drawn inside it: a focus passage owns
-      // its stretch of the rail and a little more, and a citation reaches
-      // halfway to its neighbours. Drawn only as wide as they look (six
-      // pixels), a tap a few pixels off the bar went to a citation inside the
-      // passage, so the card scrolled near the passage and a walkthrough
-      // waiting for the bar never saw it tapped (owner, iPhone, 2026-11-18).
-      railMount(card) {
-        if (this.marksMode !== 'c' || !card || card.querySelector('[data-rail]')) return;
-        card.classList.add('relative');
-        const rail = document.createElement('div');
-        rail.dataset.rail = '';
-        rail.setAttribute('aria-label', 'Marks in this piece');
-        rail.className = 'absolute z-[2] w-5 rounded-sm bg-base-200/70 cursor-pointer';
-        rail.hidden = true;
-        card.append(rail);
-        rail.addEventListener('click', e => this.railClick(e));
-        card.addEventListener('scroll', () => this.railView(), true);
-        if (typeof ResizeObserver === 'function') new ResizeObserver(() => this.railDraw()).observe(card);
-      },
-      railParts() {
-        const card = this.$refs?.exemplarCard, rail = card?.querySelector('[data-rail]');
-        const p = this.exemplarOf(this.exemplarSel);
-        const body = rail && p ? [...card.querySelectorAll('[data-exemplar-body]')].find(b => b.getAttribute('data-exemplar-body') === p.id) : null;
-        return { card, rail, p, body, box: body && this.scrollerOf(body) };
-      },
-      railDraw() {
-        const { card, rail, p, body, box } = this.railParts();
-        if (!rail) return;
-        if (!body || !box || body.getAttribute('data-tab') !== 'text' || !(p.focusSpans.length || (p.citationSpans || []).length)) { rail.hidden = true; return; }
-        rail.hidden = false;
-        rail.style.top = ((card.querySelector('[data-ls="head"]')?.offsetHeight || 0) + 8) + 'px';
-        rail.style.bottom = '8px';
-        rail.style.right = (box.offsetWidth - box.clientWidth + 2) + 'px';
-        // Positions in the rail's own pixels, a point of the piece to a point
-        // of the rail; a resize redraws.
-        const b = body.getBoundingClientRect(), H = rail.getBoundingClientRect().height || 1;
-        const y = v => (v - b.top) / (b.height || 1) * H, px = v => v.toFixed(1) + 'px';
-        const n = p.focusSpans.length, PAD = 6, CAP = 12, seen = new Set();
-        const bars = [...body.querySelectorAll('[data-focus]')].map((el, k) => {
-          const r = el.getBoundingClientRect(), t = y(r.top), h = Math.max(4, y(r.bottom) - t);
-          return { k, t, h, top: t - PAD, bot: t + h + PAD };
-        });
-        const inBar = v => bars.some(f => v >= f.top && v <= f.bot);
-        // A hidden citation has no place in the text, so it has none on the
-        // rail. A citation whose tick would touch the one above it gets none
-        // either: its place is the neighbour's, a scroll away.
-        let last = -Infinity;
-        const ticks = [];
-        for (const el of body.querySelectorAll('[data-cite]')) {
-          if (!el.getClientRects().length || seen.has(el.dataset.cite)) continue;
-          seen.add(el.dataset.cite);
-          const v = y(el.getBoundingClientRect().top);
-          if (v - last < 5) continue;
-          last = v;
-          ticks.push({ k: +el.dataset.cite, v });
-        }
-        const free = ticks.filter(t => !inBar(t.v));
-        const zones = free.map((t, i) => {
-          let top = Math.max(t.v - CAP, i ? (free[i - 1].v + t.v) / 2 : -Infinity);
-          let bot = Math.min(t.v + CAP, i < free.length - 1 ? (t.v + free[i + 1].v) / 2 : Infinity);
-          for (const f of bars) { if (f.bot > top && f.bot <= t.v) top = f.bot; if (f.top < bot && f.top > t.v) bot = f.top; }
-          return { ...t, top: Math.max(0, top), bot: Math.min(H, bot) };
-        });
-        const TICK = 'pointer-events-none absolute right-1 h-[3px] w-1.5 rounded-full bg-base-content/30';
-        const cites = zones.map(z => `<button type="button" data-rail-go="cite:${z.k}" aria-label="Citation ${z.k + 1}"`
-            + ` class="group/tick pointer-events-auto absolute inset-x-0" style="top:${px(z.top)};height:${px(z.bot - z.top)}">`
-            + `<span class="${TICK} group-hover/tick:bg-base-content/70" style="top:${px(z.v - z.top)}"></span></button>`)
-          .concat(ticks.filter(t => inBar(t.v)).map(t => `<span aria-hidden="true" class="${TICK}" style="top:${px(t.v)}"></span>`));
-        const focus = bars.map(f => `<button type="button" data-rail-go="focus:${f.k}" aria-label="${n > 1 ? `Focus ${f.k + 1} of ${n}` : 'Focus'}"`
-          + ` class="group/bar absolute -left-2 -right-0.5" style="top:${px(f.top)};height:${px(f.bot - f.top)}">`
-          + `<span class="pointer-events-none absolute left-2.5 w-1.5 rounded-sm bg-base-content/50 group-hover/bar:bg-base-content/80" style="top:${px(PAD)};height:${px(f.h)}"></span></button>`);
-        // The citations in one layer a walkthrough can name ("any tick"), the
-        // focus bars over it, so a passage's own stretch of the rail is its.
-        const html = (ticks.length ? `<div data-rail-cites class="pointer-events-none absolute inset-y-0 -left-2 -right-0.5">${cites.join('')}</div>` : '') + focus.join('');
-        // Rebuilt only when a tick moved, so a tick a reader (or a look link)
-        // is about to tap is still the element on screen when they do.
-        if (rail._ticks !== html) {
-          rail.innerHTML = `<div data-rail-view class="absolute inset-x-0 rounded-sm bg-base-content/10 pointer-events-none"></div>` + html;
-          rail._ticks = html;
-        }
-        this.railView();
-      },
-      railView() {
-        const { rail, body, box } = this.railParts();
-        const v = rail?.querySelector('[data-rail-view]');
-        if (!v || !box) return;
-        const b = body.getBoundingClientRect(), r = box.getBoundingClientRect();
-        v.style.top = Math.max(0, (r.top - b.top) / b.height * 100) + '%';
-        v.style.height = Math.min(100, r.height / b.height * 100) + '%';
-      },
-      railClick(e) {
-        const { rail, p, body, box } = this.railParts();
-        if (!p || !box) return;
-        const hit = e.target.closest('[data-rail-go]');
-        if (hit) { const [kind, k] = hit.getAttribute('data-rail-go').split(':'); return this.goMark(p.id, kind, +k); }
-        const r = rail.getBoundingClientRect(), f = (e.clientY - r.top) / r.height;
-        box.scrollTo({ top: Math.max(0, f * body.offsetHeight - box.clientHeight / 2), behavior: 'smooth' });
-      },
 
       // The pieces one at a time, the card in a takeover. Its place follows
       // the list, so closing it returns to the piece last read. The header
@@ -2178,18 +2054,11 @@
             const p = this.exemplarOf(ids[i]);
             return { title: this.listTitle(p), subtitle: [this.shortAuthor(p.author), this.shortYear(p.year)].join(' · '), group: p.genre };
           },
-          // The focus control is the slide's, so it shows while that piece is
-          // the one in view.
-          render: (i, slide, chrome = {}) => {
-            const p = this.exemplarOf(ids[i]);
+          render: (i, slide) => {
             const el = document.createElement('div');
             el.innerHTML = this.exemplarCardHtml(ids[i]);
             el.addEventListener('click', e => this.exemplarClick(e));
             slide.append(el);
-            chrome.setChrome?.({
-              actions: p.focusSpans.length ? [{ icon: 'ph-bookmark-simple', title: `Jump to the focus: ${this.focusLine(p)}`,
-                onClick: () => this.jumpToFocus(el.querySelector('[data-exemplar-body]')) }] : [],
-            });
           },
           onSlide: i => {
             const n = name(i);

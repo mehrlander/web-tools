@@ -282,7 +282,7 @@ test('the pane reads every piece and standoff once, and lists them by genre', as
   await h.model.loadExemplars();
   await h.model.loadExemplars();
   assert.equal(h.model.exemplarState, 'done');
-  assert.deepEqual(h.loads.sort(), ['kits/guide-render.js', 'kits/md-diff.js', 'kits/read-aloud.js', 'kits/standoff.js']);
+  assert.deepEqual(h.loads.sort(), ['kits/guide-render.js', 'kits/mark-pad.js', 'kits/md-diff.js', 'kits/read-aloud.js', 'kits/standoff.js']);
   assert.equal(h.model.exemplars.length, 2, 'a standoff is not a piece');
   assert.equal(h.model.exemplarSel, '', 'a slug the folder does not hold is dropped');
   const fixture = h.model.exemplarOf('fixture');
@@ -320,7 +320,7 @@ test('Text is the piece from the text proper on, with its focus marked over the 
   assert.ok(h.model.exemplarOf('fixture').doc, 'the render is kept');
 });
 
-test('a focus passage is a change container: an outline, its number, and two readings, the text and the background', async () => {
+test('a focus passage is a change container: an outline, its number, and two readings, the background and the text', async () => {
   const h = harness();
   h.model.home = home(FILES());
   await h.model.loadExemplars();
@@ -342,7 +342,7 @@ test('a focus passage is a change container: an outline, its number, and two rea
   assert.equal(num.textContent, '1', 'its number alone');
   assert.ok(num.className.startsWith(PILL + ' left-1'), 'in md-diff\'s own pill, at the top left');
   const stops = [...sec.querySelectorAll('[data-focus-reading]')];
-  assert.deepEqual(stops.map(b => b.textContent), ['text', 'context']);
+  assert.deepEqual(stops.map(b => b.textContent), ['context', 'text'], 'in the order its track runs, as md-diff\'s pill follows its track');
   assert.ok(stops[0].parentElement.className.startsWith(PILL + ' right-1'), 'the stops in md-diff\'s pill, at the top right');
   assert.ok(sec.querySelector('.sticky').contains(stops[0]) && sec.querySelector('.sticky').contains(num), 'both ride the sticky row, so a long passage keeps them in reach');
   const ctx = sec.querySelector('[data-focus-context]');
@@ -351,17 +351,17 @@ test('a focus passage is a change container: an outline, its number, and two rea
   assert.match(ctx.textContent, /12 words/);
   assert.match(ctx.textContent, /First: "plain"/, 'and the praise, which is the piece\'s');
   assert.deepEqual([...ctx.querySelectorAll('a[href^="https://"]')].map(a => a.getAttribute('href')), ['https://a.example/one', 'https://b.example/two']);
-  // A tap on a stop shows that reading and keeps the reader at the passage.
+  // Before a track takes them, a tap on a stop shows that reading in place
+  // and keeps the reader at the passage.
   const went = [];
   h.model.scrollToMark = (b, el) => went.push(el.getAttribute('data-focus'));
   assert.equal(h.model.exemplarClick({ target: host.querySelector('[data-focus-reading="context"]') }), true);
   assert.equal(sec.getAttribute('data-reading'), 'context');
-  assert.deepEqual(stops.map(b => b.getAttribute('aria-pressed')), ['false', 'true']);
+  assert.deepEqual(stops.map(b => b.getAttribute('aria-pressed')), ['true', 'false']);
   assert.deepEqual(went, ['0'], 'back to the top of the passage, since the box follows the reading');
   assert.ok(sec.hasAttribute('data-on'), 'the passage the reader picked is the one selected');
   assert.match(sec.className, /data-\[on\]:bg-\[/, 'selected, it is washed on either reading');
   assert.doesNotMatch(sec.querySelector('[data-focus-context]').textContent, /passage 1 of/, 'the count is the pill\'s and the pad\'s, not said again');
-  assert.equal(h.model.focusAt.fixture, 0, 'and the passage is where the reader now is');
   h.model.exemplarClick({ target: host.querySelector('[data-focus-reading="text"]') });
   assert.equal(sec.getAttribute('data-reading'), 'text');
   assert.ok(sec.hasAttribute('data-on'), 'and it stays selected, not a flash');
@@ -370,6 +370,54 @@ test('a focus passage is a change container: an outline, its number, and two rea
   assert.equal(h.model.exemplarClick({ target: num }), true);
   assert.ok(sec.hasAttribute('data-on'), 'a tap on its number claims it, as md-diff\'s index does');
   dom.window.document.body.replaceChildren();
+});
+
+test('a passage swipes between its readings as md-diff\'s container does: context, then text, landing on text', async () => {
+  const h = harness();
+  h.model.home = home(FILES());
+  await h.model.loadExemplars();
+  const host = dom.window.document.createElement('div');
+  host.dataset.part = 'detail';
+  host.innerHTML = h.model.exemplarCardHtml('fixture');
+  dom.window.document.body.replaceChildren(host);
+  const sec = host.querySelector('[data-focus]');
+  // swipe-deck's core, as far as the passage uses it.
+  const made = [];
+  h.window.swipeDeck = { core: (n, fill, o) => {
+    const doc = dom.window.document, track = doc.createElement('div'), listeners = [], went = [];
+    for (let i = 0; i < n; i++) { const slide = doc.createElement('section'); slide.append(doc.createElement('div')); track.append(slide); }
+    const d = { track, o, went, go: (i, b) => went.push([i, b || '']), active: () => 1, onSlide: cb => listeners.push(cb),
+                build: i => fill(i, track.children[i].firstElementChild), slide: a => listeners.forEach(cb => cb(a)) };
+    made.push(d);
+    return d;
+  } };
+  const frames = [];
+  globalThis.requestAnimationFrame = fn => frames.push(fn);
+  try {
+    h.model.mountFocus(sec);
+    h.model.mountFocus(sec);
+    assert.equal(made.length, 1, 'one track a passage, however often it is asked');
+    const d = made[0];
+    assert.equal(d.o.slideScroll, false, 'the slides hand the vertical axis to the card, as md-diff\'s do');
+    assert.equal(d.o.snapStop, true, 'one stop per flick');
+    assert.equal(d.o.start, 1);
+    assert.ok(d.track.children[0].querySelector('[data-focus-context]') && d.track.children[1].querySelector('[data-focus-text]'), 'context, then text');
+    assert.doesNotMatch(d.track.children[0].querySelector('[data-focus-context]').className, /(^|\s)hidden(\s|$)/, 'in a track a reading is shown by its slide');
+    assert.ok(sec.children[1].hasAttribute('data-focus-track') && sec.children[1].contains(d.track), 'the track sits under the sticky row');
+    assert.ok(!sec.querySelector('.sticky').contains(d.track), 'and the pills ride outside it');
+    frames.forEach(f => f());
+    assert.deepEqual(d.went, [[1, 'instant']], 'it lands on text without a glide');
+    d.slide(0);
+    assert.equal(sec.getAttribute('data-reading'), 'context', 'the reading follows the slide in view');
+    assert.deepEqual([...sec.querySelectorAll('[data-focus-reading]')].map(b => b.getAttribute('aria-pressed')), ['true', 'false']);
+    assert.equal(h.model.exemplarClick({ target: sec.querySelector('[data-focus-reading="text"]') }), true);
+    assert.deepEqual(d.went.at(-1), [1, ''], 'a tap on a stop goes there through the track');
+    assert.ok(sec.hasAttribute('data-on'), 'and selects the passage');
+    assert.match(SRC, /overscroll-x-contain|swipeDeck\.core\(2/, 'the track is core\'s, whose sideways scroll stays its own inside a deck');
+  } finally {
+    delete globalThis.requestAnimationFrame;
+    dom.window.document.body.replaceChildren();
+  }
 });
 
 test('Context holds the title, the praise, the caption and where the copy came from', async () => {
@@ -393,7 +441,7 @@ test('Context holds the title, the praise, the caption and where the copy came f
   assert.equal(plain.querySelector('[data-pane="text"] p').textContent, 'Only a paragraph.');
 });
 
-test('one face for every card: the toggle switches each body, and the focus jump shows Text', async () => {
+test('one face for every card: the toggle switches each body', async () => {
   const h = harness();
   h.model.home = home(FILES());
   await h.model.loadExemplars();
@@ -407,35 +455,22 @@ test('one face for every card: the toggle switches each body, and the focus jump
   assert.equal(h.model.exemplarTab, 'context');
   assert.match(render(h.model.exemplarCardHtml('fixture')).innerHTML, /data-tab="context"/, 'a card drawn later opens on the same face');
   assert.deepEqual([...host.querySelectorAll('[data-exemplar-tab="context"]')].map(b => b.getAttribute('aria-selected')), ['true', 'true']);
-  const frames = [];
-  globalThis.requestAnimationFrame = fn => frames.push(fn);
-  h.model.exemplarClick({ target: host.querySelector('[data-exemplar-focus] i') });
-  assert.deepEqual(bodies(), ['text', 'text'], 'the focus is in Text, so the jump shows Text first');
-  assert.equal(frames.length, 1, 'and then jumps');
-  delete globalThis.requestAnimationFrame;
   dom.window.document.body.replaceChildren();
 });
 
-test('the focus control sits in the head beside the counter, and finds its own piece', async () => {
+test('the head holds the voice beside the counter, and no jump to the focus: the pad does that', async () => {
   const h = harness();
   h.model.home = home(FILES());
   await h.model.loadExemplars();
   // The door's look is swipe-deck's; only its presence is held here.
   h.window.swipeDeck = { entry: { cls: () => 'btn', title: n => `Read ${n} pieces one at a time`, icon: 'ph-cards-three' } };
   const head = render(h.model.exemplarHead(1, 2, false));
-  const kids = [...head.children].map(e => e.tagName + (e.hasAttribute('data-exemplar-focus') ? ':focus' : e.hasAttribute('data-exemplar-speak') ? ':voice' : ''));
-  assert.deepEqual(kids.slice(0, 3), ['H2', 'BUTTON:voice', 'BUTTON:focus'], 'after the title, before the counter and the door');
+  const kids = [...head.children].map(e => e.tagName + (e.hasAttribute('data-exemplar-speak') ? ':voice' : ''));
+  assert.deepEqual(kids.slice(0, 2), ['H2', 'BUTTON:voice'], 'after the title, before the counter and the door');
   assert.match(head.querySelector('h2').textContent, /Fixture$/, 'the head shows the short title');
   assert.ok(head.querySelector('[data-swipe-cards]'), 'the door stays');
-  assert.match(head.querySelector('[data-exemplar-focus]').getAttribute('data-title-tip'), /12 of 38 words/);
-  assert.equal(render(h.model.exemplarHead(0, 2, false)).querySelector('[data-exemplar-focus]'), null, 'a piece with no focus has none');
-  const detail = dom.window.document.createElement('div');
-  detail.dataset.part = 'detail';
-  detail.innerHTML = head.innerHTML + '<section>' + h.model.exemplarCardHtml('short') + '</section><section>' + h.model.exemplarCardHtml('fixture') + '</section>';
-  const jumped = [];
-  h.model.jumpToFocus = body => jumped.push(body.getAttribute('data-exemplar-body'));
-  assert.equal(h.model.exemplarClick({ target: detail.querySelector('[data-exemplar-focus] i') }), true);
-  assert.deepEqual(jumped, ['fixture']);
+  assert.equal(head.querySelector('[data-exemplar-focus], .ph-bookmark-simple'), null, 'no focus button');
+  assert.doesNotMatch(SRC, /data-exemplar-focus|jumpToFocus|focusButton/, 'nor its code');
 });
 
 test('a ref from before `caption`, or a stale standoff, shows the whole body and says nothing in its place', async () => {
@@ -477,9 +512,7 @@ test('the address keeps the open piece, and the deck keeps its place', async () 
   assert.equal(opened[0].index(1).group, 'opinion');
   const chrome = [];
   opened[0].render(1, dom.window.document.createElement('section'), { setChrome: c => chrome.push(c) });
-  assert.equal(chrome[0].actions.length, 1, 'the slide holds its focus control');
-  opened[0].render(0, dom.window.document.createElement('section'), { setChrome: c => chrome.push(c) });
-  assert.deepEqual(chrome[1].actions, [], 'a piece with no focus has none');
+  assert.deepEqual(chrome, [], 'the deck\'s header carries no focus control: the pad does that');
   opened[0].onSlide(0);
   const at = new URL(h.location.href).searchParams;
   assert.equal(at.get('deck'), 'exemplars');
@@ -585,71 +618,14 @@ test('the card speaks the piece in view from its head, and the deck reads from t
   opened[0].onClose();
 });
 
-test('?marks= trials offer the piece\'s marks in file order, and the default offers none', async () => {
-  const marked = async (q) => {
-    const h = harness(q);
-    h.model.home = home(FILES());
-    await h.model.loadExemplars();
-    h.model.pane = 'exemplars';
-    h.model.exemplarSel = 'fixture';
-    return h.model;
-  };
-  const plain = await marked('');
-  assert.equal(plain.marks, null, 'without ?marks= the FAB is offered nothing');
-  assert.equal(render(plain.exemplarCardHtml('fixture')).querySelector('[data-cite]'), null, 'and the render is unchanged');
-  const a = await marked('?marks=a');
-  assert.equal(a.marks.style, 'tab');
-  assert.deepEqual(a.marks.items.map(m => m.key), ['caption', 'focus0', 'citations'], 'in the order the file has them');
-  const cites = a.marks.items[2];
-  assert.equal(cites.count, 2, 'every citation is one row');
-  const card = render(a.exemplarCardHtml('fixture'));
-  assert.deepEqual([...new Set([...card.querySelectorAll('[data-cite]')].map(e => e.dataset.cite))], ['0', '1']);
-  assert.equal([...card.querySelectorAll('[data-cite="0"]')].map(e => e.textContent).join(''), 'Doe v. Roe, 2 U.S. 2', 'cut at its own edges');
-  cites.choice.set('dim');
-  assert.equal(a.citeMode, 'dim');
-  assert.match(render(a.exemplarCardHtml('fixture')).innerHTML, /data-cites="dim"/, 'a card drawn later is drawn the same way');
-  const went = [];
-  a.goMark = (id, kind, k) => went.push([id, kind, k]);
-  a.stepMark(1);
-  a.stepMark(-1);
-  assert.deepEqual(went.map(w => w.slice(0, 2).join(' ')), ['fixture caption', 'fixture cite'], 'a first step forward is the first mark; back is the last');
-  const b = await marked('?marks=b');
-  assert.equal(b.marks.style, 'stepper');
-  const c = await marked('?marks=c');
-  assert.equal(c.marks, null, 'the rail is the card\'s own, not the FAB\'s');
-  assert.match(c.exemplarHead(1, 2, false), /focus 1\/1/, 'the head\'s chip says which passage');
-  const cc = render(c.exemplarCardHtml('fixture'));
-  assert.deepEqual([...cc.querySelectorAll('[data-exemplar-cites]')].map(b => b.dataset.exemplarCites), ['show', 'dim', 'hide'],
-    'trial c draws the citations\' look beside the faces');
-  c.exemplarClick({ target: cc.querySelector('[data-exemplar-cites="dim"] i') });
-  assert.equal(c.citeMode, 'dim');
-  assert.equal(render(a.exemplarCardHtml('fixture')).querySelector('[data-exemplar-cites]'), null, 'a and b keep it in the FAB');
-});
-
-test('under a FAB trial the page announces its marks to its own window and the one framing it', async () => {
-  const h = harness('?marks=b&exemplar=fixture');
-  const heard = [];
-  const win = name => ({ CustomEvent: class { constructor(t) { this.type = t; } }, dispatchEvent: e => heard.push(name + ' ' + e.type) });
-  Object.assign(h.window, win('page'));
-  h.window.parent = win('shell');
-  h.model.home = home(FILES());
-  await h.model.loadExemplars();
-  assert.deepEqual(heard, ['page fab:marks', 'shell fab:marks'], 'once the pieces are read, in both windows');
-  assert.match(SRC, /\$watch\('marksSig', \(\) => \{ this\.announceMarks\(\);/, 'and again whenever the marks change');
-  const c = harness('?marks=c');
-  heard.length = 0;
-  Object.assign(c.window, win('page'));
-  c.model.announceMarks();
-  assert.deepEqual(heard, [], 'the rail is the page\'s own; the FAB is not told');
-});
-
-test('trial d steps through the passages, or the citations once chosen, through the page\'s own pad', async () => {
-  const h = harness('?marks=d&exemplar=fixture');
+test('the pad steps through the passages, or the citations once chosen, on every piece with marks', async () => {
+  const h = harness('?exemplar=fixture');
   h.model.home = home(FILES());
   await h.model.loadExemplars();
   h.model.pane = 'exemplars';
-  assert.ok(h.loads.includes('kits/mark-pad.js'), 'the pad is the page\'s own, loaded under d alone');
-  assert.equal(h.model.marks, null, 'the FAB is not involved');
+  assert.ok(h.loads.includes('kits/mark-pad.js'), 'the pad is the page\'s own, with no trial to ask for it');
+  assert.equal('marks' in h.model, false, 'the FAB\'s marks contract is gone');
+  assert.doesNotMatch(SRC, /marksMode|\?marks=|railDraw|citesControl/, 'and so are the trials');
   assert.deepEqual(h.model.padItems().map(m => m.label), ['caption', 'focus 1 of 1'], 'by default the passages, in file order');
   h.model.padKind = 'citations';
   assert.deepEqual(h.model.padItems().map(m => m.label), ['citation 1 of 2', 'citation 2 of 2'], 'then the citations, one at a time');
@@ -667,7 +643,7 @@ test('trial d steps through the passages, or the citations once chosen, through 
   h.model.pad = null;
   h.model.pane = 'probes';
   assert.deepEqual(h.model.padItems(), [], 'no pad on another pane');
-  assert.match(SRC, /\$watch\('marksSig', \(\) => \{ this\.announceMarks\(\); this\.pad\?\.refresh\(\); \}\)/, 'the pad follows every change of marks');
+  assert.match(SRC, /\$watch\('padSig', \(\) => this\.pad\?\.refresh\(\)\)/, 'the pad follows every change of piece or kind');
 });
 
 test('the header comment names the pane, its faces and its address', () => {
@@ -677,7 +653,9 @@ test('the header comment names the pane, its faces and its address', () => {
   assert.match(head, /<slug>\.citations\.standoff\.json/);
   assert.match(head, /\?exemplar=<slug> opens one piece and implies the exemplars pane/);
   assert.match(head, /runs or exemplars/);
-  assert.match(head, /\?marks=a\|b\|c\|d trials a way through a piece's marks/);
+  assert.doesNotMatch(head, /\?marks=/, 'no trials left to ask for');
+  assert.match(head, /A pad over the FAB \(kits\/mark-pad\.js\)/);
+  assert.match(head, /context and text, that swipes between them/);
   assert.match(SRC, /x-ref="exemplarList" role="listbox"/);
   assert.doesNotMatch(SRC, /tip\.kind === 'exemplar'/, 'Context holds what the panel-tip did');
 });
