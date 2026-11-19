@@ -1,6 +1,6 @@
 # House policies
 
-Each policy states a single preference. A policy that applies only to a private repo goes in that repo's CLAUDE.md.
+Each policy states a single preference as something to do; a thing to avoid goes in the [peeves list](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md). A policy that applies only to a private repo goes in that repo's CLAUDE.md.
 
 ## Writing
 
@@ -9,17 +9,6 @@ Each policy states a single preference. A policy that applies only to a private 
 Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports.
 
 **Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
-
-### No em dashes · `h:dash`
-
-Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
-
-- Em dashes may have been fine once, but they are now an easy button for AI, and we would rather stick to standard professional writing.
-- A quotation keeps the punctuation of its source.
-
-**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph.
-
-**See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
 
 ### Showing · `h:show`
 
