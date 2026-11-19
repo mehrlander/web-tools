@@ -21,10 +21,10 @@
   places); the card's door opens the same cards as a deck. A card is the run's
   input, scrolled to the passage its output rests on, over the output and its
   verdict. A move to another output of the run stays on the card: the input
-  glides to that output's passage. Every passage opens with its output's
-  number, as on the output's tab; the card's own are tinted primary, the others
-  quieter, and a tap on one goes to it. A passage and its tab light together
-  (rule 16).
+  glides to that output's passage. Every passage carries its output's number,
+  as on the output's tab, in a disc on its top-left corner that takes no room
+  in the line; the card's own are tinted primary, the others quieter, and a
+  tap on one goes to it. A passage and its tab light together (rule 16).
 -->
 <script type="module">
   const use = new URLSearchParams(location.search).get('use');
@@ -96,8 +96,13 @@
   // A passage's fill: the card's own output's in primary, the others' quieter;
   // a passage under the pointer, and its counterparts, deepen (data-hot).
   const FILL = { cur: 'bg-primary/20 data-hot:bg-primary/35', other: 'bg-base-content/10 data-hot:bg-base-content/20' };
-  // A passage's number: the card head's output pill (linked-swiper).
-  const BADGE = 'badge badge-sm mr-1 px-1.5 font-mono font-medium tabular-nums select-none';
+  // A passage's number: a 14px disc on its top-left corner, out of the line,
+  // between the caps under it and the line or label over it. The input pane's
+  // leading (INPUT) and the label's margin leave it that room, a pixel clear
+  // each way, in the strip and in the deck.
+  const BADGE = 'grid h-3.5 min-w-3.5 cursor-pointer place-items-center rounded-full border px-[2px] font-mono text-[11px] leading-none font-semibold tabular-nums';
+  const DISCS = 'absolute -top-[11px] -left-[9px] flex gap-px select-none';
+  const INPUT = { strip: 'px-3.5 leading-8', deck: 'px-4 leading-9' };
   // A tab under the pointer, or whose passage is.
   const HOT = ['ring-1', 'ring-primary'];
 
@@ -191,9 +196,9 @@
   // A badge's colours: primary on the card's own output, as its tab and the
   // head's pill are, else its verdict's, as the stance tag takes its stance's.
   const badgeTone = (run, out, own) => {
-    if (own) return 'badge-primary';
+    if (own) return 'border-primary bg-primary text-primary-content';
     const v = stateOf(keyOf(run, out)).verdict;
-    return v ? tone(v).tag : TONE.neutral.tag;
+    return v ? tone(v).tag + ' text-base-content' : 'border-transparent bg-base-content/55 text-base-100';
   };
   const doneOf = r => r.outputs.filter(o => stateOf(keyOf(r.id, o.id)).verdict).length;
   const countOf = r => doneOf(r) + '/' + r.outputs.length;
@@ -238,10 +243,10 @@
   }
 
   // A block's text with each anchored span marked; overlapping spans split
-  // into runs that carry every output resting on them. A passage opens with
-  // its output's number. A run the card's own output rests on takes the
-  // primary fill; its first anchor's opening run is data-first, where
-  // place() scrolls.
+  // into runs that carry every output resting on them. A passage's opening
+  // run carries its output's number. A run the card's own output rests on
+  // takes the primary fill; its first anchor's opening run is data-first,
+  // where place() scrolls.
   function marked(r, b, own) {
     const spans = r.outputs.flatMap(o => o.spans.filter(s => s.block === b.id).map(s => ({ o, at: s.at })));
     const first = own?.spans[0];
@@ -256,7 +261,7 @@
       const nums = spans.filter(s => s.at[0] === a).map(({ o }) =>
         `<span data-badge="${esc(o.id)}" class="${BADGE} ${badgeTone(r.id, o.id, o === own)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
       h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} data-title-tip-bare tabindex="-1"`
-        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}rounded-sm text-inherit box-decoration-clone ${mine ? FILL.cur : FILL.other}">${nums}${t}</mark>`;
+        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative rounded-sm text-inherit box-decoration-clone ${mine ? FILL.cur : FILL.other}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
     }
     return h;
   }
@@ -270,7 +275,7 @@
     const pad = big ? 'px-4' : 'px-3.5';
     const blocks = r.source.blocks.map(b => `
       <section data-block="${esc(b.id)}" class="flex flex-col py-1.5">
-        <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
+        <h3 class="mb-px font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${marked(r, b, o)}</p>
       </section>`).join('');
     // The seam is the card head's (linked-swiper), on the panel's top edge.
@@ -286,7 +291,7 @@
     // A tap in the input moves to an output, whose words the panel then
     // shows, so it opens no tip there; a hover does.
     return `<div data-scope="${esc(r.id)}" data-flag="${esc(o?.id || '')}" class="flex h-full min-h-0 flex-col ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
-      <div data-pane="in" data-title-tip-tap="none" class="min-h-0 flex-1 overflow-y-auto overscroll-contain ${pad} py-1 [scrollbar-gutter:stable]">${blocks}</div>${out}</div>`;
+      <div data-pane="in" data-title-tip-tap="none" class="min-h-0 flex-1 overflow-y-auto overscroll-contain ${big ? INPUT.deck : INPUT.strip} py-1 [scrollbar-gutter:stable]">${blocks}</div>${out}</div>`;
   }
 
   // The output's passage a third of the way down the input, once the card
