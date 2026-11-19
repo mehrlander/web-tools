@@ -65,11 +65,10 @@ The house CDN stack survives the CSP once baked. The steps:
 
 **Keep the page light.** Pages have no dark mode
 ([html-style rule 19](../skills/html-style/SKILL.md)). The artifact viewer's
-light/dark toggle stamps `data-theme` on the root element. The baked daisyUI
-turns dark when that value is `dark`. Step 3 drops `<html>` along with any
-theme set on it. Set `data-theme="light"` on the wrapper `<div>` instead; the baked CSS
-carries only daisyUI's `light` and `dark` themes, not `winter`.
-daisyUI themes the subtree of any element that sets `data-theme`.
+light/dark toggle stamps `data-theme` on the root element. The bake compiles
+only the themes the page sets, its root theme the default. A stamped `dark`
+matches no compiled theme. The page's own theme stays on the root as the
+default, even after step 3 drops `<html>`.
 
 ## Identity and editing
 
