@@ -28,7 +28,6 @@
 // (1-based); `left` picks the leftmost, which on the scatter is a dot with
 // no other over it. The tap goes to the match's own place on the screen, so
 // the driver scrolls nothing to reach it.
-// USAGE_THEME=<daisyUI theme> sets the page's theme, dark for the dark hues.
 //
 // The stand-in answers the two reads the pane makes: the listings under
 // sessions/usage, each file with its git blob sha, and a blob by that sha.
@@ -96,10 +95,6 @@ export default async (page, ctx) => {
   }, { pane, scope: process.env.USAGE_SCOPE || '', usage: String(usage) });
   await page.waitForFunction(`(${usage})().r`, null, { timeout: 30000 });
   await page.waitForTimeout(700);
-  if (process.env.USAGE_THEME) {
-    await page.evaluate((t) => { document.documentElement.dataset.theme = t; }, process.env.USAGE_THEME);
-    await page.waitForTimeout(400);
-  }
   const mark = +(process.env.USAGE_MARK || 0);
   if (mark && pane === 'compactions') {
     await page.evaluate((n) => {

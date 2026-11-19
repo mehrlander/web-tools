@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -15,7 +15,7 @@
   the page only as text or bound attributes. The JSON Explorer kit is the
   maintained explorer; this page keeps ideas for it.
 -->
-<body class="bg-base-100 text-base-content" x-data="lens" x-effect="document.documentElement.dataset.theme = theme"
+<body class="bg-base-100 text-base-content" x-data="lens"
       @keydown.window="key($event)" @dragover.window.prevent @drop.window.prevent="dropFile($event)">
 <div class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_auto_minmax(0,1fr)]">
 
@@ -37,9 +37,6 @@
       <i class="ph ph-magnifying-glass opacity-60"></i>
       <input x-ref="filter" type="search" placeholder="Filter  /" class="font-mono" x-model.debounce.120ms="query">
     </label>
-    <button class="btn btn-sm btn-ghost btn-square" @click="theme = theme === 'dark' ? 'light' : 'dark'" aria-label="Toggle theme">
-      <i class="ph" :class="theme === 'dark' ? 'ph-moon' : 'ph-sun'"></i>
-    </button>
   </header>
 
   <div class="flex flex-col gap-1.5 px-3 py-2 border-b border-base-300 min-w-0">
@@ -460,7 +457,6 @@ document.addEventListener('alpine:init', () => Alpine.data('lens', () => ({
   palette: ['bg-blue-600', 'bg-green-700', 'bg-violet-600', 'bg-rose-600', 'bg-amber-600', 'bg-teal-700'],
   typeTone: { string: 'text-success', number: 'text-info', boolean: 'text-secondary', null: 'text-error', object: 'opacity-60', array: 'opacity-60' },
   kindIcon: { image: 'ph-image', date: 'ph-clock', url: 'ph-link' },
-  theme: matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   data: null, source: '', path: [], collapsed: new Set(), query: '', total: 0,
   sheet: false, toast: '', url: '', pasted: '', error: '',
 
