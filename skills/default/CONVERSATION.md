@@ -15,7 +15,7 @@ substituting the current repo in URL templates.
   - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation.
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment.
-  - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval. Say what the session will do once it is given.
+  - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes. Say what the session will do once approval is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** The session's work is complete; the reader can end the session or bring more.
   - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
@@ -26,9 +26,9 @@ substituting the current repo in URL templates.
   Use 🟢 for a closing state that needs only confirmation to proceed; save ⚖️ **Choice needed:** for competing proposals that would go in different directions, and use it only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
   The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
-  - 👁️‍🗨️ a look link ([Displaying content](#displaying-content)), with two or more pages, drafts or changes in one link, a step on each;
-  - ✍️ the call deck at the reply's first documentation call ([doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md));
-  - ⚖️ a user call's page, when the choice is filed as one.
+  - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
+  - ✍️ the call deck, `…/pages/session.html#id=<short>&user-call=<slug>`, opened at the reply's first documentation call;
+  - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
 * **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. Reply to a wake (a nudge, stop hook, finished job, PR event, or moved base) when it brings the reader a result they are waiting for, a problem the session cannot settle, or one of the events listed under [PR events](#pr-events), and end that reply on a state only when the state has changed. For any other wake, end the turn without text; where the harness requires visible output, write the line a hook supplies or, without one, one line that opens with the wake's name, such as `Stop hook:`.
 
