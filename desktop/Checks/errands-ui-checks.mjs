@@ -43,6 +43,8 @@ const flush=()=>new Promise(resolve=>setImmediate(resolve));await flush();
 const check=(condition,message)=>{assert.ok(condition,message);checks++;};
 const click=selector=>{const node=doc.querySelector(selector);assert.ok(node,selector);node.click();};
 const rows=()=>[...doc.querySelectorAll('[data-er-row]')].map(n=>n.dataset.erRow);
+const contexts=[],setContext=w.NowViews.setContext;
+w.NowViews.setContext=item=>{contexts.push(item);setContext?.(item);};
 click('[data-view=errands]');
 check(!doc.querySelector('#panel-errands').inert&&doc.querySelector('#panel-now').inert&&doc.querySelector('#view-title').textContent==='Errands','The title dropdown opens a separate focused queue.');
 check(JSON.stringify(rows())===JSON.stringify(['claude-first','codex-wait','gemini-wait']),'Waiting work spans all three vendors, oldest first, without invalid IDs or unknown vendors.');
@@ -142,10 +144,12 @@ for(const change of [{state:'claimed'},{state:'complete'},{provider:'Gemini'}]){
 click('[data-er-tab=taken]');click('[data-er-menu=codex-claimed]');
 check(!doc.querySelector('.erl-menu [data-er-handoff]'),'Taken-on errands do not offer a second work handoff.');
 click('[data-er-pick=codex-claimed]');
+check(contexts.at(-1)?.id==='codex-claimed','Opening an errand shares the selected saved item with the active view header.');
 check(doc.querySelector('.erl-panel').textContent.includes('continued execution is not confirmed')||doc.querySelector('.erl-panel').textContent.includes('Continued execution is not confirmed'),'A claim does not masquerade as running work.');
 check(doc.querySelector('.erl-panel').textContent.includes('Taken on')&&doc.querySelector('.erl-panel').textContent.includes('Laptop'),'Claim time and execution venue are available in detail.');
 doc.querySelector('.erl-panel').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
 check(doc.querySelector('.erl-panel').hidden&&doc.activeElement.dataset.erPick==='codex-claimed','Escape closes detail and restores row focus without scrolling.');
+check(contexts.at(-1)===null,'Closing an errand detail clears its header context.');
 click('[data-er-tab=results]');
 check(doc.querySelector('[data-er-provider=Codex] small').textContent==='1'
   && doc.querySelector('[data-er-provider=Codex] small').getAttribute('aria-label')==='1 results',
@@ -201,6 +205,24 @@ click('[data-er-pick=code-result]');await flush();
 check(doc.querySelectorAll('.erl-report pre').length===2
   &&doc.querySelector('.erl-report').textContent.includes('const answer = 42;'),
   'Unrecognized JSON and intentional source code remain normal code blocks.');
+report='Cancelled by owner';
+snapshot.items.push({...job('cancelled-result','Codex','declined'),url:'https://mehrlander.github.io/web-tools/app/?repo=mehrlander/web-tools-private&ref=background&view=files&file=errands%2Fresults%2Fcancelled-result.json'});
+await w.NowErrands.refresh();click('[data-er-pick=cancelled-result]');await flush();
+check(doc.querySelector('[data-er-row=cancelled-result] .erl-declined')?.getAttribute('aria-label')==='Declined'
+  &&doc.querySelector('.erl-panel .erl-declined')&&!doc.querySelector('.erl-panel .erl-complete,.erl-panel .erl-failed')
+  &&doc.querySelector('.erl-report')?.textContent.trim()==='Cancelled by owner',
+  'A declined result keeps its neutral status and saved cancellation reason instead of claiming completion or failure.');
+click('[data-er-menu=cancelled-result]');
+check(doc.querySelector('.erl-menu a')?.textContent.includes('Open result')&&!doc.querySelector('.erl-menu [data-er-handoff]'),
+  'Declined errands keep their saved result link and cannot be handed off as waiting work.');
+check(w.NowView.sessionActions(snapshot.items.find(item=>item.id==='cancelled-result')).includes('Open result'),
+  'Shared errand actions identify a decline as a saved result.');
+click('[data-er-pick=cancelled-result]');
+const currentView=w.NowViews.current,beforeInactive=contexts.length;
+w.NowViews.current=()=> 'now';await w.NowErrands.refresh();w.NowViews.current=currentView;
+check(contexts.length===beforeInactive,'An inactive errand refresh cannot replace another panel header context.');
+snapshot.items=snapshot.items.filter(item=>item.id!=='cancelled-result');await w.NowErrands.refresh();
+check(contexts.at(-1)===null&&doc.querySelector('.erl-panel').hidden,'Removing the selected saved errand clears its detail and header context.');
 click('[data-er-tab=waiting]');offline=true;await w.NowErrands.refresh();
 check(doc.querySelector('.erl-notice').textContent.includes('Saved queue')&&rows().length===3,'A connection failure preserves the saved queue with a visible warning.');
 offline=false;snapshot.items=[];await w.NowErrands.refresh();

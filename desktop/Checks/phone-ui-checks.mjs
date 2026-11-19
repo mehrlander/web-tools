@@ -20,10 +20,11 @@ let snapshot={schemaVersion:1,machineName:'Fixture laptop',observedAt:now,source
  {...item('errand:second','queued'),id:'second',createdAt:earlier(20)}, {...item('errand:first','queued'),id:'first',createdAt:earlier(90)},
  item('accepted','claimed'),{...item('failed','failed'),needsAttention:true},
  {...item('cloud:cloud','idle','Claude'),id:'cloud',kind:'cloud',location:'Cloud',title:'Cloud work',url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session=cloud',sessionUrl:'https://claude.ai/code/session_fixture',turn:{prompt:'Please inspect the queue.',response:'**A fresh reply** <b>untrusted</b>',startedAt:earlier(60),updatedAt:now,lastTool:'Read'},checkpoint:{summary:'An older checkpoint',headline:'Prior work',at:earlier(300),turns:[{turn:1,headline:'Result',summary:'Finished the work',files:2,pushes:1,agents:1}],links:[{label:'home #72',url:'https://github.com/mehrlander/home/pull/72'},{label:'bad',url:'javascript:alert(1)'}]}},
- {...item('result','complete'),title:'A complete result',url:'javascript:alert(1)'}, {...item('quiet','quiet','Codex'),kind:'session'}
+ {...item('result','complete'),title:'A complete result',url:'javascript:alert(1)'}, {...item('quiet','quiet','Codex'),kind:'session'},
+ {...item('declined','declined'),title:'An unanswered request'}, {...item('cloud:unknown','unknown','Claude'),kind:'cloud',title:'A recorded session'}
 ],changes:[{key:'archived',id:'change-one',provider:'Claude',title:'Removed from current feed',state:'working',at:earlier(40),detail:'Historical update',location:'Cloud'},{key:'session:Codex:child',id:'child',provider:'Codex',title:'Delegated child',state:'working',at:now,detail:'Child update',location:'Laptop'}],events:[{id:'event',sessionId:'cloud',provider:'Claude',at:earlier(20),state:'working',detail:'Read the changed files'}],usage:[]};
 w.fetch=async(path,options={})=>{fetches++;lastHeaders=options.headers;if(offline)throw Error('Offline');if(denied)return{ok:false,status:403};if(path.startsWith('/api/v1/results/')){replyFetches++;return{ok:true,json:async()=>({reply:'Result <script>alert(1)</script>'})};}return{ok:true,status:200,headers:{get:()=> 'etag'},json:async()=>structuredClone(snapshot)};};
-for(const path of ['../../lib/kits/claude-mark.js','../../lib/kits/assistant-mark.js','../shared/now-shared.js','../shared/usage-view.js','../shared/recent-usage.js','../../node_modules/marked/lib/marked.umd.js','../../node_modules/dompurify/dist/purify.min.js','../phone/reading.js','../phone/views.js','../phone/phone.js'])w.eval(read(path));
+for(const path of ['../../lib/kits/claude-mark.js','../../lib/kits/assistant-mark.js','../../lib/kits/panel-tip.js','../shared/phone-info.js','../shared/now-shared.js','../shared/usage-view.js','../shared/recent-usage.js','../../node_modules/marked/lib/marked.umd.js','../../node_modules/dompurify/dist/purify.min.js','../phone/reading.js','../phone/views.js','../phone/phone.js'])w.eval(read(path));
 const css=doc.createElement('style');css.textContent=read('../phone/phone-ui.css');doc.head.append(css);
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const check=(value,message)=>{assert.ok(value,message);checks++;};
@@ -40,11 +41,29 @@ check(doc.querySelectorAll('#content [data-launch]').length===doc.querySelectorA
 check(!doc.querySelector('#content img')&&row('session:Codex:local').textContent.includes('Reduced spacing and checked navigation.')&&row('session:Codex:local').textContent.includes('2 agents'),'Work summaries and delegated counts stay visible as escaped text.');
 check(row('cloud:cloud').querySelector('.phone-meta').classList.contains('text-xs')&&row('cloud:cloud').querySelector('.phone-meta').classList.contains('leading-5')&&row('cloud:cloud').querySelector('[data-location=Cloud]').getAttribute('aria-label')==='Cloud','Metadata retains its 12px utility tier and readable line height, with an accessible cloud location mark.');
 check([...doc.querySelectorAll('[aria-label=Waiting] [data-pick]')].map(n=>n.dataset.pick).join(',')==='errand:first,errand:second','The waiting queue keeps its oldest-first request order.');
-check(row('failed').querySelector('[data-status]').getAttribute('aria-label')==='Needs review: failed'&&row('accepted').querySelector('[data-status]').getAttribute('aria-label').includes('Claimed')&&row('quiet').querySelector('[data-status]').getAttribute('aria-label')==='No recent activity','Failure, acceptance, and quiet states do not become requests for a reply or fabricated running work.');
+check(row('failed').querySelector('[data-status]').getAttribute('aria-label')==='Needs review: failed'&&row('accepted').querySelector('[data-status]').getAttribute('aria-label').includes('Accepted')&&row('quiet').querySelector('[data-status]').getAttribute('aria-label')==='No recent update','Failure, acceptance, and quiet states do not become requests for a reply or fabricated running work.');
+check(row('session:Codex:local').closest('section').getAttribute('aria-label')==='In progress'
+ &&row('accepted').closest('section').getAttribute('aria-label')==='Accepted'
+ &&row('quiet').closest('section').getAttribute('aria-label')==='No recent update',
+ 'Only observed working sessions are grouped as In progress; acceptance and missing updates remain separate observations.');
+check(row('cloud:unknown').closest('section').getAttribute('aria-label')==='Other recent'&&row('cloud:unknown').querySelector('[data-status]').getAttribute('aria-label')==='Recorded'
+ &&row('declined').querySelector('[data-status]').getAttribute('aria-label')==='Declined'&&!row('declined').closest('[aria-label="Needs you"]'),
+ 'Unknown session state remains Recorded, and an explicitly declined request is terminal without becoming a failure.');
+check(row('quiet').querySelector('time').dataset.titleTip.includes('Observed '),'Relative activity ages retain a touch-reachable exact timestamp.');
+const timestampRoute=w.location.hash,timestamp=row('quiet').querySelector('time');timestamp.click();
+check(w.location.hash===timestampRoute&&!doc.querySelector('#overview').hidden&&doc.querySelector('#detail').hidden,
+ 'Tapping an exact-time title-tip keeps the originating list and route available.');
+timestamp.innerHTML='<span>Observed time</span>';timestamp.firstElementChild.click();
+check(w.location.hash===timestampRoute&&doc.querySelector('#detail').hidden,'A nested target inside a title-tip also stays out of whole-row navigation.');
+row('session:Codex:local').querySelector('[data-summary]').click();
+check(new URLSearchParams(w.location.hash.slice(1)).get('session')==='session:Codex:local'&&doc.querySelector('#overview').hidden,
+ 'Tapping ordinary row-body text still opens the focused session reader.');clearDetail();
 check(row('archived')&&row('archived').querySelector('[data-status]').getAttribute('aria-label')==='Recorded'&&!row('session:Codex:child'),'Recent history retains journal-only records and removes delegated child duplicates.');
 const preservedRow=row('cloud:cloud');await refresh();
 check(row('cloud:cloud')===preservedRow,'Unchanged polling preserves existing tappable rows.');
 for(const [provider,url] of [['codex','https://chatgpt.com/'],['gemini','https://antigravity.google.com/'],['claude','https://claude.ai/code']]){click(`[data-provider-menu=${provider}]`);const link=doc.querySelector(`#phone-session-menu [data-provider-link=${provider}]`);check(link?.href===url&&link.target==='_blank'&&link.rel.includes('noopener')&&!doc.querySelector('[data-assistant] a'),provider+' options offer a safe provider launch separately from filtering.');}
+check(doc.querySelector('#phone-session-menu [data-provider-status]').textContent.includes('Idle')&&doc.querySelector('#phone-session-menu [data-provider-status]').textContent.includes('Recorded'),
+ 'Provider options expose the words behind compact status counts to touch readers.');
 click('[data-provider-menu=claude]');click('[data-assistant=gemini]');
 check(!row('cloud:cloud')&&row('accepted')&&doc.querySelector('[data-assistant=gemini]').getAttribute('aria-label').includes('waiting'),'One provider filter scopes queues, attention and recent history while counts retain their state meaning.');
 click('[data-assistant=gemini]');
@@ -61,6 +80,11 @@ click('[data-launch=result]');w.NowViews.scrollTo(260);
 pick('cloud:cloud').click();
 check(w.location.hash==='#view=now&session=cloud%3Acloud'&&doc.querySelector('#overview').hidden&&!doc.querySelector('#detail').hidden&&pageTop===0&&doc.querySelector('#detail [data-back]').textContent==='← Now','Tapping a row opens its focused detail screen through the same-app session route with an accurate Now return label.');
 check(doc.querySelector('#detail [data-facet=reply]').getAttribute('aria-selected')==='true'&&doc.querySelector('#detail [role=tabpanel] strong').textContent==='A fresh reply'&&!doc.querySelector('#detail [role=tabpanel] b'),'The focused reader defaults to the formatted latest reply and keeps raw HTML escaped.');
+check(doc.querySelector('#detail [role=tabpanel]').classList.contains('text-[17px]')&&row('cloud:cloud').querySelector('.phone-row-title').classList.contains('text-sm'),
+ 'Focused reading uses a comfortable content tier while the scanning list retains its compact title tier.');
+const readingSample=doc.createElement('div');readingSample.innerHTML=w.NowReading.markdown('# A heading\n\nInline `code`.\n\n```js\nconst value = 1;\n```');
+check(readingSample.querySelector('h1').classList.contains('text-xl')&&readingSample.querySelector('pre').classList.contains('text-[13px]')&&readingSample.querySelector('p code').classList.contains('text-[13px]'),
+ 'Rendered Markdown preserves a heading hierarchy and a readable code tier in focused details.');
 check([...doc.querySelectorAll('#detail [data-facet]')].map(n=>n.dataset.facet).join(',')==='reply,summary,prompt,activity'&&!doc.querySelector('#detail [role=tabpanel]').textContent.includes('Please inspect'),'The reader retains Reply, Summary, Prompt and Activity while showing one focused section.');
 click('#detail [data-facet=prompt]');
 check(doc.querySelector('#detail [role=tabpanel]').textContent.includes('Please inspect')&&!doc.querySelector('#detail [role=tabpanel]').textContent.includes('A fresh reply'),'Selecting Prompt does not stack another section underneath.');
@@ -72,12 +96,31 @@ pageTop=340;doc.querySelector('#detail [data-facet=activity]').focus();snapshot.
 check(pageTop===340&&doc.activeElement.dataset.facet==='activity'&&doc.querySelector('#detail [role=tabpanel]').textContent.includes('Write'),'Live updates preserve the selected detail section, tab focus, and global reading position.');
 clearDetail();
 check(!doc.querySelector('#overview').hidden&&w.NowViews.scrollPosition()===260&&doc.activeElement.dataset.pick==='cloud:cloud','Returning from details restores the Now panel position and originating row focus.');
+click('[data-assistant=codex]');w.NowViews.scrollTo(190);pick('session:Codex:local').click();
+const sessionHistory=w.history.length;
+check(doc.querySelector('#detail [data-session-step="-1"]').disabled&&!doc.querySelector('#detail [data-session-step="1"]').disabled
+ &&w.history.state.nowSessionTrail.filter==='codex'&&w.history.state.nowSessionTrail.keys.join(',')==='session:Codex:local,quiet',
+ 'Neighboring sessions follow the originating filtered list and mark its boundaries.');
+click('#detail [data-session-step="1"]');
+check(new URLSearchParams(w.location.hash.slice(1)).get('session')==='quiet'&&w.history.length===sessionHistory&&doc.querySelector('#detail').textContent.includes('No recent update'),
+ 'Next replaces the focused session without adding Back steps or calling a quiet session working.');
+snapshot.items.push({...item('new-neighbor','working','Codex'),kind:'session'});snapshot.items.find(i=>i.key==='quiet').detail='A saved observation, with no new update.';
+doc.querySelector('#detail [data-session-step="-1"]').focus();await refresh();
+check(w.history.state.nowSessionTrail.keys.length===2&&doc.activeElement.dataset.sessionStep==='-1'&&doc.querySelector('#detail [aria-label="Neighboring sessions"]').textContent.includes('2/2'),
+ 'Polling preserves the frozen neighbor order and focused navigation control while the live list changes.');
+click('#detail [data-session-step="-1"]');clearDetail();
+check(doc.querySelector('[data-assistant=codex]').getAttribute('aria-pressed')==='true'&&!row('cloud:cloud')&&w.NowViews.scrollPosition()===190&&doc.activeElement.dataset.pick==='session:Codex:local',
+ 'Leaving neighboring-session reading restores the original filter, panel scroll and entry-row focus.');
+snapshot.items=snapshot.items.filter(i=>i.key!=='new-neighbor');click('[data-assistant=codex]');
 click('[data-status="session:Codex:local"]');
 check(doc.querySelector('#detail [data-facet=activity]').getAttribute('aria-selected')==='true'&&doc.querySelector('#detail [role=tabpanel]').textContent.includes('2 delegated agents'),'The compact status control opens the existing Activity evidence, including delegated work.');
 clearDetail();w.NowPhone.openSession('result');await flush();
 check(doc.querySelector('#detail [data-reply]').textContent.includes('<script>')&&!doc.querySelector('#detail [data-reply] script')&&replyFetches===1,'Errand results load safely inside the same focused reader.');
 const replyNode=doc.querySelector('#detail [data-reply]');await refresh();
 check(replyFetches===1&&doc.querySelector('#detail [data-reply]')===replyNode,'Unchanged selected results do not refetch or flash loading content.');
+clearDetail();w.NowPhone.openSession('declined');await flush();
+check(doc.querySelector('#detail [data-reply]')&&doc.querySelector('#detail').textContent.includes('Declined')&&replyFetches===2,
+ 'Declined requests retain their recorded result in the focused reader without implying completion or failure.');
 offline=true;await refresh();
 check(doc.querySelector('#detail-connection').textContent.includes('Laptop unreachable')&&doc.querySelector('#detail [data-reply]'),'Offline detail reading retains the result with an explicit unreachable state.');
 offline=false;snapshot.observedAt=earlier(60);await refresh();
@@ -87,16 +130,24 @@ clearDetail();denied=true;await refresh();check(doc.querySelector('#connection')
 check(w.localStorage.getItem('web-tools-now-snapshot')?.includes('Please inspect'),'The complete observation snapshot is retained for offline use.');
 let archive={available:true,observedAt:now,sessions:[{id:'cloud',provider:'claude',agentSessionId:'session_fixture',title:'Cloud work',sessionUrl:'https://claude.ai/code/session_fixture',usageAt:now,contextTokens:500000,inputTokens:10,outputTokens:3000,cacheReadTokens:20,cacheWriteTokens:30,measuredSteps:1,reloads:0},{id:'missing',provider:'claude',title:'Only in usage metadata',usageAt:now,contextTokens:800000,inputTokens:1,outputTokens:0,cacheReadTokens:2,cacheWriteTokens:3}]};
 let forwarded,usageRefreshes=0;
-w.NowPhoneUsage={sessionUsage:()=>archive,update:value=>{forwarded=value;},refresh:()=>{usageRefreshes++;}};
+w.NowPhoneUsage={sessionUsage:()=>archive,recentRows:()=>[{identity:'cloud:missing'},{identity:'cloud:cloud'}],update:value=>{forwarded=value;},refresh:()=>{usageRefreshes++;}};
 w.dispatchEvent(new w.Event('nowusagearchivechange'));
 check(forwarded===w.NowPhone.snapshot()&&row('cloud:cloud').querySelector('[data-session-tokens]')?.textContent.includes('3k')&&!row('session:Codex:local').querySelector('[data-session-tokens]'),'The archive bridge receives the rich snapshot and adds output badges only where recorded usage is known.');
 doc.querySelector('[data-session-tokens="cloud:cloud"]').focus();archive.sessions[0].outputTokens=4000;w.dispatchEvent(new w.Event('nowusagearchivechange'));
 check(doc.activeElement.dataset.sessionTokens==='cloud:cloud'&&doc.activeElement.textContent.includes('4k'),'Archive-only updates refresh token counts while preserving badge focus.');
 click('[data-session-tokens="cloud:cloud"]');
-check(doc.querySelector('.phone-token-dialog').textContent.includes('4,000')&&doc.querySelector('.phone-token-dialog').textContent.includes('500,000')&&doc.querySelector('.phone-token-dialog').textContent.includes('Subagent calls are excluded'),'Token detail separates recorded output, input/cache counts and last input context.');doc.querySelector('.phone-token-dialog').dispatchEvent(new w.Event('close'));
+check(doc.querySelector('#phone-info-card[aria-modal="false"]').textContent.includes('4,000')&&doc.querySelector('#phone-info-card').textContent.includes('500,000')&&doc.querySelector('#phone-info-card').textContent.includes('Subagent calls are excluded')&&!doc.querySelector('dialog'),
+ 'An anchored nonmodal token card separates output, input/cache counts and last input context while leaving the list available.');
+click('#phone-info-card [data-wt-panel-tip-close]');
+check(!doc.querySelector('#phone-info-card')&&doc.activeElement.dataset.sessionTokens==='cloud:cloud','Closing token details returns focus to the exact metric without changing the session route.');
 w.NowViews.setView('usage');w.NowPhone.openSession('cloud:missing');
 check(w.NowViews.current()==='now'&&doc.querySelector('#detail h2').textContent==='Only in usage metadata'&&doc.querySelector('#detail').textContent.includes('Recorded')&&!doc.querySelector('#detail').textContent.includes('Working'),'A cache-list link opens a metadata-only session as recorded within the same app.');
 check(w.history.state.originView==='usage'&&doc.querySelector('#detail [data-back]').textContent==='← Usage','Opening from the Usage cache list records its origin and labels the existing history Back action accordingly.');
+const usageSessionHistory=w.history.length;click('#detail [data-session-step="1"]');
+check(new URLSearchParams(w.location.hash.slice(1)).get('session')==='cloud:cloud'&&w.history.length===usageSessionHistory
+ &&w.history.state.originView==='usage'&&doc.querySelector('#detail [data-back]').textContent==='← Usage'
+ &&w.history.state.nowSessionTrail.keys.join(',')==='cloud:missing,cloud:cloud',
+ 'Usage-origin neighbors follow the cache list order and keep a direct Back path to Usage.');
 w.history.replaceState(null,'','#view=now&session=cloud%3Amissing');w.dispatchEvent(new w.PopStateEvent('popstate'));
 check(doc.querySelector('#detail [data-back]').textContent==='← Now','A direct session route without an originating history entry keeps Now as the safe return destination.');
 clearDetail();snapshot.sources.workerState='absent';snapshot.sources.notices=['A source is stale.'];await refresh();

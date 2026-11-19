@@ -44,16 +44,27 @@ check(doc.querySelector('#local-results').textContent.includes('work')&&doc.quer
 check(doc.querySelector('#file-filters').hidden,'Git filters are omitted at the estate root.');
 setTop(160);click('[data-folder=project]');await flush();
 check(doc.querySelector('#local-breadcrumb').textContent==='repos/project'&&!doc.querySelector('#file-filters').hidden&&doc.querySelectorAll('#local-results>div').length===4,'Opening a folder replaces the directory listing and shows its breadcrumb and Git filters.');
+check(new URL(doc.getElementById('web-tools-link').href).searchParams.get('repo')==='fixture/project'&&new URL(doc.getElementById('web-tools-link').href).searchParams.get('ref')==='work','The header bridges the selected local working folder to its GitHub repository and branch.');
+checkout.branch='unpublished';checkout.tracked={branch:'unpublished',state:'remote-missing',ahead:null,behind:null};await poll();
+let destination=new URL(doc.getElementById('web-tools-link').href);
+check(destination.searchParams.get('repo')==='fixture/project'&&!destination.searchParams.has('ref')&&!destination.searchParams.has('view'),'An unpublished branch opens the repository overview without inventing a remote branch.');
+checkout.tracked={...comp,branch:'main'};await poll();
+destination=new URL(doc.getElementById('web-tools-link').href);
+check(destination.searchParams.get('ref')==='main'&&destination.searchParams.get('ref')!==checkout.branch,'A configured remote comparison uses its established GitHub branch instead of the unpublished local branch.');
+checkout.branch='work';checkout.tracked=comp;await poll();
 click('[data-file-filter=ignored]');check(doc.querySelector('#local-results').textContent.includes('cache')&&!doc.querySelector('#local-results').textContent.includes('README'),'Ignored filtering selects the immediate ignored entries.');
 check(doc.querySelector('[data-folder="project/src/deep-cache"]')&&doc.querySelector('#local-results').textContent.includes('3 files · 5 KB'),'Ignored filtering retains nested inventory entries and measured folder metadata.');
 click('[data-folder="project/cache"]');await flush();
 check(doc.querySelector('#local-breadcrumb').textContent==='repos/project/cache'&&doc.querySelector('#local-results').textContent.includes('x.txt'),'Ignored directories can be browsed normally.');
+destination=new URL(doc.getElementById('web-tools-link').href);
+check(destination.searchParams.get('repo')==='fixture/project'&&!destination.searchParams.has('path')&&!destination.searchParams.has('view'),'A known ignored local-only folder opens its repository overview rather than guessing a GitHub folder.');
 click('[data-folder=project]');await flush();click('[data-file-filter=all]');
 const search=doc.querySelector('[data-local-search]');search.value='note';search.dispatchEvent(new w.Event('input',{bubbles:true}));search.focus();setTop(90);
 folders.get('project').observedAt=new Date().toISOString();await poll();
 check(doc.querySelector('[data-local-search]')===search&&doc.activeElement===search&&search.value==='note'&&position()===90&&doc.querySelector('#local-results').textContent.includes('note.md')&&!doc.querySelector('#local-results').textContent.includes('README'),'Background updates preserve search, keyboard focus and reading position.');
 search.value='';search.dispatchEvent(new w.Event('input',{bubbles:true}));click('[data-folder="project/src"]');await flush();
 check(doc.querySelector('#local-results').textContent.includes('<img onerror=x>.txt')&&!doc.querySelector('#local-results img,[onerror]'),'Untrusted filenames render as escaped text.');
+check(new URL(doc.getElementById('web-tools-link').href).searchParams.get('path')==='src','Folder navigation updates the Web Tools link to the corresponding relative GitHub path.');
 click('#repository-back');
 for(let n=0;n<5;n++){for(const [key,value] of [...timers])if(!value.delay){timers.delete(key);value.fn();}await flush();}
 check(new URLSearchParams(w.location.hash.slice(1)).get('folder')==='project'&&position()===90,'Back restores the preceding folder and its own scroll position.');

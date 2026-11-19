@@ -137,6 +137,7 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/now-shared.js"] = ("now-shared.js", "text/javascript; charset=utf-8"),
     ["/usage-view.js"] = ("usage-view.js", "text/javascript; charset=utf-8"),
     ["/recent-usage.js"] = ("recent-usage.js", "text/javascript; charset=utf-8"),
+    ["/phone-info.js"] = ("phone-info.js", "text/javascript; charset=utf-8"),
     ["/errands-view.js"] = ("errands-view.js", "text/javascript; charset=utf-8"),
     ["/icon.svg"] = ("icon.svg", "image/svg+xml"),
     ["/apple-touch-icon.png"] = ("apple-touch-icon.png", "image/png"),
@@ -146,7 +147,8 @@ var assets = new Dictionary<string, (string File, string Type)> {
     ["/vendor/purify.js"] = ("vendor/purify.js", "text/javascript; charset=utf-8"),
     ["/vendor/assistant-mark.js"] = ("vendor/assistant-mark.js", "text/javascript; charset=utf-8"),
     ["/vendor/claude-mark.js"] = ("vendor/claude-mark.js", "text/javascript; charset=utf-8"),
-    ["/vendor/title-tip.js"] = ("vendor/title-tip.js", "text/javascript; charset=utf-8")
+    ["/vendor/title-tip.js"] = ("vendor/title-tip.js", "text/javascript; charset=utf-8"),
+    ["/vendor/panel-tip.js"] = ("vendor/panel-tip.js", "text/javascript; charset=utf-8")
 };
 assets["/vendor/swipe-deck.js"] = ("vendor/swipe-deck.js", "text/javascript; charset=utf-8");
 foreach (var (route, asset) in assets) app.MapGet(route, () => Results.File(Path.Combine(AppContext.BaseDirectory, "phone", asset.File), asset.Type));
