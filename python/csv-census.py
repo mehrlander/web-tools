@@ -41,33 +41,46 @@ def output_path(root, rel):
     return target
 
 
-def tracked_csvs(root):
+def tracked_csvs(root, output):
     result = subprocess.run(["git", "ls-files", "--stage", "-z", "--", "*.csv"],
                             cwd=root, check=True, capture_output=True)
-    paths = []
+    paths = {}
     for entry in result.stdout.split(b"\0"):
         if not entry:
             continue
         metadata, name = entry.split(b"\t", 1)
+        mode, oid, stage = metadata.split(b" ")
         path = name.decode("utf-8")
         if not valid_path(path):
             raise ValueError(f"invalid tracked CSV path: {path!r}")
         # With core.symlinks=false Git checks a link out as a regular file
         # containing its target. Its index mode still identifies it as a link.
-        if metadata.split(b" ", 1)[0] == b"120000":
+        if mode == b"120000":
             raise ValueError(f"linked CSV in index: {path}")
-        paths.append(path)
-    return sorted(paths)
+        if stage != b"0" and path != output:
+            raise ValueError(f"unmerged CSV in index: {path}")
+        paths[path] = oid
+    return dict(sorted(paths.items()))
 
 
-def measure(root, rel):
+def measure(root, rel, oid, batch):
     path = root / rel
     if not path.is_file() or path.is_symlink() or not path.resolve().is_relative_to(root.resolve()):
         raise ValueError(f"missing, linked, or outside repository: {rel}")
     # The index is the next committed tree. Reading its blobs avoids a census
     # that changes merely because Windows checked an LF blob out as CRLF.
-    raw = subprocess.run(["git", "cat-file", "blob", ":" + rel], cwd=root,
-                         check=True, capture_output=True).stdout
+    batch.stdin.write(oid + b"\n")
+    batch.stdin.flush()
+    header = batch.stdout.readline().rstrip(b"\n").split(b" ")
+    if len(header) == 2 and header[1] == b"missing":
+        raise ValueError(f"missing indexed CSV blob: {rel}")
+    if (len(header) != 3 or header[0] != oid or header[1] != b"blob"
+            or not header[2].isdigit()):
+        raise ValueError(f"invalid Git blob response: {rel}")
+    size = int(header[2])
+    raw = batch.stdout.read(size)
+    if len(raw) != size or batch.stdout.read(1) != b"\n":
+        raise ValueError(f"incomplete Git blob response: {rel}")
     # A valid field can occupy almost the whole blob. The parser's small
     # default limit should not exclude it from an otherwise exhaustive census.
     csv.field_size_limit(max(csv.field_size_limit(), len(raw)))
@@ -87,7 +100,17 @@ def emit(rows):
 
 
 def expected(root, output, paths):
-    rows = [measure(root, p) for p in paths if p != output]
+    sources = [(rel, oid) for rel, oid in paths.items() if rel != output]
+    rows = []
+    if sources:
+        command = ["git", "cat-file", "--batch"]
+        with subprocess.Popen(command, cwd=root, stdin=subprocess.PIPE,
+                              stdout=subprocess.PIPE) as batch:
+            rows = [measure(root, rel, oid, batch) for rel, oid in sources]
+            batch.stdin.close()
+            status = batch.wait()
+            if status:
+                raise subprocess.CalledProcessError(status, command)
     if output in paths:
         own = [output, len(paths), len(FIELDS), 0,
                json.dumps(list(FIELDS), separators=(",", ":"))]
@@ -113,12 +136,13 @@ def main():
     if not isinstance(output, str) or not valid_path(output):
         raise ValueError(".web-tools.json must declare data.census as a relative .csv path")
     target = output_path(root, output)
-    paths = tracked_csvs(root)
+    paths = tracked_csvs(root, output)
     if args.check and output not in paths:
         raise ValueError(f"declared census is not tracked: {output}")
     # Before the first git add, include the prospective output; after that, the
     # exact tracked set is used. Check mode never makes this allowance.
-    content = expected(root, output, sorted(set(paths) | {output}))
+    paths.setdefault(output, None)
+    content = expected(root, output, paths)
     if args.check:
         if not target.is_file() or target.read_bytes() != content:
             raise ValueError(f"{output} differs from the tracked CSV census; regenerate it")
@@ -126,7 +150,7 @@ def main():
     else:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(content)
-        print(f"Wrote {output}: {len(set(paths) | {output})} CSVs")
+        print(f"Wrote {output}: {len(paths)} CSVs")
 
 
 if __name__ == "__main__":
