@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-23 by a skill, 43 by a page or component. The remaining 44 are
+23 by a skill, 43 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -168,4 +168,5 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`model-diagram-redraw.json`](prototypes/model-diagram-redraw.json) *(record, orphan)* — the second idea board for the Map's Model diagram: five ways to draw the taxonomy of screen, chrome, content, unit, collection, item, field and overlay on the Docs tab, and the selection
 - [`program-icons-ideas.json`](prototypes/program-icons-ideas.json) *(record, orphan)* — the idea board for program icons: eight family cues that mark an icon as a program's rather than a project's, drawn for Surfacing and Testing, and the selection docs/prototypes/program-icons-options.html builds six of
 - [`program-mark-picking-ideas.json`](prototypes/program-mark-picking-ideas.json) *(record, orphan)* — the idea board for choosing program marks: eight ways to star favorites, order them and send the choice, and the pick docs/prototypes/program-mark-ideas.html builds
+- [`program-areas-ideas.json`](prototypes/program-areas-ideas.json) *(record, orphan)* — the idea board for the Program view's Areas tab: eight ways to show every area of a program at once, drawn on the Sessions program's five areas, and the bento of tiles each area declares its panels for
 - [`ui-concepts-ideas.json`](prototypes/ui-concepts-ideas.json) *(record, orphan)* — the idea board for a diagram of the UI concepts: eight ways to draw how Alpine components, kits, units, patterns, parts and slots relate, and the selection

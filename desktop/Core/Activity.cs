@@ -8,7 +8,12 @@ public record Errand(string Id, string Title, string Note, string State,
     string? Message, string? Reply, bool HasOutput, bool IsNew, bool HasLocalOutput = false)
 {
     public string Provider { get; init; } = "Gemini";
-    public string Location => Provider == "Gemini" ? "Laptop" : "";
+    public string Venue { get; init; } = "";
+    public DateTimeOffset? ClaimedAt { get; init; }
+    public string Location => Venue switch {
+        "personal-laptop" => "Laptop", "anthropic-cloud" => "Cloud",
+        "" when Provider == "Gemini" => "Laptop", _ => ""
+    };
     public bool IsOpen => State is "queued" or "claimed" or "reply";
 }
 
@@ -34,7 +39,7 @@ public record SessionCheckpoint(string Summary, string Headline, DateTimeOffset 
     DateTimeOffset? AnalyzedAt, List<CheckpointTurn> Turns, List<WorkLink> Links);
 public record SessionSnapshot(List<LocalSession> Items, List<string> Notices);
 public record CloudSnapshot(List<LocalSession> Items, DateTimeOffset? CapturedAt, string? Notice,
-    Dictionary<string, string>? SessionUrls = null);
+    Dictionary<string, string>? SessionUrls = null, Dictionary<string, string>? CapturedRecords = null);
 public record ActivityEvent(string Id, string Provider, string Title, string State,
     DateTimeOffset At, string Detail, string Location, string SessionId);
 public record ActivityChange(string Key, string Id, string Provider, string Title, string State,
@@ -82,14 +87,22 @@ public static class Activity
         var hasResult = result.ValueKind == JsonValueKind.Object;
         var hasClaim = claim.ValueKind == JsonValueKind.Object;
         var state = hasResult
-            ? IsFalse(result, "ok") ? "failed" : IsFalse(data, "settled") ? "reply" : "complete"
+            ? IsFalse(result, "ok") ? "failed" : IsFalse(result, "answered") ? "declined"
+                : IsFalse(data, "settled") ? "reply" : "complete"
             : hasClaim ? "claimed" : "queued";
+        if (state == "declined") updated = Date(result, "closedAt", Date(result, "fulfilledAt", updated));
         if (!hasResult) updated = hasClaim ? Date(claim, "claimedAt", created) : created;
         return new(id, Text(request, "title", id), Text(request, "note"), state,
             created, updated, hasClaim ? Text(claim, "by") : Text(result, "by"),
-            Text(result, "message"), Text(data, "reply"), hasOutput,
-            hasResult && updated > seenThrough) { Provider = provider };
+            Text(result, "message"), Nonblank(Text(data, "reply"), Text(data, "report")), hasOutput,
+            hasResult && updated > seenThrough) {
+                Provider = provider, Venue = Text(run, "venue"),
+                ClaimedAt = hasClaim ? Date(claim, "claimedAt", created) : null
+            };
     }
+
+    public static string Nonblank(string? preferred, string? fallback) =>
+        !string.IsNullOrWhiteSpace(preferred) ? preferred : fallback ?? "";
 }
 
 public static class NavigationPolicy
