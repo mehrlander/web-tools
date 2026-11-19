@@ -16,24 +16,29 @@
 // its width from its panels (half the pane on a phone, side by side) and the
 // rows packed in order, its height its own, and its heat grid: four weeks of
 // commits matched by path, a row a week, in its top line. The views that display it open
-// from the masthead in the shell's anchored menu.
+// from the masthead in the shell's anchored menu. On a wide pane the tiles stand
+// beside a side panel of the commits both reads found, by day and marked with
+// their areas, the open tasks and the notes; a picked tile narrows the commits
+// and rides the address as &area=, and a commit and its tiles mark each other.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
+import { makeShell } from './shell.mjs';
 import { marked } from 'marked';
 
 const { window, problems } = makeWindow({ html: '<div id="program" x-data="program()"></div>' });
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
-const menus = [], maps = [];
+const menus = [], maps = [], picks = [];
 window.__shell = Alpine.reactive({
-  _authState: 'auth', programName: 'surfacing', programTab: '', estateConfigs: {}, estateHidden: [],
+  _authState: 'auth', programName: 'surfacing', programTab: '', programArea: '', estateConfigs: {}, estateHidden: [],
   REGISTRY_REPO: 'mehrlander/web-tools-private',
   hasToken(){ return this._authState === 'auth'; },
   goProgramTab(k){ this.programTab = k === 'areas' ? '' : k; },
+  goProgramArea(a){ picks.push(a); this.programArea = a; },
   goMap(t){ maps.push(t); },
   toggleRepoMenu(repo, el, kind, opts){ menus.push({ repo, kind, opts }); },
 });
@@ -662,6 +667,204 @@ test('a run of groups panels draws one row of chips that open their rows, and a 
   assert.ok(tip.querySelector('i.ph-lightning'), 'a group\'s icon beside its label');
   data.closeChartTip(); await tick();
   assert.deepEqual(problems, []);
+});
+
+test('Programs joins commits read under several sets of paths by sha, by local day, with the areas each touched', () => {
+  const { commitDays } = window.Programs;
+  const at = (d, h = 12) => new Date(2026, 10, d, h).toISOString();
+  const areas = [{ key: 'Forms', docs: [{ path: 'docs/forms/' }, { path: 'docs/envelopes/README.md' }] },
+    { key: 'Reply', docs: [{ path: 'docs/CONVERSATION.md' }] }, { key: 'Bare', docs: [] }];
+  const governed = [{ sha: 'a', date: at(18), subject: 'A', url: 'u-a', paths: ['docs/CONVERSATION.md'] },
+    { sha: 'b', date: at(18, 9), subject: 'B', paths: ['python/x.py'] }, { sha: 'old', date: at(1), subject: 'Old', paths: ['docs/CONVERSATION.md'] }];
+  const linked = [{ sha: 'a', date: at(18), subject: 'A', paths: ['docs/forms/'] },
+    { sha: 'c', date: at(17), subject: 'C', paths: ['docs/forms/', 'docs/envelopes/README.md'] }];
+  const r = commitDays([governed, linked], areas, new Date(2026, 10, 10).getTime());
+  assert.equal(r.count, 3, 'joined by sha, and one before the window left out');
+  assert.deepEqual([...r.days.map(d => d.day)], ['2026-11-18', '2026-11-17'], 'the newest day first');
+  assert.deepEqual([...r.days[0].commits.map(c => c.sha)], ['a', 'b'], 'and the newest first within it');
+  const [a, b] = r.days[0].commits;
+  assert.deepEqual([...a.paths], ['docs/CONVERSATION.md', 'docs/forms/'], 'every path it was read under, a file before a folder');
+  assert.deepEqual([...a.areas], ['Forms', 'Reply'], 'the areas whose links it touched, in the charter\'s order');
+  assert.equal(a.url, 'u-a', 'a link either read carried');
+  assert.equal(a.short, 'a');
+  assert.deepEqual([...b.areas], [], 'a governed path no area links marks none');
+  assert.deepEqual([...r.days[1].commits[0].paths], ['docs/envelopes/README.md', 'docs/forms/']);
+  const none = commitDays([], areas);
+  assert.deepEqual([none.days.length, none.count], [0, 0]);
+});
+
+test('on a wide pane the tiles stand beside a side panel of the commits by day, marked with their areas, the open tasks and the notes', async () => {
+  const p = data.page, page = el.querySelector('[data-program-page]');
+  for (let i = 0; i < 30 && Object.values(data.registries).some(r => r.state === 'loading'); i++) await tick();
+  await frame();
+  // The layout is the pane's container query: below 60rem inside its padding
+  // the tiles stand alone as they did, and above it they take two thirds
+  // beside the panel, each column the pane's height and scrolling on its own.
+  const areas = page.querySelector('[data-program-areas]'), body = page.querySelector('[data-program-body]');
+  assert.ok(body.classList.contains('@container') && body.classList.contains('overflow-y-auto'));
+  assert.equal(body.classList.contains('pb-8'), false, 'each tab ends on its own padding, so a wide Areas tab fills the pane');
+  for (const c of ['pb-8', '@min-[60rem]:grid', '@min-[60rem]:h-full', '@min-[60rem]:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]', '@min-[60rem]:grid-rows-[minmax(0,1fr)]', '@min-[60rem]:pb-3'])
+    assert.ok(areas.classList.contains(c), 'the Areas tab: ' + c);
+  const col = areas.querySelector(':scope > [data-program-tiles-col]'), rail = areas.querySelector(':scope > [data-program-rail]');
+  assert.ok(col.querySelector('[data-program-tiles]'), 'the tiles in the first column');
+  assert.ok(['@min-[60rem]:overflow-y-auto', '@min-[60rem]:min-h-0'].every(c => col.classList.contains(c)), 'which scrolls on its own beside the panel');
+  assert.ok(rail.classList.contains('hidden') && rail.classList.contains('@min-[60rem]:flex'), 'the panel only where the pane is wide');
+  assert.equal(data.railOn, false, 'jsdom lays nothing out, so it stands as a narrow pane does');
+
+  // Three sections, each named by the tab it shortens, which its name opens.
+  assert.deepEqual([...rail.querySelectorAll('[data-rail-tab]')].map(b => b.dataset.railTab), ['changes', 'tasks', 'notes']);
+  rail.querySelector('[data-rail-tab="tasks"]').click(); await frame();
+  assert.equal(window.__shell.programTab, 'tasks');
+  page.querySelector('[data-program-tab="areas"]').click(); await frame();
+  assert.ok(rail.querySelector('[data-rail-changes]').classList.contains('flex-1'), 'the commits take what the tasks and notes leave');
+  assert.ok(['[data-rail-tasks]', '[data-rail-notes]'].every(s => rail.querySelector(s).classList.contains('max-h-[32%]')));
+
+  // The commits: both reads joined over the heat grids' four weeks, a day a
+  // heading in the label tier, newest first.
+  const all = data.railOf(p), days = [...rail.querySelectorAll('[data-rail-day]')];
+  assert.deepEqual(days.map(d => d.dataset.day), [...all.days.map(d => d.day)]);
+  assert.deepEqual(days.map(d => d.dataset.day), days.map(d => d.dataset.day).slice().sort().reverse(), 'newest day first');
+  const dk = d => { const t = new Date(); t.setDate(t.getDate() - d); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+  const row = sha => rail.querySelector(`[data-rail-commit][data-sha="${sha}"]`);
+  assert.ok(row('a1a1a1a1a1') && row('a2a2a2a2a2') && row('a4a4a4a4a4'), 'the commits the tiles read');
+  assert.equal(!!row('a3a3a3a3a3'), false, 'none older than the heat grids\' four weeks');
+  const day = row('a1a1a1a1a1').closest('[data-rail-day]');
+  assert.equal(day.dataset.day, dk(1));
+  const head = day.querySelector('h4');
+  assert.ok(head.classList.contains('text-xs') && head.classList.contains('sticky'), 'a day\'s heading in the label tier, held while its commits scroll');
+  assert.match(head.firstElementChild.textContent, /^[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}$/);
+  assert.equal(head.lastElementChild.textContent, String(all.days.find(d => d.day === dk(1)).commits.length));
+  assert.equal(data.railOf(p), all, 'drawn again without joining again');
+  assert.equal(rail.querySelector('[data-rail-head] .tabular-nums').textContent, String(all.count));
+
+  // A commit: its areas' icons in a gutter of their own, its subject at
+  // content size, then its short sha and the file it touched as labels.
+  const a1 = row('a1a1a1a1a1');
+  assert.equal(a1.dataset.areas, 'Forms', 'a folder and a file Forms links, one area');
+  const mark = a1.querySelector('[data-rail-mark]');
+  assert.equal(mark.dataset.area, 'Forms');
+  assert.ok(mark.querySelector('i').classList.contains(data.tilesOf(p).find(t => t.a.key === 'Forms').icon), 'the area\'s own icon, as its tile wears it');
+  assert.match(mark.className, /var\(--program\)/, 'in the program\'s colour');
+  assert.ok(a1.querySelector('p').classList.contains('text-sm'), 'the subject at the tiles\' content size');
+  assert.equal(a1.querySelector('p').textContent, 'Forms and envelopes');
+  const [sha, file] = a1.querySelectorAll('a');
+  assert.deepEqual([sha.textContent, sha.getAttribute('href')], ['a1a1a1a', 'https://github.com/' + hub + '/commit/a1a1a1a1a1'],
+    'a commit only the tiles read still links its commit');
+  assert.equal(file.textContent, 'envelopes/README.md', 'the file before the folder, named as a tile names it');
+  assert.equal(file.dataset.titleTip, 'docs/envelopes/README.md');
+  assert.equal(file.getAttribute('x-blob'), 'peek(p, c.paths[0])', 'which peeks that file');
+  assert.match(a1.textContent, /\+1/, 'and how many more it touched');
+
+  // The tasks, in progress first, and the notes on the charter, as their tabs list them.
+  assert.deepEqual([...rail.querySelectorAll('[data-rail-task]')].map(t => t.dataset.status + ' ' + t.textContent.trim()), ['in-progress Draft the page', 'backlog A']);
+  assert.ok(rail.querySelector('[data-rail-task] i').classList.contains('ph-circle-half'), 'a status icon');
+  assert.equal(rail.querySelectorAll('[data-rail-note]').length, 2);
+  assert.ok(rail.querySelector('[data-rail-note] p').classList.contains('line-clamp-2'));
+  assert.deepEqual(problems, []);
+});
+
+test('beside the panel a tile picks its area, which narrows the commits under a chip that clears it, and a commit and its tiles mark each other', async () => {
+  const p = data.page, page = el.querySelector('[data-program-page]'), rail = page.querySelector('[data-program-rail]');
+  const tile = key => page.querySelector(`[data-program-area][data-area="${key}"]`);
+  const shas = () => [...rail.querySelectorAll('[data-rail-commit]')].map(r => r.dataset.sha);
+  const forms = tile('Forms'), name = forms.querySelector('[data-part="title"] h3');
+  picks.length = 0;
+
+  // Below the threshold nothing picks, and the name is a heading as before.
+  forms.click(); await frame();
+  assert.deepEqual(picks, [], 'no panel, nothing to narrow');
+  assert.deepEqual([name.getAttribute('role'), name.getAttribute('tabindex')], [null, null]);
+  const whole = shas();
+
+  data.railOn = true; await frame();
+  assert.deepEqual([name.getAttribute('role'), name.getAttribute('tabindex'), name.getAttribute('aria-pressed')], ['button', '0', 'false']);
+  forms.querySelector('[data-area-covers]').click(); await tick(3);
+  assert.deepEqual(picks, [], 'a tile\'s own control does its own thing');
+  data.closeChartTip();
+  forms.click(); await frame();
+  assert.deepEqual(picks, ['Forms'], 'a tap elsewhere on the tile picks it, by its name');
+  assert.ok(forms.hasAttribute('data-picked'));
+  assert.match(forms.className, /@min-\[60rem\]:ring-2/, 'ringed, only where the panel shows');
+  assert.equal(name.getAttribute('aria-pressed'), 'true');
+  const chip = rail.querySelector('[data-rail-chip]');
+  assert.equal(chip.dataset.area, 'Forms');
+  assert.match(chip.textContent, /Forms/);
+  assert.ok(chip.closest('[data-rail-changes] [data-rail-head]'), 'at the panel\'s top, on the commits it narrows');
+  const forms3 = data.areaDays(p, data.charterOf(p).areas[2]);
+  assert.deepEqual(shas(), [...forms3.days.flatMap(d => d.commits).sort((a, b) => b.date.localeCompare(a.date)).map(c => c.sha)],
+    'its commits, as its heat grid counts them');
+  assert.ok([...rail.querySelectorAll('[data-rail-commit]')].every(r => r.dataset.areas.split('|').includes('Forms')));
+  assert.equal(rail.querySelector('[data-rail-head] .tabular-nums').textContent, String(forms3.count));
+  assert.equal(rail.querySelectorAll('[data-rail-task]').length, 2, 'the tasks name no file, so they stay whole');
+  assert.equal(rail.querySelectorAll('[data-rail-note]').length, 2, 'and so do the notes');
+
+  rail.querySelector('[data-rail-clear]').click(); await frame();
+  assert.deepEqual(picks.at(-1), '', 'the chip\'s cross clears it');
+  assert.equal(!!rail.querySelector('[data-rail-chip]'), false, 'and the chip goes');
+  assert.deepEqual(shas(), whole);
+  name.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); await frame();
+  assert.equal(picks.at(-1), 'Forms', 'the name answers Enter');
+  rail.querySelector('[data-rail-commit][data-sha="a1a1a1a1a1"] [data-rail-mark]').click(); await frame();
+  assert.equal(picks.at(-1), '', 'a commit\'s mark picks its area, and again clears it');
+  rail.querySelector('[data-rail-commit][data-sha="a1a1a1a1a1"] [data-rail-mark]').click(); await frame();
+  assert.equal(picks.at(-1), 'Forms');
+  window.__shell.programArea = ''; await frame();
+
+  // Hover: a commit marks its areas' tiles and its day in each one's heat
+  // grid; a tile marks its commits.
+  const a1 = rail.querySelector('[data-rail-commit][data-sha="a1a1a1a1a1"]');
+  a1.dispatchEvent(new window.Event('mouseenter')); await frame();
+  assert.deepEqual([...page.querySelectorAll('[data-program-area][data-hot]')].map(t => t.dataset.area), ['Forms']);
+  assert.match(forms.className, /ring-\[var\(--program\)\]\/40/);
+  assert.deepEqual([...page.querySelectorAll('[data-area-heat] [data-hot]')].map(b => b.closest('[data-program-area]').dataset.area + ' ' + b.dataset.day),
+    ['Forms ' + a1.closest('[data-rail-day]').dataset.day]);
+  a1.dispatchEvent(new window.Event('mouseleave')); await frame();
+  assert.deepEqual([...page.querySelectorAll('[data-program-area][data-hot], [data-area-heat] [data-hot]')].map(n => n.dataset.area || n.dataset.day), []);
+  forms.dispatchEvent(new window.Event('mouseenter')); await frame();
+  const hot = [...rail.querySelectorAll('[data-rail-commit][data-hot]')].map(r => r.dataset.sha);
+  assert.deepEqual(hot, shas().filter(s => rail.querySelector(`[data-rail-commit][data-sha="${s}"]`).dataset.areas.split('|').includes('Forms')));
+  assert.ok(hot.includes('a1a1a1a1a1') && hot.length >= 3);
+  forms.dispatchEvent(new window.Event('mouseleave')); await frame();
+  assert.equal(rail.querySelectorAll('[data-rail-commit][data-hot]').length, 0);
+  data.railOn = false; await frame();
+  assert.deepEqual(problems, []);
+});
+
+test('a picked area rides the address on the Areas tab: a link reopens it, Back clears it, and a tab or another program leaves it', async () => {
+  const { shell, history, location } = makeShell({ search: '?view=program&program=sessions&area=Showing' });
+  const calls = [];
+  for (const op of ['pushState', 'replaceState']) history[op] = (_s, _t, href) => { calls.push(op); location.search = new URL(href, 'https://localhost').search; };
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.deepEqual([shell.view, shell.programName, shell.programArea], ['program', 'sessions', 'Showing'], 'a link opens on its area');
+  assert.equal(new URLSearchParams(location.search).get('area'), 'Showing');
+  shell.goProgramArea('Reply');
+  assert.equal(calls.at(-1), 'pushState', 'a pick is a history entry');
+  assert.equal(new URLSearchParams(location.search).get('area'), 'Reply');
+  shell.goProgramArea('Reply');
+  assert.equal(calls.length, 2, 'picking the picked area again moves nothing');
+  // Back, as the browser restores the address before the pick.
+  shell._restoring = true;
+  location.search = '?view=program&program=sessions';
+  await shell.routeFromUrl(shell.parseUrl());
+  shell._restoring = false;
+  assert.equal(shell.programArea, '', 'Back clears it');
+  assert.equal(calls.at(-1), 'replaceState');
+  shell.goProgramArea('Reply');
+  shell.goProgramTab('areas');
+  assert.equal(shell.programArea, 'Reply', 'the tab it is on keeps it');
+  shell.goProgramTab('changes');
+  assert.equal(shell.programArea, '', 'another tab leaves it');
+  assert.deepEqual([new URLSearchParams(location.search).get('tab'), new URLSearchParams(location.search).has('area')], ['changes', false]);
+  await shell.routeFromUrl({ ...shell.parseUrl(), view: 'program', program: 'sessions', tab: 'changes', area: 'Reply' });
+  assert.equal(shell.programArea, '', 'an area names nothing on another tab');
+  await shell.routeFromUrl({ ...shell.parseUrl(), view: 'program', program: 'sessions', tab: 'areas', area: 'Forms' });
+  assert.equal(shell.programArea, 'Forms', 'Areas named outright is still the first tab');
+  assert.deepEqual([new URLSearchParams(location.search).has('tab'), new URLSearchParams(location.search).get('area')], [false, 'Forms']);
+  shell.goProgram('testing');
+  assert.equal(shell.programArea, '', 'an area is one program\'s');
+  shell.goProgramArea('Suite');
+  shell.view = 'map';
+  assert.equal(shell.deepLinkParams(new URLSearchParams(location.search)).has('area'), false, 'and rides no other view');
 });
 
 test('each tab carries its count as a badge, and the tabs hold the changes, tasks, notes and measures', async () => {

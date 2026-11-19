@@ -2900,11 +2900,13 @@ function app(){ return {
   userCallIndex: {},      // call id -> the call, from the badge's read
   tendingSeen: false,
   // The Program view (lib/alpineComponents/program.js): one declared program,
-  // named by &program=, with its tab as &tab=. Held here because the URL is
-  // the shell's to own, as the Project view's path and tab are.
+  // named by &program=, with its tab as &tab= and the area its Areas tab's
+  // side panel is narrowed to as &area=. Held here because the URL is the
+  // shell's to own, as the Project view's path and tab are.
   programSeen: false,
   programName: '',
   programTab: '',   // '' is the program's first tab (Areas where it has a charter)
+  programArea: '',  // an area's name, picked on a wide pane; '' is every area
   // The hub's own manifest, read once for the sidebar's Programs where the
   // config cache has not given one (signed out, or the hub not the open repo).
   hubManifest: null,
@@ -6780,13 +6782,15 @@ function app(){ return {
           if (tab === this.mapTab && this.mapCtx[k]) p.set(k, this.mapCtx[k]);
       } },
     // A program is estate-level, so its link stands alone, as Waiting's does:
-    // the name, and a tab other than its first.
+    // the name, a tab other than its first, and on that first tab the area
+    // its side panel is narrowed to.
     { key: 'program', when: u => !!u.program,
-      open(u){ this.goProgram(u.program, u.tab); },
+      open(u){ this.goProgram(u.program, u.tab, u.area); },
       ready(){ return !!this.programName; },
       stamp(p){
         p.set('program', this.programName);
         if (this.programTab && this.programTab !== PROGRAM_TABS[0]) p.set('tab', this.programTab);
+        else if (this.programArea) p.set('area', this.programArea);
       } },
     // The repo's Files view: its tree beside the file it opens
     // (alpineComponents/file-browser.js). It was folded into Search until
@@ -6948,7 +6952,7 @@ function app(){ return {
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'skind', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate',
-              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h', 'program',
+              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h', 'program', 'area',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   routeFor(view){ return this.VIEWS.find(r => r.key === view); },
@@ -6994,7 +6998,7 @@ function app(){ return {
              ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
              session: p.get('session') || '', find: p.get('find') || '',
              next: p.get('next') || '',
-             program: p.get('program') || '',
+             program: p.get('program') || '', area: p.get('area') || '',
              ...mapCtxOf(k => p.get(k)),
              pane: p.get('pane') || '', card: p.get('card'),
              item: p.get('item') || '', itemtab: p.get('itemtab') || '', call: p.get('call') || '',
@@ -7980,18 +7984,31 @@ function app(){ return {
   },
   // One program's own view. A tab it has nothing for falls back to its first
   // when drawn (program.js, tabOf), so a tab kept from another program, as
-  // the switcher keeps it, costs nothing.
-  goProgram(name, tab){
+  // the switcher keeps it, costs nothing. An area is one program's, so only
+  // an address that names it keeps one.
+  goProgram(name, tab, area){
     const n = String(name || '').trim();
     if (!n) return this.goMap('programs');
     this.programName = n;
-    this.programTab = PROGRAM_TABS.includes(tab) ? tab : '';
+    this.programTab = PROGRAM_TABS.includes(tab) && tab !== PROGRAM_TABS[0] ? tab : '';
+    this.programArea = !this.programTab && area ? String(area) : '';
     this.programSeen = true; this.view = 'program'; this.syncUrl();
   },
-  // A tab tap from inside program(): stamped, so back and forward walk the tabs.
+  // A tab tap from inside program(): stamped, so back and forward walk the
+  // tabs. A tab leaves the picked area behind, as the address does.
   goProgramTab(tab){
     if (!PROGRAM_TABS.includes(tab)) return;
-    this.programTab = tab === PROGRAM_TABS[0] ? '' : tab;
+    const next = tab === PROGRAM_TABS[0] ? '' : tab;
+    if (next !== this.programTab) this.programArea = '';
+    this.programTab = next;
+    this.syncUrl();
+  },
+  // An area picked on the Areas tab, or '' for every area: stamped, so Back
+  // clears it.
+  goProgramArea(name){
+    const a = String(name || '');
+    if (a === this.programArea) return;
+    this.programArea = a;
     this.syncUrl();
   },
   goPages(){ this.view = 'pages'; this.syncUrl(); },
