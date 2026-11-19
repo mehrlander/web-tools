@@ -745,6 +745,8 @@ test('on a wide pane the tiles stand beside a side panel of the commits by day, 
   assert.equal(mark.dataset.area, 'Forms');
   assert.ok(mark.querySelector('i').classList.contains(data.tilesOf(p).find(t => t.a.key === 'Forms').icon), 'the area\'s own icon, as its tile wears it');
   assert.match(mark.className, /var\(--program\)/, 'in the program\'s colour');
+  assert.deepEqual([data.duotone('ph-books'), data.duotone('inline-block bg-current')], ['ph-duotone ph-books', 'inline-block bg-current'],
+    'a Map view\'s drawn mark as it comes, as a tile draws it');
   assert.ok(a1.querySelector('p').classList.contains('text-sm'), 'the subject at the tiles\' content size');
   assert.equal(a1.querySelector('p').textContent, 'Forms and envelopes');
   const [sha, file] = a1.querySelectorAll('a');
