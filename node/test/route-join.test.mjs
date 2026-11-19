@@ -349,7 +349,7 @@ test('a branch row chip opens the view running THAT branch', async () => {
   const r = data.branchRoutes({ repo: 'mehrlander/web-tools', name: 'claude/registries', sha });
   assert.equal(r.on[0].key, 'map');
   assert.equal(r.on[0].url,
-    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@' + sha + ':app/index.html?view=map');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@' + sha + ':app/index.html?view=map');
 });
 
 // A SHA and never the branch name: the toss hands the ref to the app as use=,

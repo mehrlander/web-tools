@@ -6,7 +6,7 @@ messages, pull request bodies, tracker tasks, and chat replies alike. Local
 
 ---
 
-Qualified writing is clear and precise. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
+Qualified writing is clear and precise. No em dashes outside quotations: use colons, commas, semicolons, parentheses, or new sentences.
 
 ## Perspective
 
