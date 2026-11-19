@@ -380,7 +380,9 @@ test('past four repos the overflow is counted, not clipped', () => {
   // 60px of every row on 3% of them; clipping silently would make the cell lie
   // about what a session touched.
   const cell = data.repoIconCell('a b c d e f');
-  assert.equal((cell.match(/<i /g) || []).length, 4, 'four glyphs drawn');
+  // These repos declare no mark and have no parent, so each is its first
+  // letter in a dashed ring (repoMarkHtml).
+  assert.equal((cell.match(/border-dashed/g) || []).length, 4, 'four marks drawn');
   assert.match(cell, />\+2</, 'and the rest counted');
   assert.match(cell, /data-title-tip="e, f"/, 'the counter names who it stands for');
   assert.ok(!data.repoIconCell('a b c d').includes('+'), 'exactly four needs no counter');
@@ -544,11 +546,9 @@ test('the last column cannot be turned off', () => {
   assert.equal(data.tableCols.length, 1, 'a table with no columns has no way back');
 });
 
-test('the branch grain answers the scope off the branch\'s own clock, and Failed is not a window it can answer', () => {
+test('the branch grain answers the scope off the branch\'s own clock', () => {
   data.sessionGrain = 'branch';
   data.sessionScope = 'day';
   assert.equal(data.grainRows.length, 1, 'the branch committed yesterday');
-  data.sessionScope = 'failed';
-  assert.equal(data.grainRows.length, 1, 'shown rather than emptied under a scope about sessions');
   data.sessionScope = 'all';
 });

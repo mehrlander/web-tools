@@ -1,6 +1,8 @@
 (() => {
   'use strict';
   const el=id=>document.getElementById(id);
+  const scrollPosition = () => window.NowViews?.scrollPosition('files') ?? window.scrollY;
+  const restoreScroll = top => window.NowViews?.scrollTo ? window.NowViews.scrollTo(top,'files') : window.scrollTo(0,top);
   const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const ago=value=>{const n=Math.max(0,Math.floor((Date.now()-Date.parse(value))/60000));return n<1?'just now':n<60?n+'m ago':n<1440?Math.floor(n/60)+'h ago':Math.floor(n/1440)+'d ago';};
   const size=value=>{if(!Number.isFinite(value))return '';let n=value,i=0;const units=['B','KB','MB','GB','TB'];while(n>=1000&&i<4){n/=1000;i++;}return n.toLocaleString([],{maximumFractionDigits:n<10&&i?1:0})+' '+units[i];};
@@ -86,7 +88,7 @@
   }
   function results(){
     if(!active||!el('local-results'))return;
-    const viewport={x:scrollX,y:scrollY},focus=document.activeElement,key=focus?.dataset.folder,commit=focus?.dataset.commit,branchFocus=focus?.dataset.fileBranch,toolFocus=focus?.dataset.focus,tip=document.querySelector('[data-commit][aria-describedby="wt-title-tip"]')?.dataset.commit,branchTip=document.querySelector('[data-file-branch][aria-describedby="wt-title-tip"]')?.dataset.fileBranch;
+    const viewport=scrollPosition(),focus=document.activeElement,key=focus?.dataset.folder,commit=focus?.dataset.commit,branchFocus=focus?.dataset.fileBranch,toolFocus=focus?.dataset.focus,tip=document.querySelector('[data-commit][aria-describedby="wt-title-tip"]')?.dataset.commit,branchTip=document.querySelector('[data-file-branch][aria-describedby="wt-title-tip"]')?.dataset.fileBranch;
     const inventory=denied?undefined:localInventory(),source=denied?undefined:inventory||listing,items=source?.entries||[],shown=items.filter(e=>(filter==='all'||e.gitState===filter)&&e.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
     const filters=el('file-filters');filters.hidden=!current||!items.some(e=>e.gitState);
     for(const button of filters.querySelectorAll('button')){const selected=button.dataset.fileFilter===filter;button.setAttribute('aria-pressed',String(selected));button.classList.toggle('bg-white',selected);button.classList.toggle('shadow-sm',selected);}
@@ -109,8 +111,9 @@
     if(toolFocus)[...document.querySelectorAll('[data-focus]')].find(n=>n.dataset.focus===toolFocus&&!n.disabled)?.focus({preventScroll:true});
     if(tip){const target=[...document.querySelectorAll('[data-commit]')].find(n=>n.dataset.commit===tip);if(target)window.TitleTip?.open(target);else window.TitleTip?.close();}
     if(branchTip){const target=[...document.querySelectorAll('[data-file-branch]')].find(n=>n.dataset.fileBranch===branchTip);if(target)window.TitleTip?.open(target);else window.TitleTip?.close();}
-    if(scrollX!==viewport.x||scrollY!==viewport.y)scrollTo(viewport.x,viewport.y);
+    if(scrollPosition()!==viewport)restoreScroll(viewport);
     window.NowRepositories.positionPanels();requestAnimationFrame(()=>window.NowRepositories.positionPanels());
+    window.NowViews?.refreshContext?.();
   }
   async function poll(){
     clearTimeout(timer);if(!active||document.hidden||controller)return;
@@ -152,5 +155,9 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else clearTimeout(timer);});
   window.addEventListener('online',poll);
   for(const key of ['web-tools-files-root','web-tools-files-snapshot'])try{const prior=JSON.parse(localStorage.getItem(key));if(validListing(prior,key==='web-tools-files-root'?'':prior?.path))cache.set(prior.path,prior);}catch{}
-  window.NowLocalFiles={valid,render,header,stop,setFilter,filter:()=>filter,refresh:()=>{signature='';results();}};
+  function gitState(path){
+    const parts=String(path).split('/'),name=parts.pop(),parent=parts.join('/');
+    return cache.get(parent)?.entries.find(entry=>entry.name===name)?.gitState??null;
+  }
+  window.NowLocalFiles={valid,render,header,stop,setFilter,gitState,filter:()=>filter,refresh:()=>{signature='';results();}};
 })();
