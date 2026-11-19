@@ -124,7 +124,7 @@ test('the shared routes collapse to one slot that opens nothing', () => {
 // the branch's tip.
 test('the chip opens the app running THIS branch, as a toss at its tip', () => {
   const stage = data.routeChips.on[0];
-  assert.equal(stage.url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@' + TIP + ':app/index.html?view=stage');
+  assert.equal(stage.url, 'https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@' + TIP + ':app/index.html?view=stage');
 });
 
 test('the tip is a SHA where one is known, never a branch name to encode', () => {

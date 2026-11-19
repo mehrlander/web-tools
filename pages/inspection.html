@@ -421,7 +421,7 @@
     // To an output: in the deck when the tap was in it, else in the strip.
     const go = (run, out, inDeck) => {
       if (inDeck && deck) deck.deck.go(swiper.slides().findIndex(c => c.id === run && c.sub === out), 'instant');
-      else swiper.pick(run, out);
+      else swiper.pick(run, 'api', out);
     };
 
     swiper = linkedSwiper.attach({

@@ -172,6 +172,10 @@ test('pick() from the host goes to a row, and ignores an id the list does not ha
   s.handle.pick('zz');
   assert.deepEqual(s.picks, [['b', 'api']]);
   assert.deepEqual(selected(s.list), ['b']);
+  // The host's own word for the move reaches onPick, so a host can add a
+  // history entry for a link followed and replace it for a browse.
+  s.handle.pick('a', 'follow');
+  assert.deepEqual(s.picks, [['b', 'api'], ['a', 'follow']]);
 });
 
 test('the door is offered only with a deck to open, and opens it', async () => {
@@ -327,8 +331,8 @@ test('pick and show take a sub-item, and tabs() draws a changed state', async ()
   const w = page({ swipe: false });
   let judged = new Set();
   const s = mountSubs(w, { extra: { tab: (id, sub) => ({ cls: judged.has(sub) ? 'bg-success/30' : '' }) } });
-  s.handle.pick('a', 'y');
-  assert.deepEqual(picked(s).at(-1), ['a', 'api', 'y']);
+  s.handle.pick('a', 'follow', 'y');
+  assert.deepEqual(picked(s).at(-1), ['a', 'follow', 'y'], 'the host\'s via, then the sub-item, as onPick hears them');
   s.handle.pick('c');
   assert.deepEqual(picked(s).at(-1), ['c', 'api', 'p'], 'without one, the item\'s first');
   s.handle.show('a', 'z');

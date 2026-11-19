@@ -1742,43 +1742,44 @@ test('Context\'s address rides with Context alone, and comes back with it', asyn
 
 test('an address that does not open Context arms none of its keys', () => {
   const { shell } = makeShell({ search: '?view=map&tab=tests&ctxtopic=house-style' });
-  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '', form: '', about: '', program: '' });
+  assert.deepEqual({ ...shell.mapCtx }, { ctxlens: '', ctxsort: '', ctxtopic: '', ctxsource: '', setintent: '', growthrepo: '', h: '', form: '', about: '' });
 });
 
 test("a policy link's entry rides with the Policies tab alone", async () => {
-  const { shell } = makeShell({ search: '?view=map&tab=policy&h=smug' });
-  assert.equal(shell.mapCtx.h, 'smug', 'an address that opens Policies arms its entry');
+  const { shell } = makeShell({ search: '?view=map&tab=policy&h=show' });
+  assert.equal(shell.mapCtx.h, 'show', 'an address that opens Policies arms its entry');
   await shell.routeFromUrl(shell.parseUrl());
-  assert.equal(shell.deepLinkParams().get('h'), 'smug', 'the entry survives the stamp');
+  assert.equal(shell.deepLinkParams().get('h'), 'show', 'the entry survives the stamp');
   shell.goMapTab('docs');
   assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
-  const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
+  const other = makeShell({ search: '?view=map&tab=docs&h=show' }).shell;
   assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
 });
 
-test("a program's page rides with the Programs tab alone, and opening it adds a history entry", async () => {
-  const { shell, history } = makeShell({ search: '?view=map&tab=programs&program=sessions' });
-  assert.equal(shell.mapCtx.program, 'sessions', 'an address that opens Programs arms its page');
+// A program's page left the Programs tab for a view of its own on
+// 2026-11-18 (?view=program, alpineComponents/program.js). Opening one from
+// the list is a new entry, so Back returns to the list, and its key rides with
+// that view alone.
+test("a program opened from the Programs tab is a view of its own, and Back returns to the list", async () => {
+  const { shell, history } = makeShell({ search: '?view=map&tab=programs' });
   await shell.routeFromUrl(shell.parseUrl());
-  assert.equal(shell.deepLinkParams().get('program'), 'sessions', 'the page survives the stamp');
+  assert.equal(shell.view, 'map');
   const calls = [];
   history.pushState = (a, b, url) => calls.push(['push', url]);
   history.replaceState = (a, b, url) => calls.push(['replace', url]);
-  shell.setMapCtx({ program: 'testing' }, { push: true });
+  shell.goProgram('testing', 'measures');
   assert.equal(calls.at(-1)[0], 'push', 'a page opened is an entry Back returns from');
-  assert.equal(new URLSearchParams(calls.at(-1)[1].split('?')[1]).get('program'), 'testing');
-  shell.setMapCtx({ program: '' }, { push: true });
-  assert.equal(new URLSearchParams(calls.at(-1)[1].split('?')[1] || '').has('program'), false, 'the list names no program');
-  shell.setMapCtx({ h: 'smug' });
-  assert.equal(calls.at(-1)[0], 'replace', 'without push, a pick still replaces the entry');
-  shell.setMapCtx({ program: 'testing' }, { push: true });
+  const q = new URLSearchParams(calls.at(-1)[1].split('?')[1]);
+  assert.equal(q.get('view'), 'program');
+  assert.equal(q.get('program'), 'testing');
+  assert.equal(q.get('tab'), 'measures');
+  shell.goProgramTab('changes');
+  assert.equal(calls.at(-1)[0], 'push', 'a tab tap is an entry too');
   shell.goMapTab('docs');
-  assert.equal(shell.deepLinkParams().has('program'), false, 'program rode onto another tab');
-  shell.view = 'sessions';
-  assert.equal(shell.deepLinkParams(new URLSearchParams('view=map&tab=programs&program=sessions')).has('program'), false,
-    'program rode onto another view');
-  const other = makeShell({ search: '?view=map&tab=docs&program=sessions' }).shell;
-  assert.equal(other.mapCtx.program, '', 'an address that does not open Programs arms none of its keys');
+  shell.goMap('docs');
+  assert.equal(shell.deepLinkParams().has('program'), false, 'program rode onto the Map');
+  const other = makeShell({ search: '?view=map&tab=programs&program=sessions' }).shell;
+  assert.equal('program' in other.mapCtx, false, 'the Map holds no program key of its own');
 });
 
 test("a form link's row rides with the Forms tab alone", async () => {
