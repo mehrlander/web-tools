@@ -83,12 +83,14 @@
   })();
 
   const TONE = {
-    success: { btn: 'btn-success', mark: 'bg-success/30', bar: 'bg-success' },
-    error: { btn: 'btn-error', mark: 'bg-error/25', bar: 'bg-error' },
-    warning: { btn: 'btn-warning', mark: 'bg-warning/40', bar: 'bg-warning' },
-    info: { btn: 'btn-info', mark: 'bg-info/25', bar: 'bg-info' },
-    neutral: { btn: 'btn-neutral', mark: 'bg-base-content/20', bar: 'bg-base-content/50' },
+    success: { btn: 'btn-success', mark: 'bg-success/30', bar: 'bg-success', tag: 'border-success/60 bg-success/35' },
+    error: { btn: 'btn-error', mark: 'bg-error/25', bar: 'bg-error', tag: 'border-error/60 bg-error/30' },
+    warning: { btn: 'btn-warning', mark: 'bg-warning/40', bar: 'bg-warning', tag: 'border-warning/70 bg-warning/45' },
+    info: { btn: 'btn-info', mark: 'bg-info/25', bar: 'bg-info', tag: 'border-info/60 bg-info/30' },
+    neutral: { btn: 'btn-neutral', mark: 'bg-base-content/20', bar: 'bg-base-content/50', tag: 'border-base-300 bg-base-100' },
   };
+  // A tag's colour: its own tone, else its stance's; any other tag is neutral.
+  const STANCE = { like: 'success', dislike: 'error' };
   const OPEN_MARK = 'bg-base-content/10';
   const MARKS = [OPEN_MARK, ...Object.values(TONE).map(t => t.mark)];
   // The card's own passage, and a passage or tab under the pointer.
@@ -192,8 +194,8 @@
 
   function tagHTML(o, big) {
     if (!o.tag) return '';
-    const t = P.tagOf[o.tag] || { label: o.tag };
-    return `<span class="badge badge-sm badge-ghost ${big ? 'mt-1.5' : 'mt-1'} shrink-0 justify-start gap-1" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
+    const t = P.tagOf[o.tag] || { label: o.tag }, c = (TONE[t.tone || STANCE[o.tag]] || TONE.neutral).tag;
+    return `<span class="badge badge-sm ${c} ${big ? 'mt-1.5' : 'mt-1'} shrink-0 justify-start gap-1" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
   }
 
   function controls(r, o) {
@@ -230,9 +232,10 @@
   }
 
   // A card, in the strip and in the deck: the run's input over one output,
-  // its tag, its words, its verdict and note. The words keep two lines, so
-  // the input does not change height from card to card (rule 15). place()
-  // scrolls the input to the output's passage.
+  // its tag, its words, its verdict and note, on a panel of its own. The
+  // output's words and note scroll in a fixed height, so the input does not
+  // change height from output to output (rule 15). place() scrolls the input
+  // to the output's passage.
   function cardHTML(r, o, big) {
     const pad = big ? 'px-4' : 'px-3.5';
     const blocks = r.source.blocks.map(b => `
@@ -240,10 +243,13 @@
         <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${marked(r, b, o)}</p>
       </section>`).join('');
-    const out = !o ? `<p class="flex-none border-t border-base-200 ${pad} py-2.5 text-base-content/60">No outputs.</p>` : `
-      <div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex flex-none flex-col gap-2 border-t border-base-200 ${pad} py-2.5">
-        <div class="flex min-h-[2lh] items-start gap-2">${tagHTML(o, big)}<span class="min-w-0">${esc(o.text)}</span></div>
-        ${o.note ? `<p class="text-base-content/70">${esc(o.note)}</p>` : ''}
+    const panel = `flex-none border-t border-base-content/10 bg-base-300 ${pad} py-3`;
+    const out = !o ? `<p class="${panel} text-base-content/60">No outputs.</p>` : `
+      <div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="${panel} flex flex-col gap-2.5">
+        <div data-words class="flex h-[calc(5lh+0.5rem)] flex-col gap-2 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] data-more:mask-b-from-75% max-sm:h-[7lh]">
+          <div class="flex items-start gap-2">${tagHTML(o, big)}<span class="min-w-0">${esc(o.text)}</span></div>
+          ${o.note ? `<p class="text-base-content/70">${esc(o.note)}</p>` : ''}
+        </div>
         ${controls(r, o)}
       </div>`;
     return `<div data-scope="${esc(r.id)}" data-flag="${esc(o?.id || '')}" class="flex h-full min-h-0 flex-col ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
@@ -269,7 +275,14 @@
     el.innerHTML = cardHTML(r, o, big);
     if (y != null) el.querySelector('[data-pane="in"]').scrollTop = y;
     place(el, y != null);
+    const words = el.querySelector('[data-words]');
+    if (words) sized.observe(words);
   }
+
+  // An output's words fade at their foot while more of them lies below.
+  const more = w => w.toggleAttribute('data-more', w.scrollTop + w.clientHeight < w.scrollHeight - 1);
+  const sized = new ResizeObserver(es => { for (const e of es) e.target.isConnected ? more(e.target) : sized.unobserve(e.target); });
+  document.addEventListener('scroll', e => { if (e.target.matches?.('[data-words]')) more(e.target); }, true);
 
   // ── lighting counterparts (rule 16) ─────────────────────────────────────
   // A passage and its output's tab in the list light together.
