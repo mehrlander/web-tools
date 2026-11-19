@@ -1720,3 +1720,48 @@ test('carriesTopic: the filter takes a topic name or an area', () => {
   assert.ok(!S.carriesTopic(A_ROWS[1], 'Toss render'));
   assert.ok(S.carriesTopic(A_ROWS[1], ''), 'no filter passes everything');
 });
+
+// ── Topic status (rollup 3, web-tools-private sessions/topics format 7) ─────
+const STATUS_DOC = { sessions: { s7000001: {
+  title: 'T', topics: ['Share sheet', 'Doc wording'],
+  agenda: [
+    { topic: 'Share sheet', kind: 'new', turns: [0, 1], state: { glyph: '🟣', name: 'Merged', line: '🟣 **Merged:** x' }, prs: ['web-tools#8'] },
+    { topic: 'Doc wording', kind: 'improve', turns: [2, 3], state: null, prs: [] },
+  ],
+  topic_status: [
+    { topic: 'Share sheet', status: 'done', waits_on: 'owner', waiting: 'ignored', basis: 'pr', evidence: 'web-tools#8 merged' },
+    { topic: 'Doc wording', status: 'open', waits_on: 'owner', waiting: 'sign-off on the wording', basis: 'model' },
+    { topic: 'Bad', status: 'stalled' },
+  ],
+} } };
+
+test('withTopics joins topic status and the open count; off-list statuses are dropped', () => {
+  const [row] = S.withTopics([{ id: 's7000001' }], STATUS_DOC);
+  assert.equal(row.topicOpen, 1);
+  assert.deepEqual(row.topicStatus.map(t => [t.topic, t.status, t.waits_on, t.waiting]),
+    [['Share sheet', 'done', null, ''], ['Doc wording', 'open', 'owner', 'sign-off on the wording']]);
+  assert.deepEqual(row.topicAgenda[0].prs, ['web-tools#8']);
+  const [old] = S.withTopics([{ id: 'd456b017' }], TOPICS_DOC);
+  assert.ok(!('topicStatus' in old) && !('topicOpen' in old));
+});
+
+test('topicList carries each topic\'s status; statusNote says it to the owner', () => {
+  const [row] = S.withTopics([{ id: 's7000001' }], STATUS_DOC);
+  const list = S.topicList(row.topicAgenda, row.topicStatus);
+  assert.deepEqual(list.map(t => t.status && t.status.status), ['done', 'open']);
+  assert.equal(S.statusNote(list[1].status), 'Waits on you: sign-off on the wording');
+  assert.equal(S.statusNote(list[0].status), '');
+  assert.equal(S.statusNote({ status: 'dropped' }), 'Dropped');
+  assert.equal(S.topicList(row.topicAgenda)[0].status, null);
+});
+
+test('carriesTopic takes status:open and status:open:<who> beside names and areas', () => {
+  const [row] = S.withTopics([{ id: 's7000001' }], STATUS_DOC);
+  assert.ok(S.carriesTopic(row, 'status:open'));
+  assert.ok(S.carriesTopic(row, 'status:open:owner'));
+  assert.ok(!S.carriesTopic(row, 'status:open:session'));
+  assert.ok(S.carriesTopic(row, 'status:done'));
+  assert.ok(!S.carriesTopic(row, 'status:dropped'));
+  assert.ok(S.carriesTopic(row, 'Doc wording'));
+  assert.equal(S.statusSpec('status:nope'), null);
+});
