@@ -243,11 +243,11 @@
         <h3 class="font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${marked(r, b, o)}</p>
       </section>`).join('');
-    const panel = `flex-none border-t border-base-content/10 bg-base-300 ${pad} py-3`;
+    const panel = `flex-none border-t-2 border-base-content/25 shadow-[0_-8px_14px_-12px_rgb(0_0_0/0.4)] ${pad} py-3`;
     const out = !o ? `<p class="${panel} text-base-content/60">No outputs.</p>` : `
       <div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="${panel} flex flex-col gap-2.5">
         <div data-words class="flex h-[calc(5lh+0.5rem)] flex-col gap-2 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] data-more:mask-b-from-75% max-sm:h-[7lh]">
-          <div class="flex items-start gap-2">${tagHTML(o, big)}<span class="min-w-0">${esc(o.text)}</span></div>
+          <div class="flex items-start gap-2">${tagHTML(o, big)}<span class="min-w-0 font-semibold">${esc(o.text)}</span></div>
           ${o.note ? `<p class="text-base-content/70">${esc(o.note)}</p>` : ''}
         </div>
         ${controls(r, o)}
