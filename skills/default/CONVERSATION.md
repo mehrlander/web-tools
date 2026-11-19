@@ -55,7 +55,7 @@ substituting the current repo in URL templates.
   🌿 [Open the branch](<branch URL>)
   ```
 
-  List only threads still open, and omit an empty section. When a step waits on the owner, an upstream release, an external review or a data refresh, list it under Open threads instead of filing a tracker task. Filing follows the [tasks skill](https://github.com/mehrlander/web-tools/blob/main/skills/tasks/SKILL.md).
+  List only threads still open, and omit an empty section.
 
 ## Displaying content
 
