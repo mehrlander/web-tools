@@ -137,7 +137,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
-**19. Pages are light.** Do not add dark mode: no dark theme, no `prefers-color-scheme` branch or `dark:` variant, and no light/dark toggle. Set one light daisyUI theme with `data-theme` on `<html>`. A new page takes `winter`, the app's theme; a page already on another light theme, such as `light` or `emerald`, keeps that theme.
+**19. Themes.** Set one light daisyUI theme on `<html>`: `winter` for a new page. Do not provide dark mode.
 
 ## Handing a page over
 

@@ -63,7 +63,7 @@ The house CDN stack survives the CSP once baked. The steps:
    classes onto a wrapper `<div>` or they are silently lost.
 4. **Publish** with a stable favicon and a short version label.
 
-**Themes.** Do not provide dark mode.
+**Themes.** A published page keeps the light daisyUI theme it sets. Do not provide dark mode.
 
 ## Identity and editing
 
