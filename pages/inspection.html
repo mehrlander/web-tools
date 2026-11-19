@@ -109,8 +109,10 @@
     for (const r of p.runs) {
       r.blockOf = Object.fromEntries(r.source.blocks.map(b => [b.id, b]));
       for (const o of r.outputs) {
-        const a = o.anchor || {}, b = r.blockOf[a.block];
-        o.span = b && Number.isInteger(a.start) && Number.isInteger(a.end) ? [u16(b.text, a.start), u16(b.text, a.end)] : null;
+        o.spans = (o.anchors || (o.anchor ? [o.anchor] : [])).flatMap(a => {
+          const b = r.blockOf[a.block];
+          return b && Number.isInteger(a.start) && Number.isInteger(a.end) ? [{ block: a.block, at: [u16(b.text, a.start), u16(b.text, a.end)] }] : [];
+        });
       }
     }
     p.verdictOf = Object.fromEntries((p.verdicts || []).map(v => [v.verdict, v]));
@@ -208,17 +210,20 @@
 
   // A block's text with each anchored span marked; overlapping spans split
   // into runs that carry every output resting on them. The card's own output
-  // leads a run it rests on, and that run is ringed.
+  // leads a run it rests on, and that run is ringed; its first anchor's
+  // opening run is data-first, where place() scrolls.
   function marked(r, b, own) {
-    const spans = r.outputs.filter(o => o.span && o.anchor.block === b.id);
-    const cuts = [...new Set([0, b.text.length, ...spans.flatMap(o => o.span)])].sort((x, y) => x - y);
+    const spans = r.outputs.flatMap(o => o.spans.filter(s => s.block === b.id).map(s => ({ o, at: s.at })));
+    const first = own?.spans[0];
+    const cuts = [...new Set([0, b.text.length, ...spans.flatMap(s => s.at)])].sort((x, y) => x - y);
     let h = '';
     for (let i = 0; i + 1 < cuts.length; i++) {
-      const [a, z] = [cuts[i], cuts[i + 1]], on = spans.filter(o => o.span[0] <= a && o.span[1] >= z);
+      const [a, z] = [cuts[i], cuts[i + 1]], on = [...new Set(spans.filter(s => s.at[0] <= a && s.at[1] >= z).map(s => s.o))];
       const t = esc(b.text.slice(a, z));
       if (!on.length) { h += t; continue; }
       const mine = !!own && on.includes(own), lead = mine ? own : on[0];
-      h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}" data-lead="${esc(lead.id)}"${mine ? ' data-cur' : ''}`
+      const top = mine && first.block === b.id && first.at[0] === a;
+      h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}" data-lead="${esc(lead.id)}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}`
         + ` class="cursor-pointer rounded-sm text-inherit box-decoration-clone ${markClass(r.id, lead.id)}${mine ? ' ' + CUR : ''}">${t}</mark>`;
     }
     return h;
@@ -249,7 +254,7 @@
   // has a height.
   function place(el, smooth, tries = 8) {
     requestAnimationFrame(() => {
-      const pane = el.querySelector('[data-pane="in"]'), at = pane?.querySelector('mark[data-cur]');
+      const pane = el.querySelector('[data-pane="in"]'), at = pane?.querySelector('mark[data-first]') || pane?.querySelector('mark[data-cur]');
       if (!at) return;
       if (!pane.clientHeight) { if (tries) place(el, smooth, tries - 1); return; }
       const top = at.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
