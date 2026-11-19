@@ -1826,7 +1826,7 @@
           const h = Math.ceil(c.getBoundingClientRect().top - slide.getBoundingClientRect().top) + c.scrollHeight;
           if (h && host.style.height !== h + 'px') host.style.height = h + 'px';
         };
-        let live = false, rest = 1, quiet = 0;
+        let live = false, rest = 1, quiet = 0, then = null;
         const settle = () => {
           clearTimeout(quiet);
           const a = deck.active();
@@ -1837,12 +1837,20 @@
             this.focusChosen(sec, deep);
           }
           rest = a;
+          live = false;
+          if (then && then.at === a) { const f = then.f; then = null; f(); }
         };
         deck.onSlide(a => this.paintReading(sec, READ[a]));
         deck.track.addEventListener('scroll', () => { clearTimeout(quiet); quiet = setTimeout(settle, 160); }, { passive: true });
         deck.track.addEventListener('scrollend', settle);
         deck.track.addEventListener('pointerdown', () => { live = true; });
-        sec._focusGo = (r) => { live = true; deck.go(READ.indexOf(r)); };
+        // A reader's turn (a stop) selects the passage once it settles; the
+        // page's own (a mark inside the passage, `f`) runs f once it has.
+        sec._focusGo = (r, f) => {
+          const at = READ.indexOf(r);
+          if (f) { if (deck.active() === at && sec.dataset.reading === r) return f(); then = { at, f }; } else live = true;
+          deck.go(at);
+        };
         requestAnimationFrame(() => { deck.go(1, 'instant'); fit(1); });
         if (typeof ResizeObserver === 'function') {
           const ro = new ResizeObserver(() => fit(deck.active()));
@@ -1984,6 +1992,11 @@
           const els = kind === 'caption' ? [body.querySelector('[aria-label="Caption"]')?.parentElement]
             : kind === 'focus' ? [body.querySelectorAll('[data-focus]')[k]] : [...body.querySelectorAll(`[data-cite="${k}"]`)];
           if (!els[0]) return;
+          // A mark inside a passage turned to its background is out of sight:
+          // the passage turns back to its text first, and the card goes there
+          // once its track has settled.
+          const inside = kind === 'cite' && els[0].closest('[data-focus]');
+          if (inside && inside.dataset.reading !== 'text' && inside._focusGo) return inside._focusGo('text', go);
           this.scrollToMark(body, els[0]);
           this.ringMark(kind === 'cite' ? els : [this.ringable(body, els[0])]);
         };
