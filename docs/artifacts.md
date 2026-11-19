@@ -63,12 +63,7 @@ The house CDN stack survives the CSP once baked. The steps:
    classes onto a wrapper `<div>` or they are silently lost.
 4. **Publish** with a stable favicon and a short version label.
 
-**Keep the page light.** Pages have no dark mode
-([html-style rule 19](../skills/html-style/SKILL.md)). The artifact viewer's
-light/dark toggle stamps `data-theme` on the root element. The bake compiles
-only the themes the page sets, its root theme the default. A stamped `dark`
-matches no compiled theme. The page's own theme stays on the root as the
-default, even after step 3 drops `<html>`.
+**Themes.** Do not provide dark mode.
 
 ## Identity and editing
 
