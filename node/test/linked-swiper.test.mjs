@@ -354,3 +354,113 @@ test('a row may say where its tabs go', async () => {
   assert.equal(row.firstElementChild.getAttribute('role'), 'tablist');
   assert.equal(row.lastElementChild.textContent, 'tail');
 });
+
+// Places: with `places`, a sub-item is a place in its item's card. The
+// inspection form's outputs are places in their run's card, since a step
+// between them leaves the input text where it is (owner, 2026-11-19: no
+// slide-out when the move stays in the same run).
+function recordMoves(window) {
+  const moves = [], was = window.Element.prototype.scrollTo;
+  window.Element.prototype.scrollTo = function (o) {
+    if (this.classList.contains('sd-track')) moves.push(o.behavior || 'smooth');
+    return was.call(this, o);
+  };
+  return moves;
+}
+
+test('with places a step inside an item redraws its card in place, and a step into the next item slides the track', async () => {
+  const w = page();
+  const moves = recordMoves(w);
+  const drawn = [];
+  const s = mountSubs(w, { extra: { places: true, body: (id, el, sub) => { drawn.push(el); return `<p>body ${id}${sub ? '.' + sub : ''}</p>`; } } });
+  await tick(3);
+  const track = s.card.querySelector('.sd-track');
+  assert.equal(track.children.length, 3, 'one slide per item');
+  const el = track.children[0].firstElementChild;
+  moves.length = 0;
+  s.handle.step(1);
+  await tick(3);
+  assert.deepEqual(picked(s).at(-1), ['a', 'swipe', 'y']);
+  assert.equal(track.scrollLeft, 0, 'the track stays on the item');
+  assert.equal(el.textContent, 'body a.y', 'its card shows the next sub-item');
+  assert.equal(drawn.at(-1), el, 'body is handed the element already showing the item');
+  assert.ok(!moves.includes('smooth'), 'no transition ran');
+  assert.equal(headText(s.card), 'Row a22/5', 'the counter and pill still count sub-items');
+  s.handle.step(1);
+  await tick(3);
+  moves.length = 0;
+  s.handle.step(1);
+  await tick(3);
+  assert.deepEqual(picked(s).at(-1), ['b', 'swipe', null]);
+  assert.equal(track.scrollLeft, 400, 'into the next item the track moves');
+  assert.deepEqual(moves, ['smooth'], 'with the transition');
+  s.handle.step(-1);
+  await tick(3);
+  assert.deepEqual(picked(s).at(-1), ['a', 'swipe', 'z'], 'back into an item lands on its last sub-item');
+  assert.equal(el.textContent, 'body a.z');
+});
+
+test('with places a tab, show() and a swipe inside an item stay on its card', async () => {
+  const w = page();
+  const s = mountSubs(w, { extra: { places: true } });
+  await tick(3);
+  const track = s.card.querySelector('.sd-track');
+  const el = track.children[0].firstElementChild;
+  tabsOf(s.list, 'a')[2].dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+  await tick(3);
+  assert.deepEqual(picked(s).at(-1), ['a', 'list', 'z']);
+  assert.equal(track.scrollLeft, 0);
+  assert.equal(el.textContent, 'body a.z');
+  s.handle.show('a', 'x');
+  await tick(3);
+  assert.equal(el.textContent, 'body a.x');
+  assert.ok(track.hasAttribute('data-sd-steps'), 'an item of several sub-items holds the track still under a pan');
+  const touch = (type, x) => {
+    const e = new w.Event(type, { bubbles: true });
+    e.touches = type === 'touchend' ? [] : [{ clientX: x, clientY: 100 }];
+    e.changedTouches = [{ clientX: x, clientY: 100 }];
+    el.dispatchEvent(e);
+  };
+  touch('touchstart', 300); touch('touchend', 200);
+  await tick(3);
+  assert.deepEqual(picked(s).at(-1), ['a', 'swipe', 'y'], 'a swipe to the left is a step to the next');
+  assert.equal(track.scrollLeft, 0);
+  assert.equal(el.textContent, 'body a.y');
+  s.handle.pick('c');
+  await tick(3);
+  assert.equal(track.scrollLeft, 800);
+  assert.ok(!track.hasAttribute('data-sd-steps'), 'an item of one swipes as before');
+});
+
+test('a deck that follows slides() with card() steps through an item in place and slides between items', async () => {
+  const w = page();
+  const s = mountSubs(w, { extra: { places: true } });
+  await tick(3);
+  const cards = s.handle.slides();
+  const d = w.swipeDeck.open({
+    count: cards.length, title: 'deck', start: 1, card: i => cards[i].id,
+    render: (i, el) => { el.textContent = 'deck ' + cards[i].id + (cards[i].sub ?? ''); },
+  });
+  await tick(3);
+  const track = d.deck.track, el = track.children[0].firstElementChild;
+  assert.equal(track.children.length, 3);
+  assert.equal(d.deck.active(), 1);
+  assert.equal(el.textContent, 'deck ay', 'it opens on its start');
+  const key = k => w.dispatchEvent(new w.KeyboardEvent('keydown', { key: k }));
+  key('ArrowRight');
+  await tick(3);
+  assert.equal(d.deck.active(), 2);
+  assert.equal(track.scrollLeft, 0);
+  assert.equal(el.textContent, 'deck az');
+  key('ArrowRight');
+  await tick(3);
+  assert.equal(d.deck.active(), 3);
+  assert.equal(track.scrollLeft, 400);
+  key('ArrowLeft');
+  await tick(3);
+  assert.equal(d.deck.active(), 2);
+  assert.equal(track.scrollLeft, 0);
+  assert.equal(el.textContent, 'deck az');
+  d.close();
+  await tick(3);
+});

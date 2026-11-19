@@ -16,12 +16,13 @@
     #gz=<base64url>              a gzipped payload carried in the link
     (neither)                    the embedded sample
 
-  A list of runs over a strip of one card per output, a run's outputs its
-  row's tabs (html-style rule 11, linked-swiper's sub-items); the card's door
-  opens the same cards as a deck. A card is the run's input, scrolled to the
-  passage its output rests on, over the output and its verdict. The other
-  outputs' passages stay marked, and a tap on one goes to its card; a passage
-  and its tab light together (rule 16).
+  A list of runs over a strip of their cards, a run's outputs its row's tabs
+  and places in its card (html-style rule 11, linked-swiper's sub-items as
+  places); the card's door opens the same cards as a deck. A card is the run's
+  input, scrolled to the passage its output rests on, over the output and its
+  verdict. A move to another output of the run stays on the card: the input
+  glides to that output's passage. The other outputs' passages stay marked, and
+  a tap on one goes to it; a passage and its tab light together (rule 16).
 -->
 <script type="module">
   const use = new URLSearchParams(location.search).get('use');
@@ -246,14 +247,23 @@
 
   // The output's passage a third of the way down the input, once the card
   // has a height.
-  function place(el, tries = 8) {
+  function place(el, smooth, tries = 8) {
     requestAnimationFrame(() => {
       const pane = el.querySelector('[data-pane="in"]'), at = pane?.querySelector('mark[data-cur]');
       if (!at) return;
-      if (!pane.clientHeight) { if (tries) place(el, tries - 1); return; }
+      if (!pane.clientHeight) { if (tries) place(el, smooth, tries - 1); return; }
       const top = at.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
-      pane.scrollTop = Math.max(0, top - pane.clientHeight / 3);
+      pane.scrollTo({ top: Math.max(0, top - pane.clientHeight / 3), behavior: smooth ? 'smooth' : 'instant' });
     });
+  }
+
+  // A card already showing the run keeps its input where it was and glides.
+  function fill(el, r, o, big) {
+    const was = el.querySelector(':scope > [data-scope]');
+    const y = was?.dataset.scope === r.id ? was.querySelector('[data-pane="in"]').scrollTop : null;
+    el.innerHTML = cardHTML(r, o, big);
+    if (y != null) el.querySelector('[data-pane="in"]').scrollTop = y;
+    place(el, y != null);
   }
 
   // ── lighting counterparts (rule 16) ─────────────────────────────────────
@@ -379,7 +389,8 @@
         count: cards.length, start, ...named(cards[start]), icon: 'ph-list-checks',
         slideScroll: false, innerClass: 'h-full w-full min-w-0',
         index: i => ({ ...named(cards[i]), group: cards[i].id }),
-        render: (i, slide) => { const c = cards[i]; slide.innerHTML = cardHTML(runOf(c.id), outOf(c.id, c.sub), true); place(slide); },
+        card: i => cards[i].id,
+        render: (i, slide) => { const c = cards[i]; fill(slide, runOf(c.id), outOf(c.id, c.sub), true); },
         onSlide: i => {
           const c = cards[i], n = named(c);
           sel = c.id; selOut = c.sub ?? null;
@@ -389,7 +400,7 @@
         onClose: () => { deck = null; },
       });
     };
-    // To an output's card: the deck's when the tap was in it, else the strip's.
+    // To an output: in the deck when the tap was in it, else in the strip.
     const go = (run, out, inDeck) => {
       if (inDeck && deck) deck.deck.go(swiper.slides().findIndex(c => c.id === run && c.sub === out), 'instant');
       else swiper.pick(run, out);
@@ -407,7 +418,8 @@
       wide: 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]',
       listMax: 'max-h-[40dvh]', slideScroll: false, innerClass: 'h-full w-full min-w-0',
       name: id => ({ title: runOf(id).title }),
-      body: (id, el, out) => { el.innerHTML = cardHTML(runOf(id), outOf(id, out), false); place(el); },
+      places: true,
+      body: (id, el, out) => fill(el, runOf(id), outOf(id, out), false),
       onPick: (id, via, out) => { sel = id; selOut = out ?? null; },
       deck: openDeck,
     });
