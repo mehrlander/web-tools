@@ -12,7 +12,7 @@ substituting the current repo in URL templates.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
   - ❇️ **Ready to assess:** The session assesses and reports back, without implementing. When a choice has not yet been fully assessed, close on ❇️ rather than ⚖️.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - ⚖️ **Choice needed:** Competing proposals would go in different directions. Once the choice is fully assessed for an unfamiliar reader, give the question, then `Recommended: <answer>, because <reason>.`
+  - ⚖️ **Choice needed:** Competing proposals would go in different directions. Once the choice among them is fully assessed for an unfamiliar reader, give the question, then `Recommended: <answer>, because <reason>.`
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment.
   - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes. Say what the session will do once approval is given.
