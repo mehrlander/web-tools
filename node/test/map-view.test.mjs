@@ -1746,13 +1746,13 @@ test('an address that does not open Context arms none of its keys', () => {
 });
 
 test("a policy link's entry rides with the Policies tab alone", async () => {
-  const { shell } = makeShell({ search: '?view=map&tab=policy&h=smug' });
-  assert.equal(shell.mapCtx.h, 'smug', 'an address that opens Policies arms its entry');
+  const { shell } = makeShell({ search: '?view=map&tab=policy&h=show' });
+  assert.equal(shell.mapCtx.h, 'show', 'an address that opens Policies arms its entry');
   await shell.routeFromUrl(shell.parseUrl());
-  assert.equal(shell.deepLinkParams().get('h'), 'smug', 'the entry survives the stamp');
+  assert.equal(shell.deepLinkParams().get('h'), 'show', 'the entry survives the stamp');
   shell.goMapTab('docs');
   assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
-  const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
+  const other = makeShell({ search: '?view=map&tab=docs&h=show' }).shell;
   assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
 });
 

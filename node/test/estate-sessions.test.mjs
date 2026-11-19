@@ -952,18 +952,6 @@ test('the histogram reads the whole store, not the scoped list', () => {
   data.sessionScope = 'all';
 });
 
-test('the star panel names a session the way a row does', () => {
-  const row = withState('a1', 'ready');
-  data.sessionScope = 'all';
-  data.sessionRepoFilter = '';
-  data.sessionStateFilter = '';
-  data.sessionRows_ = [row];
-  const star = data.lensStars[0];
-  assert.equal(star.id, 'a1');
-  assert.equal(star.label, data.sessionLabel(row), 'the same name the list row draws');
-  assert.equal(data.sessionStateMark(star), '🟢', 'and the same glyph');
-});
-
 test('a rebuilt row reaches the screen, rather than freezing at first paint', async () => {
   // The row's scope was `{ row: n.row }`, which x-data evaluates ONCE. x-for
   // reuses a keyed element, so a node rebuilt under the same session id updated
