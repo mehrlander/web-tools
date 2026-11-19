@@ -77,25 +77,45 @@ static class PhoneChecks
         check(linked.Changes?.Single(c=>c.Key.StartsWith("errand:")).SessionUrl is null,
             "An errand whose ID resembles a conversation UUID never gains a fabricated provider session link.");
         var jobs = new[] { "Gemini", "Codex", "Claude" }.SelectMany(provider =>
-            new[] { "queued", "claimed", "reply", "complete" }.Select(state => job with {
-                Id = provider.ToLowerInvariant() + "-" + state, Provider = provider, State = state
+            new[] { "queued", "claimed", "reply", "complete", "declined" }.Select(state => job with {
+                Id = provider.ToLowerInvariant() + "-" + state, Provider = provider, State = state,
+                Message = state == "declined" ? "Cancelled by owner" : job.Message
             })).ToList();
         var routed = PhoneActivity.Create(snapshot with { Activity = snapshot.Activity with { Errands = jobs },
             Sessions = new([], []), Cloud = new([], now, null) }, now);
-        check(routed.Items.Count == 12 && jobs.All(j => routed.Items.Any(i => i.Id == j.Id
+        check(routed.Items.Count == 15 && jobs.All(j => routed.Items.Any(i => i.Id == j.Id
             && i.Provider == j.Provider && i.State == j.State && i.SessionUrl is null)),
-            "The phone projects every assistant's queued, claimed, arriving and completed errands without inventing conversation links.");
+            "The phone projects every assistant's queued, claimed, arriving, completed and declined errands without inventing conversation links.");
         check(routed.Items.Where(i => i.Provider != "Gemini").All(i => i.Location == "")
             && routed.Items.Where(i => i.Provider == "Gemini").All(i => i.Location == "Laptop"),
             "Only the laptop-daemon method establishes an errand's execution location.");
-        check(routed.Items.All(i => i.Url == NavigationPolicy.ErrandUrl(i.Id, i.State is "reply" or "complete")),
+        check(routed.Items.All(i => i.Url == NavigationPolicy.ErrandUrl(i.Id, i.State is "reply" or "complete" or "declined")),
             "Every assistant's errand links to its matching Web Tools request or result.");
+        var cancelled = job with { State = "declined", Reply = "An earlier interim reply", Message = "Cancelled by owner" };
+        var cancelledSnapshot = snapshot with { Activity = snapshot.Activity with { Errands = [cancelled] } };
+        check(PhoneActivity.Errands(cancelledSnapshot, now).Items.Single() is { State: "declined", NeedsAttention: false }
+            && PhoneActivity.Reply(cancelledSnapshot, cancelled.Id) == "Cancelled by owner",
+            "A declined errand exposes its cancellation reason ahead of old interim prose without implying failure or requiring attention.");
+        var old = job with { Id = "older-result", UpdatedAt = now.AddDays(-10), Reply = "  ", Message = "A useful result", Provider = "Claude", Venue = "anthropic-cloud", ClaimedAt = now.AddDays(-11) };
+        var errandSnapshot = snapshot with { Activity = snapshot.Activity with { Errands = [old] } };
+        var errandPhone = PhoneActivity.Errands(errandSnapshot, now);
+        check(!PhoneActivity.Create(errandSnapshot, now).Items.Any(i => i.Id == old.Id)
+            && errandPhone.Items.Single() is { Location: "Cloud", ClaimedAt: not null, NeedsAttention: false },
+            "The dedicated queue retains older results and execution venue without extending the Now feed's horizon.");
+        check(PhoneActivity.Reply(errandSnapshot, old.Id) == "A useful result",
+            "An empty or whitespace reply falls back to the recorded result message.");
+        check(!JsonSerializer.Serialize(errandPhone).Contains("Private request note")
+            && !JsonSerializer.Serialize(errandPhone).Contains("private host"),
+            "The focused errand API preserves the phone's request-note and host boundary.");
         var journalPath = Path.Combine(Path.GetTempPath(), "errand-lanes-" + Guid.NewGuid().ToString("N") + ".json");
         try {
             var changes = new ChangeJournal(journalPath).Observe([], jobs, now);
             check(jobs.All(j => changes.Any(c => c.Key == "errand:" + j.Id && c.Provider == j.Provider
                 && c.Location == j.Location && (!c.Detail.Contains("Gemini") || j.Provider == "Gemini"))),
                 "The saved change journal retains the assistant and avoids Gemini worker wording on other assistants' errands.");
+            check(jobs.Where(j => j.State == "declined").All(j => changes.Any(c => c.Key == "errand:" + j.Id
+                && c.Detail == "Errand declined · Cancelled by owner" && c.Url == NavigationPolicy.ErrandUrl(j.Id, true))),
+                "The change journal preserves a decline's reason and saved-result link without claiming success.");
         } finally { File.Delete(journalPath); File.Delete(journalPath + ".tmp"); }
     }
 }
