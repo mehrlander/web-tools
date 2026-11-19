@@ -374,6 +374,14 @@ Long, undifferentiated paragraphs in documents or replies that pack several subj
 
 **Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
 
+### Death by sentence · `P74`
+
+A sentence that won’t end. Find bite size ideas that build into the larger point. If support is needed, add it after the period. Break up complex sentences, remove excessive detail, and scrutinize for clear flow of ideas. Consider moving up a level.
+
+**Look for:** a second complete claim joined on with ", and", ", which", ", so" or ", because"; a clause opening on an -ing verb tacked onto the end; conditions stacked before the main clause; a qualifier added to answer a reviewer's question, as in 'When a view's `data-find-input` element also carries `data-find-submit`, naming a method of the view, the find pill's bar shows a Results button, and Enter or that button passes the text typed in the bar to the method.'; a short sentence that names many things and describes code where the effect would do, as in 'Enter or the Results button calls the named method with the bar's text.'
+
+**Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
 ## Combined entries
 
 ### Fix the sentence, add no note · `P02`

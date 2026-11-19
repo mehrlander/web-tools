@@ -930,7 +930,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          side, hits opening the Sessions pane's paged reader. Any bare printable
          key reaches it, `/` included, through the shell's own router
          (wireAppTypeahead) rather than a listener of the component's; a view
-         carrying its own search box (data-find-box) takes the keystroke first.
+         carrying its own search box (data-find-input) takes the keystroke first.
          Branch and session hits travel the web-tools:open-branch-detail and
          web-tools:open-session events, consumed in estate.js beside the &detail=
          deep link they mirror. -->
@@ -1509,7 +1509,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          renders both and switches on the shell view, so both share this lazy
          mount. Full width, so the repo grid runs three cards wide like the
          pages index; the Stage constrains its own column. -->
-    <div x-show="isEstate" data-pane="estate" data-find-hoist class="h-full [&_label:has(>input[data-find-box])]:hidden"
+    <div x-show="isEstate" data-pane="estate" data-find-hoist class="h-full [&_label:has(>input[data-find-input])]:hidden"
          :class="listsFill ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'">
       <!-- w-full is load-bearing under listsFill and inert without it. An auto
            inline margin on a flex ITEM sizes it to its content instead of
@@ -1539,7 +1539,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
 
     <!-- Public browse: the no-token jsDelivr file browser (estate-level, beside
          Repos / Stage). Lazy-mounted on first visit. -->
-    <div x-show="view==='public'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='public'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-input])]:hidden">
       <div class="mx-auto px-6 py-8 !max-w-none">
         <template x-if="publicSeen">
           <div x-data="publicBrowse()"></div>
@@ -1562,7 +1562,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
 
     <!-- Pages: web-tools' own catalog, or any repo's `pages` entries, reached
          at ?view=pages or via the repo sidebar/tabs. -->
-    <div x-show="view==='pages'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='pages'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-input])]:hidden">
 
       <div class="!max-w-none px-6 py-8">
 
@@ -1598,10 +1598,10 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                 <div class="grow"></div>
                 <label class="input input-bordered flex items-center gap-1.5 w-48" data-slot="frame:search">
                   <i class="ph ph-magnifying-glass opacity-50"></i>
-                  <!-- data-find-box: the Pages view's own filter, so a bare
+                  <!-- data-find-input: the Pages view's own filter, so a bare
                        keystroke narrows this list instead of opening the
                        sidebar finder (wireAppTypeahead). -->
-                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-box data-find-noun="page" :data-find-count="filteredGroups.reduce((n, g) => n + g.items.length, 0)" class="grow min-w-0">
+                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-input data-find-noun="page" :data-find-count="filteredGroups.reduce((n, g) => n + g.items.length, 0)" class="grow min-w-0">
                 </label>
               </div>
 
@@ -1976,7 +1976,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          same as a repo's custom landing), every other project gets its README.
          Pages and Docs are DERIVED rather than declared: see projectPages and
          loadProjectDocs below. -->
-    <div x-show="view==='project'" data-find-hoist class="h-full flex flex-col [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='project'" data-find-hoist class="h-full flex flex-col [&_label:has(>input[data-find-input])]:hidden">
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
             <div class="shrink-0 px-4 sm:px-6 pt-3">
@@ -2061,9 +2061,9 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                 <i class="ph ph-files text-sm"></i>Docs<span x-show="projectDocsCount" class="opacity-60 tabular-nums" x-text="projectDocsCount"></span></button>
               <label x-show="projectTab==='docs'" class="ml-auto input input-xs input-bordered flex items-center gap-1 w-44 max-w-[45%]" data-slot="frame:search">
                 <i class="ph ph-magnifying-glass opacity-50"></i>
-                <!-- data-find-box: Docs' own filter, so a bare keystroke narrows
+                <!-- data-find-input: Docs' own filter, so a bare keystroke narrows
                      the tree instead of opening the sidebar finder. -->
-                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-box data-find-noun="doc" :data-find-count="projectDocsGroups.reduce((n, g) => n + g.files.length, 0)" class="grow min-w-0"></label>
+                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-input data-find-noun="doc" :data-find-count="projectDocsGroups.reduce((n, g) => n + g.files.length, 0)" class="grow min-w-0"></label>
             </div>
             </div>
 
@@ -2391,7 +2391,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          repo-owned scope story plus a live adoption read. The operational face
          of the constellation doctrine. Estate-level, its own component and lazy
          mount. -->
-    <div x-show="view==='map'" data-pane="map" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='map'" data-pane="map" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-input])]:hidden">
       <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
         <template x-if="mapSeen">
           <div x-data="map()"></div>
@@ -8503,12 +8503,12 @@ function app(){ return {
   // and this rule is a superset of that one, so the component's listener is gone
   // rather than coordinated with; a page that mounts quickFind without this
   // shell wires its own. The box declares itself with an id the router names
-  // (`quick-find-box`), and a VIEW's own box declares itself with
-  // `data-find-box`.
+  // (`quick-find-input`), and a VIEW's own box declares itself with
+  // `data-find-input`.
   //
   // THE VIEW'S BOX WINS WHERE IT IS ON SCREEN. Typing while looking at a list
   // and its filter means "narrow this", not "search the estate", so a visible
-  // `data-find-box` takes the keystroke and the sidebar never opens. Visibility
+  // `data-find-input` takes the keystroke and the sidebar never opens. Visibility
   // is `getClientRects()`, not `offsetParent`, which is null for any fixed
   // element and so would have reported the phone's sidebar hidden while it was
   // out.
@@ -8551,7 +8551,7 @@ function app(){ return {
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
         if (window.swipeDeck?.stack?.length || document.querySelector('dialog[open]')) return;
         const pill = document.getElementById('find-pill-box');
-        const to = Array.from(document.querySelectorAll('[data-find-box]')).find(el => el.getClientRects().length)
+        const to = Array.from(document.querySelectorAll('[data-find-input]')).find(el => el.getClientRects().length)
           || (pill && pill.getClientRects().length ? pill : null);
         if (!to || document.activeElement === to) return;
         e.preventDefault();
@@ -8577,14 +8577,14 @@ function app(){ return {
       if (window.swipeDeck?.stack?.length) return;
       if (document.querySelector('dialog[open]')) return;
 
-      // WHICH BOX MAY WEAR data-find-box: a VIEW's own primary search, over the
+      // WHICH BOX MAY WEAR data-find-input: a VIEW's own primary search, over the
       // content that view is showing. Only one view is on screen, so at most
       // one such box is ever visible and `first visible` is not a race. A box
       // inside something that OVERLAYS a view is disqualified for exactly that
       // reason: the fab drawer's debug console carries a filter, and marking it
       // would put two boxes on screen at once with DOM order deciding between
       // them. The membership is held by app-typeahead.test.mjs.
-      const own = Array.from(document.querySelectorAll('[data-find-box]'))
+      const own = Array.from(document.querySelectorAll('[data-find-input]'))
         .find(el => el.getClientRects().length);
       if (own) { own.focus(); return; }
       // Below sm a hoisting pane hides its own box, and the header's find
@@ -8599,7 +8599,7 @@ function app(){ return {
       // reader's eye already is, which is nowhere. Measured 2026-09-04: without
       // this gate the seeded character landed in a box that stayed
       // display:none, and focus never moved.
-      const box = document.getElementById('quick-find-box');
+      const box = document.getElementById('quick-find-input');
       if (!box || !this.showSidebar) return;
       if (this.sidebarOpen) { box.focus(); return; }
       e.preventDefault();
@@ -9845,7 +9845,7 @@ function gallery(){
 
 // ── Find pill: a view's filter box, hoisted into the header ─────────────────
 // The pill owns no query. It writes to the open view's own box (the
-// [data-find-box] input inside a view marked data-find-hoist, which that view
+// [data-find-input] input inside a view marked data-find-hoist, which that view
 // hides) and dispatches `input`, so each view's x-model, filtering and URL
 // stamp run exactly as if typed there. What it adds is placement: no row of
 // the view, one place for every view's filter, below lg a full-width 16px
@@ -9892,7 +9892,7 @@ function findPill(){
     // Retried because a view mounts its component lazily on first visit.
     resolve(){ this.$nextTick(() => [0, 250, 1000, 2500].forEach(ms => setTimeout(() => this.find(), ms))); },
     find(){
-      const hit = [...document.querySelectorAll('[data-find-hoist] input[data-find-box]')]
+      const hit = [...document.querySelectorAll('[data-find-hoist] input[data-find-input]')]
         .find(live) || null;
       // The placeholder is read even when the box is the same one: Activity's
       // four panes share a box whose placeholder follows the pane.
@@ -10024,7 +10024,7 @@ function findPill(){
         if (!reg) return;
         const ranges = [], walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         for (let n = walk.nextNode(); n && ranges.length < 500; n = walk.nextNode()) {
-          if (!n.data.trim() || n.parentElement?.closest('label:has(>input[data-find-box])') || !seen(n.parentElement)) continue;
+          if (!n.data.trim() || n.parentElement?.closest('label:has(>input[data-find-input])') || !seen(n.parentElement)) continue;
           const text = n.data.toLowerCase();
           for (const t of terms)
             for (let i = text.indexOf(t); i !== -1; i = text.indexOf(t, i + t.length)) {

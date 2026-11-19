@@ -12,12 +12,17 @@
     <Content Include="../worker/*.py;../worker/*.txt" Link="worker/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../shared/now-shared.js" Link="phone/now-shared.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../shared/usage-view.js" Link="phone/usage-view.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../shared/recent-usage.js" Link="phone/recent-usage.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../shared/phone-info.js" Link="phone/phone-info.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../shared/errands-view.js" Link="phone/errands-view.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../node_modules/@tailwindcss/browser/dist/index.global.js" Link="phone/vendor/tailwind.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../node_modules/marked/lib/marked.umd.js" Link="phone/vendor/marked.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../node_modules/dompurify/dist/purify.min.js" Link="phone/vendor/purify.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/assistant-mark.js" Link="phone/vendor/assistant-mark.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/claude-mark.js" Link="phone/vendor/claude-mark.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../lib/kits/swipe-deck.js" Link="phone/vendor/swipe-deck.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/kits/title-tip.js" Link="phone/vendor/title-tip.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="../../lib/kits/panel-tip.js" Link="phone/vendor/panel-tip.js" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../lib/favicon.svg" Link="phone/icon.svg" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../apple-touch-icon.png" Link="phone/apple-touch-icon.png" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
