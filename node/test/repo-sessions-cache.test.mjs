@@ -1765,3 +1765,11 @@ test('carriesTopic takes status:open and status:open:<who> beside names and area
   assert.ok(S.carriesTopic(row, 'Doc wording'));
   assert.equal(S.statusSpec('status:nope'), null);
 });
+
+test('statusMark gives an open topic one mark per waiting party, and none otherwise', () => {
+  assert.equal(S.statusMark({ status: 'open', waits_on: 'owner' }).icon, 'ph-user-circle');
+  assert.equal(S.statusMark({ status: 'open', waits_on: 'session' }).tip, 'Waits on the session');
+  assert.equal(S.statusMark({ status: 'open', waits_on: null }).icon, 'ph-hourglass-medium');
+  assert.equal(S.statusMark({ status: 'done' }), null);
+  assert.equal(S.statusMark(null), null);
+});
