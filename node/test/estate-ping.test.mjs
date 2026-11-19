@@ -1,18 +1,21 @@
 // alpineComponents/estate.js — Ping, questions put to Gemini from the Lists
 // view. Sending files a laptop-daemon `ping` errand in the registry; the pane
 // then follows each ask through the folder listings (sent, thinking once
-// claimed, answered once a result lands) and shows Gemini's reply. Driven over
+// claimed, reply arriving until explicitly settled) and shows Gemini's reply. Driven over
 // a fake GH and a stubbed shell; no network, no pixels. The fake registry has
 // two branches, so a read or write aimed at the wrong one finds nothing.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { makeWindow, startAlpine } from './bootstrap.mjs';
 
 const REGISTRY = 'me/registry';
 let FILES = {};
 let SAVES = [];
 let COMMITS = [];
+let READS = [];
+const sha = value => createHash('sha1').update(JSON.stringify(value)).digest('hex');
 // Errands and the topics rollup are on the registry's `background` branch
 // (kits/errands.js BRANCH); everything else is on main.
 const branchOf = (p) => (p.startsWith('errands/') || p === 'state/session-topics.json') ? 'background' : 'main';
@@ -34,12 +37,13 @@ class FakeGH {
   async ls(dir) {
     const rows = Object.keys(FILES).filter(p => p.startsWith(dir + '/') && !p.slice(dir.length + 1).includes('/')
                                            && branchOf(p) === this.ref)
-      .map(p => ({ name: p.slice(dir.length + 1), type: 'file' }));
+      .map(p => ({ name: p.slice(dir.length + 1), type: 'file', sha: sha(FILES[p]) }));
     if (!rows.length) throw Object.assign(new Error('404'), { status: 404 });
     return rows;
   }
   async get(name) {
-    if (this.repo === REGISTRY && FILES[name] && branchOf(name) === this.ref) return { text: JSON.stringify(FILES[name]) };
+    READS.push(name);
+    if (this.repo === REGISTRY && FILES[name] && branchOf(name) === this.ref) return { text: JSON.stringify(FILES[name]), sha: sha(FILES[name]) };
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req(path) {
@@ -77,6 +81,7 @@ const settle = () => { clearTimeout(data.pingTimer); data.pingTimer = null; };
 
 async function seed(files = {}) {
   FILES = { ...files };
+  READS = [];
   data.pingItems = [];
   await data.loadPings();
   settle();
@@ -125,6 +130,74 @@ test('a question moves to thinking when claimed, then shows the reply', async ()
   assert.equal(data.pingItems[0].stage, 'answered');
   assert.equal(data.pingItems[0].reply, 'The Snake.\nThe Willamette.');
   assert.equal(data.pingTimer, null, 'nothing left to watch, so polling stops');
+});
+
+test('an interim reply stays visible and polling until the final result replaces it', async () => {
+  await seed();
+  const id = await send('rivers?'), result = 'errands/results/' + id + '.json';
+  FILES[result] = { id, ok: true, data: { settled: false, reply: 'Interim reply' } };
+  await data.loadPings({ quiet: true });
+  assert.equal(data.pingItems[0].stage, 'reply');
+  assert.equal(data.pingItems[0].reply, 'Interim reply');
+  assert.ok(data.pingTimer, 'an interim result does not disarm polling');
+  settle();
+  await data.loadPings({ quiet: true }); settle();
+  assert.equal(READS.filter(path => path === result).length, 2, 'an unchanged interim result is still revalidated');
+
+  FILES[result] = { id, ok: true, closedAt: '2026-10-02T17:03:00Z', data: { settled: true, reply: 'Final reply' } };
+  await data.loadPings({ quiet: true });
+  assert.equal(data.pingItems[0].stage, 'answered');
+  assert.equal(data.pingItems[0].outcome, 'complete');
+  assert.equal(data.pingItems[0].reply, 'Final reply');
+  assert.equal(data.pingTimer, null, 'the final result ends polling');
+  await data.loadPings({ quiet: true });
+  assert.equal(READS.filter(path => path === result).length, 3, 'only a known final reply with unchanged SHA is reused');
+});
+
+test('a rewritten terminal result is reread while the unchanged request stays cached', async () => {
+  const id = 'daemon-2026-10-02-ping-rewritten', request = 'errands/requests/' + id + '.json', result = 'errands/results/' + id + '.json';
+  await seed({ [request]: { id, createdAt: '2026-10-02T17:00:00Z', run: { args: { prompt: 'rivers?' } } },
+    [result]: { id, ok: true, data: { reply: 'First answer' } } });
+  await data.loadPings({ quiet: true });
+  assert.equal(READS.filter(path => path === result).length, 1);
+  FILES[result] = { id, ok: true, data: { reply: 'Corrected answer' } };
+  await data.loadPings({ quiet: true });
+  assert.equal(data.pingItems[0].reply, 'Corrected answer');
+  assert.equal(READS.filter(path => path === result).length, 2);
+  assert.equal(READS.filter(path => path === request).length, 1);
+});
+
+test('a temporarily unreadable final result preserves the interim reply and keeps polling', async () => {
+  await seed();
+  const id = await send('rivers?'), result = 'errands/results/' + id + '.json';
+  FILES[result] = { id, ok: true, data: { settled: false, reply: 'Interim reply' } };
+  await data.loadPings({ quiet: true }); settle();
+  FILES[result] = [];
+  await data.loadPings({ quiet: true });
+  assert.equal(data.pingItems[0].stage, 'reply');
+  assert.equal(data.pingItems[0].reply, 'Interim reply');
+  assert.ok(data.pingTimer);
+  settle();
+  FILES[result] = { id, ok: true, data: { settled: true, reply: 'Final reply' } };
+  await data.loadPings({ quiet: true });
+  assert.equal(data.pingItems[0].reply, 'Final reply');
+  assert.equal(data.pingTimer, null);
+});
+
+test('a declined ping is terminal with its reason and a neutral label', async () => {
+  await seed();
+  const id = await send('rivers?');
+  FILES['errands/results/' + id + '.json'] = { id, ok: true, answered: false, message: 'Cancelled by owner',
+    closedAt: '2026-10-02T17:05:00Z', data: { settled: false, reply: 'Old interim reply', updatedAt: '2026-10-02T17:03:00Z' } };
+  await data.loadPings({ quiet: true });
+  assert.equal(data.pingItems[0].outcome, 'declined');
+  assert.equal(data.pingItems[0].reply, 'Cancelled by owner');
+  assert.equal(data.pingItems[0].at, '2026-10-02T17:05:00Z', 'the decline time supersedes old interim metadata');
+  assert.equal(data.pingItems[0].ok, true, 'a decline is not failure');
+  assert.equal(data.pingTimer, null, 'a decline closes the errand');
+  await new Promise(resolve => setTimeout(resolve, 0));
+  const row = [...window.document.querySelectorAll('[data-part="item"]')].find(el => el.textContent.includes('Cancelled by owner'));
+  assert.ok(row?.textContent.includes('Declined'));
 });
 
 test('a question just sent survives a listing that has not caught up with it', async () => {
@@ -188,6 +261,24 @@ test('Check files a status errand, and the answer turns the marker active', asyn
   await data.readCheck();
   assert.equal(data.daemonHealth.level, 'up');
   assert.equal(data.daemonText, 'Daemon active just now');
+});
+
+test('an interim status check remains open and cancellation does not claim daemon activity', async () => {
+  await seed({ 'state/session-topics.json': { sessions: { a: { analyzed_at: minsAgo(200) } } } });
+  COMMITS = [{ commit: { committer: { date: minsAgo(210) } } }];
+  await data.loadDaemon(reg());
+  data.daemon = { ...data.daemon, check: null };
+  await data.checkDaemon();
+  clearTimeout(data.daemonTimer); data.daemonTimer = null;
+  const id = data.daemon.check.id, result = 'errands/results/' + id + '.json';
+  FILES[result] = { id, ok: true, closedAt: minsAgo(0), data: { settled: false } };
+  await data.readCheck();
+  assert.equal(data.daemon.check.closedAt, '');
+  assert.equal(data.daemonHealth.level, 'checking');
+  FILES[result] = { id, ok: true, answered: false, closedAt: minsAgo(0), message: 'Cancelled by owner' };
+  await data.readCheck();
+  assert.equal(data.daemon.check.outcome, 'declined');
+  assert.equal(data.daemonHealth.level, 'quiet');
 });
 
 // An unanswered question keeps the pane polling, as it should; stop it so the

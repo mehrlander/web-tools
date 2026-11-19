@@ -128,6 +128,7 @@
   }
 
   const compact = value => new Intl.NumberFormat('en-US',{notation:'compact',maximumFractionDigits:1}).format(value).toLowerCase();
+  const infoClass='inline-flex min-h-7 cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-inherit [font:inherit] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 [&_svg]:size-3 [&_svg]:shrink-0';
   function destination(row) {
     return '#view=now&session=' + encodeURIComponent(String(row.identity || row.id || ''));
   }
@@ -165,12 +166,12 @@
     styles();
     const now = instant(options.now ?? Date.now()) ?? Date.now();
     const list = (Array.isArray(rows) ? rows : []).filter(row => row?.key === 'claude' && past(row.activityAt,now) !== null && now-past(row.activityAt,now) <= HOUR).slice(0,LIMIT);
-    return `<section class="nru" aria-label="Claude one-hour cache window"><header class="nru-head" title="${esc(INFO)}"><h2>Claude · 1h cache window</h2><span class="nru-column" title="Last recorded input context, including cached tokens">Context</span><span class="nru-column" title="Time left in the one-hour activity window">Left</span></header>${list.length ? `<ul class="nru-list">${list.map(row => {
+    return `<section class="nru" aria-label="Claude one-hour cache window"><header class="nru-head"><h2><button type="button" class="${infoClass}" data-cache-info="window" aria-label="About the Claude one-hour cache window">Claude · 1h cache window<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 10v6m0-10v.01"/></svg></button></h2><span class="nru-column"><button type="button" class="${infoClass}" data-cache-info="context" aria-label="About recorded context tokens">Context</button></span><span class="nru-column"><button type="button" class="${infoClass}" data-cache-info="left" aria-label="About activity-window minutes remaining">Left</button></span></header>${list.length ? `<ul class="nru-list">${list.map(row => {
       const title = String(row.title || 'Claude session'), context = count(row.contextTokens), usageAt = past(row.usageAt,now);
       const label = context === null ? 'Context size not reported' : context.toLocaleString('en-US') + ' context tokens' + (usageAt === null ? '' : ', measured ' + new Date(usageAt).toLocaleString());
       const remaining = Math.max(0,Math.min(HOUR,HOUR-(now-past(row.activityAt,now))));
       const minutes = Math.ceil(remaining/60000), timeLabel = minutes + (minutes === 1 ? ' minute' : ' minutes') + ' left in the one-hour activity window since last observed activity';
-      return `<li><a class="nru-row" style="--nru-remaining:${(remaining/HOUR*100).toFixed(3)}%" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" title="${esc(title + '. ' + label + '. ' + timeLabel)}" aria-label="${esc(title + '. ' + label + '. ' + timeLabel + '. Show session in Now')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span><span class="nru-time">${minutes}m</span></a></li>`;
+      return `<li><a class="nru-row" style="--nru-remaining:${(remaining/HOUR*100).toFixed(3)}%" data-recent-session="${esc(row.identity)}" href="${esc(destination(row))}" data-title-tip="${esc(title + '. ' + label + '. ' + timeLabel)}" aria-label="${esc(title + '. ' + label + '. ' + timeLabel + '. Show session in Now')}"><span class="nru-title">${esc(title)}</span><span class="nru-value"${context === null ? ' data-unknown' : ''}>${context === null ? '&#8211;' : compact(context)}</span><span class="nru-time">${minutes}m</span></a></li>`;
     }).join('')}</ul>` : '<p class="nru-empty">No Claude sessions updated in the past hour.</p>'}</section>`;
   }
   window.NowRecentUsage = {select,render,matchUsage,tokenBadge,INFO,LIMIT};
