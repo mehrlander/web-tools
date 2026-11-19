@@ -22,7 +22,7 @@ substituting the current repo in URL templates.
   - ⚫ **Done:** Every workstream merged or closed.
   - 🔵 **Short answer:** The reply answers a question, and the next move is the reader's. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  Use 🟢 for a closing state that needs only confirmation to proceed; save ⚖️ **Choice needed:** for competing proposals that would go in different directions, and use it only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Until the question has been assessed, close on ❇️. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
+  Use 🟢 for a closing state that needs only confirmation to proceed; save ⚖️ **Choice needed:** for competing proposals that would go in different directions, and use it only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Until the question has been assessed, close on ❇️ **Ready to assess**. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
   The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
   - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
