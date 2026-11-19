@@ -29,6 +29,9 @@ The Excel research is in `projects/office/research/` in `mehrlander/home`.
 - [Category mapping](category-mapping/README.md): which word fits a
   collection (registry, stream, cache, tracker…) and which fits work by when
   it acts (scheduled, standing, one-off…), each answered as a poster.
+- [Statistical quality control](quality-control-lineage/README.md): Shewhart,
+  Deming and the people around them, what each idea offers the preference
+  flagger, its gold set and the inspection form, and three probes.
 
 Other repositories can declare their own accounts without copying their
 contents here.

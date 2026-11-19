@@ -93,6 +93,11 @@
   ],
   "research": [
     {
+      "path": "research/quality-control-lineage/README.md",
+      "label": "Statistical quality control from Shewhart to Fagan, and what it offers our AI processes",
+      "kind": "exploration"
+    },
+    {
       "path": "research/2026-11-16-tooltip-sources/README.md",
       "label": "Where tooltip text comes from, and what git says about who wrote it",
       "kind": "probe"
