@@ -10,9 +10,9 @@ substituting the current repo in URL templates.
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
-  - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
+  - ❇️ **Ready to assess:** The session assesses and reports back, without implementing. When a choice has not yet been fully assessed, close on ❇️ rather than ⚖️.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - ⚖️ **Choice needed:** Competing proposals would go in different directions. Once they are fully assessed for an unfamiliar reader, give the question, then `Recommended: <answer>, because <reason>.`
+  - ⚖️ **Choice needed:** Competing proposals would go in different directions. Once the choice is fully assessed for an unfamiliar reader, give the question, then `Recommended: <answer>, because <reason>.`
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
   - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment.
   - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes. Say what the session will do once approval is given.
@@ -23,7 +23,7 @@ substituting the current repo in URL templates.
   - ⚫ **Done:** Every workstream merged or closed.
   - 🔵 **Short answer:** The reply answers a question, and the next move is the reader's. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  Use 🟢 for a closing state that needs only confirmation to proceed. Until a question has been fully assessed, close on ❇️ **Ready to assess** instead of ⚖️. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
+  Use 🟢 for a closing state that needs only confirmation to proceed. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
   The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
   - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
