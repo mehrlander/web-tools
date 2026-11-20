@@ -19,6 +19,7 @@ const HOOKS_JSON = JSON.parse(
 const PAGES = 'https://mehrlander.github.io/web-tools/pages/';
 const SESSION = 'f701fa79-e1c0-5997-b6c3-709182f8e137';
 const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
+const PROGRAM = ' · [🧭](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
 const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's, of no kind it names
 const MIN = 60_000, HOUR = 60 * MIN;
@@ -100,7 +101,8 @@ function checkout(root, name, { changed = 0, branch = 'claude/work' } = {}) {
   return { repo, git, commit };
 }
 
-// The caption line, with the event and the instruction under it checked.
+// The caption line, with the event and the instruction under it checked, and
+// the program link that closes every line checked and cut off.
 const caption = (out, event = 'UserPromptSubmit') => {
   const d = JSON.parse(out).hookSpecificOutput;
   assert.equal(d.hookEventName, event);
@@ -108,7 +110,8 @@ const caption = (out, event = 'UserPromptSubmit') => {
   assert.equal(second, CLOSE);
   assert.deepEqual(rest, []);
   assert.ok(first.startsWith(`\`${STAMP}\` `), `the line opens with the stamp: ${first}`);
-  return first.slice(STAMP.length + 3);
+  assert.ok(first.endsWith(PROGRAM), `the line closes with the program link: ${first}`);
+  return first.slice(STAMP.length + 3, -PROGRAM.length);
 };
 
 test('the line: the count as the session link, then the context, the clock, the age and the waiting docs', () => {
