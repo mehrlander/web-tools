@@ -220,14 +220,16 @@ versioning the config versions the declared stage. Layer model: `web-tools-priva
 ## Errands (`errands/requests` → `errands/results`)
 
 An errand is work a session needs this browser, or the person using it, to do.
-Every errand carries a `note` saying what is wanted. Three optional fields say how:
+Every errand carries an `id` and a `note` saying what is wanted. Four optional
+fields say how and why:
 
 - `action` names a mechanism the Stage performs itself: `tree`, `branches` or
   `fetch`, a read of one of your repos with your token.
 - `run` describes what gets run: `script` (`owner/repo@ref:path`), `venue` (a
-  [`machines.csv`](machines.csv) key), `method`, `outputReturn`, `outputType` and
-  `outputSigned`. The methods, the machines each allows and how each returns its
-  output are the registry [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
+  [`machines.csv`](machines.csv) key), `method`, `outputReturn`, `outputType`,
+  `outputSigned` and `args` (with `op` for `laptop-daemon`). The methods, the
+  machines each allows and how each returns its output are the registry
+  [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
   page the session cannot reach; see `courier/README.md`. A `computer-use` run's
   script is a prompt rather than code: the person hands it to a computer-use
   agent on the home laptop, whichever product, pastes the agent's report onto
@@ -239,14 +241,25 @@ Every errand carries a `note` saying what is wanted. Three optional fields say h
 - `purpose` is `test-script` (the output is evidence that code works) or
   `get-data` (the output is source material that lands and is used).
 
+A read (`action`) names its `repo` and may name a `ref`, `main` by default;
+`fetch` also names `paths`. Any other errand names `dest`, the
+`owner/repo[@ref]:dir` where what arrives is saved, and may name `file`, the
+name it is saved as; a `courier-bookmark` run names the `url` of its page.
+`title` defaults to the note's first line, and `createdAt` says when the errand
+was filed.
+
 An errand with no `action` and no `run` asks for material only you have. `expect`
-grades what arrives. A run with `outputSigned: true` wraps its output as an
-`errand-result/1` envelope, which a paste anywhere on the Stage routes to its
-errand. File `errands/requests/<id>.json` on the registry's `background`
-branch, not main, with the fields in `lib/kits/errands.js`, and hand the user
+grades what arrives: at least `files` files (one by default), a file matching
+each glob in `names`, and at least `min` matches (one by default) of the
+pattern `match`. A run with `outputSigned: true` wraps its output as an
+`errand-result/1` envelope, {envelope, errand, body, outputType}, which a paste
+anywhere on the Stage routes to its errand. File `errands/requests/<id>.json`
+on the registry's `background` branch, not main, and hand the user
 `?view=stage&errand=<id>`. Nothing the Stage performs runs until they tap,
 reads included. The answer lands at `errands/results/<id>.json` on the same
-branch. The scripts an errand runs stay on main (`errands/prompts/`, `sites/`),
+branch: {id, action, purpose, closedAt, ok, answered, message, verdict, data},
+where `answered` is false for a decline, `message` says why, and `verdict` is
+the grade. The scripts an errand runs stay on main (`errands/prompts/`, `sites/`),
 where `run.script` addresses them; web-tools-private's README, "Three layers",
 says why the records moved.
 
