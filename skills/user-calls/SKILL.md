@@ -12,7 +12,7 @@ description: >-
 
 ## Premise
 
-A user call puts one question for the owner on a page in the Web Tools app, with the files it concerns beside it. The owner answers there, and the answer is saved beside the call for the session to read. [doc-craft](../doc-craft/SKILL.md) files a user call for each changed document, and [design-sprint](../design-sprint/SKILL.md) one for each idea board.
+Complex decisions can benefit from rich supporting context. A user call puts a question on a page in the Web Tools app, with the files it concerns rendered beside it. The owner answers there, and the page saves the answer next to the call, where the session reads it. [doc-craft](../doc-craft/SKILL.md) files a user call for each changed document, and [design-sprint](../design-sprint/SKILL.md) one for each idea board.
 
 ## Goal and output
 
@@ -36,9 +36,9 @@ python3 user-call.py review <call.json> <document> <report>  # after it: record 
 python3 user-call.py review <call.json> --answers <change> <trips> | --kept <trip> "<why>"
 ```
 
-`review` keeps a draft call's [peeves critic](../agents/peeves-critic.md) runs for [doc-craft](../doc-craft/SKILL.md)'s Review step, in the record the contract's [Review](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/user-call.md#review) section states. `--spans` recomputes the edits from the document and the call's `base`, keeping the why, background, proposal and notes written on them.
+`review` keeps a draft call's [peeves critic](../agents/peeves-critic.md) runs for [doc-craft](../doc-craft/SKILL.md)'s Review step, in the record the contract's [Review](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/user-call.md#review) section states. `--spans` recomputes the edits from the document and the call's `base`. It keeps the why, background, proposal and notes written on each edit.
 
-`user-call.py` finds the store in a web-tools-private checkout in or beside the project root, or in the folder `--store` names. `add` and `close` commit and push straight to the store's main, leaving the checkout's branch as it is.
+`user-call.py` finds the store, web-tools-private's `user-calls/` folder, in a checkout in or beside the project root, or takes the folder `--store` names. `add` and `close` commit and push straight to the store's main. The checkout's branch stays as it is.
 
 ## Key insights
 

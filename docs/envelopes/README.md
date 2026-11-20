@@ -4,7 +4,7 @@ An **envelope** is a JSON document that carries a curated, annotated set of item
 
 ## The members
 
-The members are the rows of [`docs/formats.csv`](../formats.csv) whose `envelope` is `yes`; its `validated` column says whether a test checks a format's documents against its schema. [Membership](#membership) says what admits a format.
+The members are the rows of [`docs/formats.csv`](../formats.csv) whose `envelope` is `yes`; its `validated` column says whether a test checks a format's documents against its schema.
 
 **Surface** is the general substrate: the schema is deliberately light at the core (`role`, `view`, `context` optional and open) and tightens through named, versioned **profiles**, of which `branch-review/1` is the first (its schema is under [`schemas/profiles/`](schemas/profiles/)).
 

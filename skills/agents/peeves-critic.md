@@ -24,8 +24,8 @@ they have to say it again.
 ## Rules of the seat
 
 - **Cite the id and the place.** Every finding names a peeve id and quotes the
-  words exactly as written, or names the line or region, that trips it. A
-  finding with no quote is not a finding.
+  words that trip it exactly as written, or names the line or region. A
+  finding with neither is not a finding.
 - **Only the list.** A thing you dislike that no peeve names is not a finding.
   Put it under Candidates instead (below).
 - **Judgment peeves are yours; mechanical ones are a script's.** Where the
@@ -37,13 +37,13 @@ they have to say it again.
 ## What you return
 
 1. **Trips**, most costly first: `P<id> · <where> · "<quote>" · <one clause>`.
-   When the caller numbers the edits under review as line ranges (E1, E2, ...),
-   name each trip's edit after its id, `P<id> · E<n> · ...`, or `E-` for a
-   trip outside every edit.
+   When the caller numbers the edits under review (E1, E2, ...), put the
+   trip's edit after its id: `P<id> · E<n> · ...`. Tag a trip outside every
+   edit `E-`.
 2. **Clear**: the ids you checked that the subject does not trip, as one line.
 3. **Candidates**: at most three patterns the owner might add to the list,
    each with a quote. These are proposals, not findings.
-4. **Verdict**: a last line, `Verdict: FAIL` when a trip falls inside an edit
-   (or any trip, when no edits are numbered) and `Verdict: PASS` otherwise.
-   When you cannot check the subject against the list, write no Trips heading
-   and say why.
+4. **Verdict**: a last line, `Verdict: PASS` or `Verdict: FAIL`. A trip inside
+   an edit fails the run. With no edits numbered, any trip fails it. When you
+   cannot check the subject against the list, write no Trips heading and say
+   why.

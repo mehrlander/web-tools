@@ -241,24 +241,32 @@ fields say how and why:
 - `purpose` is `test-script` (the output is evidence that code works) or
   `get-data` (the output is source material that lands and is used).
 
-A read (`action`) names its `repo`, and may name a `ref` (`main` by default)
-and, for `fetch`, `paths`. Any other errand names `dest`, the
-`owner/repo[@ref]:dir` where what arrives is saved, and may name `file`, the
-name it is saved as; a `courier-bookmark` run also names its page's `url`. An
-errand with no `action` and no `run` asks for material only you have.
-`expect` grades what arrives: `files` (how many, one by default), `names`
-(globs that must each match a file) and `match` (a pattern that must match at
-least `min` times, one by default). A run with `outputSigned: true` wraps its
-output as an `errand-result/1` envelope, {envelope, errand, body, outputType},
-which a paste anywhere on the Stage routes to the errand `errand` names.
+A read (`action`) names its `repo` and may name a `ref`, `main` by default. A
+`fetch` also names `paths`. Any other errand names `dest`, the
+`owner/repo[@ref]:dir` where what arrives is saved. It may name `file`, the
+name it is saved as. A `courier-bookmark` run also names the `url` of its page.
+
+An errand with no `action` and no `run` asks for material only you have.
+`expect` grades what arrives:
+
+- `files`: how many files must arrive, one by default.
+- `names`: globs, each of which must match a file.
+- `match`: a pattern that must match at least `min` times, one by default.
+
+A run with `outputSigned: true` wraps its output as an `errand-result/1`
+envelope, {envelope, errand, body, outputType}. A paste of that envelope
+anywhere on the Stage goes to the errand its `errand` field names.
 
 File `errands/requests/<id>.json` on the registry's `background` branch, not
 main, and hand the user `?view=stage&errand=<id>`. Nothing the Stage performs
-runs until they tap, reads included. The result lands at
-`errands/results/<id>.json` on the same branch, as {id, action, purpose,
-closedAt, ok, answered, message, verdict, data}: `answered` is false when the
-person declines, with `message` saying why, and `verdict` is the grade. The
-scripts an errand runs stay on main
+runs until they tap, reads included.
+
+The result lands at `errands/results/<id>.json` on the same branch, as {id,
+action, purpose, closedAt, ok, answered, message, verdict, data}. `answered` is
+false when the person declines. A declined errand's `message` says why.
+`verdict` holds the grade.
+
+The scripts an errand runs stay on main
 ([`errands/prompts/`](https://github.com/mehrlander/web-tools-private/tree/main/errands/prompts),
 [`sites/`](https://github.com/mehrlander/web-tools-private/tree/main/sites)),
 where `run.script` addresses them.
