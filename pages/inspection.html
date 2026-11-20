@@ -118,15 +118,19 @@
   // strip and in the deck.
   const BADGE = 'grid h-3.5 min-w-3.5 cursor-pointer place-items-center rounded-full border px-[2px] font-mono text-[11px] leading-none font-semibold tabular-nums';
   const DISCS = 'absolute -top-[9px] -left-[9px] flex gap-px select-none';
+  const DISCS_LEAD = 'absolute -top-[11px] left-0 flex gap-px select-none';
   const INPUT = { strip: 'leading-7.5', deck: 'leading-8.5' };
-  // A turn: its label a 16px badge at the start of its words, raised 3px so
-  // a disc on the next line clears it, its right margin clearing the disc of
-  // a passage that starts the words. Turns are parted by a gap; a run of
-  // quiet ones is a slim fold that opens in place.
+  // A turn: its label an outlined 18px tag at the start of its words, 4px
+  // before them; a passage that starts the words hangs its disc over its own
+  // first letter (DISCS_LEAD), clear of the tag. Turns are parted by a gap; a
+  // run of quiet ones is a fold, the same tag and a dashed rule, that opens
+  // in place.
   const TURN = {
     gap: 'space-y-2',
-    badge: 'badge badge-xs badge-ghost mr-3 h-4 px-1.5 align-[3px] text-[11px] font-medium tabular-nums text-base-content/70',
-    fold: 'flex w-full cursor-pointer items-center gap-1.5 rounded-sm bg-base-200 px-2 py-0.5 text-xs leading-5 text-base-content/60 hover:bg-base-300 hover:text-base-content',
+    badge: 'inline-flex items-center rounded-sm border border-base-content/30 mr-1 h-[18px] px-1.5 text-xs leading-none font-medium tabular-nums align-[1px] text-base-content/80',
+    fold: 'group flex w-full cursor-pointer items-center gap-1.5',
+    chip: 'inline-flex shrink-0 items-center gap-1 rounded-sm border border-base-content/30 h-[18px] px-1.5 text-xs leading-none font-medium tabular-nums text-base-content/80 group-hover:border-base-content/60 group-hover:text-base-content',
+    rule: 'flex-1 border-t border-dashed border-base-content/25 group-hover:border-base-content/50',
   };
   // A dot under a tab's number marks an output that carries a note, leaving
   // the tab's fill to its stance or verdict.
@@ -325,7 +329,7 @@
       const nums = spans.filter(s => s.at[0] === a).map(({ o, role }) =>
         `<span data-badge="${esc(o.id)}" data-role="${role}" class="${BADGE} ${badgeTone(r.id, o.id, o === own, role)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
       h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} data-title-tip-bare tabindex="-1"`
-        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
+        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${a ? DISCS : DISCS_LEAD}">${nums}</span>`}${t}</mark>`;
     }
     return h;
   }
@@ -365,7 +369,7 @@
     let h = '', quiet = [];
     const flush = () => {
       if (quiet.length > 1 && !opened.has(r.id + '|' + quiet[0].id))
-        h += `<div class="${pad}"><button type="button" data-fold="${esc(quiet[0].id)}" class="${TURN.fold}"><i class="ph ph-arrows-out-line-vertical"></i><span>${esc(rangeOf(quiet))}</span></button></div>`;
+        h += `<div class="${pad}"><button type="button" data-fold="${esc(quiet[0].id)}" class="${TURN.fold}"><span class="${TURN.chip}"><i class="ph ph-arrows-out-line-vertical"></i>${esc(rangeOf(quiet))}</span><span class="${TURN.rule}"></span></button></div>`;
       else h += quiet.map(b => turnHTML(r, b, own, pad)).join('');
       quiet = [];
     };
