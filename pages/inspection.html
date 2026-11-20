@@ -225,6 +225,11 @@
   const countOf = r => doneOf(r) + '/' + r.outputs.length;
   let swiper = null;
 
+  // An output's flair: a quiet badge each, after its words, its tip saying
+  // what the label marks.
+  const flairHTML = o => (o.flair || []).map(f => ` <span class="badge badge-sm badge-ghost cursor-pointer gap-1 align-[0.1em] font-normal text-base-content/75" data-title-tip="${esc(f.tip || f.label)}">`
+    + `${f.icon ? `<i class="ph ${esc(f.icon)}"></i>` : ''}${esc(f.label)}</span>`).join('');
+
   // A row: the run's title over its meta, its outputs' tabs (the kit draws
   // them in data-ls-tabs) and how many have a verdict.
   function rowHTML(r) {
@@ -293,10 +298,10 @@
   }
 
   // A card, in the strip and in the deck: the run's input over one output,
-  // its tag, its words, its verdict and note, on a panel of its own. The
-  // output's words scroll in a fixed height, so the input does not change
-  // height from output to output (rule 15); the producer's note opens from an
-  // icon after them. place() scrolls the input
+  // its tag, its words and flair, its verdict and note, on a panel of its own.
+  // The panel fits its words, up to a few lines that then scroll, so the input
+  // gives up no more room than an output needs; the producer's note opens from
+  // an icon after the words. place() scrolls the input
   // to the output's passage.
   function cardHTML(r, o, big) {
     const pad = big ? 'px-4' : 'px-3.5';
@@ -306,12 +311,12 @@
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${marked(r, b, o)}</p>
       </section>`).join('');
     // The seam is the card head's (linked-swiper), on the panel's top edge.
-    const panel = `flex-none border-t border-base-200 ${pad} py-3`;
+    const panel = `flex-none border-t border-base-200 ${pad} py-2`;
     const out = !o ? `<p class="${panel} text-base-content/60">No outputs.</p>` : `
-      <div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="${panel} @container flex flex-col gap-2.5">
-        <div data-words class="flex h-[3lh] flex-col overflow-y-auto overscroll-contain [scrollbar-gutter:stable] data-more:mask-b-from-75% max-sm:h-[5lh]">
-          <p class="font-semibold @lg:flex @lg:items-start @lg:gap-2">${tagHTML(o, big)}<span class="@lg:min-w-0">${esc(o.text)}${o.note
-            ? ` <i class="ph ph-info cursor-pointer align-[-0.125em] font-normal text-base-content/50" data-title-tip="${esc(o.note)}"></i>` : ''}</span></p>
+      <div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="${panel} @container flex flex-col gap-2">
+        <div data-words class="max-h-[4lh] overflow-y-auto overscroll-contain [scrollbar-gutter:stable] data-more:mask-b-from-75% max-sm:max-h-[6lh]">
+          <p class="font-semibold @lg:flex @lg:items-start @lg:gap-2">${tagHTML(o, big)}<span class="@lg:min-w-0">${esc(o.text)}${flairHTML(o)}${o.note
+            ? ` <i class="ph ph-info cursor-pointer align-[-0.125em] font-normal text-base-content/50" data-title-tip-lead="Producer's note" data-title-tip="${esc(o.note)}"></i>` : ''}</span></p>
         </div>
         ${controls(r, o)}
       </div>`;

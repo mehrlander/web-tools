@@ -33,7 +33,7 @@ A verdict may also have an `icon`, a Phosphor class such as `ph-check`, and a `t
 
 A **run** is one input and the outputs made from it. It has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives.
 
-An **output** has an `id` unique in its run and a `text`. It may have a `tag`, a `note` (the producer's remark, shown in a tip from an icon after the output) and an `anchor`. An anchor is `{block, start, end}`: offsets into that block's text, in code points, with `end` exclusive. Where no span applies it is `{block}` alone. An output that rests on several passages has `anchors`, a list of anchors, in place of `anchor`; the page marks each and scrolls to the first.
+An **output** has an `id` unique in its run and a `text`. It may have a `tag`, `flair` (short marks shown after the text, each `{icon, label, tip}`, the tip saying what the label marks), a `note` (the producer's remark, shown in a tip from an icon after the text) and an `anchor`. An anchor is `{block, start, end}`: offsets into that block's text, in code points, with `end` exclusive. Where no span applies it is `{block}` alone. An output that rests on several passages has `anchors`, a list of anchors, in place of `anchor`; the page marks each and scrolls to the first.
 
 ## Answers
 
