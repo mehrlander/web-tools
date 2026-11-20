@@ -485,7 +485,7 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
   const stage = manifest.routes.find(r => r.key === 'stage');
   assert.ok(stage, 'the stage route is declared');
   assert.equal(R.viewUrl(stage, 'abc123'),
-    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=stage');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@abc123:app/index.html?view=stage');
   assert.equal(R.viewUrl(stage, ''), 'https://mehrlander.github.io/web-tools/app/?view=stage', 'no ref is the deployed app');
 });
 
@@ -501,7 +501,7 @@ test('a Map hit names the tab most of its files belong to, and the link lands th
   const policy = map(['docs/house-policies.md', 'lib/alpineComponents/map.js']);
   assert.equal(policy.tab, 'policy');
   assert.equal(R.viewUrl(policy, 'abc123'),
-    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
   assert.equal(map(['docs/house-policies.md', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
   assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
   assert.equal(R.routesTouched(manifest, ['docs/house-policies.md']).on.find(r => r.key === 'map').tab, undefined,

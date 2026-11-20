@@ -51,7 +51,7 @@ test('a lib change resolves to a toss of the page that draws it, which is the ca
   assert.ok(app, 'the app is the subject, since app-routes.csv declares the file as its code');
   // The toss supersedes ?use= as the preview link (docs/showing-consolidation.md):
   // tossed at the branch, the untouched page boots the branch's library.
-  assert.equal(app.url, `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:app/index.html`);
+  assert.equal(app.url, `https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@${Z12}:app/index.html`);
   assert.equal(d.sha, ZERO, 'the JSON keeps the whole commit; only the link is short');
   // Not seven links. A page importing the pre-build LOADS every component and
   // renders few, so those are reported as carried rather than offered.
@@ -249,8 +249,9 @@ test('a walkthrough whose steps name pages opens as the tab, each step at its ad
   // starting on one starts on the data viewer's own address.
   const doc = run('docs/showing.md', ['--at', walk]);
   assert.match(doc.links[0].url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/pages/data-view\\.html\\?src=mehrlander/web-tools@${Z12}:docs/showing\\.md#steps=`));
-  // The control: steps on one page stay framed.
-  const one = run('app/index.html', ['--at', steps([{ at: 'text:Set' }, { at: 'text:Showing' }])]);
+  // The control: steps on one page stay framed. Not the app, whose links
+  // carry ?top whatever the walkthrough, since it routes on its address.
+  const one = run('pages/idea-board.html', ['--at', steps([{ at: 'text:Set' }, { at: 'text:Showing' }])]);
   assert.equal(one.top, undefined);
   assert.doesNotMatch(one.links[0].url, /\?top/);
 });
@@ -551,7 +552,7 @@ test('a lib change on a branch behind main, touching nothing main touched, is an
   assert.equal(d.case, 'merge');
   assert.equal(d.links.find(l => l.page === 'app/index.html').url,
     'https://mehrlander.github.io/web-tools/pages/toss-render.html'
-    + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/alpineComponents/estate.js`
+    + `?top&refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/alpineComponents/estate.js`
     + `#gh=mehrlander/web-tools@${B12}:app/index.html`, 'main is pinned, the build left out, the one file over it');
   assert.ok(d.warnings.some(w => /150\+ characters/.test(w)), 'an overlay still passes the MCP body cap, and says so');
   assert.ok(d.why.some(w => /9 commit\(s\) behind main.*a merge would produce/.test(w)));
