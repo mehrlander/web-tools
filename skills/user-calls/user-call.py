@@ -447,7 +447,7 @@ def trip_of(line):
     m = re.match(r"\**(" + PEEVE + r")\**\s*·\s*(.*)$", s)
     if not m:
         return None
-    parts = [p.strip() for p in m.group(2).split(" · ")]
+    parts = [p.strip() for p in uncoded_split(m.group(2), " · ")]
     tag = re.fullmatch(EDIT_TAG, parts[0], re.I) if parts else None
     if tag:
         parts = parts[1:]
@@ -457,7 +457,7 @@ def trip_of(line):
     quote, clause = "", " · ".join(rest)
     if q is not None:
         quote = rest[q]
-        if len(quote) > 1 and quote[0] in "\"“" and quote[-1] in "\"”" and quote.count('"') <= 2:
+        if len(quote) > 1 and quote[0] in "\"“" and quote[-1] in "\"”" and not re.search(r'["“”]', uncoded(quote[1:-1])):
             quote = quote[1:-1]
         clause = " · ".join(rest[q + 1:])
         where = " · ".join([where, *rest[:q]])
@@ -466,6 +466,20 @@ def trip_of(line):
         out["edit"] = int(tag.group(1)) if tag.group(1) else 0
     out.update(where=where, quote=quote, clause=clause)
     return out
+
+
+def uncoded(s):
+    """s with its code spans blanked, so a mark inside one is not read."""
+    return re.sub(r"`[^`]*`", lambda m: " " * len(m.group(0)), s)
+
+
+def uncoded_split(s, sep):
+    """s split on sep where sep is outside a code span: a trip quoting the trip
+    format keeps its ` · ` inside backticks."""
+    out, at, bare = [], 0, uncoded(s)
+    for m in re.finditer(re.escape(sep), bare):
+        out.append(s[at:m.start()]); at = m.end()
+    return out + [s[at:]]
 
 
 def items(lines):
@@ -601,7 +615,8 @@ def quote_parts(q):
     """The quoted strings in a quote, as in `"a" (row) against "b"`, or the
     quote whole when it is not made of quoted strings."""
     qq = str(q or "").replace("“", '"').replace("”", '"')
-    parts = re.findall(r'"([^"]+)"', qq)
+    bare = uncoded(qq)
+    parts = [qq[m.start(1):m.end(1)] for m in re.finditer(r'"([^"]+)"', bare)]
     return parts if parts and qq.strip().startswith('"') else [str(q or "")]
 
 

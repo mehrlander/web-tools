@@ -220,6 +220,16 @@ test('a trip carries the edit it was tagged with, E- or outside as 0; only trips
   assert.equal(outside.verdict, 'pass', 'a trip outside every edit does not fail the run');
   assert.equal(outside.stated, 'fail', 'the verdict the critic stated is kept where it differs');
   assert.equal('edit' in old.trips[0], false, 'the old form carries no tag');
+  // From the first real use (the critic-review docs, 2026-11-20): a trip
+  // quoting the trip format, whose separators sit in a code span.
+  const [fmt, kept] = pyMany([
+    ['trip_of', ['- P74 · E2 · lines 40-42 · "put the edit after the id, as `P<id> · E<n> · <where> · "<quote>" · <one clause>`, and `E-` for a trip outside." · Split it.']],
+    ['trip_of', ['- P74 · E1 · line 30 · "mark it with `--kept <n> "<why>"`; once that run is recorded" · Two steps.']],
+  ]);
+  assert.equal(fmt.quote, 'put the edit after the id, as `P<id> · E<n> · <where> · "<quote>" · <one clause>`, and `E-` for a trip outside.');
+  assert.equal(fmt.clause, 'Split it.');
+  assert.equal(kept.quote, 'mark it with `--kept <n> "<why>"`; once that run is recorded', 'a quote mark inside code keeps the outer ones stripped');
+  assert.deepEqual(py('quote_parts', kept.quote), [kept.quote]);
 });
 
 test('a rewrap is reflow, counted apart from the changes, and a quote is held to the text', () => {
