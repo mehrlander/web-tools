@@ -95,16 +95,17 @@
   const STANCE = { like: 'success', dislike: 'error' };
   const toneOf = o => P.tagOf[o.tag]?.tone || STANCE[o.tag];
   const hueOf = o => TONE[toneOf(o)] && toneOf(o) !== 'neutral' ? toneOf(o) : 'base-content';
-  // A passage's fill, by its place in its output (adopt) and whose it is: the
-  // card's own output's in primary; another's quieter, in its tag's tone
-  // (hueOf). An output's only passage and the first of several are filled; the
-  // first of several and each later one carry a line at the foot, so a later
-  // one is the line alone. The line is an inset shadow because title-tip's
-  // unlayered rule on [data-title-tip-bare] removes text decoration. A passage
-  // under the pointer, and its counterparts, deepen (data-hot).
-  const fillOf = (mine, role, hue) => {
-    const c = mine ? 'primary' : hue, [f, h, g] = mine ? [20, 35, 15] : [10, 20, 10];
-    const line = `shadow-[inset_0_-1.5px_0_${mine ? 'var(--color-primary)' : `color-mix(in_oklab,var(--color-${c})_50%,transparent)`}]`;
+  // A passage's fill, in its output's tag's tone (hueOf), by its place in its
+  // output (adopt) and whose it is: the card's own output's deeper, another's
+  // lighter; the own output's number disc is primary (badgeTone). An output's
+  // only passage and the first of several are filled; the first of several and
+  // each later one carry a line at the foot, so a later one is the line alone.
+  // The line is an inset shadow because title-tip's unlayered rule on
+  // [data-title-tip-bare] removes text decoration. A passage under the
+  // pointer, and its counterparts, deepen (data-hot).
+  const fillOf = (mine, role, c) => {
+    const [f, h, g, l] = mine ? [40, 55, 20, 100] : [25, 38, 15, 70];
+    const line = `shadow-[inset_0_-1.5px_0_color-mix(in_oklab,var(--color-${c})_${l}%,transparent)]`;
     return role === 'again' ? `bg-transparent data-hot:bg-${c}/${g} ${line}` : `bg-${c}/${f} data-hot:bg-${c}/${h}${role === 'first' ? ' ' + line : ''}`;
   };
   // A passage's number: a 14px disc on its top-left corner, out of the line,
@@ -265,9 +266,9 @@
   // A block's text with each anchored span marked; overlapping spans split
   // into runs that carry every output resting on them. A passage's opening
   // run carries its output's number. A run the card's own output rests on
-  // takes the primary fill and that output's place; any other run takes the
-  // most prominent place among the outputs on it, and the tone of the output
-  // that holds it. The own output's first
+  // takes the deeper fill and that output's place and tone; any other run
+  // takes the most prominent place among the outputs on it, and the tone of
+  // the output that holds it. The own output's first
   // passage's opening run is data-first, where place() scrolls.
   function marked(r, b, own) {
     const spans = r.outputs.flatMap(o => o.spans.filter(s => s.block === b.id).map(s => ({ o, at: s.at, role: s.role })));
