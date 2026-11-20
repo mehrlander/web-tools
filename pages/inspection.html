@@ -119,16 +119,17 @@
   const BADGE = 'grid h-3.5 min-w-3.5 cursor-pointer place-items-center rounded-full border px-[2px] font-mono text-[11px] leading-none font-semibold tabular-nums';
   const DISCS = 'absolute -top-[9px] -left-[9px] flex gap-px select-none';
   const INPUT = { strip: 'leading-7.5', deck: 'leading-8.5' };
-  // A turn: its label's number in an outlined 18px tag at the start of its
-  // words, 4px before them, the whole label in its tip; a disc of a passage
-  // that starts the words sits close over the tag's corner. Turns are parted
-  // by a gap; a run of quiet ones is a fold, the same tag and a dashed rule,
-  // that opens in place.
+  // A turn: its label's number, bold in the folds' grey at three quarters of
+  // the words' size, raised to sit centred on their capitals, 6px before
+  // them, the whole label in its tip; a disc of a passage that starts the
+  // words sits close over the number's corner. Turns are parted by a gap; a
+  // run of quiet ones is a fold, an outlined tag and a dashed rule, that opens
+  // in place.
   // A turn's tag: the number its label ends with, else the whole label.
   const turnNo = b => (b.label || b.id).match(/(\d+)$/)?.[1] ?? (b.label || b.id);
   const TURN = {
     gap: 'space-y-2',
-    badge: 'inline-flex items-center rounded-sm border border-base-content/30 mr-1 h-[18px] px-1.5 text-xs leading-none font-medium tabular-nums align-[1px] text-base-content/80',
+    badge: 'inline-block relative -top-[0.18em] mr-1.5 text-[0.75em] font-bold tabular-nums text-base-content/80',
     fold: 'group flex w-full cursor-pointer items-center gap-1.5',
     chip: 'inline-flex shrink-0 items-center gap-1 rounded-sm border border-base-content/30 h-[18px] px-1.5 text-xs leading-none font-medium tabular-nums text-base-content/80 group-hover:border-base-content/60 group-hover:text-base-content',
     rule: 'flex-1 border-t border-dashed border-base-content/25 group-hover:border-base-content/50',
