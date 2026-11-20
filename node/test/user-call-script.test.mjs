@@ -7,7 +7,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, existsSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
@@ -136,7 +136,8 @@ test('edits pairs the blocks of two copies so every from is text the old copy ho
 
 // Frontmatter pairs by property: an edit to one field is that field alone, and
 // the title under the closing fence is a block of its own though no blank
-// line parts them.
+// line parts them. lib/kits/md-diff.js splits the same way, so the page draws
+// the edit as the block it is.
 const FRONT = '---\ntitle: "The pool"\nstatus: current\nsummary: "Account 447 took in $94.1M, and DRS spent it."\n---\n# The pool\n\nBody text.\n';
 
 test('frontmatter is a block per property, and a summary-only change one edit, the summary alone', () => {
@@ -177,6 +178,15 @@ test('a document without frontmatter splits into its blank-line blocks, as befor
   const docs = ['---\n\nA rule opens this one.\n\n---\n# H\n', '---\nNo key here.\n---\n# H\n', '---\ntitle: never closed\n# H\n', '# H\n\nOne.\nStill one.\n\nTwo.\n'];
   const got = pyMany(docs.map((d) => ['blocks', [d]]));
   docs.forEach((d, k) => assert.deepEqual(got[k], d.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean), JSON.stringify(d)));
+});
+
+test('the script and md-diff split a document into the same blocks', () => {
+  const win = {};
+  new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits/md-diff.js'), 'utf8'))(win, undefined);
+  const docs = [FRONT, FRONT.replace('---\n# The', '---\n\n# The'), '---\ntags:\n  - a\n  - b\n\n# comment\nname: x\n---\n# H\nPara.\n\nMore.\n',
+    '---\n\nA rule opens this one.\n\n---\n# H\n', '---\ntitle: never closed\n# H\n', '# H\n\nOne.\n\nTwo.\n'];
+  const got = pyMany(docs.map((d) => ['doc_blocks', [d]]));
+  docs.forEach((d, k) => assert.deepEqual(win.mdDiff.blocks(d).map((b) => b.text), got[k].map((b) => b[0]), JSON.stringify(d)));
 });
 
 test("an answer prints its decisions, each edit's note line by line, and notes on other text", () => {
