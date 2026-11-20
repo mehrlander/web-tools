@@ -3,8 +3,8 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
-    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · scheduled task · 816𝗄 · 1𝖽 3𝗁
+    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · [📖](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
+    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · scheduled task · 816𝗄 · 1𝖽 3𝗁 · [📖](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
 
 THE PARTS. The line opens with when this run printed it, as a code span, in
 the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
@@ -27,7 +27,8 @@ are the checkout the project root is in and each folder directly under the
 root that holds a .git, that are documentation, by governing-docs.py beside
 this file (the test warn-governing-docs.sh applies). A
 zero count is left off, and so is a part the transcript cannot supply: the time
-before any owner message, the context before any response.
+before any owner message, the context before any response. 📖 closes every
+line, linking PROGRAM below.
 
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
 `user-calls/<short>-<slug>.json` (the user-calls skill, skills/user-calls/SKILL.md,
@@ -112,6 +113,7 @@ import time
 # The owner's time zone, the one setting the printed time reads.
 OWNER_TZ = os.environ.get("OWNER_TZ") or "America/Los_Angeles"
 PAGES = "https://mehrlander.github.io/web-tools/pages/"
+PROGRAM = "https://mehrlander.github.io/web-tools/app/?view=program&program=sessions"
 TAIL = 400_000
 USAGE = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
 NOT_OWNER = ("<task-notification", "<agent-message", "[SYSTEM", "<system", "Another Claude")
@@ -603,6 +605,7 @@ def main():
     if waiting:
         deck = f"{PAGES}session.html#id={session[:8]}" + (f"&user-call={call}" if call else "")
         parts.append(f"[✍️{waiting}]({deck})")
+    parts.append(f"[📖]({PROGRAM})")
 
     state["waiting"] = waiting
     save(path, state)
