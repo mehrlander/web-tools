@@ -313,20 +313,23 @@ document.addEventListener('alpine:init', () => {
       </div>`;
     },
 
+    // The selection carries no labels (html-style rule 17): each concept it
+    // uses is its sketch and its name, the base marked base and a graft
+    // followed by what it lends; then the rationale as prose, and the open
+    // questions it rests on, a question mark leading each.
     renderSelection(el) {
       const S = this.B.selection;
-      const ref = (n, extra = '') => `<button data-go="${n}" class="link link-hover font-semibold text-left">${n} · ${esc(this.idea(n).title)}</button>${extra}`;
-      const thumb = n => `<button data-go="${n}" class="grid gap-1 text-left content-start">${this.sketch(this.idea(n), 'border border-base-300 rounded-box p-1 overflow-hidden max-h-48')}<span class="text-xs text-base-content/60">${n} · ${esc(this.idea(n).title)}</span></button>`;
-      el.innerHTML = `<div class="grid gap-4">
-        <div class="grid grid-cols-3 gap-3">${[...S.pick, ...S.grafts.map(([n]) => n)].map(thumb).join('')}</div>
-        <dl class="grid grid-cols-[6rem_minmax(0,1fr)] gap-x-4 gap-y-3">
-          <dt class="text-sm text-base-content/60 pt-1">Base</dt><dd class="grid gap-1">${S.pick.map(n => ref(n)).join('')}</dd>
-          <dt class="text-sm text-base-content/60 pt-1">Grafts</dt>
-          <dd class="grid gap-2">${S.grafts.map(([n, w]) => `<span class="text-pretty">${ref(n)}: ${esc(w)}</span>`).join('')}</dd>
-          <dt class="text-sm text-base-content/60 pt-1">Why</dt><dd class="text-pretty">${esc(S.rationale)}</dd>
-          <dt class="text-sm text-base-content/60 pt-1">Rests on</dt>
-          <dd class="grid gap-2">${S.assumptions.map(a => `<span class="text-pretty">${esc(a)}</span>`).join('')}</dd>
-        </dl>
+      const item = (n, icon, lends) => `<button data-go="${n}" class="group grid grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-2 content-start text-left">
+          ${this.sketch(this.idea(n), 'border border-base-300 rounded-box p-1 overflow-hidden max-h-48')}
+          <span class="grid gap-1 content-start text-pretty">
+            <span class="font-semibold group-hover:underline"><i class="ph ${icon} text-base-content/60 mr-1"></i><span class="tabular-nums text-base-content/50 font-normal">${n}</span> ${esc(this.idea(n).title)}</span>
+            ${lends ? `<span>${esc(lends)}</span>` : '<span class="text-sm text-base-content/60">base</span>'}
+          </span>
+        </button>`;
+      el.innerHTML = `<div class="grid gap-5">
+        <div class="grid gap-4 sm:grid-cols-3">${S.pick.map(n => item(n, 'ph-anchor-simple')).join('')}${S.grafts.map(([n, w]) => item(n, 'ph-plus', w)).join('')}</div>
+        <div class="grid gap-3 text-pretty">${prose(S.rationale)}</div>
+        <ul class="grid gap-2">${S.assumptions.map(a => `<li class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 text-pretty"><i class="ph ph-question text-base-content/50 mt-1"></i><span>${esc(a)}</span></li>`).join('')}</ul>
         ${noteBox('Note on the selection')}
       </div>`;
       el.querySelectorAll('[data-go]').forEach(b => {

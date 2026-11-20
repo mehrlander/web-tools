@@ -21,6 +21,7 @@ account links to its own materials. The shared placement rule is in
 - [Policy candidates, 2026-10-29](2026-10-29-policy-candidates/README.md): which of the retired survey's rules become house policies, as a swipe deck.
 - [Code jobs](code-jobs/README.md): whether a model reader finds functions that do one job in several files.
 - [Where tooltip text comes from, 2026-11-16](2026-11-16-tooltip-sources/README.md): every tooltip in web-tools and [budget-drs](https://github.com/mehrlander/budget-drs) by the route its words take, and which commit `git blame` names for them, with a [diagram](2026-11-16-tooltip-sources/diagram.html).
+- [Caption marker, 2026-11-20](2026-11-20-caption-marker.md): how the Claude app draws about sixty forms of the session detail caption, and why it now opens with ⌂ linking the Sessions program.
 - [Statistical quality control](quality-control-lineage/README.md): two proposed probes of the session-topics daemon's preference flagger, a sample of 20 against judging every flag and a first control chart, with the Shewhart and Deming lineage behind them. Neither has run.
 
 The Excel research is in `projects/office/research/` in `mehrlander/home`.

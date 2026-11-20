@@ -84,6 +84,14 @@ test('a report in the critic\'s form is read into its verdict, trips, clear ids,
   assert.equal(r.report, FAILED.trim(), 'the report is kept as it came back');
 });
 
+test('a session detail caption among the sections is skipped, in its earlier and its current opening', () => {
+  const [found] = py('sections', `**Pre-existing**
+- P04 · "it is thin" (line 3).
+\`11/19 4:41pm\` 💬[1](https://example.invalid/session.html#id=4a1315f1) · 0𝗆
+[\`⌂\`](https://example.invalid/app/?view=program)\`11/20 9:50am\` 💬[2](https://example.invalid/session.html#id=4a1315f1) \`0m\``);
+  assert.deepEqual(found, { preexisting: ['- P04 · "it is thin" (line 3).'] });
+});
+
 test('None under Trips is a pass, though the prose after it names peeves', () => {
   const r = py('parse_report', PASSED);
   assert.equal(r.verdict, 'pass');

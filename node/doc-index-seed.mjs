@@ -19,7 +19,7 @@
 // tips, so the crawl's first pass over it is incremental too. Repos the kit
 // skips are left out.
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { repoRoot as root } from './repo-root.mjs';
@@ -94,4 +94,8 @@ if (content) {
   if (prevMan?.runs) man.runs = prevMan.runs;
   writeFileSync(manPath, JSON.stringify(man, null, 1));
   console.log(`Wrote ${path.relative(root, manPath)} and its shards (${Object.keys(gotContent).length} repos).`);
+  for (const p of CI.orphanShards(man, readdirSync(path.join(registry, CI.SHARD_DIR)).map(f => CI.SHARD_DIR + '/' + f))) {
+    unlinkSync(path.join(registry, p));
+    console.log(`Deleted ${p}: the manifest no longer names it.`);
+  }
 }

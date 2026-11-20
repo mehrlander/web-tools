@@ -392,8 +392,9 @@ def sections(text):
     out, cur, stated = {}, None, None
     for line in text.splitlines():
         # A session's detail caption, which a headless run appends after its
-        # last section: a stamp in code, then the record's mark.
-        if re.match(r"^\s*`[^`]+`\s*💬", line):
+        # last section: a stamp in code, after a linked ⌂ in code since
+        # 2026-11-20, then the record's mark.
+        if re.match(r"^\s*(?:\[`[^`]*`\]\([^)\s]*\))?`[^`]+`\s*💬", line):
             continue
         m = SECTION.match(line)
         # "Trips, most costly first:" copies the critic's definition, which

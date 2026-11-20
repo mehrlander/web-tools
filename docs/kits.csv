@@ -18,7 +18,7 @@ lib/kits/code-doc.js,codeDoc,"SOURCE CODE AS A DECLARED RENDER: the second kind,
 lib/kits/comment-view.js,commentView,"a code file read through its comments: each docstring and comment block laid out as prose in file order, with the code between them folded to one-line bars.",453,no,no,2,yes
 lib/kits/compression.js,compression,Brotli/Gzip/Acorn wrappers + bookmarklet packer.,365,no,yes,7,yes
 lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,119,yes,no,8,yes
-lib/kits/content-index.js,ContentIndex,"a word index over the estate's Markdown, so the Search view's Contents mode answers inside the app.",150,no,no,3,yes
+lib/kits/content-index.js,ContentIndex,"a word index over the estate's Markdown, so the Search view's Contents mode answers inside the app.",162,no,no,3,yes
 lib/kits/content-registry.js,ContentRegistry,"the epistemic content registry, read in the browser.",111,no,no,5,yes
 lib/kits/crawl-runs.js,CrawlRuns,The `runs` ring: the few facts about a crawl that its output cannot show.,89,no,no,2,yes
 lib/kits/csv.js,Csv,"CSV, small and shared.",68,no,no,13,yes
@@ -135,4 +135,4 @@ lib/kits/xlsx-extract.js,XlsxExtract,PICK PART OF A WORKBOOK AND CARRY THE ANSWE
 lib/kits/xlsx-map.js,XlsxMap,"HOW A WORKBOOK'S PARTS CONNECT, and what each sheet holds, read from what kits/xlsx.js already parsed.",414,no,no,1,yes
 lib/kits/xlsx-people.js,XlsxPeople,"WHERE A WORKBOOK NAMES PEOPLE, and whose names they are, found before any of it is shared.",347,no,no,1,yes
 lib/kits/xlsx-write.js,xlsxWriteKit,build a new workbook holding a chosen subset of another workbook's sheets.,1119,no,no,2,yes
-lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",3344,no,yes,11,yes
+lib/kits/xlsx.js,xlsxKit,"OOXML (.xlsx) structural inspector: unzip, walk every XML/rels part, and surface the internal cross-references (shared strings, styles, sheet rels, comments,…",3397,no,yes,11,yes
