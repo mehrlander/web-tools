@@ -78,7 +78,7 @@ await until(() => flag()?.style.display === '');
 const switchShown = { count: $('[data-doc-view="critic"] [data-critic-count]')?.textContent, flag: flag()?.style.display === '', tip: flag()?.dataset.titleTip };
 const drawsBefore = drawn.length;
 $('[data-doc-view="critic"]').click();
-await until(() => $('[data-run-card]') && inlined.length);
+await until(() => $('[data-run-card]') && inlined.length && $('[data-doc-scroll]').style.display === 'none');
 const card = () => $('[data-review-card]');
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
