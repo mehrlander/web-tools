@@ -151,5 +151,14 @@ check(doc.querySelector('#queue').textContent.includes('Gemini queue') && !doc.q
   && !doc.querySelector('#queue').textContent.includes('Claude accepted'),'The desktop Gemini worker card contains only Gemini errands.');
 data.activity.errands = data.activity.errands.filter(j => j.provider !== 'Gemini'); data.daemon.state = 'absent'; snapshot();
 check(!doc.querySelector('#notice').textContent.includes('Gemini errands are waiting'),'Other assistant queues do not trigger a Gemini worker warning on desktop.');
+data.activity.errands = [{...job('cancelled','declined','A cancelled errand'),provider:'Codex',message:'Cancelled by owner',reply:'An earlier interim reply'}];
+snapshot();click('[data-filter=all]');click('[data-pick="errand:cancelled"]');
+check(doc.querySelector('#errands').textContent.includes('Declined')&&doc.querySelector('#detail').textContent.includes('Cancelled by owner')
+  &&!doc.querySelector('#detail').textContent.includes('An earlier interim reply'),'A desktop decline shows its neutral status and cancellation reason ahead of old interim prose.');
+click('[data-launch="errand:cancelled"]');
+check(doc.querySelector('[data-external="errand:cancelled"]')?.textContent.includes('Open result'),'A declined desktop errand opens its saved result.');
+click('[data-filter=done]');
+check(!doc.querySelector('#errands [data-pick="errand:cancelled"]'),'A decline stays in recent history without becoming a successful completion.');
+
 dom.window.close();
 console.log(`${checks} Now UI checks passed.`);

@@ -50,12 +50,12 @@ public sealed class ChangeJournal(string path)
             var detail = job.State switch {
                 "queued" => "Added to the " + job.Provider + " queue",
                 "claimed" => job.Provider == "Gemini" ? "Accepted by the Gemini worker" : "Accepted by " + job.Provider,
-                "reply" => "A reply is arriving", "complete" => "Result ready", "failed" => "Result needs review", _ => "Errand updated"
+                "reply" => "A reply is arriving", "complete" => "Result ready", "declined" => "Errand declined", "failed" => "Result needs review", _ => "Errand updated"
             };
             // Later replies are meaningful even when the errand remains in the same state.
-            if (job.State is "reply" or "complete" or "failed") detail += " · " + (job.Message ?? "");
+            if (job.State is "reply" or "complete" or "failed" or "declined") detail += " · " + (job.Message ?? "");
             Add("errand:" + job.Id, job.Provider, job.Title, job.State, job.UpdatedAt, detail, job.Location,
-                NavigationPolicy.ErrandUrl(job.Id, job.State is "reply" or "complete" or "failed"), versioned: true);
+                NavigationPolicy.ErrandUrl(job.Id, job.State is "reply" or "complete" or "failed" or "declined"), versioned: true);
         }
         changes = items.Values.Where(c => c.At >= now.AddDays(-7) && c.At <= now.AddMinutes(1))
             .OrderByDescending(c => c.At).Take(150).ToList();

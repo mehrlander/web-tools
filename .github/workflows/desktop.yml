@@ -35,6 +35,7 @@ jobs:
           node desktop/Checks/phone-ui-checks.mjs
           node desktop/Checks/navigation-ui-checks.mjs
           node desktop/Checks/phone-usage-checks.mjs
+          node desktop/Checks/phone-info-checks.mjs
           node desktop/Checks/errands-ui-checks.mjs
           node desktop/Checks/computer-ui-checks.mjs
           node desktop/Checks/devices-ui-checks.mjs

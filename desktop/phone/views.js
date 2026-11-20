@@ -4,10 +4,52 @@
   const names = {now:'Now',usage:'Usage',errands:'Errands',computer:'Computer',files:'Files'};
   const ids = Object.keys(names), positions = Object.fromEntries(ids.map(id => [id,0]));
   const track = el('view-track'), panels = new Map(ids.map(id => [id,el('panel-' + id)]));
-  const interfaceVersion = '26.4';
+  const interfaceVersion = '26.5';
   let current = 'now', deck, registration, updateJob, refreshing = false;
   let startupAligned = false, startupFrame = 0, startupStyles, startupSizes;
-  let filesRoute = '#view=files';
+  let filesRoute = '#view=files', selectedContext = null;
+  const webToolsRoot = 'https://mehrlander.github.io/web-tools/app/';
+  function webToolsTarget() {
+    if (selectedContext?.url) {
+      try {
+        const url = new URL(selectedContext.url);
+        if (url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/'))
+          return {href:url.href,label:'Open ' + (selectedContext.kind === 'errand' ? 'errand' : 'captured session') + ' in Web Tools'};
+      } catch {}
+    }
+    const route = {now:'sessions',usage:'usage',errands:'stage',computer:'local-work',files:'local-work'}[current];
+    const url = new URL(webToolsRoot);
+    url.searchParams.set('view',route);
+    if (current === 'errands') url.searchParams.set('tab','errands');
+    if (current === 'files') {
+      const context = window.NowRepositories?.context?.();
+      const pathValid=typeof context?.path==='string'&&!context.path.split('/').some(p=>p==='..'||p==='.')&&!/[\\\u0000-\u001f]/.test(context.path)&&!context.path.startsWith('/');
+      if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(context?.repo || '') && (context.path==null||pathValid)) {
+        url.searchParams.set('repo',context.repo);
+        url.searchParams.delete('view');
+        if(typeof context.ref==='string'&&context.ref&&context.ref!=='(detached)'&&pathValid){
+          url.searchParams.set('view','files');
+          url.searchParams.set('ref',context.ref);
+          if(context.path)url.searchParams.set('path',context.path);
+          return {href:url.href,label:'Open GitHub folder in Web Tools'};
+        }
+        return {href:url.href,label:'Open repository in Web Tools'};
+      }
+    }
+    return {href:url.href,label:'Open ' + ({now:'sessions',usage:'usage analysis',errands:'errands',computer:'local work',files:'local work'})[current] + ' in Web Tools'};
+  }
+  function refreshContext() {
+    const anchor = el('web-tools-link');
+    if (!anchor) return;
+    const target = webToolsTarget();
+    anchor.href = target.href;
+    anchor.setAttribute('aria-label',target.label);
+    anchor.setAttribute('data-title-tip',target.label);
+  }
+  function setContext(item) {
+    selectedContext = item && typeof item === 'object' ? item : null;
+    refreshContext();
+  }
   const canonical = value => value === 'devices' ? 'computer' : value === 'repositories' ? 'files' : ids.includes(value) ? value : 'now';
   const route = () => {
     const params = new URLSearchParams(location.hash.slice(1)), requested = params.get('view');
@@ -68,6 +110,7 @@
       if (current === 'files' && route() === 'files') filesRoute = location.hash;
     }
     current = next;
+    selectedContext = null;
     if (navigate) {
       const hash = next === 'files' ? filesRoute : '#view=' + next;
       if (location.hash !== hash) history.pushState(null,'',hash);
@@ -102,6 +145,7 @@
     else scheduleStartupAlignment();
     if (changed && next !== 'files') scrollToPanel(positions[next],next);
     connection();
+    refreshContext();
   }
   function updateInterface() {
     if (document.hidden || !registration) return Promise.resolve();
@@ -118,7 +162,7 @@
   }
   window.NowViews = {
     active:() => current !== 'now', current:() => current, connection,
-    setView, scrollPosition, scrollTo:scrollToPanel, refresh, interfaceVersion,
+    setView, scrollPosition, scrollTo:scrollToPanel, refresh, interfaceVersion, setContext, refreshContext, webToolsTarget,
   };
   el('view-menu').querySelector('[data-interface-version]').textContent = 'v' + interfaceVersion;
   document.addEventListener('click',event => {

@@ -27,7 +27,8 @@ window.fetch=async(url,options)=>{
  if(mode==='fail')throw Error('Offline');
  return {ok:mode!=='denied',status:mode==='denied'?403:200,headers:new Map(),text:async()=>JSON.stringify(history)};
 };
-for(const name of ['usage-view.js','recent-usage.js'])window.eval(readFileSync(new URL('../shared/'+name,import.meta.url),'utf8'));
+window.eval(readFileSync(new URL('../../lib/kits/panel-tip.js',import.meta.url),'utf8'));
+for(const name of ['phone-info.js','usage-view.js','recent-usage.js'])window.eval(readFileSync(new URL('../shared/'+name,import.meta.url),'utf8'));
 window.eval(readFileSync(new URL('../phone/phone-usage.js',import.meta.url),'utf8'));
 const U=window.NowPhoneUsage;
 let checks=0;
@@ -48,13 +49,17 @@ try{
  doc.querySelector('.nru-row').click();
  check(opened.join(',')==='cloud:measured','Cache rows navigate through the native Now session handler.');
  gemini.click();
- const detail=doc.querySelector('#phone-usage-dialog');
- check(detail.open&&detail.querySelectorAll('[data-usage-window]').length===3&&detail.textContent.includes('5h')&&detail.textContent.includes('Model A'),
+ const detail=doc.querySelector('#phone-info-card');
+ check(detail?.getAttribute('aria-modal')==='false'&&detail.querySelectorAll('[data-usage-window]').length===3&&detail.textContent.includes('5h')&&detail.textContent.includes('Model A'),
   'Vendor details preserve every reported window, including short and model-specific limits.');
  check(detail.querySelector('[data-usage-trend]')&&detail.querySelector('[data-usage-link]').href==='https://antigravity.google.com/',
   'Within-period trends and the provider usage destination survive consolidation.');
- detail.querySelector('[data-usage-close]').click();
- check(!detail.open,'Allowance details have an explicit close control.');
+ detail.querySelector('[data-wt-panel-tip-close]').click();
+ check(!doc.querySelector('#phone-info-card'),'Allowance details have an explicit close control without obscuring the page.');
+ doc.querySelector('[data-cache-info="window"]').click();
+ check(doc.querySelector('#phone-info-card').textContent.includes('Recent activity does not confirm that a cache remains available'),
+  'The cache-window limitation is available with a tap, rather than only mouse hover.');
+ doc.querySelector('#phone-info-card [data-wt-panel-tip-close]').click();
  const account=doc.querySelector('[data-allowance-provider="codex"]');account.focus();
  snapshot.usage[0].windows[0].usedPercent=25;U.update(snapshot);
  check(scroll===127&&doc.activeElement.dataset.allowanceProvider==='codex',

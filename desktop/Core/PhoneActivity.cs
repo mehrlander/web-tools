@@ -17,7 +17,7 @@ public static class PhoneActivity
 {
     private static PhoneItem ErrandItem(Errand j) => new("errand:" + j.Id, j.Id, "errand", j.Provider,
         j.Location, j.Title, j.State, ErrandPreview(j), j.UpdatedAt, j.CreatedAt,
-        j.State == "failed", j.IsNew, NavigationPolicy.ErrandUrl(j.Id, j.State is "reply" or "complete" or "failed"),
+        j.State == "failed", j.IsNew, NavigationPolicy.ErrandUrl(j.Id, j.State is "reply" or "complete" or "failed" or "declined"),
         ClaimedAt: j.ClaimedAt);
 
     // The worker's message can be a fence opener. Prefer prose outside code,
@@ -64,7 +64,8 @@ public static class PhoneActivity
             (s.Location == "Cloud" ? "cloud:" : "session:" + s.Provider + ":") + s.Id, s.Id,
             s.Location == "Cloud" ? "cloud" : "session", s.Provider, s.Location, s.Title, s.State,
             s.Detail, s.UpdatedAt, s.UpdatedAt, NeedsAttention(s), false,
-            s.Location == "Cloud" ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(s.Id) : null,
+            s.Location == "Cloud" ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(s.Id)
+                : SessionLinks.CapturedRecord(s.Provider,s.Id,snapshot.Cloud.CapturedRecords),
             s.Checkpoint, s.Turn, s.Work, SessionLinks.For(s.Provider,s.Id,s.SourceUrl,snapshot.GeminiInstanceId))));
         var notices = snapshot.Sessions.Notices.Concat(new[] { snapshot.Activity.Notice, snapshot.Cloud.Notice, error }
             .OfType<string>()).Distinct().ToList();
@@ -72,16 +73,16 @@ public static class PhoneActivity
             new(snapshot.Activity.Revision is not null, snapshot.Activity.Connected, snapshot.Activity.SyncedAt,
                 snapshot.Daemon.State, snapshot.Daemon.LastLogAt, snapshot.Cloud.CapturedAt, notices, snapshot.Daemon.Activity, snapshot.Daemon.Reports),
             items.OrderByDescending(i => i.At).ToList(), snapshot.Events.Take(50).ToList(),
-            SessionLinks.HydrateChanges(snapshot.Changes ?? [],snapshot.Cloud.SessionUrls,snapshot.GeminiInstanceId), snapshot.Usage ?? []);
+            SessionLinks.HydrateChanges(snapshot.Changes ?? [],snapshot.Cloud.SessionUrls,snapshot.GeminiInstanceId,snapshot.Cloud.CapturedRecords), snapshot.Usage ?? []);
     }
 
     // Reply bodies are requested only for the selected result. Request notes,
     // machine paths, downloads and native actions are outside the phone API.
     public static string? Reply(LaptopSnapshot snapshot, string id)
     {
-        var job = snapshot.Activity.Errands.Find(j => j.Id == id && j.State is "reply" or "complete" or "failed");
+        var job = snapshot.Activity.Errands.Find(j => j.Id == id && j.State is "reply" or "complete" or "failed" or "declined");
         if (job is null) return null;
-        var text = Activity.Nonblank(job.Reply, job.Message);
+        var text = job.State == "declined" ? Activity.Nonblank(job.Message, job.Reply) : Activity.Nonblank(job.Reply, job.Message);
         return text[..Math.Min(text.Length, 20000)];
     }
 }

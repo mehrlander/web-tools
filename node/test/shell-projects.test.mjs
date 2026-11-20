@@ -856,10 +856,11 @@ test('the two sidebar project lists are sized the same', () => {
   // for a while; the guideline made that argument unnecessary. Both now carry
   // the same row metrics, and this is what catches one drifting from the other.
   // The repo sidebar's Originals section (repoOriginals) takes the same row
-  // and rule on purpose, so the count is three: two project lists and it.
+  // and rule on purpose, and the estate's Programs (2026-11-18) the same row
+  // without the rule, so the count is four: two project lists, it and them.
   const rows = [...page.matchAll(
     /class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1\.5 text-base text-left transition-colors/g)];
-  assert.equal(rows.length, 3, 'the project lists and the Originals list no longer share their row size');
+  assert.equal(rows.length, 4, 'the project lists, the Originals list and the Programs list no longer share their row size');
   const blocks = [...page.matchAll(/flex flex-col gap-0\.5 ml-4 pl-2 border-l border-base-300/g)];
   assert.equal(blocks.length, 3, 'the project blocks and the Originals block no longer share their guideline and gap');
   // The negative margin is gone with the size difference that needed it: at
@@ -1065,7 +1066,7 @@ test('projectReadmePeek addresses the workspace README, at the browsed ref only 
 
 test('every project GitHub icon carries the README peek', () => {
   const icons = page.match(/:href="projectGithubUrl\([^"]*\)"/g) || [];
-  assert.equal(icons.length, 2, 'the two project rows; the masthead\'s GitHub door is a row of the project switcher');
+  assert.equal(icons.length, 3, 'the two project rows and the program row; the masthead\'s GitHub door is a row of the project switcher');
   assert.equal((page.match(/:data-peek="projectReadmePeek\([^"]*\)"/g) || []).length, icons.length,
     'each one peeks, or the README is reachable from some project lists and not others');
 });
@@ -1104,4 +1105,59 @@ test('the project mark opens the repo\'s projects in the shared menu, the open o
 test('the markup wires the project mark to the switcher', () => {
   assert.match(page, /data-project-switch/);
   assert.match(page, /toggleRepoMenu\(\$store\.browser\.repo, \$event\.currentTarget, 'projects'/);
+});
+
+// ── The sidebar's Programs, and the program mark's switcher ─────────────────
+// Programs sit after the repos and their projects (2026-11-18), read through
+// window.Programs (lib/alpineComponents/program.js) as the Map's list and the
+// Program view read them. Signed out the config cache is not read, so the
+// hub's own manifest stands in and web-tools' programs still show.
+const withPrograms = (win) => new Function('window', 'document',
+  readFileSync(path.join(repoRoot, 'lib/alpineComponents/program.js'), 'utf8'))(win, { addEventListener(){} });
+const hubManifest = { programs: [
+  { name: 'sessions', label: 'Sessions', icon: 'ph-chats', path: 'programs/sessions' },
+  { name: 'testing', label: 'Testing', path: 'programs/testing' }, { label: 'unnamed' }] };
+
+test('the sidebar lists the hub\'s programs signed out, and every estate repository\'s signed in', () => {
+  const { shell, win } = makeShell({ browserStore: { repo: 'mehrlander/web-tools', ref: '', defaultRef: 'main', config: hubManifest } });
+  assert.deepEqual(shell.sidebarPrograms, [], 'without window.Programs there is nothing to read them with');
+  withPrograms(win);
+  assert.deepEqual(shell.sidebarPrograms.map(p => p.name), ['sessions', 'testing'], 'the open hub\'s manifest, signed out');
+  shell.estateConfigs = { 'mehrlander/web-tools': hubManifest, 'mehrlander/home': { estate: true, programs: [{ name: 'budget', path: 'b' }] } };
+  shell.estateRepos = [{ repo: 'mehrlander/home' }, { repo: 'mehrlander/web-tools' }];
+  assert.deepEqual(shell.sidebarPrograms.map(p => p.key),
+    ['mehrlander/web-tools:sessions', 'mehrlander/web-tools:testing', 'mehrlander/home:budget'], 'the hub first');
+  assert.equal(shell.sidebarProgramKey, '', 'no program is open');
+  shell.syncUrl = () => {};
+  shell.goProgram('testing');
+  assert.equal(shell.sidebarProgramKey, 'mehrlander/web-tools:testing', 'the open program\'s row is marked');
+  assert.equal(shell.showSidebar, true);
+});
+
+test('signed out with another repo open, the sidebar reads the hub\'s manifest once', async () => {
+  const { shell, win } = makeShell({ browserStore: { repo: 'mehrlander/home', ref: '', defaultRef: 'main', config: {} } });
+  withPrograms(win);
+  const reads = [];
+  win.GH = class { constructor(o){ this.o = o; } async get(f){ reads.push([this.o.repo, f]); return { text: JSON.stringify(hubManifest) }; } };
+  assert.deepEqual(shell.sidebarPrograms, []);
+  assert.deepEqual(shell.sidebarPrograms, []);
+  await new Promise(r => setTimeout(r, 0));
+  assert.deepEqual(reads, [['mehrlander/web-tools', '.web-tools.json']], 'asked once, outside the render');
+  assert.deepEqual(shell.sidebarPrograms.map(p => p.name), ['sessions', 'testing']);
+});
+
+test('the program mark opens every program in the shared menu, the open one marked', () => {
+  const { shell, win } = makeShell({ browserStore: { repo: 'mehrlander/web-tools', ref: '', defaultRef: 'main', config: hubManifest } });
+  withPrograms(win);
+  shell.syncUrl = () => {};
+  shell.goProgram('sessions', 'changes');
+  shell.menuRepo = 'mehrlander/web-tools'; shell.menuKind = 'programs';
+  const items = shell.repoMenuItems;
+  assert.deepEqual(items.map(i => i.label), ['Sessions', 'Testing'],
+    'only the programs: no row for the Map\'s list, none for GitHub');
+  assert.ok(items.every(i => !i.external && typeof i.run === 'function'), 'every row opens a program here');
+  assert.deepEqual(items.filter(i => i.current).map(i => i.label), ['Sessions']);
+  items.find(i => i.label === 'Testing').run();
+  assert.equal(shell.programName, 'testing');
+  assert.equal(shell.programTab, 'changes', 'the switcher keeps the tab in view');
 });

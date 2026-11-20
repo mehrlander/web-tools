@@ -12,10 +12,21 @@ var request = Parse("""{"title":"Test errand","createdAt":"2026-01-01T00:00:00Z"
 var claim = Parse("""{"by":"test-laptop","claimedAt":"2026-01-02T01:00:00Z"}""");
 var done = Parse("""{"ok":true,"closedAt":"2026-01-02T02:00:00Z","data":{"reply":"Ready","settled":true}}""");
 var arriving = Parse("""{"ok":true,"closedAt":"2026-01-02T02:00:00Z","data":{"reply":"First reply","settled":false}}""");
+var declined = Parse("""{"ok":true,"answered":false,"closedAt":"2026-01-02T03:00:00Z","message":"Cancelled by owner","data":{"settled":false,"updatedAt":"2026-01-02T02:00:00Z"}}""");
 Check(Activity.Join("test-1", request, default, default, false, seen)?.State == "queued", "An unclaimed request is queued.");
 Check(Activity.Join("test-1", request, claim, default, false, seen)?.State == "claimed", "A claim is reported as claimed, without inventing live progress.");
-Check(Activity.Join("test-1", request, claim, done, true, seen) is { State: "complete", IsNew: true }, "A result takes precedence over a remaining claim.");
-Check(Activity.Join("test-1", request, default, arriving, false, seen)?.State == "reply", "A first reply is distinguished from a settled result.");
+Check(Activity.Join("test-1", request, claim, done, true, seen) is { State: "complete", IsNew: true, IsOpen: false }, "A legacy result without answered closes the errand and takes precedence over a remaining claim.");
+Check(Activity.Join("test-1", request, default, arriving, false, seen) is { State: "reply", IsOpen: true }, "A first reply stays open until a later settled result.");
+Check(Activity.Join("test-1", request, claim, declined, false, seen) is { State: "declined", IsOpen: false, Message: "Cancelled by owner" } cancelledJob
+    && cancelledJob.UpdatedAt == Activity.Date(declined, "closedAt"),
+    "An explicit decline preserves its reason and close time ahead of old unsettled metadata.");
+Check(Activity.Join("test-1", request, claim, Parse("""{"answered":false,"fulfilledAt":"2026-01-02T03:00:00Z","data":{"updatedAt":"2026-01-02T02:00:00Z"}}"""), false, seen)?.UpdatedAt == Activity.Date(declined, "closedAt")
+    && Activity.Join("test-1", request, claim, Parse("""{"answered":false,"data":{"updatedAt":"2026-01-02T02:00:00Z"}}"""), false, seen)?.UpdatedAt == Activity.Date(Activity.Child(declined, "data"), "updatedAt"),
+    "Legacy decline timestamps prefer fulfilledAt and preserve the existing update when no close time was recorded.");
+Check(Activity.Join("test-1", request, claim, Parse("""{"ok":false,"answered":false,"data":{"settled":false}}"""), false, seen)?.State == "failed",
+    "An explicit failure takes precedence over decline and interim-reply metadata.");
+Check(Activity.Join("test-1", request, claim, Parse("""{"ok":"false","answered":"false","data":{"settled":"false"}}"""), false, seen)?.State == "complete",
+    "String-valued flags do not masquerade as explicit failure, decline or unsettled booleans.");
 Check(Activity.Join("test-1", request, default, Parse("""{"ok":false,"closedAt":"2026-01-02T03:00:00Z"}"""), false, seen)?.State == "failed", "Failed work is surfaced for review.");
 Check(Activity.Join("test-1", request, default, done, false, seen.AddDays(1))?.IsNew == false, "Reviewed results stop counting as new.");
 Check(Activity.Join("test-1", Parse("""{"run":{"method":"browser"}}"""), default, default, false, seen) is null, "Browser errands do not masquerade as local worker jobs.");
@@ -183,6 +194,7 @@ try {
 }
 SessionChecks.Run(Check);
 PhoneChecks.Run(Check);
+ContextLinkChecks.Run(Check);
 LocalWorkChecks.Run(Check);
 CheckpointChecks.Run(Check);
 CloudTurnChecks.Run(Check);

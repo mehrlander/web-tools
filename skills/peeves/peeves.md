@@ -338,8 +338,6 @@ A sentence that turns on "so", presenting one cause as forcing one result.
 
 **Look for:** 'checks passed, so there's nothing to act on'; 'the data keys stay, so no markup or coding changes'; 'that is the prose the house style rules out, so it should go'; ', so a reader can stop there'
 
-**Owner:** docs/house-policies.md (h:smug)
-
 **Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
 ### Diluting the owner's message · `P69`
