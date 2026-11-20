@@ -637,19 +637,66 @@ def quote_in(q, text):
     return all(re.search(p, t) for p in pats if p)
 
 
-def doc_blocks(text):
-    """The text's blank-line blocks, each (text, first line, last line)."""
-    out, cur, start = [], [], 0
-    for n, line in enumerate(text.split("\n"), 1):
-        if line.strip():
-            if not cur:
-                start = n
-            cur.append(line)
-        elif cur:
-            out.append(("\n".join(cur), start, n - 1)); cur = []
-    if cur:
-        out.append(("\n".join(cur), start, start + len(cur) - 1))
+FENCE = re.compile(r"---[ \t]*\r?")
+FRONT_KEY = re.compile(r"[A-Za-z0-9_.-]+:")
+
+
+def front_end(lines):
+    """The index of the line closing a text's leading frontmatter, or 0 for
+    none: a first line `---`, a `key:` line under it and a closing `---`, as
+    lib/kits/md-doc.js reads it, so a document opening with a rule has none."""
+    if len(lines) > 2 and FENCE.fullmatch(lines[0]) and FRONT_KEY.match(lines[1]):
+        return next((n for n in range(2, len(lines)) if FENCE.fullmatch(lines[n])), 0)
+    return 0
+
+
+def line_blocks(lines):
+    """A text's blocks as [first, last] line indexes: its runs of non-blank
+    lines, except that in leading frontmatter each fence and each top-level
+    property is a block, and the line after the closing fence starts one, so
+    one changed field is one block and the title under it is another.
+    lib/kits/md-diff.js's blocks() splits the same way."""
+    out, start, close = [], None, front_end(lines)
+    for n, line in enumerate(lines):
+        cut = close and n <= close + 1 and (n in (close, close + 1) or FRONT_KEY.match(line))
+        if not line.strip():
+            if start is not None:
+                out.append([start, n - 1]); start = None
+        elif start is None:
+            start = n
+        elif cut:
+            out.append([start, n - 1]); start = n
+    if start is not None:
+        out.append([start, len(lines) - 1])
     return out
+
+
+def doc_blocks(text):
+    """The text's blocks (line_blocks), each (text, first line, last line)."""
+    lines = text.split("\n")
+    return [("\n".join(lines[a:z + 1]), a + 1, z + 1) for a, z in line_blocks(lines)]
+
+
+def front_lines(text):
+    """How many lines a text's leading frontmatter takes, fences included; 0 for none."""
+    close = front_end(text.split("\n"))
+    return close + 1 if close else 0
+
+
+def pieces(frag, db):
+    """An edit's side as the blocks of the text it is in: the run of `db`
+    (doc_blocks) it is, joined as edits() joins them, or else its blocks()."""
+    frag = str(frag or "")
+    for s in range(len(db)):
+        at, k = 0, s
+        while k < len(db):
+            sep = "" if k == s else "\n" if db[k][1] == db[k - 1][2] + 1 else "\n\n"
+            if not frag.startswith(sep + db[k][0], at):
+                break
+            at, k = at + len(sep) + len(db[k][0]), k + 1
+            if at == len(frag):
+                return [b for b, _, _ in db[s:k]]
+    return blocks(frag)
 
 
 def context(fb, tb):
@@ -670,13 +717,13 @@ def run_of(seq, sub):
     return next((s for s in range(len(seq) - n + 1) if n and seq[s:s + n] == sub), None)
 
 
-def edit_span(e, dblocks):
+def edit_span(e, dblocks, base_blocks=None):
     """Where an edit's new text sits: [first, last] lines of the blocks it adds
     or rewrites, the context it anchors on left out, and a rewrite cut to the
     lines that differ, so one changed bullet is not its whole list; for a
     removal, the block beside the gap. None when its text is not in the
-    document."""
-    fb, tb = blocks(str(e.get("from") or "")), blocks(str(e.get("to") or ""))
+    document. Both blocks lists are doc_blocks(), the base's when given."""
+    fb, tb = pieces(e.get("from"), base_blocks or dblocks), pieces(e.get("to"), dblocks)
     lead, tail = context(fb, tb)
     s = run_of([b for b, _, _ in dblocks], tb)
     if s is None:
@@ -699,12 +746,13 @@ def edit_span(e, dblocks):
     return [first, last]
 
 
-def base_range(e, base_blocks):
+def base_range(e, base_blocks, dblocks):
     """The base's blocks an edit replaces, [first, end) by index, the context
-    left out; empty, as [p, p], for an insertion at p. None when absent."""
-    fb, tb = blocks(str(e.get("from") or "")), blocks(str(e.get("to") or ""))
+    left out; empty, as [p, p], for an insertion at p. None when absent. Both
+    blocks lists are doc_blocks(), the base's and the document's."""
+    fb, tb = pieces(e.get("from"), base_blocks), pieces(e.get("to"), dblocks)
     lead, tail = context(fb, tb)
-    s = run_of(base_blocks, fb)
+    s = run_of([b for b, _, _ in base_blocks], fb)
     return None if s is None else [s + lead, s + len(fb) - tail]
 
 
@@ -723,13 +771,13 @@ def spans_of(c, text, base=None):
     db = doc_blocks(text)
     if c.get("new"):
         return [{"lines": [db[0][1], db[-1][2]], "from": ""}] if db else []
-    bb = blocks(base) if base is not None else None
+    bb = doc_blocks(base) if base is not None else None
     out = []
     for e in c.get("edits") or []:
-        s = edit_span(e, db)
+        s = edit_span(e, db, bb)
         span = {"lines": s, "from": str(e.get("from") or "")} if s else None
         if span and bb is not None:
-            r = base_range(e, bb)
+            r = base_range(e, bb, db)
             if r is not None:
                 span["base"] = r
         out.append(span)
@@ -788,10 +836,13 @@ PROSE_NOT = re.compile(r"^\s*(?:#|\||[-*+] |\d+[.)] |>|<|```|~~~)|^ {4}")
 def wrap_warnings(c, text, spans):
     """A changed paragraph wrapped unlike the rest of the document, and an edit
     that only rewraps: settled before the critic's first run, since a rewrap
-    after it is reflow and makes a whole paragraph read as changed."""
+    after it is reflow and makes a whole paragraph read as changed.
+    Frontmatter is no paragraph: its fields are left out."""
     db, fenced, inside = doc_blocks(text), False, set()
-    prose = []
+    prose, front = [], front_lines(text)
     for b, a, z in db:
+        if a <= front:
+            continue
         lines = b.split("\n")
         starts = fenced
         for line in lines:
@@ -1080,22 +1131,30 @@ def name_taken(c, calls, cid):
     return ""
 
 
+def tight_blocks(text):
+    """The text's blocks (line_blocks), each with whether it sits on the line
+    right after the block before it, as frontmatter's blocks do."""
+    lines = text.splitlines()
+    spans = line_blocks(lines)
+    return [("\n".join(lines[a:z + 1]), k > 0 and a == spans[k - 1][1] + 1) for k, (a, z) in enumerate(spans)]
+
+
 def blocks(text):
-    out, cur = [], []
-    for line in text.splitlines():
-        if line.strip():
-            cur.append(line)
-        elif cur:
-            out.append("\n".join(cur)); cur = []
-    if cur:
-        out.append("\n".join(cur))
-    return out
+    return [b for b, _ in tight_blocks(text)]
+
+
+def joined(run):
+    """A run of one text's tight_blocks() as one string: a blank line between
+    two blocks, and a line break alone before a block that sat on the next line."""
+    return "".join(("\n" if tight else "\n\n") + b if k else b for k, (b, tight) in enumerate(run))
 
 
 def edits(old, new):
     """A documentation call's edits from two copies of a document: home's
-    propose.py pairing, kept the same so a pass filed either way pairs alike."""
-    a, b = blocks(old), blocks(new)
+    propose.py pairing, kept the same so a pass filed either way pairs alike,
+    except that frontmatter pairs by property (line_blocks)."""
+    A, B = tight_blocks(old), tight_blocks(new)
+    a, b = [x for x, _ in A], [x for x, _ in B]
     out = []
     for op, i1, i2, j1, j2 in difflib.SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():
         if op == "equal":
@@ -1104,7 +1163,7 @@ def edits(old, new):
             if i2 - i1 == j2 - j1:
                 out.extend({"from": x, "to": y} for x, y in zip(a[i1:i2], b[j1:j2]))
             else:
-                out.append({"from": "\n\n".join(a[i1:i2]), "to": "\n\n".join(b[j1:j2])})
+                out.append({"from": joined(A[i1:i2]), "to": joined(B[j1:j2])})
             continue
         if i1 > 0:
             ctx, before = a[i1 - 1], True
@@ -1112,9 +1171,10 @@ def edits(old, new):
             ctx, before = a[i2], False
         else:
             raise ValueError("the old copy has no unchanged block to anchor this change on")
-        moved = b[j1:j2] if op == "insert" else a[i1:i2]
-        joined = "\n\n".join([ctx, *moved] if before else [*moved, ctx])
-        out.append({"from": ctx, "to": joined} if op == "insert" else {"from": joined, "to": ctx})
+        if op == "insert":
+            out.append({"from": ctx, "to": joined(B[j1 - 1:j2] if before else B[j1:j2 + 1])})
+        else:
+            out.append({"from": joined(A[i1 - 1:i2] if before else A[i1:i2 + 1]), "to": ctx})
     return out
 
 
