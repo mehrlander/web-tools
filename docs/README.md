@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-25 by a skill, 43 by a page or component. The remaining 44 are
+24 by a skill, 43 by a page or component. The remaining 46 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -61,7 +61,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`tests.csv`](tests.csv) — the test registry: every check's test count, names, method and runner
 - [`text-content.md`](text-content.md) *(measured, orphan)* — the estate's authored text: whether the data files holding it are organized, and how much never reached one
 - [`text-fields.csv`](text-fields.csv) — the names a prose-bearing CSV column or JSON key may take
-- [`text-tools.md`](text-tools.md) — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
+- [`text-tools.md`](text-tools.md) *(orphan)* — the FAB's Text tab: why it exists, why the join is the path rather than a term, and an assessment of what it is not
 - [`themes.csv`](themes.csv) *(measured)* — the duplication graph as committed data: every pair of markdown files sharing at least three ten-word windows, weighted, with the repeated passages themselves. Clusters of it are the Map view's themes, and which clusters exist is a function of the weight threshold, so the payload carries every edge and the reader carries the dial
 - [`tools.csv`](tools.csv) — which pages the Tools view shows, and the icon each is given
 - [`vocabularies.csv`](vocabularies.csv) — what each value of a closed domain means, one row per value
@@ -101,6 +101,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`machines.csv`](machines.csv) — the machines work runs on, one row per machine: what each is and what work there reaches
 - [`machines.md`](machines.md) *(measured)* — dated observations about the machines docs/machines.csv lists: what each product needs to keep running, and where unattended work fits
 - [`acronyms.md`](acronyms.md) *(orphan)* — coined acronyms for asks a session may hear (SPUR, FAIR) and for an order of explaining a term (CDE), kept mostly for fun
+- [`formats.csv`](formats.csv) *(orphan)* — the JSON formats web-tools defines or renders: each one's contract, schema, id key, producer and envelope membership
 
 ## docs/envelopes/
 
@@ -114,6 +115,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`passage-reading.md`](envelopes/passage-reading.md) — the passage-reading envelope contract: one passage read sentence by sentence
 - [`audit.md`](envelopes/audit.md) — the audit envelope contract: a document's units, each with a label from a declared vocabulary and a verdict
 - [`inspection.md`](envelopes/inspection.md) *(orphan)* — the inspection envelope contract: what an AI process made from an input, each item anchored in it, for a note or a verdict apiece
+- [`user-call.md`](envelopes/user-call.md) — the user-call envelope contract: a question for the owner, its kinds, answers and a documentation call's critic review
 
 ## docs/envelopes/schemas/
 
@@ -126,7 +128,6 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`branch-review-v1.schema.json`](envelopes/schemas/profiles/branch-review-v1.schema.json) *(orphan)* — the branch-review profile schema
 - [`inquiry-v1.schema.json`](envelopes/schemas/profiles/inquiry-v1.schema.json) *(orphan)* — the inquiry profile schema
-- [`stage-v1.schema.json`](envelopes/schemas/profiles/stage-v1.schema.json) *(orphan)* — the stage profile schema
 - [`approval-v1.schema.json`](envelopes/schemas/profiles/approval-v1.schema.json) *(orphan)* — the approval profile schema
 
 ## docs/environment/
@@ -165,7 +166,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`harness-map-ideas.json`](prototypes/harness-map-ideas.json) *(record, orphan)* — the idea board for the harness picture: eight ways to draw how writers, the credentials they commit with and the machines they run on reach GitHub, and the selection docs/prototypes/harness-map.html builds
 - [`forms-tab-ideas.json`](prototypes/forms-tab-ideas.json) *(record, orphan)* — the idea board for the Map's Forms tab: eight ways to show the estate's forms with the pages that carry each, and the selection the tab builds
 - [`code-comments-ideas.json`](prototypes/code-comments-ideas.json) *(record, orphan)* — the idea board for a view of the estate's code comments and docstrings: eight ways to show where comment text sits, how much there is beside the Markdown, and what it cites, and the selection a Docs sub-tab would build
-- [`model-diagram-ideas.json`](prototypes/model-diagram-ideas.json) *(record)* — the idea board for redrawing the Map's Model diagram: eight ways to show a reader new to the codebook what a unit, its pattern, parts and frame codes are, drawn on the Docs tab, and the selection
+- [`model-diagram-ideas.json`](prototypes/model-diagram-ideas.json) *(record, orphan)* — the idea board for redrawing the Map's Model diagram: eight ways to show a reader new to the codebook what a unit, its pattern, parts and frame codes are, drawn on the Docs tab, and the selection
 - [`model-diagram-redraw.json`](prototypes/model-diagram-redraw.json) *(record, orphan)* — the second idea board for the Map's Model diagram: five ways to draw the taxonomy of screen, chrome, content, unit, collection, item, field and overlay on the Docs tab, and the selection
 - [`program-icons-ideas.json`](prototypes/program-icons-ideas.json) *(record, orphan)* — the idea board for program icons: eight family cues that mark an icon as a program's rather than a project's, drawn for Surfacing and Testing, and the selection docs/prototypes/program-icons-options.html builds six of
 - [`program-mark-picking-ideas.json`](prototypes/program-mark-picking-ideas.json) *(record, orphan)* — the idea board for choosing program marks: eight ways to star favorites, order them and send the choice, and the pick docs/prototypes/program-mark-ideas.html builds

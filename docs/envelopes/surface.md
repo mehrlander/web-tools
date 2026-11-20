@@ -16,7 +16,7 @@ conventions, and worked examples.
 
 - [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json): the core schema.
 - [`schemas/profiles/branch-review-v1.schema.json`](schemas/profiles/branch-review-v1.schema.json): the first profile.
-- [`schemas/profiles/inquiry-v1.schema.json`](schemas/profiles/inquiry-v1.schema.json), [`schemas/profiles/approval-v1.schema.json`](schemas/profiles/approval-v1.schema.json) and [`schemas/profiles/stage-v1.schema.json`](schemas/profiles/stage-v1.schema.json): the others.
+- [`schemas/profiles/inquiry-v1.schema.json`](schemas/profiles/inquiry-v1.schema.json) and [`schemas/profiles/approval-v1.schema.json`](schemas/profiles/approval-v1.schema.json): profiles for a form a reader fills in and for a proposal awaiting a decision.
 
 This contract defines **v2**. [`lib/kits/surface.js`](../../lib/kits/surface.js) dual-reads v1 and v2, normalizing to v2 in memory, and answers where each item lives. Every `.surface` file that exists is v1, and the Surfacer C# app still reads v1. **v1 files are never rewritten in place:** reading normalizes for display only, so a v1 file stays v1 until someone deliberately saves it as v2.
 

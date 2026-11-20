@@ -220,6 +220,9 @@ test('a trip carries the edit it was tagged with, E- or outside as 0; only trips
   assert.equal(outside.verdict, 'pass', 'a trip outside every edit does not fail the run');
   assert.equal(outside.stated, 'fail', 'the verdict the critic stated is kept where it differs');
   assert.equal('edit' in old.trips[0], false, 'the old form carries no tag');
+  const headed = py('parse_report', 'Trips, most costly first:\n\n- P06 · E1 · line 19 · "the others" · Name them.\n\nClear: P01\n\nVerdict: FAIL');
+  assert.deepEqual([headed.verdict, headed.trips.map((t) => t.peeve)], ['fail', ['P06']],
+    'the Trips heading the critic copies from its definition, "Trips, most costly first:", heads the section');
   // From the first real use (the critic-review docs, 2026-11-20): a trip
   // quoting the trip format, whose separators sit in a code span.
   const [fmt, kept] = pyMany([
