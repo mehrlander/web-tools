@@ -151,12 +151,12 @@ check(new URLSearchParams(w.location.hash.slice(1)).get('session')==='cloud:clou
 w.history.replaceState(null,'','#view=now&session=cloud%3Amissing');w.dispatchEvent(new w.PopStateEvent('popstate'));
 check(doc.querySelector('#detail [data-back]').textContent==='← Now','A direct session route without an originating history entry keeps Now as the safe return destination.');
 clearDetail();snapshot.observedAt=new Date().toISOString();snapshot.sources.workerState='absent';snapshot.sources.notices=['A source is stale.'];await refresh();
-check(doc.querySelector('#notice [data-queue-notice]').textContent.includes('2 Gemini errands waiting')&&doc.querySelector('#notice [data-worker-status]').textContent.includes('Worker offline')&&doc.querySelector('#notice').textContent.includes('A source is stale.'),'Missing-worker notices expose the real Gemini queue count and worker action while retaining other source notices.');
+check(doc.querySelector('#notice [data-queue-notice]').textContent.includes('2 Gemini errands waiting')&&doc.querySelector('#notice [data-worker-status]').textContent.includes('Daemon not detected')&&doc.querySelector('#notice').textContent.includes('A source is stale.'),'Missing-worker notices expose the real Gemini queue count and worker action while retaining other source notices.');
 snapshot.sources.recordsConnected=false;await refresh();check(doc.querySelector('#content').textContent.includes('Waiting · Saved queue'),'A saved errand queue remains explicitly labeled.');
 snapshot.sources.queueAvailable=false;snapshot.items=snapshot.items.filter(i=>!['queued','claimed'].includes(i.state));await refresh();click('[data-assistant=gemini]');
 check(doc.querySelector('#content').textContent.includes('Queue unavailable')&&!doc.querySelector('#content').textContent.includes('Queue clear'),'An unavailable queue is never presented as empty.');click('[data-assistant=gemini]');
 snapshot.sources.workerState='detected';snapshot.sources.workerActivity={kind:'topics',headline:'Summarising two sessions',at:earlier(30)};await refresh();click('[data-pick="worker:gemini"]');
-check(doc.querySelector('#detail').textContent.includes('Process detected')&&doc.querySelector('#detail').textContent.includes('does not confirm that a task is still running'),'Worker detail keeps process evidence separate from execution state.');
+check(doc.querySelector('[data-daemon-observation]').textContent.includes('Detected')&&doc.querySelector('#detail').textContent.includes('does not confirm a running task'),'Daemon detail keeps process evidence separate from execution state.');
 clearDetail();const before=fetches;await w.NowPhone.refresh();await flush();
 check(fetches>before&&!lastHeaders?.['If-None-Match'],'The public refresh API forces a fresh activity snapshot without a conditional response.');
 Object.defineProperty(doc,'hidden',{value:true,configurable:true});doc.dispatchEvent(new w.Event('visibilitychange'));
@@ -266,9 +266,9 @@ snapshot.sources.workerState='unknown';await refresh();check(!doc.querySelector(
 snapshot.sources.workerState='absent';snapshot.sources.recordsConnected=false;await refresh();
 check(doc.querySelector('#notice').textContent.includes('Saved queue'),'A cached waiting count retains its saved-queue qualification.');
 snapshot.sources.recordsConnected=true;offline=true;await refresh();
-check(doc.querySelector('#notice').textContent.includes('Saved queue and worker status')&&!doc.querySelector('#notice [data-worker-status]').textContent.includes('Worker offline'),'A failed transport qualifies cached worker and queue observations even when the saved GitHub status was connected.');
+check(doc.querySelector('#notice').textContent.includes('Saved queue and daemon status')&&!doc.querySelector('#notice [data-worker-status]').textContent.includes('Daemon not detected'),'A failed transport qualifies cached worker and queue observations even when the saved GitHub status was connected.');
 offline=false;snapshot.observedAt=earlier(30);await refresh();
-check(doc.querySelector('#notice').textContent.includes('Saved queue and worker status'),'A stale snapshot is qualified independently of successful transport and recorded GitHub connectivity.');
+check(doc.querySelector('#notice').textContent.includes('Saved queue and daemon status'),'A stale snapshot is qualified independently of successful transport and recorded GitHub connectivity.');
 snapshot.observedAt=new Date().toISOString();
 snapshot.sources.recordsConnected=true;await refresh();click('[data-assistant=codex]');w.NowViews.scrollTo(222);
 const queueHistory=w.history.length;click('#notice [data-queue-notice]');await flush();
@@ -278,10 +278,47 @@ for(let pass=0;pass<5;pass++){for(const[id,task]of [...timers])if(!task.delay){t
 await queueBack;await flush();
 check(w.NowViews.current()==='now'&&doc.querySelector('[data-assistant=codex]').getAttribute('aria-pressed')==='true'&&w.NowViews.scrollPosition()===222,'Back from the queue retains the original Now provider filter and scroll.');
 click('#notice [data-worker-status]');
-check(doc.querySelector('#detail h2').textContent==='Gemini errand worker'&&doc.activeElement===doc.querySelector('#detail h2')&&doc.querySelector('#detail').textContent.includes('separately from interactive Gemini sessions')
+check(doc.querySelector('#detail h2').textContent==='Gemini errand daemon'&&doc.activeElement===doc.querySelector('#detail h2')&&doc.querySelector('#detail').textContent.includes('Gemini connection')
  &&doc.querySelector('#detail').textContent.includes('Last report')&&doc.querySelector('#detail').textContent.includes('Session cache could not be published')
  &&doc.querySelector('#detail').textContent.indexOf('Waiting')<doc.querySelector('#detail').textContent.indexOf('Recent reports'),
- 'Worker status distinguishes the errand worker, shows its dated safe report, and places waiting work before report history.');
+ 'Daemon status identifies the errand process, shows its dated safe report, and places waiting work before report history.');
+snapshot.observedAt=new Date(Date.now()+1).toISOString();await refresh();
+check(doc.activeElement===doc.querySelector('#detail h2'),'Refreshing the daemon observation retains the opened heading focus.');
+doc.querySelector('#detail [data-back]').focus();snapshot.observedAt=new Date().toISOString();await refresh();
+check(doc.activeElement===doc.querySelector('#detail [data-back]'),'Refreshing daemon detail also retains Back-button focus.');
+doc.querySelector('#detail [data-status]').focus();snapshot.observedAt=new Date(Date.now()+1).toISOString();await refresh();
+check(doc.activeElement===doc.querySelector('#detail [data-status]'),'Refreshing daemon detail retains queue-row status-button focus.');
+doc.querySelector('#detail [data-launch]').focus();snapshot.observedAt=new Date().toISOString();await refresh();
+check(doc.activeElement===doc.querySelector('#detail [data-launch]'),'Refreshing daemon detail retains queue-row options focus.');
+snapshot.items=snapshot.items.filter(value=>!['session','cloud'].includes(value.kind));
+const geminiUpdate=earlier(60);
+snapshot.items.push({...item('gemini-session','idle'),kind:'session',at:geminiUpdate},
+ {...item('future-session','working'),kind:'session',at:new Date(Date.now()+3600000).toISOString()},
+ {...item('invalid-session','working'),kind:'session',at:'invalid'},
+ {...item('old-session','working'),kind:'session',at:earlier(90000)},
+ {...item('claude-session','working','Claude'),kind:'cloud'});
+snapshot.observedAt=new Date().toISOString();await refresh();
+check(doc.querySelector('[data-daemon-observation]').textContent.includes('Not detected')
+ &&doc.querySelector('[data-gemini-observation] time').dataset.at===geminiUpdate
+ &&doc.querySelector('#detail').textContent.includes('Not checked'),
+ 'A missing daemon and a real recent Gemini session update remain separate observations without claiming connection health.');
+check(doc.querySelector('[data-daemon-observation] time').dataset.at===snapshot.observedAt,
+ 'The daemon observation carries the snapshot time independently of the older report time.');
+snapshot.sources.workerState='detected';await refresh();
+check(doc.querySelector('[data-daemon-observation]').textContent.includes('Detected')&&doc.querySelector('#detail').textContent.includes('Not checked'),
+ 'Daemon detection does not imply a working Gemini connection.');
+offline=true;await refresh();
+check(doc.querySelector('[data-daemon-observation]').textContent.includes('Saved observation')&&doc.querySelector('[data-gemini-observation]').textContent.includes('Saved observation'),
+ 'Offline daemon and Gemini observations are both explicitly saved.');
+offline=false;snapshot.observedAt=earlier(30);await refresh();
+check(doc.querySelector('[data-daemon-observation]').textContent.includes('Saved observation'),
+ 'Successful transport does not make a stale daemon snapshot current.');
+snapshot.sources.workerState='unknown';snapshot.observedAt=new Date().toISOString();snapshot.items=snapshot.items.filter(value=>value.key!=='gemini-session');await refresh();
+check(doc.querySelector('[data-daemon-observation]').textContent.includes('Status unavailable')
+ &&!doc.querySelector('[data-gemini-observation] time')&&doc.querySelector('[data-gemini-observation]').textContent.includes('No session update')
+ &&doc.querySelector('#detail').textContent.includes('Not checked'),
+ 'An unknown process and no valid recent Gemini session do not become a provider outage; errand, other-provider, future, invalid and old dates are excluded.');
+snapshot.sources.workerState='absent';
 clearDetail();snapshot.items=snapshot.items.filter(value=>value.kind!=='errand'||value.provider!=='Gemini'||value.state!=='queued');await refresh();
 check(!doc.querySelector('#notice [data-queue-notice]'),'Manual Gemini sessions and other vendors’ queued errands do not create a Gemini worker warning.');
 console.log(`${checks} phone interaction checks passed.`);
