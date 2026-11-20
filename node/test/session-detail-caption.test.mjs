@@ -19,7 +19,7 @@ const HOOKS_JSON = JSON.parse(
 const PAGES = 'https://mehrlander.github.io/web-tools/pages/';
 const SESSION = 'f701fa79-e1c0-5997-b6c3-709182f8e137';
 const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
-const PROGRAM = ' · [🧭](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
+const PROGRAM = ' · [🎛️](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
 const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's, of no kind it names
 const MIN = 60_000, HOUR = 60 * MIN;
