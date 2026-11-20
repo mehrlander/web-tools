@@ -1,10 +1,13 @@
 // node/test/user-call-review.test.mjs
 // A documentation call's `review`, the peeves critic's runs on its document,
 // as skills/user-calls/user-call.py parses, records and checks it: a report in
-// the critic's form read into trips, a report in neither form kept whole with
-// no verdict, the changes between runs worked out from the texts the critic
-// read, and `add` refusing a call whose wording the last run never read or a
-// finding no one answered.
+// the critic's form read into trips, each tagged with the edit it falls in, a
+// report in neither form kept whole with no verdict, the edits given to the
+// critic as line ranges, the changes between runs worked out from the texts
+// the critic read with a rewrap counted apart as reflow, a quote held to the
+// text it quotes, each change linked to the trips it answers, and `add`
+// refusing a call whose wording the last run never read or a finding no one
+// answered, and mapping each run's edits onto the call's.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -127,7 +130,7 @@ test('a review is held to its report and every trip is answered', () => {
     ['changed when nothing changed', CALL({ runs: [RUN({ changes: [] }), PASS] }), 'nothing changed after run 1'],
     ['a quote the report does not hold', CALL({ runs: [RUN({ trips: [{ ...RUN().trips[0], quote: 'words never said' }] }), PASS] }), 'quote is not in the run'],
     ['a peeve the report does not name', CALL({ runs: [RUN({ trips: [{ ...RUN().trips[0], peeve: 'P99' }] }), PASS] }), 'P99 is not in the run'],
-    ['a pass with trips', CALL({ runs: [RUN({ verdict: 'pass' })] }), 'a failed run has trips'],
+    ['a pass with trips', CALL({ runs: [RUN({ verdict: 'pass' })] }), 'a failed run has a trip inside an edit'],
     ['a last run with changes after it', CALL({ runs: [PASS, RUN()] }), 'run the critic again'],
     ['no report', CALL({ runs: [{ ...PASS, report: '' }] }), 'report is the critic'],
     ['no runs', CALL({ runs: [] }), '1 to 30 critic runs'],
@@ -156,7 +159,7 @@ test('review adds a run per report, works out the changes before the next, and r
   writeFileSync(path.join(dir, 'r2.md'), PASSED);
   r = run(['review', draft, doc, path.join(dir, 'r2.md')]);
   assert.equal(r.status, 0, r.stderr);
-  assert.match(r.stdout, /then 1 change before run 2\nrun 2: pass/);
+  assert.match(r.stdout, /then 1 change before run 2\n {4}c1 · line 3 · "Without `#base=`, the default branch stands in\."  quotes 1\.1\n.*--answers 1\.c1 1\nrun 2: pass/);
   r = run(['review', draft, '--note', 'Passed on the second run.']);
   assert.equal(r.status, 0, r.stderr);
   const runs = JSON.parse(readFileSync(draft, 'utf8')).review.runs;
@@ -188,4 +191,166 @@ test('add refuses edits the last run did not read, and drops the texts the draft
   const filed = JSON.parse(git(dir, 'show', 'origin/main:user-calls/a710e806-tighten.json'));
   assert.equal(filed.review.runs[0].verdict, 'pass');
   assert.equal('text' in filed.review.runs[0], false, 'the kept text is not filed');
+});
+
+// ── The upgrade: edits given to the critic, trips tagged with them ─────────
+
+const TAGGED = `**Trips**
+
+- P05 · E1 · the new paragraph · "With no base, the default branch takes its place" · Unclear when.
+- P12 · **E2** · the last line · "The end now" · A misquote: the text has a comma.
+- P04 · E- · line 3 · "so that the lines / stay short" · Outside the edits.
+- P74 · outside · line 9 · "Another wrapped paragraph" · Also outside.
+
+**Clear**: P01, P02
+
+Verdict: FAIL`;
+const OUTSIDE_ONLY = `**Trips**
+- P04 · E- · line 3 · "so that the lines" · Outside the edits.
+
+**Clear**: P01
+
+Verdict: FAIL`;
+
+test('a trip carries the edit it was tagged with, E- or outside as 0; only trips outside every edit pass the run', () => {
+  const [tagged, outside, old] = pyMany([['parse_report', [TAGGED]], ['parse_report', [OUTSIDE_ONLY]], ['parse_report', [FAILED]]]);
+  assert.equal(tagged.verdict, 'fail');
+  assert.deepEqual(tagged.trips.map((t) => [t.peeve, t.edit]), [['P05', 1], ['P12', 2], ['P04', 0], ['P74', 0]]);
+  assert.deepEqual(tagged.trips[0], { peeve: 'P05', edit: 1, where: 'the new paragraph', quote: 'With no base, the default branch takes its place', clause: 'Unclear when.' });
+  assert.equal(outside.verdict, 'pass', 'a trip outside every edit does not fail the run');
+  assert.equal(outside.stated, 'fail', 'the verdict the critic stated is kept where it differs');
+  assert.equal('edit' in old.trips[0], false, 'the old form carries no tag');
+});
+
+test('a rewrap is reflow, counted apart from the changes, and a quote is held to the text', () => {
+  const [rewrapped, split, inText] = pyMany([
+    ['run_diff', ['Intro.\n\nA wrapped\nparagraph here.\n\nOld words.', 'Intro.\n\nA wrapped paragraph\nhere.\n\nNew words.']],
+    ['run_diff', ['One long paragraph that the session\nsplits by its wrap only.', 'One long paragraph that the session splits by its wrap only.']],
+    ['quote_in', ['"changes" (row) against "Changes" (paragraph)', 'The changes row. Changes, the paragraph.']],
+  ]);
+  assert.deepEqual(rewrapped, [[{ from: 'Old words.', to: 'New words.' }], 1]);
+  assert.deepEqual(split, [[], 1]);
+  assert.equal(inText, true);
+  const quotes = pyMany([
+    ['quote_in', ['have home and [mehrlander/budget-drs](…) checked out', 'from a checkout that has home and budget-drs beside it']],
+    ['quote_in', ['The `unit` of … starts `budget-drs:`', 'The unit of each row starts budget-drs: always.']],
+    ['quote_in', ['so that the lines / stay short', 'so that the lines\nstay short']],
+    ['quote_in', ['[mehrlander/home](…) holds', 'This folder of [mehrlander/home](https://github.com/mehrlander/home) holds']],
+  ]);
+  assert.deepEqual(quotes, [false, true, true, true], 'the pilot\'s misquote is caught; an ellipsis, a line break and a link are read');
+});
+
+const BASE = '# Title\n\nThe first paragraph wraps at a modest width so that the lines\nstay short and the reader can follow them easily.\n\n'
+  + 'Another wrapped paragraph that sits in the\nmiddle of the document.\n\nThe end.\n';
+const V1 = '# Title\n\nThe first paragraph wraps at a modest width so that the lines\nstay short and the reader can follow them easily.\n\n'
+  + 'With no base, the default branch takes its place, and the whole paragraph sits on a single long line here.\n\n'
+  + 'Another wrapped paragraph that sits in the\nmiddle of the document.\n\nThe end, now.\n';
+const V2 = '# Title\n\nThe first paragraph wraps at a modest width so that the lines\nstay short and the reader can follow them easily.\n\n'
+  + 'Without a base, the default branch stands in, and\nthe paragraph wraps like the rest.\n\n'
+  + 'Another wrapped paragraph that sits in\nthe middle of the document.\n\nThe end, now.\n';
+
+test('the edits as the critic\'s spans: an insertion\'s new text, a rewrite\'s, and a removal\'s neighbour', () => {
+  const edits = [{ from: 'Intro.', to: 'Intro.\n\nAdded here.' }, { from: 'Old.', to: 'New.' }, { from: 'Keep.\n\nGone.', to: 'Keep.' }];
+  const text = 'Intro.\n\nAdded here.\n\nNew.\n\nKeep.\n';
+  const [spans, block] = pyMany([['spans_of', [{ edits }, text]], ['spans_text', ['docs/x.md', [{ lines: [3, 3] }, { lines: [5, 6] }]]]]);
+  assert.deepEqual(spans.map((s) => s.lines), [[3, 3], [5, 5], [7, 7]]);
+  assert.match(block, /^The edits to docs\/x\.md, as lines of the file as you read it:\nE1 {2}line 3\nE2 {2}lines 5-6\nTag each trip with its edit/);
+});
+
+test('a trip whose quote sits in another span than its tag is a warning', () => {
+  const run1 = { edits: [{ lines: [6, 6] }, { lines: [11, 11] }], trips: [
+    { peeve: 'P05', edit: 2, quote: 'With no base' }, { peeve: 'P04', edit: 0, quote: 'The end, now' }, { peeve: 'P06', edit: 1, quote: 'With no base' }] };
+  assert.deepEqual(py('tag_warnings', run1, 1, V1), ['1.1 is tagged E2, but its quote is at line 6, in E1', '1.2 is tagged E-, but its quote is at line 11, in E2']);
+});
+
+test('a changed paragraph wrapped unlike the rest is a warning before the first run, as is an edit that only rewraps', () => {
+  const [one, none, rewrap] = pyMany([
+    ['wrap_warnings', [{ edits: [{ from: 'x', to: 'y' }] }, V1, [{ lines: [6, 6] }]]],
+    ['wrap_warnings', [{ edits: [{ from: 'x', to: 'y' }] }, V2, [{ lines: [6, 7] }]]],
+    ['wrap_warnings', [{ edits: [{ from: 'A b\nc.', to: 'A b c.' }] }, 'A b c.\n', [{ lines: [1, 1] }]]],
+  ]);
+  assert.match(one.join('\n'), /E1 has lines longer than the \d+ columns the rest of the document wraps at/);
+  assert.deepEqual(none, []);
+  assert.match(rewrap[0], /E1 changes only line breaks or spacing/);
+});
+
+test('the record holds each tag to its report and its spans, each change\'s answers to its trips, and lets a trip outside the edits go unanswered', () => {
+  const T = (o) => ({ peeve: 'P05', edit: 1, where: 'w', quote: 'With no base, the default branch takes its place', clause: 'c', answer: 'changed', ...o });
+  const R = (o) => ({ verdict: 'fail', report: TAGGED, edits: [{ lines: [6, 6], edit: 1 }, { lines: [11, 11], edit: 2 }], trips: [T()],
+    changes: [{ from: 'a', to: 'b', answers: [1] }], ...o });
+  const OUT = { verdict: 'pass', report: OUTSIDE_ONLY, trips: [{ peeve: 'P04', edit: 0, where: 'line 3', quote: 'so that the lines', clause: 'c' }] };
+  const rows = [
+    ['a tagged trip answered by a change, then a pass whose one trip is outside the edits', CALL({ runs: [R(), OUT] }), null],
+    ['a misquoted trip, kept', CALL({ runs: [R({ trips: [T({ peeve: 'P12', edit: 2, quote: 'The end now', misquoted: true, answer: 'kept', why: 'Misquoted.' })], changes: [{ from: 'a', to: 'b' }] }), PASS] }), null],
+    ['a rewrap answers a trip about the wrapping', CALL({ runs: [R({ changes: [], reflow: 1 }), PASS] }), null],
+    ['a tag the report does not hold', CALL({ runs: [R({ trips: [T({ edit: 3 })], edits: [{ lines: [1, 1], edit: 1 }, { lines: [2, 2], edit: 1 }, { lines: [3, 3], edit: 1 }] }), PASS] }), 'its tag E3 is not in the run'],
+    ['a tag past the run\'s spans', CALL({ runs: [R({ trips: [T({ edit: 2 })], edits: [{ lines: [6, 6], edit: 1 }] }), PASS] }), 'is the span it was tagged with'],
+    ['a change answering a trip the run lacks', CALL({ runs: [R({ changes: [{ from: 'a', to: 'b', answers: [2] }] }), PASS] }), 'answers are trip numbers of run 1'],
+    ['a change answering a kept trip', CALL({ runs: [R({ trips: [T({ answer: 'kept', why: 'x' })] }), PASS] }), 'answered by a change, so its answer is changed'],
+    ['a pass with a trip inside an edit', CALL({ runs: [R({ verdict: 'pass' })] }), 'a failed run has a trip inside an edit'],
+    ['spans with no lines', CALL({ runs: [R({ edits: [{ lines: [4, 2], edit: 1 }] }), PASS] }), 'edits are up to 40 spans'],
+    ['a misquote mark that is not true or false', CALL({ runs: [R({ trips: [T({ misquoted: 'yes' })] }), PASS] }), 'misquoted is true or false'],
+  ];
+  const got = pyMany(rows.map(([, c]) => ['check', [c]]));
+  rows.forEach(([what, , words], i) => (words === null
+    ? assert.deepEqual(got[i], [], what)
+    : assert.ok(got[i].some((e) => e.includes(words)), `${what}: ${JSON.stringify(got[i])}`)));
+});
+
+test('review gives the critic the spans, takes its tagged trips, links a change to what it answers, and add maps every run\'s spans onto the call\'s edits', () => {
+  const tmp = mkdtempSync(path.join(tmpdir(), 'review-spans-'));
+  const repo = path.join(tmp, 'repo');
+  mkdirSync(repo);
+  git(repo, 'init', '-q', '-b', 'main');
+  const doc = path.join(repo, 'doc.md'), draft = path.join(tmp, 'call.json');
+  writeFileSync(doc, BASE);
+  git(repo, 'add', '.'); git(repo, 'commit', '-qm', 'base');
+  writeFileSync(doc, V1);
+  writeFileSync(draft, JSON.stringify({ session: 'a710e806', slug: 'spans', kind: 'documentation', question: 'Apply 2 edits to doc.md?', brief: 'Tidy.',
+    file: 'o/r@b:doc.md', base: 'main', edits: [{ from: 'The end.', to: 'The end, now.', why: 'ends it' }] }));
+  let r = run(['review', draft, doc, '--spans']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /E1 {2}line 6\nE2 {2}line 11\n/);
+  assert.match(r.stderr, /warning: E1 has lines longer than/, 'the wrapping is flagged before the first run');
+  const saved = JSON.parse(readFileSync(draft, 'utf8'));
+  assert.equal(saved.edits.length, 2, 'the draft\'s edits are worked out again from the base');
+  assert.equal(saved.edits[1].why, 'ends it', 'keeping what the session wrote on an edit');
+  r = run(['review', draft, doc, path.join(tmp, 'none.md'), '--spans', path.join(tmp, 'spans.txt')]);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(readFileSync(path.join(tmp, 'spans.txt'), 'utf8'), /^The edits to .*doc\.md/);
+
+  r = run(['review', draft, doc], TAGGED);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /1\.2 P12 · E2 · the last line · "The end now".*misquoted/);
+  assert.doesNotMatch(r.stderr, /is tagged/, 'each tag agrees with where its quote sits');
+  writeFileSync(doc, V2);
+  r = run(['review', draft, doc], PASSED);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /then 1 change before run 2, and 1 block rewrapped \(reflow, not a change\)\n {4}c1 · E1 · line 6 · "Without a base/);
+  r = run(['review', draft, '--answers', 'c1', '1']);
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stdout, /c1 · E1 · line 6 · .* answers 1\.1/);
+  assert.equal(run(['review', draft, '--answers', 'c2', '1']).status, 1, 'a change the run does not have');
+  assert.equal(run(['review', draft, '--kept', '1.2', 'Misquoted; the words read fine.']).status, 0);
+  let d = JSON.parse(readFileSync(draft, 'utf8'));
+  const [one, two] = d.review.runs;
+  assert.deepEqual(one.trips.map((t) => [t.edit, t.answer || '', !!t.misquoted]), [[1, 'changed', false], [2, 'kept', true], [0, '', false], [0, '', false]],
+    'a trip outside the edits is left unanswered');
+  assert.equal(one.reflow, 1);
+  assert.deepEqual(one.edits.map((s) => s.lines), [[6, 6], [11, 11]]);
+  assert.deepEqual(two.edits.map((s) => s.lines), [[6, 12]], 'the rewrap joined the two edits into one');
+
+  const store = path.join(tmp, 'store');
+  git(tmp, 'init', '-q', '--bare', '-b', 'main', 'origin.git');
+  git(tmp, 'clone', '-q', 'origin.git', 'store');
+  writeFileSync(path.join(store, '.web-tools.json'), '{"user-calls": "user-calls"}\n');
+  mkdirSync(path.join(store, 'user-calls'));
+  writeFileSync(path.join(store, 'user-calls', '.keep'), '');
+  git(store, 'add', '.'); git(store, 'commit', '-qm', 'init'); git(store, 'push', '-q', 'origin', 'main');
+  r = run(['add', '--store', path.join(store, 'user-calls')], readFileSync(draft, 'utf8'));
+  assert.equal(r.status, 0, r.stderr);
+  d = JSON.parse(git(store, 'show', 'origin/main:user-calls/a710e806-spans.json'));
+  assert.deepEqual(d.review.runs.map((x) => x.edits), [[{ lines: [6, 6], edit: 1 }, { lines: [11, 11], edit: 1 }], [{ lines: [6, 12], edit: 1 }]],
+    'each run\'s spans name the call\'s edit, by the base text they replace');
+  assert.equal(d.review.runs.some((x) => 'text' in x || x.edits.some((s) => 'from' in s || 'base' in s)), false, 'the draft\'s working texts are not filed');
 });

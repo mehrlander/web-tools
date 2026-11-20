@@ -4,7 +4,8 @@
 // and a card per run naming each trip's peeve from the peeves list, quoting
 // its words, saying how the session answered it (a kept one with its reason)
 // and drawing what changed before the next run. A run with no verdict shows
-// its report. Driven over a fake GH, with md-diff stubbed as in
+// its report. This file reads the By run face; user-call-form-threads.test.mjs
+// reads By edit. Driven over a fake GH, with md-diff stubbed as in
 // user-call-form-filed.test.mjs and the real linked-swiper kit.
 
 import test from 'node:test';
@@ -78,7 +79,10 @@ await until(() => flag()?.style.display === '');
 const switchShown = { count: $('[data-doc-view="critic"] [data-critic-count]')?.textContent, flag: flag()?.style.display === '', tip: flag()?.dataset.titleTip };
 const drawsBefore = drawn.length;
 $('[data-doc-view="critic"]').click();
-await until(() => $('[data-run-card]') && inlined.length && $('[data-doc-scroll]').style.display === 'none');
+await until(() => $('[data-thread-card]') && $('[data-doc-scroll]').style.display === 'none');
+const byEditFirst = { checked: $('[data-critic-show="edit"]')?.getAttribute('aria-checked'), runs: $('[data-review-root]').style.display };
+$('[data-critic-show="run"]').click();
+await until(() => $('[data-run-card]') && inlined.length);
 const card = () => $('[data-review-card]');
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
@@ -89,6 +93,7 @@ test('the Critic view sits in the document\'s switch, counting the runs and mark
   assert.ok(switchShown.flag, 'a kept finding marks the switch');
   assert.equal(switchShown.tip, '1 finding kept as written');
   assert.equal($('[data-doc-scroll]').style.display, 'none', 'the document steps aside');
+  assert.deepEqual(byEditFirst, { checked: 'true', runs: 'none' }, 'the Critic view opens By edit, with By run a tap away');
   assert.equal($('[data-doc-review]').style.display, '');
 });
 
