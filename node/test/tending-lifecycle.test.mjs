@@ -105,9 +105,8 @@ test('a step done is progress: settling with an inherited next is refused', () =
   assert.equal(f.outstanding, true);
 });
 
-test('a finding never asks: a decision is a user call it names', () => {
-  assert.match(refused({ text: 'One question.', finding: { choice: 'Retire the branch?' } }), /file the decision as a user call/);
-  assert.match(refused({ text: 'Needs the owner.', finding: { kind: 'answer' } }), /names its user call among its subjects/);
+test('a finding never asks: the decision goes to the owner in the reply', () => {
+  assert.match(refused({ text: 'One question.', finding: { choice: 'Retire the branch?' } }), /put the decision to the owner in the reply/);
   py('update', id, jfile({ text: 'Retiring the branch needs the owner\'s word.',
     finding: { kind: 'answer', subjects: ['acme/evidence@claude/x', 'acme/evidence#7', 'acme/store:user-calls/abcd1234-retire-x.json'] } }));
   assert.equal(both(id).status, 'open');

@@ -30,7 +30,7 @@ zero count is left off, and so is a part the transcript cannot supply: the time
 before any owner message, the context before any response.
 
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
-`user-calls/<short>-<slug>.json` (the private store's user-calls/user-call.py
+`user-calls/<short>-<slug>.json` (the user-calls skill, skills/user-calls/SKILL.md,
 holds the schema). A documentation call names its document as
 `owner/repo@ref:path`, and the latest such call for a repo and path, by
 `created`, decides it: waiting while that call is `open`, signed off once it

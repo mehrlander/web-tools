@@ -121,14 +121,12 @@ USER_CALL = re.compile(r"^[\w.-]+/[\w.-]+(?:@[^\s:]+)?:user-calls/[\w.-]+\.json$
 
 
 def decision_errors(f):
-    """A decision the owner must make is a user call, read and answered in the
-    Waiting view; a finding names it as a subject and never asks it itself."""
+    """A decision the owner must make goes to the owner in the reply (step 6 of
+    the tend skill); a finding never asks it itself."""
     errs = []
     if str(f.get("choice") or "").strip():
-        errs.append("a finding does not ask: file the decision as a user call (user-calls/user-call.py in the "
-                    "registry) and name it among the subjects")
-    if f.get("kind") == "answer" and not any(USER_CALL.match(s) for s in f.get("subjects") or []):
-        errs.append("an answer finding names its user call among its subjects")
+        errs.append("a finding does not ask: put the decision to the owner in the reply (step 6 of the "
+                    "tend skill)")
     return errs
 
 
