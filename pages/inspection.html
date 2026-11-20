@@ -118,13 +118,14 @@
   // strip and in the deck.
   const BADGE = 'grid h-3.5 min-w-3.5 cursor-pointer place-items-center rounded-full border px-[2px] font-mono text-[11px] leading-none font-semibold tabular-nums';
   const DISCS = 'absolute -top-[9px] -left-[9px] flex gap-px select-none';
-  const DISCS_LEAD = 'absolute -top-[11px] left-0 flex gap-px select-none';
   const INPUT = { strip: 'leading-7.5', deck: 'leading-8.5' };
-  // A turn: its label an outlined 18px tag at the start of its words, 4px
-  // before them; a passage that starts the words hangs its disc over its own
-  // first letter (DISCS_LEAD), clear of the tag. Turns are parted by a gap; a
-  // run of quiet ones is a fold, the same tag and a dashed rule, that opens
-  // in place.
+  // A turn: its label's number in an outlined 18px tag at the start of its
+  // words, 4px before them, the whole label in its tip; a disc of a passage
+  // that starts the words sits close over the tag's corner. Turns are parted
+  // by a gap; a run of quiet ones is a fold, the same tag and a dashed rule,
+  // that opens in place.
+  // A turn's tag: the number its label ends with, else the whole label.
+  const turnNo = b => (b.label || b.id).match(/(\d+)$/)?.[1] ?? (b.label || b.id);
   const TURN = {
     gap: 'space-y-2',
     badge: 'inline-flex items-center rounded-sm border border-base-content/30 mr-1 h-[18px] px-1.5 text-xs leading-none font-medium tabular-nums align-[1px] text-base-content/80',
@@ -329,7 +330,7 @@
       const nums = spans.filter(s => s.at[0] === a).map(({ o, role }) =>
         `<span data-badge="${esc(o.id)}" data-role="${role}" class="${BADGE} ${badgeTone(r.id, o.id, o === own, role)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
       h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} data-title-tip-bare tabindex="-1"`
-        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${a ? DISCS : DISCS_LEAD}">${nums}</span>`}${t}</mark>`;
+        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
     }
     return h;
   }
@@ -362,7 +363,7 @@
   const opened = new Set();
   const turnHTML = (r, b, own, pad) => `
       <section data-block="${esc(b.id)}" class="${pad}">
-        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]"><span class="${TURN.badge}">${esc(b.label || b.id)}</span>${marked(r, b, own)}</p>
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]"><span class="${TURN.badge}" data-title-tip="${esc(b.label || b.id)}" data-title-tip-bare>${esc(turnNo(b))}</span>${marked(r, b, own)}</p>
       </section>`;
   // A run's turns, each run of two or more quiet ones folded unless opened.
   function turnsHTML(r, own, pad) {
