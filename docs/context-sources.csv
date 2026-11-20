@@ -33,4 +33,4 @@ session-messages,session,Messages,,,the conversation,,message,turn,every,yes,non
 session-tools,session,Tool results,,,tool calls,,tool,turn,every,yes,none,recorded,current,,github-access,"Files read, commands run, searches and connector results.",claude,pulled,content
 session-events,session,Events and notifications,,,the harness,,message,event,every,yes,none,recorded,current,,pr-lifecycle,"PR activity, task notifications and hook feedback between turns.",claude,reactive,content
 session-event-guidance,session,Event guidance,,,"the harness, beside each PR event",,message,event,pr,yes,none,recorded,current,,pr-lifecycle,"The harness's comment beside each PR event, read as the reply is decided.",claude,reactive,content
-session-continuity,session,Continuity,,,the harness,,continuity,event,every,no,none,none,current,,,Resume and compaction summaries of earlier conversation.,claude,reactive,content
+session-continuity,session,Continuity,,,the harness,,continuity,event,every,no,none,recorded,current,,,Resume and compaction summaries of earlier conversation.,claude,reactive,content

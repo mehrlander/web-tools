@@ -31,9 +31,11 @@ docs/themes.csv merge=derived-csv
 tracker/board-tags.csv merge=derived-csv
 tracker/board.csv merge=derived-csv
 
-# An authored registry: the driver unions the rows two branches each add, and
-# keeps the row order of whichever branch changed it.
+# Authored registries: the driver unions the rows two branches each add, and
+# keeps the row order of whichever branch changed it. That three-way order is
+# what lets a registry whose row order is read, such as aims-reading, join.
 docs/map-tabs.csv merge=derived-csv
+docs/aims-reading.csv merge=derived-csv
 
 # Edit policy: how each file may change. Each value's meaning is a row of
 # docs/vocabularies.csv (registry gitattributes, property edit), and

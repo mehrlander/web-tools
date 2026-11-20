@@ -9,7 +9,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick, until } from './bootstrap.mjs';
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 const doc = window.document;
@@ -53,9 +53,9 @@ const shown = (node) => !!node && node.style.display !== 'none';
 // The calls the newer check makes, without the ref bar's line standing against
 // the default branch (checkLine), which a pin with a known line makes too.
 const own = () => calls.map(c => c.p).filter(p => !p.startsWith('compare/main...'));
-// The check is two awaits and Alpine renders a tick after it, so wait on the
-// condition rather than on a count of ticks.
-async function until(fn, n = 40) { for (let i = 0; i < n && !fn(); i++) await tick(1); return fn(); }
+// The check is two awaits and Alpine renders a tick after it, so every step
+// waits on its condition (until, from bootstrap.mjs) rather than on a count of
+// ticks.
 
 test('a pinned toss behind its branch wears the badge, and a tap redraws at the tip', async () => {
   answers = { 'compare/': ahead(2) };
@@ -179,7 +179,7 @@ test('the ref bar draws the line with its standing against main, and the pin und
   assert.deepEqual({ ...d.refPinStanding }, { kind: 'behind', text: '↓2' });
   assert.equal(calls.filter(c => c.p.startsWith('compare/main...')).length, 1, 'the line is asked about once');
   d.open = true; d.activeTab = 'render';
-  await until(() => el.querySelector('[data-ref-pin-standing]') && el.querySelector('[data-ref-line-standing]'), 80);
+  await until(() => el.querySelector('[data-ref-pin-standing]') && el.querySelector('[data-ref-line-standing]'));
   const bar = el.querySelector('[data-ref-bar]');
   assert.match(bar.textContent.replace(/\s+/g, ' '), /claude\/fab-naming-todqvq ↑29 ↓39 🌿 └ @aaaaaaa ↓2/);
   assert.ok(!/house/.test(bar.innerHTML), 'no house: that icon is the home repo\'s');
@@ -212,7 +212,7 @@ test('a pin at latest says latest, a pin on main has no line x, and a live branc
   assert.equal(onMain.d.refLineStanding, null, 'main is not measured against itself');
   assert.deepEqual(calls.map(c => c.p), ['compare/' + SHA + '...main'], 'nor asked about');
   onMain.d.open = true; onMain.d.activeTab = 'render';
-  await until(() => onMain.el.querySelector('[data-ref-unpin]'), 80);
+  await until(() => onMain.el.querySelector('[data-ref-unpin]'));
   assert.ok(!shown(onMain.el.querySelector('[data-ref-leave]')), 'pinned on main, the main row has no x');
   assert.ok(!shown(onMain.el.querySelector('[data-ref-branch-page]')), 'nor a branch page link');
   assert.equal(onMain.el.querySelector('[data-ref-unpin]').getAttribute('aria-label'), 'Unpin: show main live');
@@ -235,7 +235,7 @@ test('a pin\'s pull requests are found under its line, not the commit', async ()
   const { d } = await mount({ repo: 'me/r', ref: SHA, branch: 'claude/x', path: 'pages/a.html' });
   d.activeTab = 'render';
   d.toggle();
-  await until(() => d.branchPrs.length, 80);
+  await until(() => d.branchPrs.length);
   assert.ok(calls.some(c => c.p.startsWith('pulls?') && c.p.includes(encodeURIComponent('me:claude/x'))), 'asked for the line\'s PRs');
   assert.equal(d.branchPrs[0] && d.branchPrs[0].number, 1201, 'and the guide has them, though the view is a commit');
 });
