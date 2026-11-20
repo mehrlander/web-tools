@@ -747,12 +747,15 @@ def spans_of(c, text, base=None):
 
 
 def spans_text(path, spans):
-    """The block a session pastes into the critic's prompt."""
+    """The block a session pastes into the critic's prompt: the spans, then
+    apart from them, how to tag a trip with one (a critic read the line right
+    under the last span as that edit's text)."""
     out = [f"The edits to {path}, as lines of the file as you read it:"]
     for k, s in enumerate(spans, 1):
         if s:
             a, b = s["lines"]
             out.append(f"E{k}  {'line ' + str(a) if a == b else f'lines {a}-{b}'}")
+    out.append("")
     out.append('Tag each trip with its edit, as P<id> · E<n> · <where> · "<quote>" · <clause>, and a trip '
                "outside every edit with E-. Quote the words exactly as the file has them. End with "
                "`Verdict: PASS` when no trip falls inside an edit, and `Verdict: FAIL` otherwise.")

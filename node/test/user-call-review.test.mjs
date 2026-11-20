@@ -275,7 +275,7 @@ test('the edits as the critic\'s spans: an insertion\'s new text, a rewrite\'s, 
   assert.deepEqual(spans.map((s) => s.lines), [[3, 3], [5, 5], [7, 7]]);
   const bullet = py('spans_of', { edits: [{ from: '- one\n- two\n- three', to: '- one\n- 2, said again\n  over two lines\n- three' }] }, 'Intro.\n\n- one\n- 2, said again\n  over two lines\n- three\n');
   assert.deepEqual(bullet.map((s) => s.lines), [[4, 5]], 'a rewritten list is cut to the lines that differ');
-  assert.match(block, /^The edits to docs\/x\.md, as lines of the file as you read it:\nE1 {2}line 3\nE2 {2}lines 5-6\nTag each trip with its edit/);
+  assert.match(block, /^The edits to docs\/x\.md, as lines of the file as you read it:\nE1 {2}line 3\nE2 {2}lines 5-6\n\nTag each trip with its edit/);
   assert.match(block, /`Verdict: PASS` when no trip falls inside an edit/, 'the block carries the verdict rule, for a critic whose definition predates it');
 });
 
