@@ -164,17 +164,9 @@ reading and triggers nothing.
 
 `/tend prod` asks each session with open work to tend its own work. List the
 account's sessions and take each one that is idle, last showed activity
-between two hours and a week ago, and has open work. A session has open work
-when it has an open pull request or a blocked or review-ready status. It also
-has open work when its last reply (its record's `last_message`) closed on ❇️
-Ready to assess or 🟢 Ready to continue, two closing states that
-[`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
-defines. A session idle for less than two hours tends its own work at its
-check-ins. A check-in is a message a cloud session schedules to itself while
-it sits idle.
-[`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)
-sets when each one arrives.
-A message to a session idle for more than 55 minutes
+between 30 minutes and a week ago, and has an open pull request, a blocked
+or review-ready status, or a last reply that closed on ❇️ or 🟢. A message to
+a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
 ([`docs/environment/container.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md#the-prompt-cache)).
 Leave out a session idle that long whose usage record (`sessions/usage/` in
@@ -217,9 +209,7 @@ report what each session left waiting on the owner.
 A session that receives it works through whichever of these apply, under the
 principles above:
 
-- **Take the step the last reply named,** where that reply closed on ❇️
-  Ready to assess or 🟢 Ready to continue. Skip it if the owner has written
-  since.
+- **Take the step a ❇️ or 🟢 closing named,** if the owner has not written since.
 - **Land what is already approved,** up to a pull request ready to merge:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.

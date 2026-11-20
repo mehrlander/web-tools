@@ -56,7 +56,6 @@ skills/notes/SKILL.md,skills/tend/SKILL.md,8,,lib kits findings js https github 
 skills/design-sprint/SKILL.md,skills/doc-craft/SKILL.md,8,,the user calls https github com mehrlander web tools blob main skills user calls skill md skill,10,218
 pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,218
 pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,218
-docs/house-policies.md,skills/tend/SKILL.md,8,,conversation md https github com mehrlander web tools blob main docs conversation md every reply;js https github com mehrlander web tools blob main lib kits,10,218
 docs/environment/container.md,docs/environment/extending.md,8,,a cloud setup script https code claude com docs en claude code on the web environment caching,10,218
 skills/gold-set/SKILL.md,skills/wayback/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,218
 skills/gold-set/SKILL.md,skills/scour/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,218
@@ -72,7 +71,6 @@ docs/envelopes/data-view.md,docs/environment/testing.md,5,,node render scenarios
 docs/envelopes/audit.md,docs/envelopes/shorter.md,5,,pages audit render html https mehrlander github io web tools pages audit render html,10,218
 docs/CONVERSATION.md,docs/house-policies.md,5,,https github com mehrlander web tools blob main skills doc craft skill md review,10,218
 README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,218
-skills/tend/SKILL.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,218
 skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,4,,mcp github get file contents with owner mehrlander repo web tools path;invocable in sessions started from a branch that contains it,10,218
 skills/html-style/references/mechanics.md,skills/look-markers/SKILL.md,4,,html https github com mehrlander web tools blob main lib kits demos;js https github com mehrlander web tools blob main lib,10,218
 lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loader md docs loader md,10,218
@@ -80,12 +78,12 @@ docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com 
 courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a page bookmarklets readme md which route reaches a page,10,218
 skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com mehrlander web tools blob main docs envelopes;https mehrlander github io web tools pages toss render html,10,218
 skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,218
-skills/design-sprint/SKILL.md,skills/tend/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,218
 skills/design-sprint/SKILL.md,skills/html-style/SKILL.md,3,,https github com mehrlander web tools blob main docs forms readme md,10,218
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,218
 python/swarm/bold.md,python/swarm/dome.md,3,,write json lines to the output path one edit per line;run the check command and fix every line it reports,10,218
 programs/organization/manager.md,skills/tend/SKILL.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,218
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,218
+docs/house-policies.md,skills/tend/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,218
 docs/house-policies.md,skills/notes/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,218
 docs/house-policies.md,skills/html-style/references/mechanics.md,3,,js https github com mehrlander web tools blob main lib kits;csv https github com mehrlander web tools blob main docs,10,218
 docs/house-policies.md,skills/design-sprint/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,218
