@@ -17,7 +17,11 @@ await writeFile(join(folderRoot,'project','note.txt'),'PRIVATE CONTENT');
 await writeFile(join(fixture,'outside.txt'),'PRIVATE OUTSIDE');
 await symlink(fixture,join(folderRoot,'junction'),'junction');
 await writeFile(join(fixture,'settings.json'),JSON.stringify({RepositoriesRoot:folderRoot}));
-const port = 47832;
+// Parallel sessions can run companion checks on the same laptop.
+const reservation=createServer();
+await new Promise(resolve=>reservation.listen(0,'127.0.0.1',resolve));
+const port=reservation.address().port;
+await new Promise(resolve=>reservation.close(resolve));
 const mediaActions=[];
 let mediaState={sessionAvailable:true,source:'Fixture player',title:'Fixture track',artist:'Artist',album:'Album',playbackStatus:'Playing',positionSeconds:12,endSeconds:120,canPlayPause:true,canGoPrevious:false,canGoNext:true};
 let mediaMode='normal', actionMode='normal';
@@ -62,6 +66,15 @@ try {
   check(native.ok && (await native.json()).snapshot.places,'The local desktop bearer can read its native snapshot.');
   const first = await request('/api/v1/now',owner);
   const phone = await first.json();
+  const errandResponse=await request('/api/v1/errands',owner), errands=await errandResponse.json();
+  check(errandResponse.ok && errands.schemaVersion===1 && Array.isArray(errands.items)
+    && typeof errands.queueAvailable==='boolean','The owner can read the dedicated assistant queue.');
+  check((await request('/api/v1/errands')).status===403
+    && (await request('/api/v1/errands',{'Tailscale-User-Login':'other@example.test'})).status===403,
+    'Errand history shares the owner-only boundary.');
+  check((await request('/api/v1/errands',{...owner,'If-None-Match':errandResponse.headers.get('etag')})).status===304
+    && (await request('/api/v1/errands',owner,'POST')).status===405,'The queue supports conditional reads without work-initiation actions.');
+  check((await request('/errands-view.js',owner)).ok,'The shared queue interface is a private companion asset.');
   check(first.ok && phone.schemaVersion === 1 && Array.isArray(phone.items),'The owner receives the versioned phone projection.');
   check(Array.isArray(phone.usage) && (await request('/usage-view.js',owner)).ok,'The private phone API and assets expose the normalized usage view.');
   const computerResponse = await request('/api/v1/computer',owner), computer = await computerResponse.json();

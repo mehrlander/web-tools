@@ -136,7 +136,8 @@ def sh(*args, cwd=None, check=False):
     `check=True`. The incidental ones do not: `git rev-parse origin/<branch>`
     on an unpushed branch SHOULD read as empty, which is how `ref_facts` knows
     it is unpushed."""
-    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=True, text=True)
+    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     if check and r.returncode != 0:
         raise GitFailed(args, r.stderr.strip())
     return r.stdout.strip()
@@ -1402,6 +1403,15 @@ def main():
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
                          [], [diff_remedy(e, a.base, a.ref)], facts)
+    # The app routes on its own address, and a framed preview drops every
+    # history entry it writes, so Back leaves the preview instead of walking
+    # the app's views (PR #966). A link to the app is therefore a ?top link.
+    if (not d.get("top") and repo_slug() == "mehrlander/web-tools"
+            and any(l.get("page") == "app/index.html" for l in d.get("links", []))):
+        d = as_tab(d, asked=False)
+        if d.get("top"):
+            d.setdefault("why", []).append("app/index.html routes on its address, so the toss carries ?top: "
+                                           "Back walks the app's views as it does in the deployed app.")
     if a.top and not d.get("top"):
         d = as_tab(d)
     d = warn_cap(host_refs(d, a.refs, a.query))
@@ -1410,4 +1420,6 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     sys.exit(main())

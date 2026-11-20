@@ -10,9 +10,16 @@
 //
 //   web-tools units  node/render/screenshot.mjs, the app at this checkout's
 //                    HEAD (--ref) so a tab shows the branch's code
-//   home units       home's tools/screenshot.mjs, which answers the budget-drs
-//                    app's contents reads from the sibling checkouts; it needs
-//                    node_modules in home, linked to this repo's
+//   budget-drs units budget-drs's tools/screenshot.mjs, run in the budget-drs
+//                    checkout, which answers the app's contents reads from the
+//                    sibling checkouts; a page the app frames from another repo
+//                    is shot in the view that frames it
+//   home units       home's tools/screenshot.mjs, run in home
+//
+// The two sibling tools need node_modules in their checkout, linked to this
+// repo's (needToolModules). The budget-drs app was home's projects/budget-drs
+// until 2026-11-10; the budget-drs checkout is found beside this one, as
+// node/ui-units.mjs finds it.
 //
 // Both tools take --eval, a JS expression run in the page after its clicks or
 // script and before the shot, whose result they print as `eval: <json>`. That
@@ -27,6 +34,10 @@ import { parseCsv } from './registries-load.mjs';
 export const HUB = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 export const ESTATE = path.resolve(HUB, '..');
 export const HOME = path.join(ESTATE, 'home');
+export const BUDGET_DRS = path.join(ESTATE, 'budget-drs');
+// The checkout each sibling render tool runs in, by a recipe's `tool`.
+export const TOOL_ROOT = { home: HOME, 'budget-drs': BUDGET_DRS };
+const BD_APP = 'app/view/app.html';
 export const PRIVATE = path.join(ESTATE, 'web-tools-private');
 
 // Split by visibility: the public units' tables and shots here, home's tables
@@ -47,14 +58,18 @@ export const slug = (unit) => unit.toLowerCase().replace(/[^a-z0-9]+/g, '-').rep
 const tabSlug = (s) => String(s || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 export const head = execFileSync('git', ['-C', HUB, 'rev-parse', 'HEAD']).toString().trim();
 
-export function needHomeModules() {
-  if (existsSync(path.join(HOME, 'node_modules'))) return;
-  console.error(`home has no node_modules; its screenshot tool needs the vendored libs. Link them:\n  ln -s ${path.join(HUB, 'node_modules')} ${path.join(HOME, 'node_modules')}`);
+// Every sibling checkout whose tool the work will run needs the vendored libs;
+// a run of web-tools units alone needs none.
+export function needToolModules(work) {
+  const lacking = [...new Set(work.map(w => w.r.tool))].filter(t => TOOL_ROOT[t])
+    .filter(t => !existsSync(path.join(TOOL_ROOT[t], 'node_modules')));
+  if (!lacking.length) return;
+  for (const t of lacking) console.error(`${t} has no node_modules; its screenshot tool needs the vendored libs. Link them:\n  ln -s ${path.join(HUB, 'node_modules')} ${path.join(TOOL_ROOT[t], 'node_modules')}`);
   process.exit(2);
 }
 
 // The recipe a unit's own row implies, before shots.csv has its say.
-function derive(u) {
+export function derive(u) {
   if (u.repo === 'web-tools') {
     if (u.kind === 'page') return { tool: 'wt', page: u.files.split(';')[0], query: '' };
     // A unit reached at two addresses (a route that lands on a tab) is shot at
@@ -64,14 +79,16 @@ function derive(u) {
     if (u.group === 'repo' && !/^repo=/.test(q)) q = 'repo=mehrlander/web-tools' + (q ? '&' + q : '');
     return { tool: 'wt', page: 'app/index.html', query: q };
   }
-  // A page the app frames from another repo has no file in home's checkout,
-  // so it is shot where a reader meets it, in the app's view that frames it.
+  // A page the app frames from another repo is not served by the budget-drs
+  // tool, so it is shot where a reader meets it, in the app's view that
+  // frames it. A page home holds is shot in home.
   if (u.host === 'budget-drs app' && u.kind === 'framed page' && u.repo !== 'home' && u.view)
-    return { tool: 'home', page: 'projects/budget-drs/app/view/app.html', query: 'view=' + u.view };
+    return { tool: 'budget-drs', page: BD_APP, query: 'view=' + u.view };
   if (u.host === 'budget-drs app' && u.kind !== 'framed page' && u.view) {
     const q = 'view=' + u.view + (u.tab ? '&tab=' + tabSlug(u.tab) : '');
-    return { tool: 'home', page: 'projects/budget-drs/app/view/app.html', query: q };
+    return { tool: 'budget-drs', page: BD_APP, query: q };
   }
+  if (u.repo === 'budget-drs') return { tool: 'budget-drs', page: u.files.split(';')[0], query: '' };
   return { tool: 'home', page: u.files.split(';')[0], query: '' };
 }
 
@@ -287,8 +304,9 @@ function run(cmd, argv, cwd, env = process.env) {
   });
 }
 
-// Open a unit at a window size, run evalJs in it, and write the shot to `out`.
-export async function shoot(r, size, touch, out, evalJs, env = {}) {
+// The render tool call that opens a unit at a window size, runs evalJs in it,
+// and writes the shot to `out`: { argv, cwd, env } for `node`.
+export function toolCall(r, size, touch, out, evalJs, env = {}) {
   if (r.tool === 'wt') {
     // Nine seconds, not six: the scenarios with stand-in rows look the Activity component
     // up the moment the wait ends, and the app's boot came close enough to six
@@ -306,15 +324,23 @@ export async function shoot(r, size, touch, out, evalJs, env = {}) {
     // The live GitHub API off (node/render/cdn.mjs, SHOT_NO_LIVE_API): the
     // app's own reads are answered locally, and the rest would spend GitHub's
     // hourly allowance within one load and put a token prompt in the shot.
-    return run('node', a, HUB, { ...process.env, SHOT_NO_LIVE_API: '1', ...env });
+    return { argv: a, cwd: HUB, env: { ...process.env, SHOT_NO_LIVE_API: '1', ...env } };
   }
+  // home's tool and budget-drs's take the same arguments, each run in its own
+  // checkout, where the page path resolves.
   const target = r.page + (r.query ? '?' + r.query : '');
   const a = ['tools/screenshot.mjs', target, out, '--width', String(size.width), '--height', String(size.height),
     '--no-full', '--wait', '5000'];
   if (r.click) a.push('--click', r.click);
   if (evalJs) a.push('--eval', evalJs);
   if (touch) a.push('--touch');
-  return run('node', a, HOME);
+  return { argv: a, cwd: TOOL_ROOT[r.tool] || HOME, env: process.env };
+}
+
+// Open a unit at a window size, run evalJs in it, and write the shot to `out`.
+export async function shoot(r, size, touch, out, evalJs, env = {}) {
+  const c = toolCall(r, size, touch, out, evalJs, env);
+  return run('node', c.argv, c.cwd, c.env);
 }
 
 // The JPEG quality every thumbnail is written at.

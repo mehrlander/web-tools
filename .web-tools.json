@@ -93,6 +93,11 @@
   ],
   "research": [
     {
+      "path": "research/quality-control-lineage/README.md",
+      "label": "Statistical quality control: two proposed probes of the preference flagger",
+      "kind": "probe"
+    },
+    {
       "path": "research/2026-11-16-tooltip-sources/README.md",
       "label": "Where tooltip text comes from, and what git says about who wrote it",
       "kind": "probe"
@@ -196,6 +201,33 @@
         "?view=map&tab=scheduled",
         "?view=map&tab=set",
         "?view=map&tab=watch"
+      ],
+      "areas": [
+        { "name": "Reply", "icon": "ph-chat-circle-text", "panels": [{ "kind": "measure" }] },
+        { "name": "Showing", "panels": [
+          { "kind": "measure" },
+          { "kind": "gallery", "registry": "docs/showing-mechanisms.csv", "label": "label", "glyph": "glyph" }
+        ] },
+        { "name": "Forms", "icon": "ph-cards", "panels": [
+          { "kind": "gallery", "registry": "data/ui-units/codes.csv", "where": { "axis": "^answer$" }, "label": "name", "icon": "icon" },
+          { "kind": "gallery", "registry": "docs/docs.csv", "where": { "path": "^docs/envelopes/(?!README)[^/]+\\.md$" }, "label": "path" }
+        ] },
+        { "name": "Resources", "icon": "ph-toolbox", "panels": [
+          { "kind": "groups", "registry": "skills/manifest.csv", "by": "group", "label": "name", "text": "description", "file": "skills/{name}/SKILL.md",
+            "icons": { "session": "ph-terminal-window", "prose": "ph-pen-nib", "web": "ph-browser", "documents": "ph-files", "device": "ph-device-mobile", "windows": "ph-windows-logo" } },
+          { "kind": "groups", "registry": "docs/agents.csv", "by": "kind", "only": ["definition"], "label": "id", "text": "role", "file": "{path}", "icon": "icon",
+            "labels": { "definition": "agents" }, "icons": { "definition": "ph-robot" } },
+          { "kind": "breakdown", "registry": "docs/context-sources.csv", "by": "arrives", "fold": true,
+            "labels": { "instructions": "instructions", "skill-listing": "skill listing", "skill": "skill", "hook": "hook output", "settings": "settings",
+              "install": "install", "tool": "tool results", "message": "message", "continuity": "carried forward", "none": "configures only" },
+            "icons": { "instructions": "ph-file-text", "skill-listing": "ph-list-bullets", "skill": "ph-sparkle", "hook": "ph-lightning", "settings": "ph-gear",
+              "install": "ph-download-simple", "tool": "ph-wrench", "message": "ph-chat-text", "continuity": "ph-arrow-u-down-left", "none": "ph-sliders-horizontal" } }
+        ] },
+        { "name": "Automation", "panels": [
+          { "kind": "breakdown", "registry": "docs/harness.csv", "by": "invocation", "split": ":", "only": ["hook", "ci", "git", "session"],
+            "labels": { "hook": "Claude Code hooks", "ci": "GitHub workflows", "git": "git hooks", "session": "session scripts" },
+            "icons": { "hook": "ph-lightning", "ci": "ph-github-logo", "git": "ph-git-commit", "session": "ph-play" } }
+        ] }
       ]
     },
     {
@@ -217,6 +249,18 @@
       ],
       "views": [
         "?view=map&tab=tests"
+      ],
+      "areas": [
+        { "name": "Suite", "icon": "ph-test-tube", "panels": [
+          { "kind": "breakdown", "registry": "docs/tests.csv", "by": "method",
+            "icons": { "alpine": "ph-mountains", "read": "ph-book-open", "spawn": "ph-terminal", "pure": "ph-function", "kit": "ph-toolbox" } },
+          { "kind": "breakdown", "registry": "docs/tests.csv", "by": "runner", "split": " ",
+            "labels": { "suite": "npm test", "npm": "a script of its own" }, "icons": { "suite": "ph-check-square", "npm": "ph-browser" } }
+        ] },
+        { "name": "Venues", "icon": "ph-map-pin", "panels": [
+          { "kind": "gallery", "registry": "docs/machines.csv", "label": "label", "icon": "icon" },
+          { "kind": "gallery", "registry": "docs/harness.csv", "where": { "layer": "^\\.github/workflows$" }, "label": "path" }
+        ] }
       ]
     },
     {
@@ -257,6 +301,17 @@
         "?view=sessions",
         "?view=branches",
         "?view=search"
+      ],
+      "areas": [
+        { "name": "Repositories", "icon": "ph-books", "panels": [{ "kind": "gallery", "source": "repos" }] },
+        { "name": "Registries", "panels": [
+          { "kind": "breakdown", "registry": "docs/registries.csv", "by": "membership", "icons": { "curated": "ph-hand", "computed": "ph-gear-six" } }
+        ] },
+        { "name": "Session records and chats", "icon": "ph-chats-circle", "panels": [{ "kind": "views", "views": ["?view=sessions", "?view=chats"] }] },
+        { "name": "Trackers", "icon": "ph-kanban", "panels": [
+          { "kind": "breakdown", "registry": "tracker/board.csv", "by": "status", "only": ["in-progress", "blocked", "backlog", "dormant", "done"],
+            "icons": { "in-progress": "ph-circle-half", "blocked": "ph-prohibit", "backlog": "ph-circle", "dormant": "ph-moon", "done": "ph-check-circle" } }
+        ] }
       ]
     },
     {
@@ -291,6 +346,20 @@
         "?view=map&tab=patterns",
         "?view=map&tab=views",
         "?view=pages"
+      ],
+      "areas": [
+        { "name": "Writing", "icon": "ph-pen-nib", "panels": [
+          { "kind": "breakdown", "registry": "skills/peeves/peeves.csv", "by": "area", "only": ["writing", "reporting", "naming", "chat-reply", "questions"],
+            "icons": { "writing": "ph-pen-nib", "reporting": "ph-chart-line", "naming": "ph-tag", "chat-reply": "ph-chat-text", "questions": "ph-question" } }
+        ] },
+        { "name": "Documents", "icon": "ph-files", "panels": [
+          { "kind": "breakdown", "registry": "docs/docs.csv", "by": "reach",
+            "icons": { "app": "ph-app-window", "orphan": "ph-link-break", "skill": "ph-sparkle", "project": "ph-folders", "injected": "ph-syringe" } },
+          { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "record": "ph-archive" } }
+        ] },
+        { "name": "Pages", "icon": "ph-browser", "panels": [
+          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "thumb": "thumb", "href": "href" }
+        ] }
       ]
     },
     {
@@ -311,6 +380,10 @@
       "views": [
         "?view=map&tab=exploration",
         "?view=map&tab=research"
+      ],
+      "areas": [
+        { "name": "Probes", "panels": [{ "kind": "gallery", "source": "research", "where": { "kind": "^probe$" }, "limit": 8 }] },
+        { "name": "Exploration", "panels": [{ "kind": "gallery", "source": "research", "where": { "kind": "^exploration$" }, "limit": 8 }] }
       ]
     }
   ]

@@ -13,7 +13,7 @@ tab; a program is defined in
 | Reply | what a reply hands over: its closing state, caption and links, stated in [`CONVERSATION.md`](../../docs/CONVERSATION.md) |
 | Showing | the link that makes a thing openable, stated in [`showing.md`](../../docs/showing.md) |
 | Forms | the standard way to show content of a kind: the standing forms in [`docs/forms/`](../../docs/forms/), the envelopes in [`docs/envelopes/`](../../docs/envelopes/README.md), and the Waiting view |
-| Delivery | the skills, agents and conventions the `portable` plugin brings into a session, stated in [`MARKETPLACE.md`](../../docs/MARKETPLACE.md) |
+| Resources | what a session is given to work with: the skills, agents, instructions and settings that reach it, each source listed in [`context-sources.csv`](../../docs/context-sources.csv) |
 | Automation | the hooks and scheduled jobs indexed in [`harness.csv`](../../docs/harness.csv) |
 
 ## Processes

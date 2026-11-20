@@ -1,6 +1,6 @@
 # House policies
 
-Each policy states a single preference. A policy that applies only to a private repo goes in that repo's CLAUDE.md.
+Each policy states a single preference as something to do; a thing to avoid goes in the [peeves list](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md). A policy that applies only to a private repo goes in that repo's CLAUDE.md.
 
 ## Writing
 
@@ -9,23 +9,6 @@ Each policy states a single preference. A policy that applies only to a private 
 Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports.
 
 **Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
-
-### No em dashes · `h:dash`
-
-Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
-
-- Em dashes may have been fine once, but they are now an easy button for AI, and we would rather stick to standard professional writing.
-- A quotation keeps the punctuation of its source.
-
-**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph.
-
-**See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
-
-### Avoid smug so · `h:smug`
-
-A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.
-
-**Backed by:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#smug-so--p68), P68 "Smug so".
 
 ### Showing · `h:show`
 
@@ -160,9 +143,9 @@ Change a generated file by changing its source and running its generator.
 
 Give each parameter a page reads from its address one of four kinds, and give it only that kind's behavior.
 
-- A **route** names a place: a view, a tab, or a record inside it. It stays in the address, which then names where the reader is. A route that names a record scrolls to it and marks it on arrival.
+- A **route** names a place: a view, a tab, or a record inside it. It stays in the address, which then names where the reader is. A route that names a record scrolls to it and marks it on arrival. Reaching a place through a tab, a link or an icon tapped in a diagram adds a history entry. Stepping between records in a list, by a row, a swipe or an arrow, replaces the entry. Back then returns to the last place reached.
 - An **action** is done once on arrival and then dropped from the address, and a reload does not repeat it.
 - A **look** points the reader at something on the page and changes nothing, as a link carrying the look kit's `#show=` or `#steps=` does.
 - A **setting** changes how the page runs.
 
-**Backed by:** [app-routes.csv](https://github.com/mehrlander/web-tools/blob/main/docs/app-routes.csv), the Web Tools app's routes; [lib/kits/land.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js), how a route lands; [lib/kits/look.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js), looks.
+**Backed by:** [app-routes.csv](https://github.com/mehrlander/web-tools/blob/main/docs/app-routes.csv), the Web Tools app's routes; [lib/kits/land.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js), how a route lands; [lib/kits/linked-swiper.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js), how a list tells a step from a followed link; [lib/kits/look.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js), looks.

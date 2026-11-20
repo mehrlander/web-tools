@@ -418,10 +418,10 @@ document.addEventListener('alpine:init', () => {
   <!-- The list on top, kept in step with the strip below and with the deck the strip expands into -->
   <template x-if="B">
     <main data-pattern="linked-swiper" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
-      <ol x-ref="list" role="listbox" aria-label="Concepts" tabindex="0"
+      <ol x-ref="list" role="listbox" aria-label="Concepts" tabindex="0" data-part="list"
           @keydown.down.prevent="sync(Math.min(count - 1, cur + 1), 'list')" @keydown.up.prevent="sync(Math.max(0, cur - 1), 'list')"
           class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-start">
-        <li role="option" :aria-selected="cur === 0 ? 'true' : 'false'" @click="sync(0, 'list')"
+        <li role="option" data-part="item" :aria-selected="cur === 0 ? 'true' : 'false'" @click="sync(0, 'list')"
             class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
             :class="[cur === 0 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
           <span class="justify-self-center text-base-content/70" x-html="mark('background', 26)"></span>
@@ -431,7 +431,7 @@ document.addEventListener('alpine:init', () => {
           </span>
         </li>
         <template x-for="(d, i) in B.ideas" :key="d.n">
-          <li role="option" :aria-selected="cur === i + 1 ? 'true' : 'false'" @click="sync(i + 1, 'list')"
+          <li role="option" data-part="item" :aria-selected="cur === i + 1 ? 'true' : 'false'" @click="sync(i + 1, 'list')"
               class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
               :class="[cur === i + 1 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
             <template x-if="thumbs"><span class="h-12 grid place-items-center overflow-hidden"><img :src="d.src" alt="" class="max-h-12 w-auto bg-white"></span></template>
@@ -442,7 +442,7 @@ document.addEventListener('alpine:init', () => {
             <i class="ph" :class="picked(d.n) ? 'ph-fill ph-star text-primary' : 'ph-star opacity-25'"></i>
           </li>
         </template>
-        <li role="option" :aria-selected="cur === last ? 'true' : 'false'" @click="sync(last, 'list')"
+        <li role="option" data-part="item" :aria-selected="cur === last ? 'true' : 'false'" @click="sync(last, 'list')"
             class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
             :class="[cur === last && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
           <span class="justify-self-center text-base-content/70" x-html="mark('conclusion', 26)"></span>
@@ -453,7 +453,7 @@ document.addEventListener('alpine:init', () => {
         </li>
       </ol>
 
-      <section x-ref="detail" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+      <section x-ref="detail" data-part="detail" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
         <div class="flex items-center gap-1 pl-4 pr-3 py-1.5 border-b border-base-200">
           <span class="min-w-0 flex-1 flex items-center gap-2">
             <span x-show="cur === 0" class="shrink-0 text-base-content/60" x-html="mark('background', 18)"></span>

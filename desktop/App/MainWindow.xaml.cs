@@ -220,7 +220,7 @@ public partial class MainWindow : Window
                 case "errand":
                     var job = snapshot?.Activity.Errands.Find(j => j.Id == id);
                     if (job is not null) {
-                        settings.WebUrl = NavigationPolicy.ErrandUrl(id, job.State is "reply" or "complete" or "failed");
+                        settings.WebUrl = NavigationPolicy.ErrandUrl(id, job.State is "reply" or "complete" or "failed" or "declined");
                         WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false);
                     }
                     break;

@@ -96,3 +96,20 @@ test('a renamed folder is read as the repo it was cloned from', () => {
   assert.equal(data.knownRepoName('notes.bak'), 'notes.bak', 'a stem the account has no repo by is left alone');
   assert.equal(data.sessionRepoName({ name: 'mehrlander/budget-drs-acfr.partial' }), 'budget-drs-acfr');
 });
+
+test('?showhidden= shows hidden repos without touching the stored list', () => {
+  const U = window.RepoSessionsCache.unhide, hid = new Set(['fun', 'drop']);
+  const left = (q) => JSON.parse(JSON.stringify([...U(hid, q)])).sort();
+  assert.deepEqual(left(''), ['drop', 'fun'], 'no parameter: the list stands');
+  assert.deepEqual(left('?showhidden=1'), [], 'showhidden=1 shows every hidden repo');
+  assert.deepEqual(left('?showhidden=mehrlander/fun'), ['drop'], 'a full name names its repo');
+  const setQuery = (q) => window.history.replaceState(null, '', q);
+  try {
+    setQuery('?view=sessions&showhidden=fun');
+    assert.deepEqual(ids(data.scopedSessions), ['aaaaaaaa', 'bbbbbbbb', 'cccccccc'], 'the pane shows the named repo');
+    assert.deepEqual(window.__shell.estateHidden, ['mehrlander/fun'], 'the stored list is untouched');
+  } finally {
+    setQuery('?view=sessions');
+  }
+  assert.deepEqual(ids(data.scopedSessions), ['aaaaaaaa', 'cccccccc'], 'without the parameter it is hidden again');
+});

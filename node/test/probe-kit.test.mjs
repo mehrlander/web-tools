@@ -227,8 +227,9 @@ test('the window is a page on the house stack, light, with one scroll region', (
   assert.match(page, /daisyui@5/, 'daisyUI, from the house combine URL');
   assert.match(page, /cdn\.jsdelivr\.net\/combine\//, 'one combine request, not several');
 
-  // LIGHT, pinned rather than following the machine: daisyUI otherwise reads
-  // prefers-color-scheme and the reader uses no dark theme.
+  // LIGHT, pinned on the root (html-style rule 19). daisyUI's CDN build has
+  // no prefers-color-scheme default (5.8.1, measured 2026-11-19), so the pin
+  // chooses the theme; it does not guard against the machine's setting.
   assert.match(page, /<html[^>]*data-theme="light"/, 'the theme is pinned on the root');
 
   // HOUSE RULE 4: the panes divide a viewport, and exactly one opts into

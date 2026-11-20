@@ -1,6 +1,8 @@
 (() => {
   'use strict';
   const el = id => document.getElementById(id);
+  const scrollPosition = () => window.NowViews?.scrollPosition('computer') ?? window.scrollY;
+  const restoreScroll = top => window.NowViews?.scrollTo ? window.NowViews.scrollTo(top,'computer') : window.scrollTo(0,top);
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stamp = value => new Date(value).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   const open = new Set();
@@ -21,7 +23,7 @@
   }
   function render() {
     if (!active) return;
-    const viewport = {x:scrollX,y:scrollY};
+    const viewport = scrollPosition();
     const focused = document.activeElement?.dataset.computerApp;
     if (!data) {
       el('computer').innerHTML = `<p class="px-3 py-4 text-sm text-stone-500">${failures ? 'Laptop unreachable. Use Windows App above to connect.' : 'Reading your computer…'}</p>`;
@@ -38,7 +40,7 @@
     const icons = app => typeof app.icon === 'string' && /^data:image\/png;base64,[A-Za-z0-9+/=]{1,32768}$/.test(app.icon) ? `<img src="${app.icon}" alt="" class="size-6 shrink-0">` : `<span aria-hidden="true" class="flex size-6 shrink-0 items-center justify-center rounded-md bg-stone-100 text-xs font-semibold text-stone-500">${escape(app.name.slice(0,1))}</span>`;
     el('computer').innerHTML = `${status ? `<p role="status" class="border-b border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">${escape(status)}</p>` : ''}<div class="px-3 pt-2 pb-1"><p class="text-[11px] text-stone-500">${escape(sessionText)}</p><div class="mt-2 flex gap-4">${meter('CPU',data.cpuPercent,'Whole computer','bg-sky-500')}${meter('Memory',data.memoryPercent,memory,'bg-violet-500')}${meter('Battery',battery,power,'bg-emerald-500')}</div></div><div class="flex items-center justify-between gap-2 px-3 pt-3 pb-1 text-xs text-stone-500"><h2 class="font-medium">Open applications <span class="tabular-nums">${data.applications.length}</span></h2><span>${count} ${count === 1 ? 'window' : 'windows'}</span></div>${data.applications.length ? `<ul class="divide-y divide-stone-100 bg-white">${data.applications.map(app => `<li><button data-computer-app="${escape(app.key)}" aria-expanded="${open.has(app.key)}" aria-controls="windows-${escape(app.key)}" class="flex min-h-12 w-full items-center gap-3 px-3 py-2 text-left active:bg-stone-50">${icons(app)}<span class="min-w-0 flex-1"><span class="block truncate text-sm font-medium">${escape(app.name)}</span>${app.windows.some(w => w.inFront) && live && data.sessionState === 'unlocked' ? '<span class="text-[10px] text-emerald-700">In front</span>' : ''}</span><span class="text-xs tabular-nums text-stone-400">${app.windows.length}</span></button><ul id="windows-${escape(app.key)}" ${open.has(app.key) ? '' : 'hidden'} class="space-y-1.5 pr-3 pb-2 pl-12">${app.windows.map(w => `<li class="break-words text-xs leading-4 text-stone-600">${escape(w.title)}${w.minimized ? '<span class="ml-1 text-[10px] text-stone-400">Minimized</span>' : ''}</li>`).join('')}</ul></li>`).join('')}</ul>` : `<p class="px-3 py-3 text-sm text-stone-500">${data.windowsObservedAt ? 'No application windows observed.' : 'No window list available yet.'}</p>`}<p class="px-3 pt-3 text-[10px] leading-4 text-stone-400">${data.windowsObservedAt ? 'Windows observed ' + escape(stamp(data.windowsObservedAt)) + ' · ' : ''}Desktop windows in this Windows session, including minimized windows. Background processes are not listed.</p>`;
     if (focused) [...el('computer').querySelectorAll('[data-computer-app]')].find(n => n.dataset.computerApp === focused)?.focus({preventScroll:true});
-    if (scrollX !== viewport.x || scrollY !== viewport.y) scrollTo(viewport.x,viewport.y);
+    if (scrollPosition() !== viewport) restoreScroll(viewport);
     connection();
   }
   async function poll() {
