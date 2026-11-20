@@ -1,6 +1,6 @@
 # Acronyms
 
-This file collects, mostly for fun, the acronyms the owner has coined for asks made of a session and for an order of explaining a term. It is for the owner and for a session that meets one of the names. When a prompt names one in capitals, the portable plugin's [`acronym-hint.py`](../skills/hooks/acronym-hint.py) hook adds its entry to the session's context. The hook finds each acronym by its `## NAME` heading.
+This file collects, mostly for fun, the acronyms the owner has coined for asks made of a session and for an order of explaining a term. It also holds one borrowed term the owner uses. It is for the owner and for a session that meets one of the names. When a prompt names an acronym in capitals, the portable plugin's [`acronym-hint.py`](../skills/hooks/acronym-hint.py) hook adds its entry to the session's context. The hook finds each acronym by its `## NAME` heading.
 
 ## SPUR
 
@@ -15,3 +15,7 @@ Names passed over for TOUR: FAIR, LEAF, SLATE, SLEDGE and DELVE.
 ## CDE
 
 Concept, Definition, Examples: an order for explaining a term. A possible fourth letter is F, for Foil: the nearest case the term excludes, as in the [Frayer model](https://en.wikipedia.org/wiki/Frayer_model).
+
+## Two-way door
+
+A decision that can be walked back. It can be made quickly and corrected if wrong. A one-way door is hard to reverse and gets deliberation. The term is from Jeff Bezos's 2015 letter to Amazon shareholders.
