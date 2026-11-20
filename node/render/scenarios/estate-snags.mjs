@@ -6,15 +6,15 @@
 //
 // The Lists view is token-gated and this renderer holds no token, so the seed
 // flips `authed` and plants the lists straight into the component, as
-// estate-lists.mjs does. The snags are five real items from the conversion of
-// web-tools' docs/SNAGS.md, so the pixels carry real titles, counts and entry
-// lengths. What they prove: the Snag tab's list,
-// rows last-bitten first with the ×N badge on a repeat, and, with the query
-// switches below, an entry opened in full and the add box filtering to a
-// likely repeat with its Again control showing.
+// estate-lists.mjs does. The snags are five items copied from web-tools'
+// docs/SNAGS.md when it was converted, before items carried `kind` and
+// `origin`, so their rows show no flair. What they prove: the Snag tab's list
+// and card (kits/linked-swiper.js), rows last bitten first with the ×N count
+// on a repeat, the picked snag's card, and, with the query switches below,
+// the add box filtering the list to a likely repeat.
 //
 // Query switches, read from the page's own query string:
-//   open=<id>        show that snag's entry
+//   open=<id>        pick that snag, so its card shows
 //   q=<words>        type into the add box
 const SNAGS = [
     {
