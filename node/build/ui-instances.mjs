@@ -37,7 +37,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { writeCsv } from './registries-load.mjs';
-import { HUB, HOME, ESTATE, STORES, rowsOf, slug, codedUnits, evalFrom, shoot, head, needHomeModules, stageOf } from './ui-recipes.mjs';
+import { HUB, HOME, BUDGET_DRS, ESTATE, STORES, rowsOf, slug, codedUnits, evalFrom, shoot, head, needToolModules, stageOf } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -46,9 +46,11 @@ const JOBS = Math.max(1, +opt('--jobs', 3));
 const DESK = { width: 1280, height: 900 };
 const COLS = ['unit', 'coded', 'declared', 'kit', 'parts', 'missing', 'stray', 'contract', 'slots', 'slots_missing', 'slots_stray', 'read_at'];
 const TMP = path.join(HUB, 'node/.preview/ui-instances');
-// The commit each store's pages were read at: web-tools' app is served at HEAD,
-// and home's tool reads its checkout, which is HEAD once the markup is committed.
-const READ_AT = { 'web-tools': head, home: execFileSync('git', ['-C', HOME, 'rev-parse', 'HEAD']).toString().trim() };
+// The commit each repo's pages were read at: web-tools' app is served at HEAD,
+// and home's and budget-drs's tools read their checkouts, which are HEAD once
+// the markup is committed. A checkout that is not here was not read.
+const headOf = (dir) => { try { return execFileSync('git', ['-C', dir, 'rev-parse', 'HEAD'], { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch { return ''; } };
+const READ_AT = { 'web-tools': head, home: headOf(HOME), 'budget-drs': headOf(BUDGET_DRS) };
 mkdirSync(TMP, { recursive: true });
 
 // code -> { required: [...], optional: [...], kits: [...] }, for the codes that have parts.
@@ -178,7 +180,6 @@ const checkJs = (coded, stage) => `(async () => {
 
 const listParts = (counts) => Object.entries(counts).map(([p, n]) => `${p} ${n}`).join('; ');
 
-needHomeModules();
 const declaring = new Map();   // repo:file -> carries data-pattern
 const carries = (repo, file) => {
   const k = repo + ':' + file;
@@ -191,6 +192,7 @@ const carries = (repo, file) => {
 };
 // Every coded unit is loaded: its slots are checked whatever its body code.
 const work = codedUnits(ONLY);
+needToolModules(work);
 console.log(`${work.length} units to load, ${JOBS} at a time`);
 
 const done = new Map(STORES.map(s => [s.name, []]));

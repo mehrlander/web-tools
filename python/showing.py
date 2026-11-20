@@ -136,7 +136,8 @@ def sh(*args, cwd=None, check=False):
     `check=True`. The incidental ones do not: `git rev-parse origin/<branch>`
     on an unpushed branch SHOULD read as empty, which is how `ref_facts` knows
     it is unpushed."""
-    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=True, text=True)
+    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     if check and r.returncode != 0:
         raise GitFailed(args, r.stderr.strip())
     return r.stdout.strip()
@@ -1419,4 +1420,6 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     sys.exit(main())

@@ -137,6 +137,8 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
+**19. Themes.** Pages may use daisyUI themes, most often `winter`. Do not provide dark mode.
+
 ## Handing a page over
 
 In a web-tools checkout, run `npm run showing`. Elsewhere, pick by what the
@@ -154,7 +156,7 @@ lists what each mechanism reaches):
 
 ## What this does not cover
 
-- **Themes:** a palette and font repair none of the failures above.
+- **Themes beyond rule 19:** a palette and font repair none of the failures above.
 - **Checking a rendered page:** the `screenshot-review` skill, whose Style
   reader judges a shot against this file.
 - **Mechanics:** [`references/mechanics.md`](references/mechanics.md) for the

@@ -63,11 +63,7 @@ The house CDN stack survives the CSP once baked. The steps:
    classes onto a wrapper `<div>` or they are silently lost.
 4. **Publish** with a stable favicon and a short version label.
 
-**Theming is free with daisyUI.** The artifact viewer's light/dark toggle
-stamps `data-theme="light"` / `data-theme="dark"` on the root element.
-Compiled daisyUI emits `[data-theme=light]` and `[data-theme=dark]`
-selectors plus a `prefers-color-scheme` default, so the toggle drives daisyUI
-themes with no extra work.
+**Themes.** A published page keeps the light daisyUI theme it sets. Do not provide dark mode.
 
 ## Identity and editing
 

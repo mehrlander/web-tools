@@ -59,7 +59,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } 
 import path from 'node:path';
 import { launch } from '../render/chromium.mjs';
 import { writeCsv } from './registries-load.mjs';
-import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needHomeModules, stageOf, PUBLIC_SIBLINGS, toJpeg, QUALITY } from './ui-recipes.mjs';
+import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needToolModules, stageOf, PUBLIC_SIBLINGS, toJpeg, QUALITY } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -210,8 +210,8 @@ function overlays(read, focus, size) {
   return { marks: fit(read.marks), comps, unseen };
 }
 
-needHomeModules();
 const work = codedUnits(ONLY);
+needToolModules(work);
 console.log(`${work.length} units to shoot, ${JOBS} at a time`);
 
 const browser = await launch({ args: ['--no-sandbox'] });

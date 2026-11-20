@@ -111,7 +111,7 @@ test('a bubble sits at its edits and its sessions, sized by its words; a mark dr
   globalThis.getComputedStyle = () => ({ color: 'rgb(11,11,11)' });
   const pts = G.draw(cv, data, { t: 2, mark: new Set(['docs/long.md']), hue: f => f.p === 'docs/long.md' ? 1 : -1 });
   assert.equal(pts.at(-1).f.p, 'docs/long.md', 'the marked file draws last, on top');
-  assert.ok(calls.some(c => c[0] === 'fill=' && c[1] === G.LIGHT[1]), 'its hue is the slot the function gave');
+  assert.ok(calls.some(c => c[0] === 'fill=' && c[1] === G.HUES[1]), 'its hue is the slot the function gave');
   const at = p => pts.find(q => q.f.p === p);
   assert.ok(at('chron/2026/10/note.md').x > at('docs/short.md').x, 'more edits sits further right');
   assert.ok(at('docs/short.md').y < at('docs/long.md').y, 'more sessions sits higher');
