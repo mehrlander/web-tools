@@ -90,6 +90,8 @@ Omit it and the page picks by content, not just extension:
 
 Every other available mode stays one tap away in the viewer's own header, so the pick is a starting point rather than a decision made for the reader.
 
+A link carrying `#base=<ref>` opens an addressed Markdown file in the viewer's `changes` mode instead of preview, as in `…/toss-render.html#data=<owner>/<repo>@<branch>:<doc.md>#base=main`. The `changes` mode draws the rendered document with each added, removed or edited passage marked. It compares the file at `<branch>` with the file at the merge base of `<branch>` and `<ref>`. On a link without `#base=`, picking `changes` in the header uses the repository's default branch in place of `<ref>`.
+
 ## What this is not
 
 It is not a surface profile and does not validate against [`schemas/`](schemas/). The envelope here is deliberately light: no roles, no context, no versioned profile. When a set of items needs curation, commentary, and cross-repo arrangement, that is a [surface](surface.md); when it is search output over the chat archives, that is [chat-results](chat-results.md). This is the plain case, and it stays plain.

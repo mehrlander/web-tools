@@ -9,11 +9,11 @@ order,leg,gloss,watches,runs,stages,mode,in_repair
 8,kits-registry,lib/kits/ -> the kits registry,lib;pages;app;node/test;node/build/kits-index.mjs;docs/kits.csv,npm run kits-index,docs/kits.csv,regenerates,yes
 9,components-registry,lib/alpineComponents/ -> the components registry,lib;pages;app;node/test;docs/app-routes.csv;data/ui-units/units.csv;node/build/components-index.mjs;docs/components.csv,npm run components-index,docs/components.csv,regenerates,yes
 10,renders-in,lib/ or pages/ -> the registries' renders_in field,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,regenerates,yes
-11,docs-reach,skills/pages/lib -> the registry's derived fields,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,regenerates,yes
-12,plugin-copies,the traveling docs -> the plugin's copies,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
-13,policy-skills,docs/house-policies.md -> the h plugin's skills,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,regenerates,yes
-14,peeves-csv,skills/peeves/peeves.md -> skills/peeves/peeves.csv,skills/peeves/peeves.md;node/build/peeves-csv.mjs,npm run peeves-csv,skills/peeves/peeves.csv,regenerates,yes
-15,themes-graph,any markdown -> the theme graph,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,regenerates,yes
+11,themes-graph,any markdown -> the theme graph,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,regenerates,yes
+12,docs-reach,skills/pages/lib -> the registry's derived fields,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,regenerates,yes
+13,plugin-copies,the traveling docs -> the plugin's copies,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md,regenerates,yes
+14,policy-skills,docs/house-policies.md -> the h plugin's skills,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,regenerates,yes
+15,peeves-csv,skills/peeves/peeves.md -> skills/peeves/peeves.csv,skills/peeves/peeves.md;node/build/peeves-csv.mjs,npm run peeves-csv,skills/peeves/peeves.csv,regenerates,yes
 16,comment-blocks,code or markdown -> the comments payload,*.js;*.mjs;*.html;*.py;*.md;docs/*.csv,npm run comment-blocks,data/comments/web-tools.json,regenerates,yes
 17,docs-readme,docs/docs.csv -> docs/README.md,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme;npm run docs-reach,docs/README.md;docs/docs.csv,regenerates,yes
 18,tracker-board,tracker/tasks/ -> tracker/board.md + board.csv,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,regenerates,yes

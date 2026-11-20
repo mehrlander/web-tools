@@ -92,6 +92,43 @@ test('a title-tip that fits says so; the overflow report is a browser measuremen
   TitleTip.close();
 });
 
+// A TRUNCATED LINE IS WIDER THAN ITS TIP. Centred on its trigger, the tip of a
+// branch row's one-liner opened at the middle of the row, most of a row away
+// from where the pointer entered it. jsdom lays nothing out, so the trigger and
+// the panel are given boxes, and the pointer a position, by hand.
+test('a trigger wider than its tip centres the tip on the pointer, and a narrow one on itself', () => {
+  const panel = window.document.getElementById('wt-title-tip');
+  const el = window.document.createElement('p');
+  el.setAttribute('data-title-tip', 'The title of a pull request, cut short in its row');
+  window.document.body.append(el);
+  const box = (left, width, top = 300, height = 20) =>
+    ({ left, width, right: left + width, top, height, bottom: top + height, x: left, y: top });
+  const move = (x, y) => window.document.dispatchEvent(
+    new window.MouseEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
+  const leftAt = () => {
+    TitleTip.open(el);
+    const l = parseInt(panel.style.left, 10);
+    TitleTip.close();
+    return l;
+  };
+  panel.getBoundingClientRect = () => box(0, 200, 0, 40);   // the tip: 200 wide
+  try {
+    el.getBoundingClientRect = () => box(20, 900);           // a row-wide line, centred at 470
+    move(800, 310);
+    assert.equal(leftAt(), 700, 'on the pointer: 800 less half the tip');
+    move(150, 310);
+    assert.equal(leftAt(), 50, 'near the left end too');
+    move(800, 50);
+    assert.equal(leftAt(), 370, 'a pointer off the trigger (a keyboard focus, a screenshot) centres on the trigger');
+    el.getBoundingClientRect = () => box(600, 120);          // a chip, narrower than the tip
+    move(610, 310);
+    assert.equal(leftAt(), 560, 'a narrow trigger centres on itself, which is under the pointer anyway');
+  } finally {
+    delete panel.getBoundingClientRect;
+    el.remove();
+  }
+});
+
 test('an empty title-tip advertises nothing: no underline, no tab stop', () => {
   // A bound title-tip whose expression resolves to '' still carries the attribute.
   // Drawing the affordance over it promises a title-tip that does not exist, and a

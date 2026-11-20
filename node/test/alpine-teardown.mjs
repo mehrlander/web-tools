@@ -21,7 +21,15 @@
 // settled throws nothing, in jsdom or here, so the first two browser probes
 // written for this came back clean and nearly retired the fix as a jsdom
 // artifact. It reproduces only when the removal lands between the mount and
-// the deferred init, which is what the two awaited microtasks below arrange.
+// the deferred init, which is what dropping a card in the task that mounted it
+// arranges below.
+//
+// IT HAS LOST ITS TEETH ONCE. Until 2026-11-20 the check opened and closed the
+// branch page's mechanical group, which mounted a file card per row; since the
+// list became rows beside one swiper (#761, 2026-09-23) a group mounts no card,
+// so both arms came back clean and the second assertion failed. The guard had
+// not gone dead: mounting a file card directly and dropping it at once still
+// threw about 190 errors a card unguarded and none guarded.
 //
 // So the check runs BOTH arms and asserts the difference: the unguarded build
 // must throw and the guarded one must not. An assertion that only ever sees
@@ -108,18 +116,24 @@ const ok = (name, cond, detail = '') => {
   else { console.log(`  FAIL  ${name}${detail ? ' — ' + detail : ''}`); failures.push(name); }
 };
 
-// Open the group, yield two microtasks so Alpine renders the cards and their
-// init() runs, then close before the deferred initTree gets its turn.
+// Mount a file card with the options the branch page hands one, and drop it in
+// the same task: its init() has injected the template and queued the deferred
+// initTree, and the removal lands before that turn comes. Five cards, so a
+// count is not one card's accident.
 const cycle = async () => {
   await page.goto(origin, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(3000);
-  errs.length = 0;                      // only what the toggle produces
-  await page.evaluate(async () => {
+  errs.length = 0;                      // only what the drop produces
+  await page.evaluate(() => {
     const d = Alpine.$data(document.getElementById('m'));
-    d.toggleGroup('mechanical');
-    await Promise.resolve();
-    await Promise.resolve();
-    d.toggleGroup('mechanical');
+    window.__card = d.cardOpts(d.listFiles[0]);
+    for (let k = 0; k < 5; k++) {
+      const el = document.createElement('div');
+      el.setAttribute('x-data', 'fileReview(window.__card)');
+      document.body.append(el);
+      Alpine.initTree(el);
+      el.remove();
+    }
   });
   await page.waitForTimeout(1800);
   return errs.filter(e => /is not defined|Expression Error/.test(e)).length;
