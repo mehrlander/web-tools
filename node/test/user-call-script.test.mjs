@@ -134,6 +134,51 @@ test('edits pairs the blocks of two copies so every from is text the old copy ho
   assert.deepEqual(got.at(-1), { from: 'Tail.', to: 'Tail.\n\nAdded.' }, 'an insertion at the end takes its neighbour');
 });
 
+// Frontmatter pairs by property: an edit to one field is that field alone, and
+// the title under the closing fence is a block of its own though no blank
+// line parts them.
+const FRONT = '---\ntitle: "The pool"\nstatus: current\nsummary: "Account 447 took in $94.1M, and DRS spent it."\n---\n# The pool\n\nBody text.\n';
+
+test('frontmatter is a block per property, and a summary-only change one edit, the summary alone', () => {
+  const next = FRONT.replace('$94.1M, and DRS spent it.', '$94.1M. DRS spent it all.');
+  const [db, got, spans] = pyMany([['doc_blocks', [FRONT]], ['edits', [FRONT, next]], ['spans_of', [{ edits: py('edits', FRONT, next) }, next, FRONT]]]);
+  assert.deepEqual(db, [['---', 1, 1], ['title: "The pool"', 2, 2], ['status: current', 3, 3],
+    ['summary: "Account 447 took in $94.1M, and DRS spent it."', 4, 4], ['---', 5, 5], ['# The pool', 6, 6], ['Body text.', 8, 8]]);
+  assert.deepEqual(got, [{ from: 'summary: "Account 447 took in $94.1M, and DRS spent it."', to: 'summary: "Account 447 took in $94.1M. DRS spent it all."' }]);
+  assert.deepEqual(spans.map((s) => s.lines), [[4, 4]], 'its span is the summary line');
+  const wrapped = 'A paragraph wrapped at a narrow\nwidth, as the rest of the file is.\n\nAnother one wrapped at the same\nnarrow width as the first.\n';
+  const long = (t) => t.replace('DRS spent it', 'DRS spent it from the pool in 2019-21, which matches the spending under the expenditure authority') + '\n' + wrapped;
+  const e = py('edits', long(FRONT), long(next));
+  assert.deepEqual(py('wrap_warnings', { edits: e }, long(next), py('spans_of', { edits: e }, long(next))), [],
+    'a long field is not a paragraph left unwrapped');
+});
+
+test('a property added, removed or split pairs without a blank line, so each edit applies back to the new copy', () => {
+  const nexts = [
+    FRONT.replace('status: current\n', 'status: current\nowner: DRS\n'),
+    FRONT.replace('status: current\n', ''),
+    FRONT.replace('status: current\n', 'status: living\nowner: DRS\n'),
+    FRONT.replace('title: "The pool"', 'title: "A pool"').replace('# The pool', '# A pool'),
+  ];
+  const all = pyMany(nexts.map((n) => ['edits', [FRONT, n]]));
+  const spans = pyMany(nexts.map((n, k) => ['spans_of', [{ edits: all[k] }, n, FRONT]]));
+  nexts.forEach((n, k) => {
+    let t = FRONT;
+    for (const e of all[k]) { assert.equal(t.split(e.from).length, 2, JSON.stringify(e)); t = t.replace(e.from, e.to); }
+    assert.equal(t, n, JSON.stringify(all[k]));
+    assert.ok(spans[k].every(Boolean), 'every edit has a span');
+  });
+  assert.deepEqual(all[0], [{ from: 'status: current', to: 'status: current\nowner: DRS' }]);
+  assert.deepEqual(spans[0].map((s) => s.lines), [[4, 4]], 'an added property is its own line');
+  assert.equal(all[3].length, 2, 'the title field and the heading are two edits');
+});
+
+test('a document without frontmatter splits into its blank-line blocks, as before', () => {
+  const docs = ['---\n\nA rule opens this one.\n\n---\n# H\n', '---\nNo key here.\n---\n# H\n', '---\ntitle: never closed\n# H\n', '# H\n\nOne.\nStill one.\n\nTwo.\n'];
+  const got = pyMany(docs.map((d) => ['blocks', [d]]));
+  docs.forEach((d, k) => assert.deepEqual(got[k], d.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean), JSON.stringify(d)));
+});
+
 test("an answer prints its decisions, each edit's note line by line, and notes on other text", () => {
   const got = lines(ANS, DOC);
   assert.equal(got[0], '1 confirmed, 1 discarded  (owner 2026-10-04T03:00:00Z)  "Good cuts."');
