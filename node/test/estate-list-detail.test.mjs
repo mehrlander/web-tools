@@ -13,7 +13,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine, deckGeometry } from './bootstrap.mjs';
+import { makeWindow, startAlpine, deckGeometry, until } from './bootstrap.mjs';
 
 const REGISTRY = 'me/registry';
 const NOTES = 'notes/notes.jsonl';
@@ -100,16 +100,8 @@ const reg = () => new FakeGH({ repo: REGISTRY });
 // The strip settles over a few animation frames and Alpine flushes between
 // them, so every step waits for what it expects to see, never for a count of
 // milliseconds: a fixed wait is a guess that fails when the machine is busy.
-async function until(check, what, ms = 8000) {
-  const t0 = Date.now();
-  for (;;) {
-    let ok = false;
-    try { ok = !!check(); } catch { ok = false; }
-    if (ok) return;
-    if (Date.now() - t0 > ms) assert.fail('timed out waiting for ' + what);
-    await new Promise(r => setTimeout(r, 10));
-  }
-}
+// until() (bootstrap.mjs) is that wait, and each call here names what it
+// waits for, so a timeout fails on the spot.
 // What a reader sees: the text of everything x-show has not hidden.
 const text = (el) => {
   if (!el) return '';

@@ -14,7 +14,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine, tick, deckGeometry } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick, deckGeometry, until } from './bootstrap.mjs';
 
 class FakeGH {
   constructor(c = {}) { this.repo = c.repo || ''; }
@@ -274,15 +274,18 @@ const openAddress = async (qs) => {
   data._openFiles = null;
   window.history.replaceState(null, '', qs);
   data.openDetailFromUrl();
-  await tick(8);
   // Slides are built by the deck's own rAF, which jsdom runs at most once per
   // document, so only the first deck of the file mounted anything and every
   // later case read an empty track as a feature that had not taken. Driving
   // build() is the same honesty as driving onDeckSlide above: the gesture is
   // the browser's and is proven in node/render/scenarios/branch-address.mjs;
-  // what belongs here is what the shell hands a slide once one exists.
-  const d = data._deck?.deck, i = data.detail?.i ?? 0;
-  if (d) { d.build(i - 1); d.build(i); d.build(i + 1); await tick(4); }
+  // what belongs here is what the shell hands a slide once one exists. Both
+  // waits are for the thing itself, the deck and then the named slide, since
+  // a count of ticks that held on this file alone failed under `npm test`
+  // (snag tick-count-guesses-a-chain).
+  const d = await until(() => data._deck?.deck, 'the takeover\'s deck'), i = data.detail?.i ?? 0;
+  d.build(i - 1); d.build(i); d.build(i + 1);
+  await until(() => slideOpts(), 'the slide for the branch the address names');
 };
 
 test('&pane=files hands the slide the pane, so a link lands on the files', async () => {

@@ -2446,13 +2446,14 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
       </div>
     </div>
 
-    <!-- The Tools view: a curated gallery of the owner's utility pages (the
-         text-diff tool and the like), fed from the hub's docs/tools.csv.
-         Estate-level, public (no token), its own component and lazy mount. -->
-    <div x-show="view==='tools'" data-pane="tools" class="h-full overflow-y-auto">
-      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
+    <!-- The Tools view: every page the estate declares, in a list beside a
+         live preview, with the hub utilities from docs/tools.csv among them.
+         Estate-level, its own component and lazy mount. The pane does not
+         scroll: the list and the preview each scroll on their own. -->
+    <div x-show="view==='tools'" data-pane="tools" class="h-full overflow-hidden">
+      <div class="h-full flex flex-col px-4 lg:px-6 pt-4 pb-4 lg:pt-6 !max-w-none">
         <template x-if="toolsSeen">
-          <div x-data="tools()"></div>
+          <div x-data="tools()" class="flex-1 min-h-0"></div>
         </template>
       </div>
     </div>
