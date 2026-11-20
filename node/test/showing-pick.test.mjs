@@ -33,6 +33,43 @@ function run(files, extra = []) {
   return JSON.parse(out);
 }
 
+test('UTF-8 subprocess output and failure messages survive a Windows text decoder', () => {
+  // Use real child pipes: only the locale-selected decoder is changed, so
+  // PYTHONUTF8 in the test runner cannot hide an implicit encoding in sh().
+  const probe = `
+import json, runpy, sys
+from unittest.mock import patch
+showing = runpy.run_path(sys.argv[1])
+with patch('subprocess._text_encoding', return_value='cp1252'):
+    output = showing['sh'](sys.executable, '-c',
+        "import sys; sys.stdout.buffer.write(bytes.fromhex('20f09fa58fff20'))")
+    try:
+        showing['sh'](sys.executable, '-c',
+            "import sys; sys.stderr.buffer.write(bytes.fromhex('20f09fa58fff20')); sys.exit(3)",
+            check=True)
+    except showing['GitFailed'] as error:
+        failure = error.err
+    else:
+        raise AssertionError('the failed child must raise GitFailed')
+print(json.dumps([output, failure]))
+`;
+  const output = execFileSync('python3', ['-c', probe, SCRIPT], {
+    cwd: repoRoot, encoding: 'utf8', env: { ...process.env, PYTHONUTF8: '1' },
+  });
+  assert.deepEqual(JSON.parse(output), ['🥏�', '🥏�'],
+    'decode UTF-8 on stdout and stderr, replace malformed bytes, and trim surrounding whitespace');
+});
+
+test('UTF-8 plain render links print when the inherited stdout encoding is cp1252', () => {
+  const output = execFileSync('python3', [SCRIPT, '--files', 'pages/session.html'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: { ...process.env, PYTHONUTF8: '0', PYTHONIOENCODING: 'cp1252' },
+  });
+  assert.ok(output.includes(`🥏 [pages/session.html](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:pages/session.html)`),
+    'the text a session pastes retains its glyph and render URL');
+});
+
 // A diff fixture, since the top-level-document test reads hunks rather than
 // paths: the same file is showable or not depending on what the change DOES.
 // The tossed page's own ?query, which rides inside the fragment after its path.
