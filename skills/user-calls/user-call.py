@@ -396,12 +396,14 @@ def sections(text):
         if re.match(r"^\s*`[^`]+`\s*💬", line):
             continue
         m = SECTION.match(line)
+        # "Trips, most costly first:" copies the critic's definition, which
+        # heads that section the same way.
         if m and (m.group(1) or m.group(3) or line.lstrip().startswith("#") or not m.group(5)
-                  or m.group(5).startswith("(")):
+                  or m.group(5).startswith(("(", ","))):
             cur = m.group(2).lower().replace("-", "")
             out.setdefault(cur, [])
             rest = m.group(5).strip()
-            if rest and not rest.startswith("("):
+            if rest and not rest.startswith(("(", ",")):
                 out[cur].append(rest)
             continue
         v = VERDICT_LINE.match(line)
