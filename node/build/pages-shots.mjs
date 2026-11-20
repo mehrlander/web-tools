@@ -36,6 +36,26 @@ const SOURCES = [
     pick: f => f.match(/^([^/]+)\/demo\.html$/)?.[1]?.concat('.html') ?? null },
 ];
 
+// Which pages a run shoots. An argument names a page with or without its
+// pages/ prefix and its .html, so `diff-tool`, `diff-tool.html` and
+// `pages/diff-tool.html` all reach pages/diff-tool.html; a demo answers to its
+// thumbnail path (kit-demos/note) or its source path (lib/kits/demos/note.html).
+// No arguments select every page. Each argument that reaches nothing comes back
+// in `unmatched`: names were once compared with .html still on, a bare name
+// selected the empty set, and the run printed `0/0 ok` and exited 0 having
+// shot nothing (snag pages-shots-vacuous-ok).
+export function selectPages(pages, args) {
+  if (!args.length) return { selected: pages, unmatched: [] };
+  const bare = s => String(s).replace(/\\/g, '/').replace(/^\.\//, '').replace(/^pages\//, '').replace(/\.html$/, '');
+  const hit = new Set(), unmatched = [];
+  for (const a of args) {
+    const found = pages.filter(p => bare(p.rel) === bare(a) || bare(p.src) === bare(a));
+    if (found.length) for (const p of found) hit.add(p);
+    else unmatched.push(a);
+  }
+  return { selected: pages.filter(p => hit.has(p)), unmatched };
+}
+
 async function walk(baseDir, dir = baseDir) {
   const out = [];
   for (const ent of await readdir(dir, { withFileTypes: true })) {
@@ -47,45 +67,52 @@ async function walk(baseDir, dir = baseDir) {
   return out;
 }
 
-// Collect { rel (virtual thumb key), src (file to shoot) } across every source.
-let pages = [];
-for (const s of SOURCES) {
-  const files = await walk(path.join(repoRoot, s.dir));
-  for (const f of files.map(f => f.split(path.sep).join('/'))) {
-    const v = s.pick ? s.pick(f) : f;
-    if (v) pages.push({ rel: s.virt ? `${s.virt}/${v}` : v, src: s.src(f) });
+// Run only as a script, so the suite can import selectPages without a browser.
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
+  // Collect { rel (virtual thumb key), src (file to shoot) } across every source.
+  let pages = [];
+  for (const s of SOURCES) {
+    const files = await walk(path.join(repoRoot, s.dir));
+    for (const f of files.map(f => f.split(path.sep).join('/'))) {
+      const v = s.pick ? s.pick(f) : f;
+      if (v) pages.push({ rel: s.virt ? `${s.virt}/${v}` : v, src: s.src(f) });
+    }
   }
-}
-pages.sort((a, b) => a.rel.localeCompare(b.rel));
+  pages.sort((a, b) => a.rel.localeCompare(b.rel));
 
-const want = process.argv.slice(2).map(p => p.replace(/^pages\//, ''));
-if (want.length) pages = pages.filter(p => want.includes(p.rel));
+  const { selected, unmatched } = selectPages(pages, process.argv.slice(2));
+  if (unmatched.length) {
+    for (const a of unmatched) console.error(`pages-shots: ${a} names no page`);
+    process.exit(1);
+  }
+  pages = selected;
 
-const results = [];
-for (const { rel, src } of pages) {
-  const out = path.join('pages', 'thumbs', rel.replace(/\.html$/, '.png'));
-  await mkdir(path.dirname(path.join(repoRoot, out)), { recursive: true });
-  process.stdout.write(`shooting ${rel} -> ${out} ... `);
-  // A page can declare the query string of its representative shot, e.g.
-  // <meta name="shot-query" content="repo=mehrlander/web-tools"> for a page
-  // whose bare URL paints an auth/empty state instead of its real UI.
-  const html = await readFile(path.join(repoRoot, src), 'utf8');
-  const q = html.match(/<meta\s+name="shot-query"\s+content="([^"]*)"/);
-  const r = spawnSync(process.execPath, [
-    shotTool, src,
-    '--out', out, '--width', String(WIDTH), '--height', String(HEIGHT),
-    ...(q ? ['--query', q[1]] : []),
-  ], { cwd: repoRoot, encoding: 'utf8' });
-  const ok = r.status === 0;
-  // Surface any [pageerror]/[fatal] lines so broken pages are visible, not silent.
-  const flags = (r.stdout || '').split('\n').filter(l => /\[(pageerror|fatal|requestfailed)\]/.test(l));
-  console.log(ok ? 'ok' : `FAILED (exit ${r.status})`);
-  results.push({ rel, ok, flags });
-}
+  const results = [];
+  for (const { rel, src } of pages) {
+    const out = path.join('pages', 'thumbs', rel.replace(/\.html$/, '.png'));
+    await mkdir(path.dirname(path.join(repoRoot, out)), { recursive: true });
+    process.stdout.write(`shooting ${rel} -> ${out} ... `);
+    // A page can declare the query string of its representative shot, e.g.
+    // <meta name="shot-query" content="repo=mehrlander/web-tools"> for a page
+    // whose bare URL paints an auth/empty state instead of its real UI.
+    const html = await readFile(path.join(repoRoot, src), 'utf8');
+    const q = html.match(/<meta\s+name="shot-query"\s+content="([^"]*)"/);
+    const r = spawnSync(process.execPath, [
+      shotTool, src,
+      '--out', out, '--width', String(WIDTH), '--height', String(HEIGHT),
+      ...(q ? ['--query', q[1]] : []),
+    ], { cwd: repoRoot, encoding: 'utf8' });
+    const ok = r.status === 0;
+    // Surface any [pageerror]/[fatal] lines so broken pages are visible, not silent.
+    const flags = (r.stdout || '').split('\n').filter(l => /\[(pageerror|fatal|requestfailed)\]/.test(l));
+    console.log(ok ? 'ok' : `FAILED (exit ${r.status})`);
+    results.push({ rel, ok, flags });
+  }
 
-console.log(`\n=== pages-shots: ${results.filter(r => r.ok).length}/${results.length} ok ===`);
-for (const r of results) {
-  if (!r.ok) console.log(`  FAILED  ${r.rel}`);
-  else if (r.flags.length) console.log(`  notes   ${r.rel}: ${r.flags.length} render warning(s)`);
+  console.log(`\n=== pages-shots: ${results.filter(r => r.ok).length}/${results.length} ok ===`);
+  for (const r of results) {
+    if (!r.ok) console.log(`  FAILED  ${r.rel}`);
+    else if (r.flags.length) console.log(`  notes   ${r.rel}: ${r.flags.length} render warning(s)`);
+  }
+  process.exit(results.every(r => r.ok) ? 0 : 1);
 }
-process.exit(results.every(r => r.ok) ? 0 : 1);

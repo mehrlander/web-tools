@@ -13,7 +13,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot, makeWindow } from './bootstrap.mjs';
+import { repoRoot, makeWindow, until } from './bootstrap.mjs';
 import { marked } from 'marked';
 import * as Diff from 'diff';
 
@@ -257,7 +257,6 @@ window.HTMLElement.prototype.scrollTo = function ({ left = 0 } = {}) {
 
 const BARE = DOC.replace(/^# .*\n\n/, '');
 const sectionTool = (box) => box.querySelector('[data-md-variant-section]');
-const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await new Promise((r) => setTimeout(r, 10)); };
 
 test('mark puts the sparkle in the heading\'s row of tools, counting its paragraphs, from the light read alone', async () => {
   const { box, calls, T } = await marksFixture();
