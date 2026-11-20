@@ -10,6 +10,36 @@ SKILL.md beside this script.
     user-call.py edits --base REF FILE                    the same, from FILE against its text at REF
     user-call.py link <id> [--store D] [--at REPO@REF]    the address of the call's page, where it is answered
     user-call.py patch <id> [--store D]                   the latest answer's recorded patch, for git apply
+    user-call.py review DRAFT FILE --spans [OUT]          the call's edits as line ranges of FILE, E1, E2, ..., the
+                                                          block for the critic's prompt (to OUT, or printed)
+    user-call.py review DRAFT FILE [REPORT]               a peeves-critic run on FILE, added to a documentation
+                                                          call's draft; REPORT is the critic's text (default stdin)
+    user-call.py review DRAFT --answers [RUN.]cN T[,T]    change N after the latest changed run (or RUN) answers
+                                                          those trips of that run
+    user-call.py review DRAFT --kept [RUN.]N WHY          trip N of the latest run (or of RUN) set aside, and why
+    user-call.py review DRAFT --note TEXT                 one line on the latest run: what the session did about it
+
+A documentation call's `review` is the peeves critic's runs on its document, in
+order, so the owner sees what the critic found and how the wording moved in
+answer. Each run is {verdict, edits, trips, clear, candidates, preexisting,
+changes, reflow, note, report}. edits are the spans the critic was given, each
+{lines, edit}: its first and last line in the text the run read, and the call's
+edit it is (null for one the call no longer carries). verdict is pass (no trip
+inside an edit), fail or unknown (a report in neither of the critic's forms).
+Each trip is {peeve, edit, where, quote, clause, answer, why, misquoted}: edit
+is the run's span the critic tagged it with, 1 for E1 and 0 for E-, a trip
+outside every edit, which needs no answer; answer is `changed` or `kept` with
+why; misquoted is true when the quote is not in the text the run read. changes
+are {from, to, answers}, the text the session changed after the run, before the
+next one, and the trips of the run each change answers; reflow counts the
+blocks that changed only in their line wrapping, which are not changes. report
+is the critic's text as it came back, which every trip's id, tag and quote are
+checked against. `review` refreshes the draft's edits from FILE against its
+`base` (or --base REF), parses the report, keeps the document's text in the
+draft, and on the next run works out the changes from it and marks the trips
+inside an edit still unanswered as changed. `add` refuses a call whose edits
+the critic's last run did not read, or with a trip left unanswered, maps each
+run's spans onto the call's edits, and drops the kept texts.
 
 The store is found the way the notes skill's note.py finds its own: a checkout
 whose .web-tools.json on origin/main declares "user-calls" (a path relative to
@@ -54,6 +84,14 @@ CHAIN_REF = r"[^/\s]+/[^@:\s]+@[^:\s]+:[^\s#]+"
 # `recorded`, for work that writes something down and alters no behaviour.
 CHANGES = {"added": {"new"}, "changed": {"old", "new"}, "fixed": {"old", "new"},
            "removed": {"old"}, "recorded": {"new"}}
+
+# A peeves-critic run's verdict, and how the session answered each trip in it.
+VERDICTS = {"pass", "fail", "unknown"}
+TRIP_ANSWERS = {"changed", "kept"}
+PEEVE = r"P\d{2,3}"
+# A trip's edit tag: E2 for the second span the critic was given, E- (or
+# `outside`) for a trip outside every edit.
+EDIT_TAG = r"\**(?:E(\d{1,2})|E\s?[-\u2013\u2014]|E0|outside)\**"
 
 
 def stamp():
@@ -140,6 +178,8 @@ def check(c):
                 errs += notes(e.get("notes"), f"edits[{i}]")
         if c.get("options"):
             errs.append("a documentation call has no options: each edit is answered on its card")
+        if "review" in c:
+            errs += review_errors(c["review"])
     elif c.get("kind") == "pick":
         q, brief = (str(c.get(k) or "").strip() for k in ("question", "brief"))
         if not q or len(q) > 80:
@@ -180,6 +220,8 @@ def check(c):
                 errs.append("options are 2 to 4 plain answers, 20 characters each, with no explanation attached")
             if c.get("recommend") and c["recommend"] not in opts:
                 errs.append("recommend must be one of the options")
+    if "review" in c and c.get("kind") != "documentation":
+        errs.append("review is the peeves critic's runs on a documentation call's document")
     if c.get("pr") and not re.fullmatch(r"[^/\s]+/[^#\s]+#\d+", c["pr"]):
         errs.append("pr must read owner/repo#n")
     for l in c.get("materials") or []:
@@ -254,6 +296,783 @@ def shape(c):
     return errs
 
 
+def flat(s):
+    return " ".join(str(s or "").split())
+
+
+def review_errors(r):
+    """A documentation call's review: the peeves critic's runs, each checked
+    against the report it was parsed from."""
+    if not isinstance(r, dict) or not isinstance(r.get("runs"), list) or not 1 <= len(r["runs"]) <= 30:
+        return ["review is {runs: [...]}, 1 to 30 critic runs in order"]
+    errs, runs = [], r["runs"]
+    for i, run in enumerate(runs):
+        at = f"review.runs[{i}]"
+        if not isinstance(run, dict):
+            errs.append(f"{at} is a run"); continue
+        v, report, trips = run.get("verdict"), run.get("report"), run.get("trips") or []
+        if v not in VERDICTS:
+            errs.append(f"{at}.verdict is one of {sorted(VERDICTS)}")
+        if not isinstance(report, str) or not report.strip() or len(report) > 20000:
+            errs.append(f"{at}.report is the critic's text as it came back, 20000 characters at most"); continue
+        if not isinstance(trips, list):
+            errs.append(f"{at}.trips is a list"); trips = []
+        spans = run.get("edits")
+        if spans is not None and (not isinstance(spans, list) or len(spans) > 40 or not all(
+                isinstance(s, dict) and isinstance(s.get("lines"), list) and len(s["lines"]) == 2
+                and all(isinstance(x, int) and x > 0 for x in s["lines"]) and s["lines"][0] <= s["lines"][1]
+                and (s.get("edit") is None or isinstance(s["edit"], int) and s["edit"] > 0) for s in spans)):
+            errs.append(f"{at}.edits are up to 40 spans the critic was given, each {{lines: [first, last], edit}}")
+            spans = None
+        inside = [t for t in trips if not (isinstance(t, dict) and t.get("edit") == 0)]
+        if (v == "fail") != bool(inside) or (v == "unknown" and trips):
+            errs.append(f"{at}: a failed run has a trip inside an edit, a passed one none, and an unknown one no trips")
+        changes = run.get("changes") or []
+        if not isinstance(changes, list) or len(changes) > 40 or not all(
+                isinstance(x, dict) and isinstance(x.get("from"), str) and isinstance(x.get("to"), str)
+                and x["from"] != x["to"] for x in changes):
+            errs.append(f"{at}.changes are up to 40 {{from, to}} pairs, each a change")
+            changes = []
+        reflow = run.get("reflow", 0)
+        if not isinstance(reflow, int) or reflow < 0:
+            errs.append(f"{at}.reflow is a count of blocks rewrapped")
+            reflow = 0
+        if (changes or reflow) and i == len(runs) - 1:
+            errs.append(f"{at} has changes after it: run the critic again on the text as filed")
+        if len(str(run.get("note") or "")) > 200:
+            errs.append(f"{at}.note is one line, 200 characters at most")
+        answered = set()
+        for k, x in enumerate(changes):
+            a = x.get("answers")
+            if a is None:
+                continue
+            if not isinstance(a, list) or not a or not all(isinstance(n, int) and 1 <= n <= len(trips) for n in a):
+                errs.append(f"{at}.changes[{k}].answers are trip numbers of run {i + 1}, 1 to {len(trips)}")
+                continue
+            answered.update(a)
+        for j, t in enumerate(trips):
+            tat = f"{at}.trips[{j}]"
+            if not isinstance(t, dict) or not re.fullmatch(PEEVE, str(t.get("peeve") or "")):
+                errs.append(f"{tat} names its peeve, as P05"); continue
+            if t["peeve"] not in report:
+                errs.append(f"{tat}: {t['peeve']} is not in the run's report")
+            if t.get("quote") and flat(t["quote"]) not in flat(report):
+                errs.append(f"{tat}: its quote is not in the run's report")
+            if any(len(str(t.get(k) or "")) > n for k, n in (("where", 300), ("quote", 1000), ("clause", 600))):
+                errs.append(f"{tat}: where, quote and clause are 300, 1000 and 600 characters at most")
+            e = t.get("edit")
+            if e is not None:
+                if not isinstance(e, int) or isinstance(e, bool) or e < 0 or (spans is not None and e > len(spans)):
+                    errs.append(f"{tat}.edit is the span it was tagged with, 1 to {len(spans) if spans else 40}, or 0 for E-")
+                elif not re.search(rf"\bE{e}\b" if e else r"\bE\s?[-–—]|\bE0\b|\boutside\b", report, re.I):
+                    errs.append(f"{tat}: its tag {f'E{e}' if e else 'E-'} is not in the run's report")
+            if "misquoted" in t and not isinstance(t["misquoted"], bool):
+                errs.append(f"{tat}.misquoted is true or false")
+            a = t.get("answer")
+            if a is None and e == 0:
+                pass
+            elif a not in TRIP_ANSWERS:
+                errs.append(f"{tat} ({t['peeve']}) has no answer: changed, or kept with why "
+                            f"(user-call.py review DRAFT --kept {i + 1}.{j + 1} WHY)")
+            elif a == "kept" and not 0 < len(str(t.get("why") or "").strip()) <= 200:
+                errs.append(f"{tat} is kept, so it says why in one line, 200 characters at most")
+            elif a == "changed" and not (changes or reflow):
+                errs.append(f"{tat} is answered changed, but nothing changed after run {i + 1}")
+            if j + 1 in answered and a != "changed":
+                errs.append(f"{tat} is answered by a change, so its answer is changed")
+        if not isinstance(run.get("clear", []), list) or not all(re.fullmatch(PEEVE, str(x)) for x in run.get("clear") or []):
+            errs.append(f"{at}.clear is a list of peeve ids")
+        cands = run.get("candidates") or []
+        if not isinstance(cands, list) or len(cands) > 10 or not all(isinstance(x, str) and 0 < len(x) <= 800 for x in cands):
+            errs.append(f"{at}.candidates are up to 10 proposals, 800 characters each")
+        pre = run.get("preexisting") or []
+        if not isinstance(pre, list) or not all(isinstance(x, dict) and re.fullmatch(PEEVE, str(x.get("peeve") or "")) for x in pre):
+            errs.append(f"{at}.preexisting are {{peeve, text}}, trips the critic found in text the edits leave alone")
+        if run.get("text") is not None and not isinstance(run["text"], str):
+            errs.append(f"{at}.text is the document as the critic read it")
+    return errs
+
+
+# A section of a critic's report: its heading on a line of its own, bold or a
+# Markdown heading or followed by a colon, with whatever follows on that line.
+SECTION = re.compile(r"^\s*(?:#{1,6}\s*)?(\*\*|__)?\s*(Trips|Clear|Candidates|Pre-?existing)\b\s*(:)?\s*(\*\*|__)?\s*:?\s*(.*)$", re.I)
+BULLET = re.compile(r"^\s*(?:[-*+•]|\d+[.)])\s+")
+VERDICT_LINE = re.compile(r"^\s*\**\s*VERDICT\s*\**\s*:\s*\**\s*(PASS|FAIL)\b", re.I)
+
+
+def sections(text):
+    """{name: [lines]} for each section the report heads, and the stated verdict."""
+    out, cur, stated = {}, None, None
+    for line in text.splitlines():
+        # A session's detail caption, which a headless run appends after its
+        # last section: a stamp in code, then the record's mark.
+        if re.match(r"^\s*`[^`]+`\s*💬", line):
+            continue
+        m = SECTION.match(line)
+        if m and (m.group(1) or m.group(3) or line.lstrip().startswith("#") or not m.group(5)
+                  or m.group(5).startswith("(")):
+            cur = m.group(2).lower().replace("-", "")
+            out.setdefault(cur, [])
+            rest = m.group(5).strip()
+            if rest and not rest.startswith("("):
+                out[cur].append(rest)
+            continue
+        v = VERDICT_LINE.match(line)
+        if v:
+            stated, cur = v.group(1).lower(), None
+            continue
+        if cur:
+            out[cur].append(line)
+    return out, stated
+
+
+def first_paragraph(lines):
+    out = []
+    for line in lines:
+        if line.strip():
+            out.append(line)
+        elif out:
+            break
+    return out
+
+
+def ids(text):
+    return list(dict.fromkeys(re.findall(r"\b" + PEEVE + r"\b", text)))
+
+
+def trip_of(line):
+    """`P<id> · E<n> · <where> · "<quote>" · <one clause>`, the critic's own
+    form, or the same without the edit tag; None for any other line."""
+    s = BULLET.sub("", line, count=1).strip()
+    m = re.match(r"\**(" + PEEVE + r")\**\s*·\s*(.*)$", s)
+    if not m:
+        return None
+    parts = [p.strip() for p in uncoded_split(m.group(2), " · ")]
+    tag = re.fullmatch(EDIT_TAG, parts[0], re.I) if parts else None
+    if tag:
+        parts = parts[1:]
+    where = parts[0] if parts else ""
+    rest = parts[1:]
+    q = next((k for k, p in enumerate(rest) if p[:1] in "\"“'‘"), None)
+    quote, clause = "", " · ".join(rest)
+    if q is not None:
+        quote = rest[q]
+        # The clause run on after the quote with no separator, as in
+        # `"words." This sentence ...`: the quote ends at the first closing
+        # quote that a new sentence follows.
+        if quote[-1:] not in "\"”'’":
+            end = re.search(r'["”](?=[.;:,]?\s+["“A-Z])', uncoded(quote[1:]))
+            if end:
+                rest = rest[:q] + [quote[:end.end() + 1], quote[end.end() + 1:].lstrip(".;:, ")] + rest[q + 1:]
+                quote = rest[q]
+        if len(quote) > 1 and quote[0] in "\"“" and quote[-1] in "\"”" and not re.search(r'["“”]', uncoded(quote[1:-1])):
+            quote = quote[1:-1]
+        clause = " · ".join(rest[q + 1:])
+        where = " · ".join([where, *rest[:q]])
+    out = {"peeve": m.group(1)}
+    if tag:
+        out["edit"] = int(tag.group(1)) if tag.group(1) else 0
+    out.update(where=where, quote=quote, clause=clause)
+    return out
+
+
+def uncoded(s):
+    """s with its code spans blanked, so a mark inside one is not read."""
+    return re.sub(r"`[^`]*`", lambda m: " " * len(m.group(0)), s)
+
+
+def uncoded_split(s, sep):
+    """s split on sep where sep is outside a code span: a trip quoting the trip
+    format keeps its ` · ` inside backticks."""
+    out, at, bare = [], 0, uncoded(s)
+    for m in re.finditer(re.escape(sep), bare):
+        out.append(s[at:m.start()]); at = m.end()
+    return out + [s[at:]]
+
+
+def items(lines):
+    """A section's bulleted items, each with its continuation lines; prose with
+    no bullets is one item. A section that says only None has none."""
+    out = []
+    for line in lines:
+        if not line.strip():
+            continue
+        if BULLET.match(line) or not out:
+            out.append(BULLET.sub("", line, count=1).strip())
+        else:
+            out[-1] += " " + line.strip()
+    return [x for x in out if not re.fullmatch(r"none\b.*", x, re.I)]
+
+
+def parse_report(text):
+    """One critic run from its report: the verdict, trips, clear ids, candidates
+    and trips outside the edit. A run fails on a trip inside an edit, or on one
+    with no tag; trips tagged E- alone pass it. A report in neither of the
+    critic's forms is kept whole with the verdict unknown."""
+    text = str(text or "").replace("\r\n", "\n").strip()
+    secs, stated = sections(text)
+    run = {"verdict": "unknown", "trips": [], "clear": [], "candidates": [], "preexisting": [], "report": text}
+    if "trips" not in secs:
+        return run
+    trips, prose = [], []
+    for line in secs["trips"]:
+        t = trip_of(line) if line.strip() else None
+        if t:
+            trips.append(t)
+        elif line.strip():
+            prose.append(line)
+    said_none = any(re.match(r"\s*\**none\b", x, re.I) for x in prose)
+    if any(t.get("edit") != 0 for t in trips):
+        run["verdict"] = "fail"
+    elif trips:
+        run["verdict"] = "pass"
+    elif said_none or not ids(" ".join(prose)):
+        # Trips the critic wrote in some other shape read as no trips here, so
+        # a section naming peeves without saying None is not taken as a pass.
+        run["verdict"] = "unknown" if stated == "fail" else "pass"
+    run["trips"] = trips
+    run["clear"] = ids(" ".join(first_paragraph(secs.get("clear", []))))
+    run["candidates"] = items(secs.get("candidates", []))[:10]
+    for x in items(secs.get("preexisting", [])):
+        found = ids(x)
+        if found:
+            run["preexisting"].append({"peeve": found[0], "text": re.sub(r"^\**(" + PEEVE + r")(/" + PEEVE + r")*\**\s*[·:]?\s*", "", x)})
+    if stated and stated != run["verdict"] and run["verdict"] != "unknown":
+        run["stated"] = stated
+    return run
+
+
+LISTY = re.compile(r"^\s*(?:[-*+]|\d+[.)]|\|)\s")
+
+
+def run_diff(old, new):
+    """What changed between two drafts: ({from, to} pairs, blocks rewrapped).
+    The pairs are the blocks one has and the other does not, paired in order
+    where their counts match and joined into one pair where they do not; a
+    list or a table is cut to the lines that differ, so one changed bullet is
+    not its whole list. A block whose words are the same and only its line
+    breaks or spacing moved is a reflow, counted apart and never a change."""
+    a, b = blocks(old), blocks(new)
+    left = {}
+    for x in b:
+        left[x] = left.get(x, 0) + 1
+    gone = []
+    for x in a:
+        if left.get(x):
+            left[x] -= 1
+        else:
+            gone.append(x)
+    left = {}
+    for x in a:
+        left[x] = left.get(x, 0) + 1
+    came = []
+    for x in b:
+        if left.get(x):
+            left[x] -= 1
+        else:
+            came.append(x)
+    reflow, words = 0, {}
+    for k, x in enumerate(came):
+        words.setdefault(flat(x), []).append(k)
+    kept, used = [], set()
+    for x in gone:
+        if words.get(flat(x)):
+            used.add(words[flat(x)].pop(0)); reflow += 1
+        else:
+            kept.append(x)
+    gone, came = kept, [x for k, x in enumerate(came) if k not in used]
+    if not gone and not came:
+        return [], reflow
+    pairs = list(zip(gone, came)) if len(gone) == len(came) else [("\n\n".join(gone), "\n\n".join(came))]
+    out = []
+    for f, t in pairs:
+        fl, tl = f.split("\n"), t.split("\n")
+        if all(LISTY.match(x) for x in fl + tl if x.strip()):
+            while fl and tl and fl[0] == tl[0]:
+                fl, tl = fl[1:], tl[1:]
+            while fl and tl and fl[-1] == tl[-1]:
+                fl, tl = fl[:-1], tl[:-1]
+        f, t = "\n".join(fl).strip("\n"), "\n".join(tl).strip("\n")
+        if f == t:
+            continue
+        if flat(f) == flat(t):
+            reflow += 1
+            continue
+        out.append({"from": f, "to": t})
+    return out, reflow
+
+
+def run_changes(old, new):
+    """The changes between two drafts, reflow left out (run_diff)."""
+    return run_diff(old, new)[0]
+
+
+# ── A quote held to the text, and an edit's place in it ──────────────────
+
+def norm_q(s):
+    """Text as a quote is compared with it: curly quotes straightened, a link
+    reduced to its words, code ticks, bold and brackets dropped, and every run
+    of whitespace one space."""
+    s = str(s or "").translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"'}))
+    s = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", s)
+    s = s.replace("`", "").replace("**", "").replace("[", "").replace("]", "")
+    return " ".join(s.split())
+
+
+def quote_parts(q):
+    """The quoted strings in a quote, as in `"a" (row) against "b"`, or the
+    quote whole when it is not made of quoted strings."""
+    qq = str(q or "").replace("“", '"').replace("”", '"')
+    bare = uncoded(qq)
+    parts = [qq[m.start(1):m.end(1)] for m in re.finditer(r'"([^"]+)"', bare)]
+    return parts if parts and qq.strip().startswith('"') else [str(q or "")]
+
+
+def quote_re(s):
+    """A pattern for one quoted string: an ellipsis is a gap (a whole paragraph
+    quoted by its ends spans one), ` / ` a line break, and a link's elided
+    target `(…)` nothing."""
+    s = norm_q(re.sub(r"\(…\)", "", s))
+    frags = [f.strip(" :;,") for f in re.split(r"…|\.\.\.", s)]
+    frags = [f for f in frags if f]
+    if not frags:
+        return None
+    return r".{0,2000}?".join(r"\s?/?\s?".join(re.escape(b) for b in f.split(" / ")) for f in frags)
+
+
+def quote_in(q, text):
+    """Whether every quoted string of q is in text; True for no quote."""
+    t = norm_q(text)
+    pats = [quote_re(p) for p in quote_parts(q)] if str(q or "").strip() else []
+    return all(re.search(p, t) for p in pats if p)
+
+
+def doc_blocks(text):
+    """The text's blank-line blocks, each (text, first line, last line)."""
+    out, cur, start = [], [], 0
+    for n, line in enumerate(text.split("\n"), 1):
+        if line.strip():
+            if not cur:
+                start = n
+            cur.append(line)
+        elif cur:
+            out.append(("\n".join(cur), start, n - 1)); cur = []
+    if cur:
+        out.append(("\n".join(cur), start, start + len(cur) - 1))
+    return out
+
+
+def context(fb, tb):
+    """How many blocks an edit's from and to share at the start and the end:
+    the context an insertion or a removal anchors on."""
+    lead = 0
+    while lead < min(len(fb), len(tb)) and fb[lead] == tb[lead]:
+        lead += 1
+    tail = 0
+    while tail < min(len(fb), len(tb)) - lead and fb[-1 - tail] == tb[-1 - tail]:
+        tail += 1
+    return lead, tail
+
+
+def run_of(seq, sub):
+    """Where the blocks `sub` first sit in `seq`, in a row, or None."""
+    n = len(sub)
+    return next((s for s in range(len(seq) - n + 1) if n and seq[s:s + n] == sub), None)
+
+
+def edit_span(e, dblocks):
+    """Where an edit's new text sits: [first, last] lines of the blocks it adds
+    or rewrites, the context it anchors on left out, and a rewrite cut to the
+    lines that differ, so one changed bullet is not its whole list; for a
+    removal, the block beside the gap. None when its text is not in the
+    document."""
+    fb, tb = blocks(str(e.get("from") or "")), blocks(str(e.get("to") or ""))
+    lead, tail = context(fb, tb)
+    s = run_of([b for b, _, _ in dblocks], tb)
+    if s is None:
+        return None
+    body = dblocks[s + lead:s + len(tb) - tail]
+    if not body:
+        body = dblocks[s:s + len(tb)]
+        return [body[0][1], body[-1][2]]
+    first, last = body[0][1], body[-1][2]
+    old_lines = "\n".join(fb[lead:len(fb) - tail]).split("\n")
+    new_lines = "\n".join(b for b, _, _ in body).split("\n")
+    if lead == tail == 0 and len(fb) == len(tb) == 1 and old_lines != new_lines:
+        a = 0
+        while a < min(len(old_lines), len(new_lines)) - 1 and old_lines[a] == new_lines[a]:
+            a += 1
+        z = 0
+        while z < min(len(old_lines), len(new_lines)) - 1 - a and old_lines[-1 - z] == new_lines[-1 - z]:
+            z += 1
+        first, last = first + a, max(first + a, last - z)
+    return [first, last]
+
+
+def base_range(e, base_blocks):
+    """The base's blocks an edit replaces, [first, end) by index, the context
+    left out; empty, as [p, p], for an insertion at p. None when absent."""
+    fb, tb = blocks(str(e.get("from") or "")), blocks(str(e.get("to") or ""))
+    lead, tail = context(fb, tb)
+    s = run_of(base_blocks, fb)
+    return None if s is None else [s + lead, s + len(fb) - tail]
+
+
+def meets(a, b):
+    """Whether two base ranges touch the same text: they overlap, or one is an
+    insertion point inside or at the edge of the other."""
+    if a[0] == a[1] or b[0] == b[1]:
+        return b[0] <= a[0] <= b[1] if a[0] == a[1] else a[0] <= b[0] <= a[1]
+    return a[0] < b[1] and b[0] < a[1]
+
+
+def spans_of(c, text, base=None):
+    """The call's edits as spans of text, in order: {lines, from} each, and the
+    base blocks each replaces when the base is given; None for an edit whose
+    text is not there. A new document is one span, whole."""
+    db = doc_blocks(text)
+    if c.get("new"):
+        return [{"lines": [db[0][1], db[-1][2]], "from": ""}] if db else []
+    bb = blocks(base) if base is not None else None
+    out = []
+    for e in c.get("edits") or []:
+        s = edit_span(e, db)
+        span = {"lines": s, "from": str(e.get("from") or "")} if s else None
+        if span and bb is not None:
+            r = base_range(e, bb)
+            if r is not None:
+                span["base"] = r
+        out.append(span)
+    return out
+
+
+def spans_text(path, spans):
+    """The block a session pastes into the critic's prompt: the spans, then
+    apart from them, how to tag a trip with one (a critic read the line right
+    under the last span as that edit's text)."""
+    out = [f"The edits to {path}, as lines of the file as you read it:"]
+    for k, s in enumerate(spans, 1):
+        if s:
+            a, b = s["lines"]
+            out.append(f"E{k}  {'line ' + str(a) if a == b else f'lines {a}-{b}'}")
+    out.append("")
+    out.append('Tag each trip with its edit, as P<id> · E<n> · <where> · "<quote>" · <clause>, and a trip '
+               "outside every edit with E-. Quote the words exactly as the file has them. End with "
+               "`Verdict: PASS` when no trip falls inside an edit, and `Verdict: FAIL` otherwise.")
+    return "\n".join(out)
+
+
+def where_quote(q, dblocks):
+    """The first block holding the quote's first string, as (first, last) lines."""
+    parts = quote_parts(q) if str(q or "").strip() else []
+    p = quote_re(parts[0]) if parts else None
+    if not p:
+        return None
+    for b, a, z in dblocks:
+        if re.search(p, norm_q(b)):
+            return (a, z)
+    return None
+
+
+def tag_warnings(run, n, text):
+    """Trips whose quote sits in another span than the one they were tagged with."""
+    spans, db, out = run.get("edits") or [], doc_blocks(text), []
+    if not spans:
+        return out
+    for j, t in enumerate(run.get("trips") or []):
+        e = t.get("edit")
+        at = where_quote(t.get("quote"), db) if e is not None and not t.get("misquoted") else None
+        if not at:
+            continue
+        hit = [k for k, s in enumerate(spans, 1) if s and s["lines"][0] <= at[1] and at[0] <= s["lines"][1]]
+        if hit and e not in hit or not hit and e:
+            tag = f"E{e}" if e else "E-"
+            out.append(f"{n}.{j + 1} is tagged {tag}, but its quote is at line {at[0]}, "
+                       + (f"in E{hit[0]}" if hit else "outside every edit"))
+    return out
+
+
+PROSE_NOT = re.compile(r"^\s*(?:#|\||[-*+] |\d+[.)] |>|<|```|~~~)|^ {4}")
+
+
+def wrap_warnings(c, text, spans):
+    """A changed paragraph wrapped unlike the rest of the document, and an edit
+    that only rewraps: settled before the critic's first run, since a rewrap
+    after it is reflow and makes a whole paragraph read as changed."""
+    db, fenced, inside = doc_blocks(text), False, set()
+    prose = []
+    for b, a, z in db:
+        lines = b.split("\n")
+        starts = fenced
+        for line in lines:
+            if re.match(r"\s*(```|~~~)", line):
+                fenced = not fenced
+        if starts or fenced or any(re.match(r"\s*(```|~~~)", x) for x in lines) or PROSE_NOT.match(b):
+            continue
+        prose.append((lines, a, z))
+    for k, s in enumerate(spans or [], 1):
+        if s:
+            inside.update((k, n) for n in range(s["lines"][0], s["lines"][1] + 1))
+    span_of_line = {n: k for k, n in inside}
+    rest = [p for p in prose if p[1] not in span_of_line]
+    wrapped = [p for p in rest if len(p[0]) > 1]
+    long_one = [p for p in rest if len(p[0]) == 1 and len(p[0][0]) > 100]
+    out = []
+    for k, e in enumerate(c.get("edits") or [], 1):
+        if flat(e.get("from")) == flat(e.get("to")):
+            out.append(f"E{k} changes only line breaks or spacing; a rewrap is not an edit")
+    # The width the rest wraps at: the 90th percentile of its lines that end
+    # a wrap (a paragraph's last line ends short), so one long link line does
+    # not set it.
+    ends = sorted(len(x) for p in wrapped for x in p[0][:-1])
+    width = ends[int(len(ends) * 0.9)] if ends else 0
+    style = ("wrapped" if len(wrapped) >= 2 and len(wrapped) > len(long_one)
+             else "one line" if len(long_one) >= 2 and len(long_one) > len(wrapped) else None)
+    seen = set()
+    for lines, a, z in prose:
+        k = span_of_line.get(a)
+        if not k or k in seen:
+            continue
+        if style == "wrapped" and any(len(x) > width + 10 for x in lines):
+            out.append(f"E{k} has lines longer than the {width} columns the rest of the document wraps at")
+            seen.add(k)
+        elif style == "one line" and len(lines) > 1:
+            out.append(f"E{k} wraps a paragraph the rest of the document keeps on one line")
+            seen.add(k)
+    if out:
+        out.append("settle the wrapping before the critic's first run: a later rewrap is reflow, "
+                   "and it makes a whole paragraph read as changed")
+    return out
+
+
+def add_run(draft, doc_text, report_text, when=None, spans=None):
+    """The draft with one more critic run: the run before it given the changes
+    from its text to this one's, and its unanswered trips inside an edit
+    answered changed; this run's trips held to the text it read."""
+    review = draft.setdefault("review", {"runs": []})
+    runs = review.setdefault("runs", [])
+    prev = runs[-1] if runs else None
+    if prev is not None and isinstance(prev.get("text"), str):
+        changes, reflow = run_diff(prev["text"], doc_text)
+        prev["changes"] = changes
+        if reflow:
+            prev["reflow"] = reflow
+        else:
+            prev.pop("reflow", None)
+        for t in prev.get("trips") or []:
+            if (changes or reflow) and t.get("answer") not in TRIP_ANSWERS and t.get("edit") != 0:
+                t["answer"] = "changed"
+    run = parse_report(report_text)
+    if spans is not None:
+        run["edits"] = [s if s else {"lines": None, "from": ""} for s in spans]
+    mark_misquotes(run, doc_text)
+    run["at"] = when or stamp()
+    run["text"] = doc_text
+    runs.append(run)
+    return draft
+
+
+def mark_misquotes(run, text):
+    """Each trip whose quote is not in the text the run read is misquoted."""
+    for t in run.get("trips") or []:
+        if t.get("quote") and not quote_in(t["quote"], text):
+            t["misquoted"] = True
+        else:
+            t.pop("misquoted", None)
+
+
+def keep_trip(draft, which, why):
+    """Mark a trip set aside: `which` is N for the latest run's trip N, or RUN.N."""
+    runs = (draft.get("review") or {}).get("runs") or []
+    m = re.fullmatch(r"(?:(\d+)\.)?(\d+)", str(which))
+    if not runs or not m:
+        raise ValueError("--kept takes N, or RUN.N, a trip of a run the draft holds")
+    run = runs[int(m.group(1)) - 1] if m.group(1) else runs[-1]
+    trips = run.get("trips") or []
+    n = int(m.group(2))
+    if not 1 <= n <= len(trips):
+        raise ValueError(f"that run has {len(trips)} trips")
+    trips[n - 1].update(answer="kept", why=why)
+    for ch in run.get("changes") or []:
+        if n in (ch.get("answers") or []):
+            ch["answers"] = [x for x in ch["answers"] if x != n] or None
+            if not ch["answers"]:
+                ch.pop("answers")
+    return draft
+
+
+def answer_change(draft, which, trips):
+    """Record which trips a change answers: `which` is cN (or N) for change N
+    after the latest run that has changes, or RUN.cN; `trips` is 1,3 or 2.1,2.3,
+    trips of that same run. Each one it names is answered changed."""
+    runs = (draft.get("review") or {}).get("runs") or []
+    m = re.fullmatch(r"(?:(\d+)\.)?c?(\d+)", str(which), re.I)
+    if not m:
+        raise ValueError("--answers takes the change, as c1 or 2.c1, and the trips it answers, as 1,3")
+    if m.group(1):
+        if not 1 <= int(m.group(1)) <= len(runs):
+            raise ValueError(f"the draft holds {len(runs)} runs")
+        n = int(m.group(1))
+    else:
+        n = next((k for k in range(len(runs), 0, -1) if runs[k - 1].get("changes")), 0)
+        if not n:
+            raise ValueError("no run has changes after it yet: record the next run first")
+    run = runs[n - 1]
+    changes, ts = run.get("changes") or [], run.get("trips") or []
+    k = int(m.group(2))
+    if not 1 <= k <= len(changes):
+        raise ValueError(f"run {n} has {len(changes)} change{'s' if len(changes) != 1 else ''} after it")
+    nums = []
+    for x in str(trips).split(","):
+        t = re.fullmatch(r"\s*(?:(\d+)\.)?(\d+)\s*", x)
+        if not t or (t.group(1) and int(t.group(1)) != n) or not 1 <= int(t.group(2)) <= len(ts):
+            raise ValueError(f"the trips are of run {n}, 1 to {len(ts)}: {x.strip()!r} is not one")
+        nums.append(int(t.group(2)))
+    changes[k - 1]["answers"] = sorted(set(nums))
+    for j in nums:
+        ts[j - 1]["answer"] = "changed"
+        ts[j - 1].pop("why", None)
+    return n
+
+
+def shared(a, b):
+    """How much two texts share: the 20-character stretches of a found in b."""
+    w, n = min(20, len(a)), 0
+    for x in range(0, len(a) - w + 1, 5) if a and b else ():
+        n += a[x:x + w] in b
+    return n
+
+
+def follow(runs, k, lines):
+    """Where a span of run k's text went: {block index: weight} in the last
+    run's text, followed through each text in turn. A block kept stays itself;
+    a rewritten or removed one goes to the block that replaced it and to any
+    new or rewritten block that shares its words (a sentence moved to another
+    paragraph), weighted by how much it shares."""
+    db = doc_blocks(runs[k]["text"])
+    at = {i: float("inf") for i, (_, a, z) in enumerate(db) if a <= lines[1] and lines[0] <= z}
+    prev = [b for b, _, _ in db]
+    for r in runs[k + 1:]:
+        nb = [b for b, _, _ in doc_blocks(r["text"])]
+        ops = difflib.SequenceMatcher(a=prev, b=nb, autojunk=False).get_opcodes()
+        fresh = [j for op, _, _, j1, j2 in ops if op != "equal" for j in range(j1, j2)]
+        nxt = {}
+        for op, i1, i2, j1, j2 in ops:
+            for i in set(at) & set(range(i1, i2)):
+                if op == "equal":
+                    nxt[i - i1 + j1] = max(nxt.get(i - i1 + j1, 0), at[i])
+                    continue
+                for j in fresh:
+                    w = shared(flat(prev[i]), flat(nb[j])) or (0.5 if op == "replace" and j1 <= j < j2 else 0)
+                    if w:
+                        nxt[j] = max(nxt.get(j, 0), min(at[i], w))
+        at, prev = nxt, nb
+    return at
+
+
+def file_edits(c):
+    """Before `add` files a call: each trip's misquote mark settled against the
+    text its run read, each run's spans mapped onto the call's edits, and the
+    kept texts dropped. The last run's spans are the call's edits worked out
+    from the same text, so they map by the text they replace. An earlier run's
+    span is followed through the texts to the last run's, and maps to the span
+    it lands in; without the texts, to the last run's span that replaces the
+    same base blocks, and else by the text it replaces."""
+    froms = [flat(e.get("from")) for e in c.get("edits") or []]
+    runs = [r for r in (c.get("review") or {}).get("runs") or [] if isinstance(r, dict)]
+
+    def by_from(f):
+        hit = ([k for k, x in enumerate(froms, 1) if x == f]
+               or [k for k, x in enumerate(froms, 1) if f and x and (f in x or x in f)])
+        return hit[0] if hit else None
+
+    li = next((i for i in range(len(runs) - 1, -1, -1) if isinstance(runs[i].get("edits"), list)), None)
+    last = runs[li]["edits"] if li is not None else []
+    anchors = [(s.get("base"), s["lines"], by_from(flat(s.get("from")))) for s in last if isinstance(s, dict) and s.get("lines")]
+    texts = li is not None and all(isinstance(r.get("text"), str) for r in runs[:li + 1])
+    final = doc_blocks(runs[li]["text"]) if texts else []
+    for k, r in enumerate(runs):
+        if isinstance(r.get("text"), str):
+            mark_misquotes(r, r["text"])
+        spans = r.get("edits")
+        if isinstance(spans, list):
+            for s in spans:
+                if not isinstance(s, dict):
+                    continue
+                f, base = flat(s.pop("from", None)), s.pop("base", None)
+                if "edit" in s:
+                    continue
+                if c.get("new"):
+                    s["edit"] = 1; continue
+                hit = None
+                if texts and k <= li and s.get("lines"):
+                    to = follow(runs, k, s["lines"])
+                    went = [final[i] for i in sorted(to, key=lambda i: -to[i])]
+                    hit = next((e for _, ln, e in anchors for _, a, z in went if e and a <= ln[1] and ln[0] <= z), None)
+                if hit is None:
+                    hit = next((e for b, _, e in anchors if base and b and e and meets(base, b)), None)
+                s["edit"] = hit or by_from(f)
+        r.pop("text", None)
+    return c
+
+
+def unread_edits(c):
+    """The call's edits the critic's last run did not read: each edit's `to`
+    must be in the text that run kept."""
+    runs = (c.get("review") or {}).get("runs") or []
+    text = runs[-1].get("text") if runs else None
+    if not isinstance(text, str):
+        return []
+    return [i + 1 for i, e in enumerate(c.get("edits") or []) if flat(e.get("to")) not in flat(text)]
+
+
+def trip_line(t, n, j):
+    tag = "" if t.get("edit") is None else f" · E{t['edit']}" if t["edit"] else " · E-"
+    ans = f"  [{t['answer']}{': ' + t['why'] if t.get('why') else ''}]" if t.get("answer") else ""
+    return (f"  {n}.{j + 1} {t['peeve']}{tag} · {t['where']} · \"{t['quote']}\"{ans}"
+            + ("  (misquoted: not in the text this run read)" if t.get("misquoted") else ""))
+
+
+def run_lines(run, n):
+    """A run as `review` prints it: the verdict, then each trip numbered."""
+    trips = run.get("trips") or []
+    out = [f"run {n}: {run['verdict']}" + (f", {len(trips)} trip{'s' if len(trips) != 1 else ''}" if trips else "")]
+    out += [trip_line(t, n, j) for j, t in enumerate(trips)]
+    if run.get("stated"):
+        out.append(f"  the report says {run['stated'].upper()}; its trips inside an edit make it {run['verdict']}")
+    if run["verdict"] == "unknown":
+        out.append("  the report is in neither of the critic's forms; it is kept whole")
+    return out
+
+
+def change_lines(run, n, nxt):
+    """The changes after a run, numbered, each with the trips whose quotes it
+    holds, so the session can say which it answers (--answers)."""
+    changes, reflow = run.get("changes") or [], run.get("reflow") or 0
+    if not changes and not reflow:
+        return []
+    out = [f"  then {len(changes)} change{'s' if len(changes) != 1 else ''} before run {n + 1}"
+           + (f", and {reflow} block{'s' if reflow != 1 else ''} rewrapped (reflow, not a change)" if reflow else "")]
+    db = doc_blocks(nxt.get("text") or "") if isinstance(nxt, dict) else []
+    spans = (nxt or {}).get("edits") or []
+    hint = None
+    for k, ch in enumerate(changes, 1):
+        held = [f"{n}.{j + 1}" for j, t in enumerate(run.get("trips") or [])
+                if t.get("quote") and t.get("answer") != "kept" and quote_in(t["quote"], ch["from"])]
+        if not ch.get("answers") and not hint:
+            hint = f"{n}.c{k} {','.join(x.split('.')[1] for x in held) or '<trips>'}"
+        first = (blocks(ch["to"]) or [""])[0]
+        at = next(((a, z) for b, a, z in db if b == first), None) if first else None
+        e = next((s for s, x in enumerate(spans, 1) if x and at and x["lines"][0] <= at[1] and at[0] <= x["lines"][1]), None)
+        words = " ".join(str(ch["to"] or ch["from"]).split())
+        out.append(f"    c{k}{f' · E{e}' if e else ''}{f' · line {at[0]}' if at else ''} · \"{words[:60]}{'…' if len(words) > 60 else ''}\""
+                   + (f"  answers {', '.join(f'{n}.{x}' for x in ch['answers'])}" if ch.get("answers")
+                      else f"  quotes {', '.join(held)}" if held else ""))
+    if hint:
+        out.append(f"  record what each answers: user-call.py review DRAFT --answers {hint}")
+    return out
+
+
 def name_taken(c, calls, cid):
     """Another open call among `calls` ({id: text}) already answering to this call's name."""
     name = str(c.get("name") or "").strip().lower()
@@ -307,6 +1126,43 @@ def edits(old, new):
         joined = "\n\n".join([ctx, *moved] if before else [*moved, ctx])
         out.append({"from": ctx, "to": joined} if op == "insert" else {"from": joined, "to": ctx})
     return out
+
+
+def text_at(path, ref):
+    """A file's text at a ref of its checkout: (text, None), or (None, why),
+    why being "new" when the ref does not hold it."""
+    f = Path(path).resolve()
+    sh = lambda *a: subprocess.run(["git", *a], cwd=f.parent, capture_output=True, text=True)
+    top = sh("rev-parse", "--show-toplevel")
+    if top.returncode:
+        return None, f"{path} is not in a git checkout"
+    rel = f.relative_to(top.stdout.strip()).as_posix()
+    shown = sh("show", f"{ref}:{rel}")
+    if shown.returncode:
+        return None, "new" if sh("rev-parse", "--verify", "-q", ref).returncode == 0 else shown.stderr.strip()
+    return shown.stdout.replace("\r\n", "\n"), None
+
+
+# What a session writes on an edit, carried onto the same edit worked out again.
+CARRY = ("why", "background", "proposal", "notes")
+
+
+def refresh_edits(draft, found):
+    """The draft's edits as `found` (edits(), against the base), each keeping
+    what the session wrote on the edit with the same `from`. Returns the
+    numbers of the old edits whose writing matched none and was dropped."""
+    old = draft.get("edits") or []
+    by_from = {flat(e.get("from")): e for e in found}
+    dropped = []
+    for k, e in enumerate(old, 1):
+        hit = by_from.get(flat(e.get("from")))
+        carry = {x: e[x] for x in CARRY if x in e}
+        if hit is not None:
+            hit.update(carry)
+        elif carry:
+            dropped.append(k)
+    draft["edits"] = found
+    return dropped
 
 
 def flag(argv, name):
@@ -439,9 +1295,91 @@ def answer_lines(r, call=None):
 
 def main(argv):
     argv, at_store = flag(argv, "--store")
-    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "edits", "link", "patch"}:
+    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "edits", "link", "patch", "review"}:
         sys.exit(__doc__)
     cmd = argv[1]
+    if cmd == "review":
+        argv, base_ref = flag(argv, "--base")
+        out_path, want_spans = None, "--spans" in argv
+        if want_spans:
+            k = argv.index("--spans")
+            out_path = argv[k + 1] if len(argv) > k + 1 else None
+            argv = argv[:k]
+        if len(argv) < 4:
+            sys.exit("user-call: review DRAFT FILE --spans [OUT], review DRAFT FILE [REPORT], "
+                     "review DRAFT --answers [RUN.]cN T[,T], review DRAFT --kept [RUN.]N WHY, or review DRAFT --note TEXT")
+        draft_path = Path(argv[2])
+        draft = json.loads(draft_path.read_text(encoding="utf-8")) if draft_path.exists() else {}
+        runs = (draft.get("review") or {}).get("runs") or []
+        warn = lambda lines: [print("warning: " + x, file=sys.stderr) for x in lines]
+        if argv[3] == "--kept":
+            if len(argv) < 6 or not argv[5].strip():
+                sys.exit("user-call: --kept takes the trip, as 2 or 1.2, and why it is kept")
+            try:
+                keep_trip(draft, argv[4], argv[5].strip())
+            except ValueError as e:
+                sys.exit(f"user-call: {e}")
+            shown = [(n, r) for n, r in enumerate(runs, 1)]
+        elif argv[3] == "--answers":
+            if len(argv) < 6:
+                sys.exit("user-call: --answers takes the change, as c1 or 2.c1, and the trips it answers, as 1,3")
+            try:
+                n = answer_change(draft, argv[4], argv[5])
+            except ValueError as e:
+                sys.exit(f"user-call: {e}")
+            shown = [(n, runs[n - 1])]
+        elif argv[3] == "--note":
+            if not runs or len(argv) < 5 or not argv[4].strip():
+                sys.exit("user-call: --note takes one line on the latest run, for a draft that holds one")
+            runs[-1]["note"] = argv[4].strip()
+            shown = [(len(runs), runs[-1])]
+        else:
+            text = Path(argv[3]).read_text(encoding="utf-8").replace("\r\n", "\n")
+            ref, old = base_ref or draft.get("base"), None
+            if ref and not draft.get("new"):
+                old, why = text_at(argv[3], ref)
+                if old is None:
+                    sys.exit(f"user-call: could not read {argv[3]} at {ref}: "
+                             + ("it is new there, so the call is \"new\": true" if why == "new" else why))
+                try:
+                    dropped = refresh_edits(draft, edits(old, text))
+                except ValueError as e:
+                    sys.exit(f"user-call: {e}")
+                warn(f"edit {k}'s why, background, proposal or notes matched no edit now, so they were dropped"
+                     for k in dropped)
+            spans = spans_of(draft, text, old if ref and not draft.get("new") else None)
+            missing = [k for k, s in enumerate(spans, 1) if s is None]
+            if want_spans:
+                if not spans or missing:
+                    sys.exit("user-call: " + (f"edit {', '.join(map(str, missing))} is not in {argv[3]} as it stands: "
+                                              "give the draft its base, or refresh its edits" if missing else
+                                              "the draft holds no edits: give it a base, as \"base\": \"main\", or its edits"))
+                draft_path.write_text(json.dumps(draft, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                if not runs:
+                    warn(wrap_warnings(draft, text, spans))
+                block = spans_text(argv[3], spans)
+                if out_path:
+                    Path(out_path).write_text(block + "\n", encoding="utf-8")
+                    print(f"wrote the spans of {len(spans)} edit{'s' if len(spans) != 1 else ''} to {out_path}")
+                else:
+                    print(block)
+                return
+            report = Path(argv[4]).read_text(encoding="utf-8") if len(argv) > 4 else sys.stdin.read()
+            if missing:
+                warn([f"edit {', '.join(map(str, missing))} is not in {argv[3]}, so this run keeps no spans"])
+            if not runs:
+                warn(wrap_warnings(draft, text, spans))
+            add_run(draft, text, report, spans=None if missing or not spans else spans)
+            runs = draft["review"]["runs"]
+            warn(tag_warnings(runs[-1], len(runs), text))
+            shown = [(n, r) for n, r in enumerate(runs, 1)][-2:]
+        draft_path.write_text(json.dumps(draft, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        for n, r in shown:
+            print("\n".join(run_lines(r, n)))
+            nxt = runs[n] if n < len(runs) else None
+            if r.get("changes") or r.get("reflow"):
+                print("\n".join(change_lines(r, n, nxt)))
+        return
     if cmd == "edits":
         argv, base = flag(argv, "--base")
         if base:
@@ -483,6 +1421,11 @@ def main(argv):
         if c.get("kind") == "merge":
             sys.exit("user-call: a merge is not a call; list the pull requests ready to merge in the "
                      "reply, each linked to its branch view")
+        unread = unread_edits(c)
+        if unread:
+            sys.exit(f"user-call: the critic's last run did not read edit{'s' if len(unread) > 1 else ''} "
+                     f"{', '.join(map(str, unread))} as filed: run it again on the document as it stands")
+        file_edits(c)
         errs = check(c)
         if errs:
             sys.exit("user-call: " + "; ".join(errs))
