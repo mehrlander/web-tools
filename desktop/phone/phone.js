@@ -33,6 +33,7 @@
     facet:`flex-1 min-w-0 min-h-[34px] py-1 px-1.5 text-xs leading-[18px] text-[#7b7265] rounded-[5px] whitespace-nowrap aria-selected:bg-white aria-selected:text-[#3d362c] aria-selected:shadow-[0_1px_3px_#29252414] aria-selected:font-[550] pointer-coarse:min-h-10 ${focusStyle}`,
     detailBody:'phone-detail-body text-[17px] leading-[1.65] text-[#5e5549] [overflow-wrap:anywhere] min-h-20 [&_p]:my-[.7em] [&_pre]:whitespace-pre-wrap [&_pre]:[overflow-wrap:anywhere] [&_a]:text-[#277b67] [&_a]:underline [&_a]:underline-offset-2',
     sessionStep:`grid size-10 place-items-center rounded text-xl text-[#686156] disabled:opacity-30 ${focusStyle}`,
+    topicButton:`inline-flex min-h-7 items-center gap-1.5 rounded px-1 text-xs tabular-nums text-stone-600 [&_svg]:size-3.5 [&_svg]:shrink-0 ${focusStyle}`,
     dialogTitle:'text-[15px] font-semibold leading-[21px] pr-[25px] mt-0 mx-0 mb-[9px] [overflow-wrap:anywhere]',
     dialogNote:'my-2 text-[#817565]',
     dialogCounts:'grid grid-cols-[minmax(0,1fr)_auto] gap-y-[5px] gap-x-3 my-3 [&_dd]:tabular-nums [&_dd]:text-right'
@@ -57,6 +58,12 @@
   const mark = (provider, cls = 'size-5 shrink-0') => window.assistantMark?.svg(keyFor(provider), {cls}) || '';
   const paths = {working:'M3 12h4l3-8 4 16 3-8h4',quiet:'M8 5v14M16 5v14',idle:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0',queued:'M7 3h10M7 21h10M8 3v5l8 8v5M16 3v5l-8 8v5',claimed:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',reply:'M5 9H2V6m0 3a9 9 0 1 1 1 9',complete:'m5 12 4 4L19 6',failed:'m12 3 10 18H2Zm0 6v5m0 3h.01',attention:'M8 12V7a2 2 0 0 1 4 0v4m0-4a2 2 0 0 1 4 0v5m0-3a2 2 0 0 1 4 0v6c0 4-3 6-7 6-3 0-4-1-6-4l-3-4a2 2 0 0 1 3-2l1 1',more:'M12 5h.01M12 12h.01M12 19h.01'};
   paths.declined = 'M8 12h8M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0';
+  paths.topicOwner = 'M8 19c0-5 8-5 8 0M15 9a3 3 0 1 1-6 0 3 3 0 0 1 6 0M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0';
+  paths.topicSession = 'M3 5h18v14H3ZM3 9h18M7 12l2 2-2 2m5 0h4';
+  paths.topicExternal = 'M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0M3 12h18M12 3c5 5 5 13 0 18-5-5-5-13 0-18';
+  paths.topicDropped = 'm9 9 6 6m0-6-6 6M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0';
+  paths.topics = 'M4 5h16v12H9l-5 4Zm4 4h8m-8 4h5';
+  paths.members = 'M5 3h14v18H5Zm3 5h8m-8 4h8m-8 4h5';
   const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${name === 'more' ? 3 : 1.7}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.idle}"/></svg>`;
   function status(item) {
     if (item.state === 'failed') return {glyph:'failed',label:'Needs review: failed',tone:'attention'};
@@ -97,16 +104,50 @@
   const latestWork = item => item.work?.segments?.[0];
   const usefulDetail = item => item.detail === 'Response recorded' ? '' : item.detail;
   const replyPreview = text => String(window.NowReading?.notification(text)?.summary || text || '').replace(/\[([^\]]+)\]\([^\s)]+\)/g,'$1').replace(/(^|\n)\s{0,3}#{1,6}\s+/g,'$1').replace(/[*`]/g,'').replace(/\s+/g,' ').trim();
+  const substantive = value => {
+    const text = replyPreview(value);
+    return !text || /^(?:Prompt received[.!]?|Response recorded[.!]?|Conversation (?:running|idle|interrupted)[.!]?|No recent (?:event|activity|update)[.!]?|Turn has no recent\b.*|Working with \d+ agents?[.!]?|Delegated work: \d+ agents?[.!]?)$/i.test(text) ? '' : text;
+  };
   function statusText(item) {
     const work = latestWork(item);
-    if (work) return `${Date.parse(item.at) - Date.parse(item.work.through) > 180000 ? 'Last summary: ' : ''}${work.summary}`;
-    if (item.turn && item.state === 'idle') {
-      const reply = replyPreview(item.turn.response);
-      return reply ? `Reply: ${reply}` : item.checkpoint?.headline ? `Last summary: ${item.checkpoint.headline}` : '';
-    }
-    return item.turn && ['working','quiet','interrupted'].includes(item.state) ? usefulDetail(item) : item.checkpoint?.headline || usefulDetail(item);
+    const candidates = [
+      {kind:'summary',text:substantive(work?.summary),at:work?.at || item.work?.through || work?.generatedAt},
+      {kind:'summary',text:substantive(item.checkpoint?.summary) || substantive(item.checkpoint?.headline),at:item.checkpoint?.at || item.checkpoint?.analyzedAt},
+      {kind:'reply',text:substantive(item.turn?.response),at:item.turn?.updatedAt},
+    ].filter(candidate => candidate.text).sort((a,b) => (Date.parse(b.at) || 0) - (Date.parse(a.at) || 0));
+    const latest = candidates[0];
+    if (latest) return (latest.kind === 'reply' ? 'Last reply: ' : 'Last summary: ') + latest.text;
+    const activity=related(item).find(member=>member.key===item.activityKey)||item;
+    const action = substantive(usefulDetail(activity)) || (activity.turn?.lastTool ? 'Used '+activity.turn.lastTool : '');
+    return action ? 'Last activity: '+action : '';
   }
-  const itemTitle = item => latestWork(item)?.headline || item.title;
+  const topics = item => Array.isArray(item.checkpoint?.topics) ? item.checkpoint.topics.filter(topic => typeof topic?.topic === 'string' && topic.topic.trim()) : [];
+  function leadTopic(item) {
+    return topics(item).filter(topic => !topic.minor && Number.isSafeInteger(topic.last) && topic.last >= 0
+      && Array.isArray(topic.spans) && topic.spans.some(span => Number.isSafeInteger(span?.start) && span.start > 0 && Number.isSafeInteger(span.end) && span.end >= span.start))
+      .sort((a,b) => b.last-a.last)[0];
+  }
+  const usefulTitle = value => {
+    const text=substantive(value);
+    return /^(?:Current work|Work in progress|Working|Session|Cloud work|Unknown|Untitled)$/i.test(text) ? '' : text;
+  };
+  const itemTitle = item => leadTopic(item)?.topic || usefulTitle(item.checkpoint?.headline) || usefulTitle(latestWork(item)?.headline) || item.title;
+  const related = item => Array.isArray(item.members) ? item.members.filter(member => member && typeof member.key === 'string') : [];
+  const parentItem = key => data?.items.find(item => related(item).some(member => member.key === key)
+    || Array.isArray(item.relatedKeys) && item.relatedKeys.includes(key));
+  const trailKey = key => parentItem(key)?.key || key;
+  function topicControl(item) {
+    const list=topics(item),members=related(item),total=Number.isSafeInteger(item.memberCount)&&item.memberCount>0?item.memberCount:members.length+1;
+    if (!list.length && total < 2) return '';
+    const counts=new Map();
+    for(const topic of list){
+      const key=topic.status==='open' ? ({owner:'topicOwner',session:'topicSession',external:'topicExternal'}[topic.waitsOn] || 'queued')
+        : topic.status==='done' ? 'complete' : topic.status==='dropped' ? 'topicDropped' : null;
+      if(key)counts.set(key,(counts.get(key)||0)+1);
+    }
+    const marks=[...counts].map(([key,count])=>`<span class="inline-flex items-center gap-0.5">${icon(key)}<span>${count}</span></span>`).join('') || (list.length?`${icon('topics')}<span>${list.length}</span>`:'');
+    return `<button class="${ui.topicButton}" data-topic-context="${escape(item.key)}" aria-label="${escape((list.length?list.length+' recorded topics':'Related activity')+(total>1?', '+total+' related observations':'')+'. Open details')}" aria-haspopup="dialog">${marks}${total>1?`<span class="inline-flex items-center gap-0.5">${icon('members')}<span>${total}</span></span>`:''}</button>`;
+  }
   function locationMark(location) {
     if (!['Laptop','Cloud'].includes(location)) return escape(location);
     const label = location === 'Cloud' ? 'Cloud' : 'On this laptop';
@@ -116,7 +157,11 @@
   function row(item, position) {
     const key = escape(item.key), summary = replyPreview(statusText(item));
     const value=status(item);
-    return `<article data-item="${key}" class="${ui.row}"><span class="${ui.mark} ${colours[keyFor(item.provider)]}">${position ? `<span class="${ui.position}">${position}.</span>` : mark(item.provider)}</span><div class="phone-row-content min-w-0"><button data-pick="${key}" class="${ui.pick}" aria-label="${escape('Read ' + item.title)}"><span class="${ui.rowTitle}">${escape(itemTitle(item))}</span></button><div class="${ui.meta}"><button class="${ui.status} ${ui.statusButton} phone-status-${value.tone} ${statusTones[value.tone]}" data-status="${key}" aria-label="${escape(value.label)}" title="${escape(value.label)}">${icon(value.glyph)}</button><span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}${tokenBadge(item)}</div>${summary ? `<p data-summary class="${ui.summary}">${escape(summary.slice(0,180))}</p>` : ''}</div><button data-launch="${key}" aria-expanded="${launchKey === item.key}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-label="${escape('Actions for ' + item.title)}" class="${ui.more}">${icon('more')}</button></article>`;
+    return `<article data-item="${key}" class="${ui.row}"><span class="${ui.mark} ${colours[keyFor(item.provider)]}">${position ? `<span class="${ui.position}">${position}.</span>` : mark(item.provider)}</span><div class="phone-row-content min-w-0">
+      <button data-pick="${key}" class="${ui.pick}" aria-label="${escape('Read ' + itemTitle(item))}"><span class="${ui.rowTitle}">${escape(itemTitle(item))}</span></button>
+      ${summary ? `<p data-summary class="${ui.summary}">${escape(summary.slice(0,180))}</p>` : ''}
+      <div class="${ui.meta}">${topicControl(item)}<button class="${ui.status} ${ui.statusButton} phone-status-${value.tone} ${statusTones[value.tone]}" data-status="${key}" aria-label="${escape(value.label)}" data-title-tip="${escape(value.label)}">${icon(value.glyph)}</button><span>${escape(item.provider)}</span>${locationMark(item.location)}${item.work?.agents ? `<span>${item.work.agents} agents</span>` : ''}${observedTime(item.at)}${tokenBadge(item)}</div>
+      </div><button data-launch="${key}" aria-expanded="${launchKey === item.key}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-label="${escape('Actions for ' + item.title)}" class="${ui.more}">${icon('more')}</button></article>`;
   }
 
   function group(title, items, empty = '', numbered = false, inline = true) {
@@ -125,7 +170,7 @@
 
   function changeItems() {
     const delegated = new Set(data.items.flatMap(i => (i.work?.members || []).map(id => `session:${i.provider}:${id}`)));
-    return (data.changes || []).filter(c => !delegated.has(c.key) && (!assistant || keyFor(c.provider) === assistant)).map(c => {
+    return (data.changes || []).filter(c => !delegated.has(c.key) && !parentItem(c.key) && (!assistant || keyFor(c.provider) === assistant)).map(c => {
       const item = data.items.find(i => i.key === c.key);
       return item || recordedChange(c);
     });
@@ -180,7 +225,7 @@
     // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
     const viewport = {left:window.scrollX,top:nowScroll()};
     const focus = ['content','assistants'].some(id => el(id).contains(document.activeElement)) ? document.activeElement : null;
-    const focusAction = focus && ['pick','status','assistant','providerMenu','launch','sessionTokens'].find(key => focus.dataset[key]);
+    const focusAction = focus && ['pick','status','assistant','providerMenu','launch','sessionTokens','topicContext'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
     const waiting = data.items.filter(i => i.state === 'queued');
@@ -210,12 +255,11 @@
   }
 
   function findItem(key) {
-    const direct=data?.items.find(i=>i.key===key)||data?.changes?.filter(c=>c.key===key).map(recordedChange)[0];
+    const direct=data?.items.find(i=>i.key===key)||data?.items.flatMap(related).find(i=>i.key===key)||data?.changes?.filter(c=>c.key===key).map(recordedChange)[0];
     if(direct)return direct;
     const value=metadata().sessions?.find(row=>row.provider==='claude'&&'cloud:'+row.id===key),at=Date.parse(value?.usageAt);
     if(value&&Number.isFinite(at)&&at<=Date.now()&&Date.now()-at<=86400000){
-      const agent=window.NowView.sessionUrl(value.sessionUrl,'claude',false);
-      const known=data?.items.find(i=>i.provider==='Claude'&&i.kind==='cloud'&&(i.id===value.id||agent&&window.NowView.sessionUrl(i.sessionUrl,'claude',false)===agent));
+      const known=data?.items.find(i=>i.provider==='Claude'&&i.kind==='cloud'&&i.id===value.id);
       temporaryItem=known||{key,id:value.id,kind:'cloud',provider:'Claude',location:'Cloud',title:value.title||'Claude session',state:'recorded',detail:'',at:value.usageAt,createdAt:value.usageAt,needsAttention:false,url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session='+encodeURIComponent(value.id),sessionUrl:value.sessionUrl};
       return temporaryItem;
     }
@@ -255,22 +299,25 @@
   }
   function openLaunch(key){if(launchKey===key){closeLaunch();return;}window.NowPhoneInfo?.close({restoreFocus:false});closeLaunch();launchKey=key;copiedTitle='';renderLaunch();}
   function makeTrail(key, originView) {
-    const keys = [...new Set(sessionKeys(originView))];
-    return {keys:keys.includes(key) ? keys : [key],originView,filter:assistant,scroll:nowScroll(),returnKey:key};
+    const keys = [...new Set(sessionKeys(originView).map(trailKey))],canonical=trailKey(key);
+    return {keys:keys.includes(canonical) ? keys : [canonical],originView,filter:assistant,scroll:nowScroll(),returnKey:canonical};
   }
   function currentTrail(key = selected()) {
-    const stored = history.state?.nowSessionTrail;
-    if (stored && Array.isArray(stored.keys) && stored.keys.length <= 512 && stored.keys.every(value => typeof value === 'string') && stored.keys.includes(key)) detailTrail = stored;
-    if (!detailTrail?.keys.includes(key)) detailTrail = makeTrail(key,'now');
+    const normalize = trail => trail && Array.isArray(trail.keys) && trail.keys.length <= 512 && trail.keys.every(value => typeof value === 'string')
+      ? {...trail,keys:[...new Set(trail.keys.map(trailKey))],returnKey:trailKey(trail.returnKey)} : null;
+    const stored = normalize(history.state?.nowSessionTrail),canonical=trailKey(key);
+    detailTrail=normalize(detailTrail);
+    if (stored?.keys.includes(canonical)) detailTrail = stored;
+    if (!detailTrail?.keys.includes(canonical)) detailTrail = makeTrail(key,'now');
     return detailTrail;
   }
   function sessionNavigation(key) {
-    const trail=currentTrail(key),index=trail.keys.indexOf(key);
+    const trail=currentTrail(key),index=trail.keys.indexOf(trailKey(key));
     if (trail.keys.length < 2) return '';
     return `<nav class="flex items-center gap-0.5" aria-label="Neighboring sessions"><button class="${ui.sessionStep}" data-session-step="-1" aria-label="Previous session" ${index<=0?'disabled':''}>‹</button><span class="min-w-9 text-center text-xs tabular-nums text-stone-500" aria-label="Session ${index+1} of ${trail.keys.length}">${index+1}/${trail.keys.length}</span><button class="${ui.sessionStep}" data-session-step="1" aria-label="Next session" ${index>=trail.keys.length-1?'disabled':''}>›</button></nav>`;
   }
   function stepSession(direction) {
-    const key=selected(),trail=currentTrail(key),index=trail.keys.indexOf(key),next=trail.keys[index+direction];
+    const key=selected(),trail=currentTrail(key),index=trail.keys.indexOf(trailKey(key)),next=trail.keys[index+direction];
     if (!next) return;
     window.NowPhoneInfo?.close({restoreFocus:false});closeLaunch();
     history.replaceState({...history.state,nowSessionTrail:trail},'','#view=now&session='+encodeURIComponent(next));
@@ -299,6 +346,25 @@
     const number=n=>Number.isSafeInteger(n)&&n>=0?n.toLocaleString('en-US'):'Not recorded';
     window.NowPhoneInfo?.open({anchor,title:'Recorded session tokens',body:`<h3 class="${ui.dialogTitle}">${escape(item.title)}</h3><p class="${ui.dialogNote}">Recorded main-conversation calls · badge shows output</p><dl class="${ui.dialogCounts}">${[['Output',reading.outputTokens],['Fresh input',reading.inputTokens],['Cache read',reading.cacheReadTokens],['Cache write',reading.cacheWriteTokens]].map(([label,value])=>`<dt>${label}</dt><dd>${number(value)}</dd>`).join('')}</dl><p class="${ui.dialogNote}">Last input context: ${number(reading.contextTokens)} tokens. Measured ${escape(stamp(new Date(reading.usageAt).toISOString()))}. ${reading.saved?'Saved reading; usage sync is unavailable. ':''}Counts cover all recorded calls. Subagent calls are excluded. Context describes one call.</p>`});
   }
+  function showTopicContext(key, anchor) {
+    const item=findItem(key);if(!item)return;closeLaunch();
+    const list=topics(item),members=related(item),total=Number.isSafeInteger(item.memberCount)?item.memberCount:members.length+1;
+    const labels={owner:'Waits on you',session:'Waits on the session',external:'Waits on someone outside'};
+    const topicRows=list.map(topic=>{
+      const disposition=topic.status==='done'?'Done':topic.status==='dropped'?'Dropped':topic.status==='open'?(labels[topic.waitsOn]||'Open'):'';
+      const reason=topic.status==='open'&&typeof topic.waiting==='string'?topic.waiting:'';
+      return `<li data-topic-name="${escape(topic.topic)}" data-topic-status="${['open','done','dropped'].includes(topic.status)?topic.status:''}" class="border-b border-stone-100 py-2"><strong class="font-medium ${topic.status==='dropped'?'line-through text-stone-500':''}">${escape(topic.topic)}</strong>${disposition?`<span class="ml-2 text-xs text-stone-500">${disposition}</span>`:''}${reason?`<p class="mt-1 text-sm">${escape(reason)}</p>`:''}${topic.basis?`<p class="mt-1 text-xs text-stone-500">Basis: ${escape(topic.basis)}</p>`:''}${topic.evidence?`<p class="text-xs text-stone-500">${escape(topic.evidence)}</p>`:''}</li>`;
+    }).join('');
+    const observations=members.length?[item,...members].map(member=>`<li><button class="block min-h-11 w-full py-2 text-left text-sm text-emerald-800 underline underline-offset-2" data-related-session="${escape(member.key)}">${escape(member.title||member.key)}</button><span class="text-xs text-stone-500">${escape(member.provider)} · ${escape(status(member).label)}</span></li>`).join(''):'';
+    window.NowPhoneInfo?.open({anchor,title:list.length?'Recorded topics':'Related activity',body:`${topicRows?`<ul class="m-0 list-none p-0">${topicRows}</ul><p class="mt-2 text-xs text-stone-500">Recorded ${escape(stamp(item.checkpoint?.at))}</p>`:''}${item.checkpoint?.topicsPartial===true?'<p class="text-xs text-stone-500">Some topic details omitted.</p>':''}${total>1?`<section class="mt-3"><h3 class="text-sm font-semibold">Related activity · ${total}</h3>${observations?`<ul class="m-0 list-none divide-y divide-stone-100 p-0">${observations}</ul>`:''}${total>members.length+1?`<p class="text-xs text-stone-500">Showing ${members.length+1} of ${total} related observations.</p>`:''}</section>`:''}`});
+  }
+  function openRelated(key) {
+    if (!findItem(key)) return;
+    if (!selected()) { openSession(key); return; }
+    const trail=currentTrail();window.NowPhoneInfo?.close({restoreFocus:false});closeLaunch();
+    history.replaceState({...history.state,nowSessionTrail:trail},'','#view=now&session='+encodeURIComponent(key));
+    detail();connection();window.scrollTo(0,0);el('detail').querySelector('h2')?.focus({preventScroll:true});
+  }
   const markdown = text => window.NowReading?.markdown(text) || `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
   function observedEvents(item, inline) {
     const seen = new Set();
@@ -321,7 +387,8 @@
     return `${markdown(cp.summary || cp.headline)}${facts ? `<div class="my-2 flex flex-wrap gap-1">${facts}</div>` : ''}<p class="mt-2 text-[10px] text-stone-500" title="${escape(stamp(cp.analyzedAt || cp.at))}">Summary as of ${observedTime(cp.at)}</p>${links ? `<div class="flex flex-wrap gap-x-3">${links}</div>` : ''}${!inline && cp.turns?.length ? `<ol class="mt-3 space-y-3">${cp.turns.slice(0,3).map(t => `<li><h4 class="text-xs font-medium">${escape(t.headline)}</h4>${markdown(t.summary)}</li>`).join('')}</ol>` : ''}`;
   }
   function detailParts(item, inline) {
-    const parts = [], reply = replies.get(item.id), events = observedEvents(item,inline);
+    const activity=related(item).find(member=>member.key===item.activityKey)||item;
+    const parts = [], reply = replies.get(item.id), events = observedEvents(activity,inline);
     if (latestWork(item)) parts.push({id:'summary',label:'Summary',title:'Work updates',body:workBody(item,inline)});
     if (item.turn?.response?.trim()) parts.push({id:'reply',label:'Reply',title:'Latest reply',body:markdown(item.turn.response)});
     else if (item.kind === 'errand' && ['reply','complete','declined','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
@@ -330,11 +397,12 @@
       const notice = window.NowReading?.notification(item.turn.prompt);
       parts.push({id:'prompt',label:notice ? 'Update' : 'Prompt',title:notice ? 'Background update' : 'Prompt',body:markdown(item.turn.prompt)});
     }
-    const detail = usefulDetail(item);
+    const detail = usefulDetail(activity);
     const meaningful = detail && !/^(Conversation (running|idle|interrupted)|No recent event|Delegated work: \d+ agents?)$/.test(detail);
-    const agents = item.work?.agents || 0;
-    const observation = `<div aria-label="Current observation" class="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">${badge(item)}${agents ? `<span>${agents} delegated ${agents === 1 ? 'agent' : 'agents'}</span>` : ''}<span>Observed ${observedTime(item.at)}</span></div>`;
-    parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${observation}${item.turn ? `<dl class="mb-2 text-xs text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-xs text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : agents && !meaningful && !item.turn?.lastTool ? '<p class="text-xs text-stone-500">No detailed action reports captured for this group.</p>' : ''}`});
+    const agents = activity.work?.agents || 0;
+    const activitySource=activity!==item?`<p class="mb-2 text-xs text-stone-500">Activity from <button class="text-emerald-800 underline" data-related-session="${escape(activity.key)}">${escape(activity.title)}</button></p>`:'';
+    const observation = `${activitySource}<div aria-label="Current observation" class="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">${badge(activity)}${agents ? `<span>${agents} delegated ${agents === 1 ? 'agent' : 'agents'}</span>` : ''}<span>Observed ${observedTime(activity.at)}</span></div>`;
+    parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${observation}${activity.turn ? `<dl class="mb-2 text-xs text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(activity.turn.startedAt))}</dd></div>${activity.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(activity.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(activity.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-xs text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : agents && !meaningful && !activity.turn?.lastTool ? '<p class="text-xs text-stone-500">No detailed action reports captured for this group.</p>' : ''}`});
     return parts;
   }
   function itemBody(item) {
@@ -357,9 +425,10 @@
       return;
     }
     const viewport={left:window.scrollX,top:window.scrollY},focused=document.activeElement,focus=focused?.closest('[data-facet]')?.dataset.facet;
-    const focusAction=['launch','sessionTokens','sessionStep','back'].find(name=>focused?.hasAttribute('data-'+name.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()))),focusHeading=focused?.matches('#detail h2');
+    const focusAction=['launch','sessionTokens','sessionStep','topicContext','relatedSession','back'].find(name=>focused?.hasAttribute('data-'+name.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()))),focusHeading=focused?.matches('#detail h2');
     const focusAttribute=focusAction&&'data-'+focusAction.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()),focusValue=focusAttribute&&focused.getAttribute(focusAttribute);
-    const value = `<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button>${sessionNavigation(key)}<button data-launch="${escape(item.key)}" class="${ui.more}" aria-label="${escape('Actions for '+item.title)}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-expanded="${launchKey===item.key}">${icon('more')}</button></header><div id="detail-connection"></div><article class="${ui.detailArticle}"><div class="${ui.meta}">${mark(item.provider)}<span>${escape(item.provider)}</span>${locationMark(item.location)}</div><h2 tabindex="-1" class="${ui.detailTitle}">${escape(item.title)}</h2><div class="${ui.meta}">${badge(item)}${observedTime(item.at)}${tokenBadge(item)}</div>${itemBody(item)}</article>`;
+    const title=itemTitle(item),original=title!==item.title?`<p class="text-xs text-stone-500">Session: ${escape(item.title)}</p>`:'';
+    const value = `<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button>${sessionNavigation(key)}<button data-launch="${escape(item.key)}" class="${ui.more}" aria-label="${escape('Actions for '+item.title)}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-expanded="${launchKey===item.key}">${icon('more')}</button></header><div id="detail-connection"></div><article class="${ui.detailArticle}"><div class="${ui.meta}">${mark(item.provider)}<span>${escape(item.provider)}</span>${locationMark(item.location)}</div><h2 tabindex="-1" class="${ui.detailTitle}">${escape(title)}</h2>${original}<div class="${ui.meta}">${topicControl(parentItem(key)||item)}${badge(item)}${observedTime(item.at)}${tokenBadge(item)}</div>${itemBody(item)}</article>`;
     html('detail', value);
     updateTimes();
     if(focus)el('detail').querySelector(`[data-facet="${focus}"]`)?.focus({preventScroll:true});
@@ -424,6 +493,8 @@
     if(button.dataset.providerMenu){openLaunch('provider:'+button.dataset.providerMenu);return;}
     if(button.dataset.launch){openLaunch(button.dataset.launch);return;}
     if(button.dataset.sessionStep){stepSession(Number(button.dataset.sessionStep));return;}
+    if(button.dataset.topicContext){showTopicContext(button.dataset.topicContext,button);return;}
+    if(button.dataset.relatedSession){openRelated(button.dataset.relatedSession);return;}
     if (button.dataset.copyTitle) {
       const key = button.dataset.copyTitle, item = findItem(key);
       if (item && navigator.clipboard?.writeText) navigator.clipboard.writeText(item.title).then(() => { copiedTitle = key; renderLaunch(); }).catch(() => { button.textContent = 'Copy unavailable'; });

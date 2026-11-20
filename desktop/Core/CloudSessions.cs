@@ -34,7 +34,7 @@ public static class CloudSessions
             if (!Activity.ValidId(id) || url is null || !url.StartsWith("https://claude.ai/code/", StringComparison.Ordinal)) continue;
             var at = Activity.Date(row, "ended", Activity.Date(row, "started"));
             if (at <= now.AddMinutes(1) && at >= now.AddDays(-7) && urls.Count < 1024) urls[id] = url;
-            if (at.Year < 2000 || at > now.AddMinutes(1) || now - at >= TimeSpan.FromDays(1)) continue;
+            if (at.Year < 2000 || at > now.AddMinutes(1) || now - at >= TimeSpan.FromDays(7)) continue;
             var state = Activity.Text(row, "state");
             var detail = state switch {
                 "needs" => "Recorded: needs you", "choice" => "Recorded: choice needed",
@@ -49,6 +49,9 @@ public static class CloudSessions
             if (title.Length > 180) title = title[..180] + "…";
             items.Add(new(id, "Claude", title, "recorded", at, "", detail, "Cloud", SourceUrl: url));
         }
-        return new(items.OrderByDescending(s => s.UpdatedAt).Take(16).ToList(), captured.Year < 2000 ? null : captured, null, urls, captures);
+        var catalog = items.GroupBy(s => s.Id).Select(g => g.MaxBy(s => s.UpdatedAt)!)
+            .OrderByDescending(s => s.UpdatedAt).Take(4096).ToList();
+        return new(catalog.Where(s => s.UpdatedAt > now.AddDays(-1)).ToList(),
+            captured.Year < 2000 ? null : captured, null, urls, captures) { Catalog = catalog };
     }
 }
