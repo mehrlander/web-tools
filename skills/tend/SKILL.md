@@ -165,7 +165,9 @@ reading and triggers nothing.
 `/tend prod` asks each session with open work to tend its own work. List the
 account's sessions and take each one that is idle, last showed activity
 between 30 minutes and a week ago, and has an open pull request, a blocked
-or review-ready status, or a last reply that closed on ❇️ or 🟢. A message to
+or review-ready status, or a last reply that closed on
+[❇️ or 🟢](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply).
+A message to
 a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
 ([`docs/environment/container.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md#the-prompt-cache)).
