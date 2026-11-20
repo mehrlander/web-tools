@@ -379,3 +379,11 @@ fab-signals,when,recorded,,value,column,yes,,,value,"the condition that shows it
 fab-signals,gloss,recorded,,value,column,yes,,,value,"what the signal means, for a reader who has not met it"
 fab-signals,note,recorded,,none,column,yes,,,value,"what a tap on the FAB, or on the badge itself, does while the signal shows, where that differs from opening the FAB sidebar; blank where it does not"
 fab-signals,status,recorded,,value,column,yes,live;proposed,,label,"whether fab.js draws the signal today, which the gate checks, or the row describes a signal not yet built"
+formats,contract,recorded,,value,column,yes,,,locator,"the one file that defines the format: a path here, or owner/repo:path in another repository"
+formats,schema,recorded,,value,column,yes,,,locator,"the JSON Schema that describes the format, as a path here; none where it has none"
+formats,validated,recorded,,value,column,yes,yes;no,,label,"whether a test under node/test/ validates documents against the schema; no where there is no schema"
+formats,id_key,recorded,,value,column,yes,schema;kind;format;profile;envelope;none,,label,the key a document writes the format's id under
+formats,producer,recorded,,value,column,yes,,,locator,"the script or skill that writes the format's documents: a path here, or owner/repo:path; none where no single one does"
+formats,envelope,recorded,,value,column,yes,yes;no,,label,"whether the format belongs to the envelope family, by the membership test in docs/envelopes/README.md"
+formats,route,recorded,,none,column,yes,,routes-routes,locator,the toss route that renders the format; blank where none does
+formats,gloss,recorded,,value,column,yes,,,value,what one document of the format carries
