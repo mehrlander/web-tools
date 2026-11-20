@@ -3,25 +3,27 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
-    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) · scheduled task · 816𝗄 · 1𝖽 3𝗁
+    [`⌂`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)`11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) `816k` `1d 2h` [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
+    [`⌂`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)`11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) scheduled task `816k` `1d 3h`
 
-THE PARTS. The line opens with when this run printed it, as a code span, in
-the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
-plain am or pm. 22 counts the messages the owner has typed, and is the link to the
+THE PARTS. The line opens with ⌂ as a code span linking PROGRAM below, then,
+with no space between, when this run printed it, as a code span, in the
+owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a plain
+am or pm. The Claude app draws two code spans with nothing between them as one
+pill, so ⌂ reads as the stamp's icon. Single spaces separate the parts after
+the stamp. 22 counts the messages the owner has typed, and is the link to the
 session page, named by the session id's first eight characters. A turn the
 owner did not start names what started it next (WHAT STARTED THE TURN, below),
-as the second line does. 816𝗄 is the
+as the second line does. 816k is the
 context in thousands of tokens, read the way context-size-hint.py reads it:
 input_tokens + cache_read_input_tokens + cache_creation_input_tokens of the
-last main-conversation response in the transcript's tail. Every unit letter
-outside the code span is written in Mathematical Sans-Serif small letters and
-the digits stay plain. A zone that cannot be loaded gives UTC in 24-hour
-time and a plain Z, as 11/14 18:14Z. 1𝖽 2𝗁 is the time since the first of the
-owner's messages: 45𝗆 under an hour, 7𝗁 under a day,
-1𝖽 2𝗁 after. ✍️1 counts the documents whose wording waits on the owner's
-sign-off (THE SIGN-OFF, below), linked to the session page's deck of calls.
-The changed ones are the files changed against main
+last main-conversation response in the transcript's tail. The context and the
+age are each a code span of their own, with plain unit letters. A zone that
+cannot be loaded gives UTC in 24-hour time and a plain Z, as 11/14 18:14Z.
+1d 2h is the time since the first of the owner's messages: 45m under an hour,
+7h under a day, 1d 2h after. ✍️1 counts the documents whose wording waits on
+the owner's sign-off (THE SIGN-OFF, below), linked to the session page's deck
+of calls. The changed ones are the files changed against main
 (`git diff origin/main...HEAD --name-only`) in the session's checkouts, which
 are the checkout the project root is in and each folder directly under the
 root that holds a .git, that are documentation, by governing-docs.py beside
@@ -30,7 +32,7 @@ zero count is left off, and so is a part the transcript cannot supply: the time
 before any owner message, the context before any response.
 
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
-`user-calls/<short>-<slug>.json` (the private store's user-calls/user-call.py
+`user-calls/<short>-<slug>.json` (the user-calls skill, skills/user-calls/SKILL.md,
 holds the schema). A documentation call names its document as
 `owner/repo@ref:path`, and the latest such call for a repo and path, by
 `created`, decides it: waiting while that call is `open`, signed off once it
@@ -112,6 +114,7 @@ import time
 # The owner's time zone, the one setting the printed time reads.
 OWNER_TZ = os.environ.get("OWNER_TZ") or "America/Los_Angeles"
 PAGES = "https://mehrlander.github.io/web-tools/pages/"
+PROGRAM = "https://mehrlander.github.io/web-tools/app/?view=program&program=sessions"
 TAIL = 400_000
 USAGE = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
 NOT_OWNER = ("<task-notification", "<agent-message", "[SYSTEM", "<system", "Another Claude")
@@ -507,8 +510,7 @@ def branch_page(repos, counts, cwd):
     return f"{PAGES}branch.html#gh={slug.group(1)}/{slug.group(2)}" + (f"@{branch}" if branch else "")
 
 
-# The unit letters, in Mathematical Sans-Serif small letters.
-KILO, DAY, HOUR, MINUTE = "\U0001D5C4", "\U0001D5BD", "\U0001D5C1", "\U0001D5C6"  # 𝗄 𝖽 𝗁 𝗆
+KILO, DAY, HOUR, MINUTE = "k", "d", "h", "m"
 
 
 def elapsed(seconds):
@@ -597,9 +599,9 @@ def main():
     if kind:
         parts.append(kind)
     if context:
-        parts.append(f"{(context + 500) // 1000}{KILO}")
+        parts.append(f"`{(context + 500) // 1000}{KILO}`")
     if age is not None:
-        parts.append(elapsed(age))
+        parts.append(f"`{elapsed(age)}`")
     if waiting:
         deck = f"{PAGES}session.html#id={session[:8]}" + (f"&user-call={call}" if call else "")
         parts.append(f"[✍️{waiting}]({deck})")
@@ -608,7 +610,7 @@ def main():
     save(path, state)
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": event,
-        "additionalContext": f"`{clock(now)}` " + " · ".join(parts)
+        "additionalContext": f"[`⌂`]({PROGRAM})`{clock(now)}` " + " ".join(parts)
                              + "\nClose the reply with that line, unchanged, as its session detail caption.",
     }}))
 

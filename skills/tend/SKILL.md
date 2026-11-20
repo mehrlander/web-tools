@@ -3,9 +3,8 @@ name: tend
 description: >-
   Cultivate a workspace toward recognized objectives: investigate branches,
   pull requests, trackers and snags, store each conclusion as a finding, and
-  bring the owner a prepared user call only where the next step needs their
-  word. Run when the owner invokes /tend, or when a session receives a
-  /tend prod request.
+  list in the reply each prepared step that needs the owner's word. Run when
+  the owner invokes /tend, or when a session receives a /tend prod request.
 disable-model-invocation: true
 ---
 
@@ -50,12 +49,10 @@ record.
    would survive the owner's first question.
 4. **Write** one finding per conclusion with `findings.py add`: its subjects,
    why it matters, a next step concrete enough to execute, evidence, and
-   witnesses. A step that needs the owner's word, such as closing a pull
-   request, is prepared, then filed with like steps as one user call
-   (`user-calls/user-call.py` in the registry) that the finding names among
-   its subjects; the Waiting view shows it. A next step that is new work,
-   rather than landing work that exists, joins that call as a question to the
-   owner: file it as a task or drop it; either answer settles the finding.
+   witnesses. Prepare a step that needs the owner's word, such as closing a
+   pull request, for the list in step 6. For a next step that is new work,
+   rather than landing work that exists, ask in the reply whether to file it
+   as a task or drop it; either answer settles the finding.
    Witnesses include what lies outside the subjects, such as main's copy of a
    file the work was compared against. Choose as a witness the narrowest file
    that holds the claim: a file edited daily brings the finding back on every
@@ -64,9 +61,9 @@ record.
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
 6. **Reply** with what the pass did and its sidesteps: where the work did
-   something other than what the owner asked. Put each user call it filed in
-   the reply as its question, recommendation and link, and offer one answer
-   that accepts every recommendation, so the calls can close in the session.
+   something other than what the owner asked. List each step that needs the
+   owner's word with its recommendation and, for a pull request, a link to
+   its branch view, and offer one answer that accepts every recommendation.
 
 Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 `gh` or `curl`.
@@ -76,7 +73,7 @@ Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 | Kind | Means |
 | --- | --- |
 | `unreached` | Useful work never reached the owner. *Next* says how to land it. |
-| `answer` | The owner's word decides it. Its user call holds the question. |
+| `answer` | The owner's word decides it; ask for it in the reply. |
 | `overlap` | Separate efforts could be brought together. *Next* says how. |
 | `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. |
 
@@ -123,14 +120,32 @@ premises against the tree, not only its body.
 
 ## Pull requests
 
-Read `## Open threads` in merged pull requests, back to the previous tend pass
-or as far as threads stay live, and state the window. 🟢 and 🟡 items are open;
-check each against `main`. Read open pull requests too, testing each head as
-Branches does.
+Read the open topics of sessions that ended since the previous tend pass, and
+state the window. Each row of the registry's
+[`state/session-topics.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/session-topics.json)
+is one session. Its `topic_status` holds the session's topics, with fields that
+web-tools-private
+[`sessions/topics/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/topics/README.md)
+defines. Check
+each open topic against `main` and against the pull requests its agenda lists
+under `prs`. Read open pull requests too, testing each head as Branches does.
 
+- **Act:** mark an open topic done when all three hold:
+  1. its `basis` is `closing` or `model`;
+  2. its agenda lists at least one pull request, and each has merged;
+  3. no such pull request's body lists an item under `## Open threads`.
+
+  Append the status with [`topic_correct.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/topic_correct.py) from
+  a web-tools-private checkout. The row's key is `<short>`, and the topic's
+  name is `<name>`:
+  `python3 sessions/tools/topic_correct.py status <short> --by tend --topic "<name>" --status done`.
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
   lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving,
-  one that sidesteps an ask, and a live thread.
+  and one that sidesteps an ask.
+- **Find:** an open topic whose pull requests have no commit since the previous
+  pass, and an open topic that lists no pull request.
+- **Propose:** in the pass's user call, `dropped` for an open topic whose work
+  `main` or another session's topic has since done.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.
 

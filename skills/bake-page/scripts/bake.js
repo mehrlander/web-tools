@@ -83,7 +83,14 @@ if (libs.has('tailwindcss')) {
   const scratch = ['_bake_src.html', '_bake_in.css', '_bake_out.css'];
   try {
     fs.writeFileSync('_bake_src.html', html);
-    const plugin = libs.has('daisyui') ? '@plugin "daisyui";\n' : '';
+    // Compile only the themes the page sets, its root theme the default (winter
+    // where it sets none, html-style rule 19). No dark theme is compiled, so a
+    // host that stamps data-theme="dark" on the root (the artifact viewer's
+    // toggle) finds no theme to switch to and the page stays as drawn.
+    const used = [...new Set([...html.matchAll(/data-theme=["']([a-z-]+)["']/g)].map(m => m[1]))];
+    const root = (html.match(/<html[^>]*\sdata-theme=["']([a-z-]+)["']/) || [])[1] || used[0] || 'winter';
+    const themes = [root + ' --default', ...used.filter(t => t !== root)].join(', ');
+    const plugin = libs.has('daisyui') ? `@plugin "daisyui" {\n  themes: ${themes};\n}\n` : '';
     fs.writeFileSync('_bake_in.css', `@import "tailwindcss" source(none);\n${plugin}@source "./_bake_src.html";\n`);
     execSync('npx @tailwindcss/cli -i _bake_in.css -o _bake_out.css --minify', { stdio: 'ignore' });
     styles += `<style>\n${fs.readFileSync('_bake_out.css', 'utf8')}\n</style>\n`;

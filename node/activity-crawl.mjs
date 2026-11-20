@@ -268,7 +268,7 @@ async function crawlIndex({ kit, label, about }, repos, act) {
 
 // Several files rather than one: a manifest, and each repo's shards. A shard
 // is written only when its bytes moved, each as its own commit, then the
-// manifest that names them.
+// manifest that names them, then the deletion of each shard it does not name.
 async function crawlContent(repos) {
   const t1 = Date.now();
   const reads = new Map();
@@ -303,17 +303,32 @@ async function crawlContent(repos) {
   const scope = wantAll ? members : [...new Set([...Object.keys(prevIdx?.repos || {}), ...repos])];
   const nextIdx = CI.buildManifest(prevIdx, got, scope, new Date().toISOString());
   const moved = CI.changedRepos(prevIdx, nextIdx);
-  if (!moved.length && !writes.length) { console.log('Content index: no repo moved.'); return; }
-  if (dryRun) { console.log(`Content index would write ${writes.length} shard(s) for: ` + moved.join(', ')); return; }
+  const listed = await reg.ls(CI.SHARD_DIR, { ...GH.FRESH, ref: 'main' })
+    .catch(e => { if (e?.status === 404) return []; throw e; });
+  const orphans = CI.orphanShards(nextIdx, listed.filter(f => f.type === 'file').map(f => f.path));
+  if (!moved.length && !writes.length && !orphans.length) { console.log('Content index: no repo moved.'); return; }
+  if (dryRun) {
+    console.log(`Content index would write ${writes.length} shard(s) for: ` + moved.join(', ')
+      + (orphans.length ? `; and delete ${orphans.join(', ')}` : ''));
+    return;
+  }
   for (const w of writes) {
     await reg.save(w.path, w.text, `Update content index (${w.path})` + VIA, { sha: w.sha });
   }
-  nextIdx.runs = CrawlRuns.push(prevIdx?.runs, {
-    at: nextIdx.generatedAt, ms: Date.now() - t1,
-    checked: repos.length, changed: moved.length, calls, via: 'ci',
-  }) ?? prevIdx?.runs;
-  await reg.save(CI.MANIFEST, JSON.stringify(nextIdx, null, 1), `Update content index (${CI.MANIFEST})` + VIA, { sha: read?.sha });
-  console.log(`Committed ${CI.MANIFEST} and ${writes.length} shard(s) (${moved.join(', ')}).`);
+  if (moved.length || writes.length) {
+    nextIdx.runs = CrawlRuns.push(prevIdx?.runs, {
+      at: nextIdx.generatedAt, ms: Date.now() - t1,
+      checked: repos.length, changed: moved.length, calls, via: 'ci',
+    }) ?? prevIdx?.runs;
+    await reg.save(CI.MANIFEST, JSON.stringify(nextIdx, null, 1), `Update content index (${CI.MANIFEST})` + VIA, { sha: read?.sha });
+    console.log(`Committed ${CI.MANIFEST} and ${writes.length} shard(s) (${moved.join(', ') || 'no repo moved'}).`);
+  }
+  // After the manifest, so no manifest ever names a deleted shard. The subject
+  // is the write's, which kits/write-kinds.js already counts as the crawl's.
+  for (const p of orphans) {
+    await reg.del(p, `Update content index (${p})` + VIA);
+    console.log(`Deleted ${p}: the manifest no longer names it.`);
+  }
 }
 
 async function readCache() {

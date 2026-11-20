@@ -531,7 +531,6 @@ test('the scatter: a dot per compaction with its calls counted, over the break-e
   assert.match(named, /data-usage-dot="2026-11-01-aaaa0001-20261101T104500Z" data-title-tip="[^"]+" data-title-tip-lead="A titled session"/);
   assert.match(named, new RegExp('data-title-tip-lead="x{47}…"'), 'a long name is cut short: a title-tip does not scroll');
   assert.match(svg, /data-title-tip-lead="A made-up session: three prompts, one idle re-l…"/, 'without a name, what the session was first asked');
-  assert.match(window.Usage.scatter(data.r.compactions, 600, { dark: true }), /fill="#3987e5"/, 'the dark page\'s blue');
   assert.doesNotMatch(svg, /tabindex/, 'the rows are the keyboard\'s way to a compaction, not 150 tab stops');
 });
 

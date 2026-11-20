@@ -33,8 +33,8 @@ substituting the current repo in URL templates.
 * **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. Reply to a wake (a nudge, stop hook, finished job, PR event, or moved base) when it brings the reader a result they are waiting for, a problem the session cannot settle, or one of the events listed under [PR events](#pr-events), and end that reply on a state only when the state has changed. For any other wake, end the turn without text; where the harness requires visible output, write the line a hook supplies or, without one, one line that opens with the wake's name, such as `Stop hook:`.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
-  `` `11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](…) ``
-  The opening stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816𝗄` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page, and `<short>` is the session id's first eight characters. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) · PR event`.
+  `` [`⌂`](…/app/?view=program&program=sessions)`11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) ``
+  The opening `⌂` links the Sessions program page. The stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816k` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page, and `<short>` is the session id's first eight characters. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
 
 ## A reply that changed files
 
@@ -60,13 +60,25 @@ substituting the current repo in URL templates.
   🌿 [Open the branch](<branch URL>)
   ```
 
-  List only threads still open, and omit an empty section.
+  List only threads still open on this branch, and omit an empty section. Record work left after the branch merges as a topic status (Topic status, below).
+
+* **Topic status.** Correct a missing or wrong status of one of the session's [topics](https://github.com/mehrlander/web-tools-private/blob/main/sessions/topics/README.md) with [`topic_correct.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/topic_correct.py) from a web-tools-private checkout. First list the session's topics:
+
+  ```bash
+  python3 sessions/tools/topic_correct.py show <short>
+  ```
+
+  Then append the status of a topic that `show` printed; `status --help` lists the values each flag takes:
+
+  ```bash
+  python3 sessions/tools/topic_correct.py status <short> --by claude:<short> --topic "<name>" --status open --waits-on owner --waiting "<what it waits on>"
+  ```
 
 ## Displaying content
 
 * **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit, with a few words after it on what the link shows. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address) and a query.
 
-* **A look link 👁️‍🗨️.** A look link is a 🥏 link that also lands the reader on a place in the rendered page and says why. It replaces one or more 🥏 links. When a reply asks the reader to look at or tap an element of a page, make the link a look link: `--intro "<what changed>"` greets the reader, and `--at "<fragment>"` lands on the place to see, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walkthrough` or `steps` for several; the `look-markers` skill).
+* **A look link 👁️‍🗨️.** A look link is a 🥏 link that also lands the reader on a place in the rendered page and says why. It replaces one or more 🥏 links. Send one look link per reply. When a reply asks the reader to look at or tap an element of a page, make the link a look link: `--intro "<what changed>"` greets the reader, and `--at "<fragment>"` lands on the place to see, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walkthrough` or `steps` for several; the `look-markers` skill).
 
 * **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
 

@@ -7,7 +7,7 @@
 //
 // It is a SCOPE rather than a fourth filter, and that choice is what these
 // tests hold. Being a scope means the deck swipes it for free, since the deck's
-// sequence has always been the visible list; it means the Table lens narrows to
+// sequence has always been the visible list; it means the Table tab narrows to
 // it wherever the grain is built off scopedSessions; and it means the chip row
 // already had somewhere to put it. What a scope does not normally do is carry
 // an order or outrun the pane's own data, and both of those get a test below.
@@ -31,7 +31,7 @@ const { window } = makeWindow({
 });
 window.TOKEN = 'tkn';
 window.GH = StubGH;
-// The shell holds the spec, exactly as it holds `session` and `lens`; the
+// The shell holds the spec, exactly as it holds `session` and `tab`; the
 // component reads it and never writes it except through setSessionList.
 window.__shell = { REGISTRY_REPO: 'me/registry', DEFAULT_REPO: 'me/tools',
                    quickLinks: [], hasToken: () => true, _authState: 'auth',

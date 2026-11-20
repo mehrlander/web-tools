@@ -163,5 +163,93 @@ Object.defineProperty(doc,'hidden',{value:true,configurable:true});doc.dispatchE
 check(![...timers.values()].some(t=>t.delay===2000),'Polling pauses when the app is hidden.');
 Object.defineProperty(doc,'hidden',{value:false,configurable:true});const resumed=fetches;doc.dispatchEvent(new w.Event('visibilitychange'));await flush();check(fetches>resumed,'Returning to the app immediately refreshes observations.');
 check(!doc.querySelector('[data-review]')&&!/Since you last looked|Mark shown seen/.test(doc.querySelector('#content').textContent),'Modern rows preserve recent history without acknowledgement controls.');
+
+const signal=(key,title,prompt,response)=>({...item(key,'working','Claude'),id:key,kind:'cloud',location:'Cloud',title,detail:'Using Bash',turn:{prompt,response,startedAt:earlier(30),updatedAt:earlier(10),lastTool:'Bash'}});
+const firstSignal=signal('cloud:signal-one','First related observation','First member prompt','First member reply');
+const secondSignal=signal('cloud:signal-two','Second related observation','Second member prompt','Second member reply');
+const topicGroup={...signal('cloud:group','Original canonical title','Canonical prompt','Canonical answer'),activityKey:firstSignal.key,members:[firstSignal,secondSignal],memberCount:31,
+ checkpoint:{headline:'Earlier title',summary:'An earlier conversation summary',at:earlier(300),analyzedAt:now,topicsPartial:true,topics:[
+  {topic:'First open topic',status:'open',waitsOn:'owner',waiting:'Choose the branch',basis:'record',evidence:'The reply asks for a choice',first:0,last:0,spans:[{start:1,end:1}]},
+  {topic:'Latest completed topic',status:'done',first:1,last:3,spans:[{start:2,end:4}]},
+  {topic:'Unclassified topic',status:null,first:2,last:2,spans:[{start:3,end:3}]},
+  {topic:'Dropped aside',status:'dropped',minor:true,first:4,last:4}]},
+ work:{through:earlier(600),segments:[{headline:'Retrospective work',summary:'An old work summary generated today',generatedAt:now}]}};
+const actionOnly={...item('cloud:action-only','quiet','Claude'),kind:'cloud',title:'Action only',detail:'Turn has no recent activity report',turn:{lastTool:'Read'}};
+snapshot.items=[topicGroup,actionOnly];snapshot.changes=[{...firstSignal}];snapshot.events=[{id:'member-event',sessionId:firstSignal.id,provider:'Claude',at:now,state:'working',detail:'Member-specific observed activity'}];
+await refresh();
+check(row(topicGroup.key).querySelector('.phone-row-title').textContent==='Latest completed topic'
+ &&!row(topicGroup.key).querySelector('.phone-row-title').textContent.includes('First open'),
+ 'The latest recorded non-aside agenda stretch leads instead of an arbitrary unfinished topic.');
+const recordedTopics=topicGroup.checkpoint.topics;topicGroup.checkpoint.topics=recordedTopics.map(topic=>({...topic,spans:[]}));await refresh();
+check(row(topicGroup.key).querySelector('.phone-row-title').textContent==='Earlier title',
+ 'A fallback topic list without agenda spans cannot manufacture a latest topic from its ordinal order.');
+topicGroup.checkpoint.topics=recordedTopics;await refresh();
+check(row(topicGroup.key).querySelector('[data-summary]').textContent.includes('Canonical answer')
+ &&!row(topicGroup.key).querySelector('[data-summary]').textContent.includes('old work summary')
+ &&(row(topicGroup.key).querySelector('[data-summary]').compareDocumentPosition(row(topicGroup.key).querySelector('.phone-meta'))&w.Node.DOCUMENT_POSITION_FOLLOWING),
+ 'Conversation source times outrank retrospective analysis times, and useful preview text precedes secondary activity metadata.');
+const stablePreview=row(topicGroup.key).querySelector('[data-summary]').textContent;
+topicGroup.state='quiet';topicGroup.detail='Turn has no recent activity report';await refresh();
+check(row(topicGroup.key).querySelector('[data-summary]').textContent===stablePreview
+ &&row(topicGroup.key).closest('section').getAttribute('aria-label')==='No recent update',
+ 'A quiet heartbeat retains the substantive reply and does not turn a recorded owner-wait topic into runtime attention.');
+topicGroup.state='working';topicGroup.detail='Prompt received';await refresh();
+check(row(topicGroup.key).querySelector('[data-summary]').textContent===stablePreview
+ &&row(topicGroup.key).closest('section').getAttribute('aria-label')==='In progress',
+ 'A new working signal cannot replace useful context with Prompt received or hide active work behind an old topic wait.');
+check(row(actionOnly.key).querySelector('[data-summary]').textContent==='Last activity: Used Read',
+ 'With no substantive summary or reply, the last known tool is explicitly qualified as last activity.');
+check(!row(firstSignal.key)&&!row(secondSignal.key)&&doc.querySelectorAll('#content [data-item]').length===2,
+ 'Related signals remain one visible group even when a member also appears in the journal.');
+const topicRoute=w.location.hash;click('[data-topic-context="cloud:group"]');
+check(w.location.hash===topicRoute&&doc.querySelector('#phone-info-card').textContent.includes('Waits on you')
+ &&doc.querySelector('#phone-info-card').textContent.includes('Choose the branch')&&doc.querySelector('#phone-info-card').textContent.includes('The reply asks for a choice')
+ &&doc.querySelector('#phone-info-card [data-topic-status=dropped] strong').classList.contains('line-through')
+ &&!doc.querySelector('#phone-info-card [data-topic-name="Unclassified topic"]').querySelector('span'),
+ 'The anchored topic card gives waiting reasons and evidence, distinguishes dropped work, and leaves unknown disposition blank.');
+check(doc.querySelector('#phone-info-card').textContent.includes('Showing 3 of 31')&&doc.querySelector('#phone-info-card').textContent.includes('Some topic details omitted.')
+ &&!doc.querySelector('#content').textContent.includes('Some topic details omitted.'),
+ 'Bounded observations and partial topic details are disclosed inside the topic panel, without adding prose to the scanning list.');
+click('[data-related-session="cloud:signal-one"]');
+check(new URLSearchParams(w.location.hash.slice(1)).get('session')===firstSignal.key
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('First member reply')
+ &&w.history.state.nowSessionTrail.keys.join(',')==='cloud:group,cloud:action-only',
+ 'Opening a member from the list preserves its own reply, old key and the originating group neighbor order.');
+clearDetail();pick(topicGroup.key).click();
+check(doc.querySelector('#detail h2').textContent==='Latest completed topic'&&doc.querySelector('#detail').textContent.includes('Original canonical title')
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('Canonical answer'),
+ 'Grouped detail leads with topic context while keeping the original session title and canonical reply.');
+click('#detail [data-facet=prompt]');check(doc.querySelector('#detail [role=tabpanel]').textContent.trim()==='Canonical prompt','The canonical bookmark retains its own prompt.');
+click('#detail [data-facet=activity]');
+check(doc.querySelector('#detail [role=tabpanel]').textContent.includes('Activity from First related observation')
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('Member-specific observed activity')
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('Bash'),
+ 'Fresh grouped activity names its actual member and uses that member’s turn and event evidence.');
+const relatedHistory=w.history.length;click('#detail [data-related-session="cloud:signal-one"]');
+check(w.history.length===relatedHistory&&doc.querySelector('#detail [data-back]').textContent==='← Now',
+ 'Selecting a member inside grouped detail adds no intermediate Back step.');
+clearDetail();w.history.replaceState(null,'','#view=now&session='+encodeURIComponent(secondSignal.key));w.dispatchEvent(new w.PopStateEvent('popstate'));
+check(doc.querySelector('#detail [role=tabpanel]').textContent.includes('Second member reply'),'An existing member bookmark resolves the original member reply.');
+click('#detail [data-facet=prompt]');check(doc.querySelector('#detail [role=tabpanel]').textContent.trim()==='Second member prompt','An existing member bookmark resolves the original member prompt.');clearDetail();
+snapshot.items=[firstSignal,secondSignal,actionOnly];snapshot.changes=[];await refresh();click('[data-assistant=claude]');w.NowViews.scrollTo(277);
+w.NowPhoneUsage.recentRows=()=>[{identity:firstSignal.key},{identity:secondSignal.key}];w.NowViews.setView('usage');w.NowPhone.openSession(firstSignal.key);
+const warmHistory=w.history.length;snapshot.items=[topicGroup,actionOnly];await refresh();
+check(w.history.length===warmHistory&&w.history.state.originView==='usage'&&doc.querySelector('#detail [data-back]').textContent==='← Usage'
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('First member reply'),
+ 'Warm regrouping preserves an already-open member’s Usage origin and original reply.');
+clearDetail();
+check(w.NowViews.scrollPosition()===277&&doc.querySelector('[data-assistant=claude]').getAttribute('aria-pressed')==='true'&&doc.activeElement.dataset.pick===topicGroup.key,
+ 'Regrouping normalizes old trail and return keys while preserving the originating filter and scroll.');
+const omitted={key:'cloud:omitted',id:'omitted',provider:'Claude',location:'Cloud',title:'Original omitted observation',detail:'Original lightweight activity evidence',at:earlier(50)};
+topicGroup.relatedKeys=[omitted.key];topicGroup.sessionUrl='https://claude.ai/code/session_shared';snapshot.changes=[omitted];await refresh();
+check(!row(omitted.key)&&row(topicGroup.key),'A grouped omitted-body journal key is hidden under its canonical row instead of returning as a duplicate.');
+w.NowPhone.openSession(omitted.key);
+check(doc.querySelector('#detail h2').textContent===omitted.title&&doc.querySelector('#detail [role=tabpanel]').textContent.includes(omitted.detail)
+ &&!doc.querySelector('#detail [data-facet=prompt]')&&!doc.querySelector('#detail [data-facet=reply]'),
+ 'A capped member bookmark opens its own lightweight journal Activity without borrowing canonical Prompt or Reply.');
+clearDetail();archive.sessions.push({id:'metadata-record',provider:'claude',title:'Metadata own identity',sessionUrl:topicGroup.sessionUrl,usageAt:now,contextTokens:100,outputTokens:1});
+w.NowPhone.openSession('cloud:metadata-record');
+check(doc.querySelector('#detail h2').textContent==='Metadata own identity'&&!doc.querySelector('#detail [data-facet=prompt]')&&!doc.querySelector('#detail [data-facet=reply]'),
+ 'A different metadata record sharing a provider URL cannot inherit the canonical conversation body.');clearDetail();
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();

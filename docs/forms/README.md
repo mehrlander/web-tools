@@ -38,10 +38,11 @@ known by the answer it asks for.
 
 | Answer | The reader | Form | The answer lands in |
 | --- | --- | --- | --- |
-| approval | authorizes one proposal or returns it | the [Approve page](../../pages/approve.html) (`approval/1`); a user call that recommends an answer or confirms a merge | a verdict file beside the request; the call's `answers.jsonl` |
+| approval | authorizes one proposal or returns it | the [Approve page](../../pages/approve.html) (`approval/1`); a user call that recommends an answer | a verdict file beside the request; the call's `answers.jsonl` |
 | choice | picks one or more of several alternatives | for found images, the [image board](../../pages/image-board.html), and for a design sprint's concepts, the [idea board](../../pages/idea-board.html), each opened on a pick call (a user call of kind `pick`) | the call's `answers.jsonl` |
 | change | keeps or discards each proposed edit | the call page for a documentation call, which Dictate and the Map's Docs tab also answer; the Proposals view | the call's `answers.jsonl`; the target file |
 | label | gives each item one label from a fixed set | the audit render (`audit/1`) | the standoff file, saved back to its path |
+| inspection | notes each output a model or a script made from its input and gives each a verdict where the payload declares verdicts | the [Inspection page](../../pages/inspection.html) (`inspection/1`) | the payload's answers file |
 | reaction | votes or comments, closing nothing | Text Lab; the Tending view | home's `reviews.jsonl`; the notes store |
 | questionnaire | fills in named boxes | the Inquiry page (`inquiry/1`) | the payload's `reply_to` |
 

@@ -9,7 +9,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { makeWindow, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
+import { makeWindow, repoRoot, captureAlpineErrors, until } from './bootstrap.mjs';
 
 const REPO = 'me/tools';
 const tick = (n = 1) => new Promise(r => setTimeout(r, n * 10));
@@ -63,9 +63,13 @@ for (const p of ['lib/alpine-bundle.js', 'lib/alpineComponents/file-review.js',
   new window.Function(readFileSync(path.join(repoRoot, p), 'utf8'))();
 }
 Alpine.start();
-await tick(6);
 
 const data = Alpine.$data(window.document.getElementById('m'));
+// The tests below read the registry's grouping and a mounted slide card without
+// waiting, so the mount waits for both rather than for a count of flushes (snag
+// tick-count-guesses-a-chain).
+await until(() => data.fileGroups.some(g => g.mode === 'mechanical')
+  && window.document.querySelector('[data-slide] .overflow-y-auto'), 'the registry\'s groups and a mounted slide');
 
 // THE PANE IS A CHOICE OF TWO, so "not showing the list" needs a guide to show
 // instead: with one tab there is no shut, and topPane guards against landing on
@@ -317,7 +321,11 @@ test('with one file there is no pager', async () => {
     await settle(() => pager.style.display === 'none');
     assert.equal(data.swipeFiles.length, 1);
     assert.equal(pager.style.display, 'none', 'nothing to page between');
-  } finally { data.brief = { ...data.brief, files: keep }; await tick(6); }
+  } finally {
+    data.brief = { ...data.brief, files: keep };
+    await until(() => data.swipeFiles.length === keep.length
+      && window.document.querySelector('[data-pager-label]').parentElement.style.display !== 'none', 'the pager back over every file');
+  }
 });
 
 test('the strip reads its position and is driven to one', () => withReviewable(async () => {

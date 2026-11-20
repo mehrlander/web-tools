@@ -126,9 +126,18 @@ def capture(payload, env, now=None):
     except (OSError, ValueError):
         pass
     if event == "PreToolUse":
-        last = dt.datetime.fromisoformat(prior["updatedAt"]) if prior.get("updatedAt") else None
-        if last and prior.get("agent") == "https://claude.ai/code/" + remote_id and prior.get("state") == "working" and (now - last).total_seconds() < 30:
+        tool = payload.get("tool_name", "")
+        if not isinstance(tool, str) or not re.fullmatch(r"[A-Za-z0-9_]{1,80}", tool):
             return None
+        last = dt.datetime.fromisoformat(prior["updatedAt"]) if prior.get("updatedAt") else None
+        if last and prior.get("agent") == "https://claude.ai/code/" + remote_id:
+            elapsed = (now - last).total_seconds()
+            if elapsed <= 0:
+                return None
+            # A prompt is not a tool report. First tools and meaningful changes
+            # stage immediately; the publisher coalesces bursts before writing.
+            if prior.get("state") == "working" and prior.get("lastTool") == tool and elapsed < 30:
+                return None
     at = now.isoformat(timespec="microseconds")
     signal = dict(prior) if prior.get("agent") == "https://claude.ai/code/" + remote_id else {}
     signal.update(schemaVersion=1, id=short, provider="Claude", location="Cloud",
@@ -142,8 +151,7 @@ def capture(payload, env, now=None):
     if event in ("UserPromptSubmit", "PreToolUse"):
         signal.update(state="working", response="")
         if event == "PreToolUse":
-            tool = payload.get("tool_name", "")
-            signal["lastTool"] = tool if isinstance(tool, str) and re.fullmatch(r"[A-Za-z0-9_]{1,80}", tool) else ""
+            signal["lastTool"] = tool
     else:
         signal["state"] = {"Stop": "idle", "StopFailure": "interrupted", "SessionEnd": "ended"}[event]
         signal["response"] = text(payload.get("last_assistant_message"), LIMITS["response"]) if event == "Stop" else signal.get("response", "")

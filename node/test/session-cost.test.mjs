@@ -114,16 +114,13 @@ test('the panel carries the list-price caveat once, as a title-tip, and the harn
   assert.match(chart, /idle re-load/);
 });
 
-test('the Overview\'s chart: the context panel alone, short, hues by theme, a compaction linked to its summary', () => {
+test('the Overview\'s chart: the context panel alone, short, a compaction linked to its summary', () => {
   const d = data('cost');
-  const light = d.costSvg(d.usage, 390, false);
+  const light = d.costSvg(d.usage, 390);
   assert.match(light, /width="390"/);
   assert.match(light, /Context after each prompt/);
   assert.doesNotMatch(light, /Cost of each prompt/, 'cost per prompt is the panel\'s');
   assert.match(light, /stroke="#2a78d6"/);
-  const dark = d.costSvg(d.usage, 390, true);
-  assert.match(dark, /#3987e5/);
-  assert.doesNotMatch(dark, /#2a78d6/);
   // Text is drawn in the text colour, never a series colour.
   assert.doesNotMatch(light, /<text[^>]*fill="#/);
   assert.match(light, /href="https:\/\/mehrlander\.github\.io\/web-tools\/pages\/compactions\.html#at=2026-11-03-c0517ab1-20261103T133000Z"/);
@@ -138,7 +135,7 @@ test('the Overview\'s chart: the context panel alone, short, hues by theme, a co
 test('a tap goes to that prompt\'s turn, by its place in record.prompts', async () => {
   const d = data('cost');
   const host = el('cost').querySelector('[data-cost-chart]');
-  host.innerHTML = d.costSvg(d.usage, 390, false);
+  host.innerHTML = d.costSvg(d.usage, 390);
   d._costHost = host;
   const jumps = [];
   d.goTurn = (i) => jumps.push(i);
