@@ -935,13 +935,49 @@ def answer_change(draft, which, trips):
     return n
 
 
+def shared(a, b):
+    """How much two texts share: the 20-character stretches of a found in b."""
+    w, n = min(20, len(a)), 0
+    for x in range(0, len(a) - w + 1, 5) if a and b else ():
+        n += a[x:x + w] in b
+    return n
+
+
+def follow(runs, k, lines):
+    """Where a span of run k's text went: {block index: weight} in the last
+    run's text, followed through each text in turn. A block kept stays itself;
+    a rewritten or removed one goes to the block that replaced it and to any
+    new or rewritten block that shares its words (a sentence moved to another
+    paragraph), weighted by how much it shares."""
+    db = doc_blocks(runs[k]["text"])
+    at = {i: float("inf") for i, (_, a, z) in enumerate(db) if a <= lines[1] and lines[0] <= z}
+    prev = [b for b, _, _ in db]
+    for r in runs[k + 1:]:
+        nb = [b for b, _, _ in doc_blocks(r["text"])]
+        ops = difflib.SequenceMatcher(a=prev, b=nb, autojunk=False).get_opcodes()
+        fresh = [j for op, _, _, j1, j2 in ops if op != "equal" for j in range(j1, j2)]
+        nxt = {}
+        for op, i1, i2, j1, j2 in ops:
+            for i in set(at) & set(range(i1, i2)):
+                if op == "equal":
+                    nxt[i - i1 + j1] = max(nxt.get(i - i1 + j1, 0), at[i])
+                    continue
+                for j in fresh:
+                    w = shared(flat(prev[i]), flat(nb[j])) or (0.5 if op == "replace" and j1 <= j < j2 else 0)
+                    if w:
+                        nxt[j] = max(nxt.get(j, 0), min(at[i], w))
+        at, prev = nxt, nb
+    return at
+
+
 def file_edits(c):
     """Before `add` files a call: each trip's misquote mark settled against the
     text its run read, each run's spans mapped onto the call's edits, and the
     kept texts dropped. The last run's spans are the call's edits worked out
-    from the same text, so they map by the text they replace; an earlier run's
-    span maps to the last run's span that replaces the same base blocks (edits
-    regroup as the wording moves), else by the text it replaces."""
+    from the same text, so they map by the text they replace. An earlier run's
+    span is followed through the texts to the last run's, and maps to the span
+    it lands in; without the texts, to the last run's span that replaces the
+    same base blocks, and else by the text it replaces."""
     froms = [flat(e.get("from")) for e in c.get("edits") or []]
     runs = [r for r in (c.get("review") or {}).get("runs") or [] if isinstance(r, dict)]
 
@@ -950,10 +986,12 @@ def file_edits(c):
                or [k for k, x in enumerate(froms, 1) if f and x and (f in x or x in f)])
         return hit[0] if hit else None
 
-    last = next((r.get("edits") for r in reversed(runs) if isinstance(r.get("edits"), list)), None) or []
-    anchors = [(s["base"], by_from(flat(s.get("from")))) for s in last
-               if isinstance(s, dict) and isinstance(s.get("base"), list)]
-    for r in runs:
+    li = next((i for i in range(len(runs) - 1, -1, -1) if isinstance(runs[i].get("edits"), list)), None)
+    last = runs[li]["edits"] if li is not None else []
+    anchors = [(s.get("base"), s["lines"], by_from(flat(s.get("from")))) for s in last if isinstance(s, dict) and s.get("lines")]
+    texts = li is not None and all(isinstance(r.get("text"), str) for r in runs[:li + 1])
+    final = doc_blocks(runs[li]["text"]) if texts else []
+    for k, r in enumerate(runs):
         if isinstance(r.get("text"), str):
             mark_misquotes(r, r["text"])
         spans = r.get("edits")
@@ -962,10 +1000,20 @@ def file_edits(c):
                 if not isinstance(s, dict):
                     continue
                 f, base = flat(s.pop("from", None)), s.pop("base", None)
-                if "edit" not in s:
-                    hit = next((k for b, k in anchors if base and k and meets(base, b)), None)
-                    s["edit"] = 1 if c.get("new") else hit or by_from(f)
+                if "edit" in s:
+                    continue
+                if c.get("new"):
+                    s["edit"] = 1; continue
+                hit = None
+                if texts and k <= li and s.get("lines"):
+                    to = follow(runs, k, s["lines"])
+                    went = [final[i] for i in sorted(to, key=lambda i: -to[i])]
+                    hit = next((e for _, ln, e in anchors for _, a, z in went if e and a <= ln[1] and ln[0] <= z), None)
+                if hit is None:
+                    hit = next((e for b, _, e in anchors if base and b and e and meets(base, b)), None)
+                s["edit"] = hit or by_from(f)
         r.pop("text", None)
+    return c
 
 
 def unread_edits(c):

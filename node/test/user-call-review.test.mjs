@@ -376,3 +376,21 @@ test('review gives the critic the spans, takes its tagged trips, links a change 
     'each run\'s spans name the call\'s edit, by the base text they replace');
   assert.equal(d.review.runs.some((x) => 'text' in x || x.edits.some((s) => 'from' in s || 'base' in s)), false, 'the draft\'s working texts are not filed');
 });
+
+test('add follows an edit whose wording moved to another paragraph to the edit it became', () => {
+  // As in the doc-craft call of the first real use: runs 1 and 2 read the
+  // recording sentences at the end of one paragraph; run 3 read them moved
+  // into a new paragraph further on, and that paragraph is the call's edit.
+  const T1 = 'Check the changes. Record every run.\n\nFile a call.\n', T2 = 'Check the changes. Record every run, briefly.\n\nFile a call.\n';
+  const T3 = 'Check the changes.\n\nFile a call.\n\nRecord every run, briefly.\n';
+  const run = (text, edits) => ({ ...PASS, text, edits });
+  const c = { session: 'a710e806', slug: 'moved', kind: 'documentation', question: 'Apply 1 edit to x.md?', brief: 'Moves it.', file: 'o/r@b:x.md',
+    edits: [{ from: 'File a call.', to: 'File a call.\n\nRecord every run, briefly.' }], review: { runs: [
+      run(T1, [{ lines: [1, 1], from: 'Check the changes.', base: [0, 1] }]),
+      run(T2, [{ lines: [1, 1], from: 'Check the changes.', base: [0, 1] }]),
+      run(T3, [{ lines: [5, 5], from: 'File a call.', base: [2, 2] }])] } };
+  const out = py('file_edits', c);
+  assert.deepEqual(out.review.runs.map((r) => r.edits), [[{ lines: [1, 1], edit: 1 }], [{ lines: [1, 1], edit: 1 }], [{ lines: [5, 5], edit: 1 }]],
+    'the base blocks the early spans replace are not the edit\'s, but their text became it');
+  assert.equal(out.review.runs.some((r) => 'text' in r), false);
+});
