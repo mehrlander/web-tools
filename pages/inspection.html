@@ -85,11 +85,11 @@
   })();
 
   const TONE = {
-    success: { btn: 'btn-success', mark: 'bg-success/30', bar: 'bg-success', tag: 'border-success/60 bg-success/35' },
-    error: { btn: 'btn-error', mark: 'bg-error/25', bar: 'bg-error', tag: 'border-error/60 bg-error/30' },
-    warning: { btn: 'btn-warning', mark: 'bg-warning/40', bar: 'bg-warning', tag: 'border-warning/70 bg-warning/45' },
-    info: { btn: 'btn-info', mark: 'bg-info/25', bar: 'bg-info', tag: 'border-info/60 bg-info/30' },
-    neutral: { btn: 'btn-neutral', mark: 'bg-base-content/20', bar: 'bg-base-content/50', tag: 'border-base-300 bg-base-100' },
+    success: { btn: 'btn-success', mark: 'bg-success/30', bar: 'bg-success', tag: 'border-success/60 bg-success/35', text: 'text-success' },
+    error: { btn: 'btn-error', mark: 'bg-error/25', bar: 'bg-error', tag: 'border-error/60 bg-error/30', text: 'text-error' },
+    warning: { btn: 'btn-warning', mark: 'bg-warning/40', bar: 'bg-warning', tag: 'border-warning/70 bg-warning/45', text: 'text-warning' },
+    info: { btn: 'btn-info', mark: 'bg-info/25', bar: 'bg-info', tag: 'border-info/60 bg-info/30', text: 'text-info' },
+    neutral: { btn: 'btn-neutral', mark: 'bg-base-content/20', bar: 'bg-base-content/50', tag: 'border-base-300 bg-base-100', text: 'text-base-content/60' },
   };
   // A tag's colour: its own tone, else its stance's; any other tag is neutral.
   const STANCE = { like: 'success', dislike: 'error' };
@@ -244,8 +244,11 @@
   // lines return to its left edge; a wide one hangs the statement beside it.
   function tagHTML(o, big) {
     if (!o.tag) return '';
-    const t = P.tagOf[o.tag] || { label: o.tag }, c = (TONE[toneOf(o)] || TONE.neutral).tag;
-    return `<span class="badge badge-sm ${c} mr-2 @lg:mr-0 ${big ? '@lg:mt-1.5' : '@lg:mt-1'} shrink-0 justify-start gap-1 font-normal" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${t.icon ? `<i class="ph ${esc(t.icon)}"></i>` : ''}${esc(t.label || o.tag)}</span>`;
+    const t = P.tagOf[o.tag] || { label: o.tag }, tn = TONE[toneOf(o)] || TONE.neutral;
+    // A tag with an icon is the icon alone, filled in its tone; its tip names it.
+    if (t.icon) return `<span class="mr-1.5 inline-flex shrink-0 cursor-pointer align-[-0.15em] @lg:mr-0 @lg:h-[1lh] @lg:items-center" data-title-tip="${esc(t.label || o.tag)}" data-title-tip-bare>`
+      + `<i class="ph-fill ${esc(t.icon)} ${tn.text} text-[1.15em]"></i></span>`;
+    return `<span class="badge badge-sm ${tn.tag} mr-2 @lg:mr-0 ${big ? '@lg:mt-1.5' : '@lg:mt-1'} shrink-0 justify-start gap-1 font-normal" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${esc(t.label || o.tag)}</span>`;
   }
 
   // A passage's tip: its outputs' numbers, stances and first words.

@@ -29,7 +29,7 @@ The page reads `#gz=` before `?src=`:
 | `made` | Optional: `by` (the producer's address) and `from` (the addresses it read) |
 | `runs` | In order |
 
-A verdict may also have an `icon`, a Phosphor class such as `ph-check`, and a `tone`, the colour of its chosen button and of its marks: `success`, `error`, `warning`, `info` or `neutral`. A tag may have a `tone` too, the colour of its badge. Without one, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
+A verdict may also have an `icon`, a Phosphor class such as `ph-check`, and a `tone`, the colour of its chosen button and of its marks: `success`, `error`, `warning`, `info` or `neutral`. A tag may have a `tone` too: the colour of its icon, which is shown alone with its label in a tip, or of its badge when it has no icon, and of the passages its output rests on. Without one, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
 
 A **run** is one input and the outputs made from it. It has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives.
 
