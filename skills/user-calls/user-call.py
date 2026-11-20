@@ -658,15 +658,31 @@ def run_of(seq, sub):
 
 def edit_span(e, dblocks):
     """Where an edit's new text sits: [first, last] lines of the blocks it adds
-    or rewrites, the context it anchors on left out; for a removal, the block
-    beside the gap. None when its text is not in the document."""
+    or rewrites, the context it anchors on left out, and a rewrite cut to the
+    lines that differ, so one changed bullet is not its whole list; for a
+    removal, the block beside the gap. None when its text is not in the
+    document."""
     fb, tb = blocks(str(e.get("from") or "")), blocks(str(e.get("to") or ""))
     lead, tail = context(fb, tb)
     s = run_of([b for b, _, _ in dblocks], tb)
     if s is None:
         return None
-    body = dblocks[s + lead:s + len(tb) - tail] or dblocks[s:s + len(tb)]
-    return [body[0][1], body[-1][2]]
+    body = dblocks[s + lead:s + len(tb) - tail]
+    if not body:
+        body = dblocks[s:s + len(tb)]
+        return [body[0][1], body[-1][2]]
+    first, last = body[0][1], body[-1][2]
+    old_lines = "\n".join(fb[lead:len(fb) - tail]).split("\n")
+    new_lines = "\n".join(b for b, _, _ in body).split("\n")
+    if lead == tail == 0 and len(fb) == len(tb) == 1 and old_lines != new_lines:
+        a = 0
+        while a < min(len(old_lines), len(new_lines)) - 1 and old_lines[a] == new_lines[a]:
+            a += 1
+        z = 0
+        while z < min(len(old_lines), len(new_lines)) - 1 - a and old_lines[-1 - z] == new_lines[-1 - z]:
+            z += 1
+        first, last = first + a, max(first + a, last - z)
+    return [first, last]
 
 
 def base_range(e, base_blocks):
