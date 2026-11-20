@@ -34,12 +34,18 @@ they have to say it again.
 - **Do not rewrite.** Name the fix in one clause only where the peeve itself
   implies it.
 
+## What you receive
+
+The subject, and for a documentation call the edits under review, numbered E1,
+E2 and so on, each a range of lines of the file as you read it
+(`E1  lines 28-30`), as `user-call.py review --spans` prints them.
+
 ## What you return
 
 1. **Trips**, most costly first: `P<id> · <where> · "<quote>" · <one clause>`.
-   When the caller numbers the edits under review (E1, E2, ...), name each
-   trip's edit after its id: `P<id> · E<n> · <where> · "<quote>" · <one clause>`.
-   Write `E-` for a trip outside every edit.
+   When you receive numbered edits, name each trip's edit after its id:
+   `P<id> · E<n> · <where> · "<quote>" · <one clause>`. Write `E-` for a trip
+   outside every edit.
 2. **Clear**: the ids you checked that the subject does not trip, as one line.
 3. **Candidates**: at most three patterns the owner might add to the list,
    each with a quote. These are proposals, not findings.
