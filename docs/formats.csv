@@ -15,7 +15,7 @@ finding,lib/kits/findings.js,none,no,none,skills/tend/findings.py,no,,"a note ca
 git-change/1,node/git-change.mjs,none,no,schema,node/git-change.mjs,no,,"a committed local change as metadata and a thin Git bundle, for the Stage to verify and apply"
 idea-board,docs/idea-board.md,none,no,none,skills/design-sprint/SKILL.md,yes,,"a design sprint's eight concepts, written before any was judged, and the selection among them"
 inquiry/1,docs/envelopes/schemas/profiles/inquiry-v1.schema.json,docs/envelopes/schemas/profiles/inquiry-v1.schema.json,no,profile,none,no,,"a surface that asks its reader to fill in named boxes, with the answers posted to its reply_to"
-inspection/1,docs/envelopes/inspection.md,none,no,kind,mehrlander/home:projects/text/runs/2026-11-06-prompt-sentiment/src/flag_inspection.py,yes,,"outputs a model or a script made from its inputs, each anchored to a passage, for one verdict apiece"
+inspection/1,docs/envelopes/inspection.md,none,no,kind,mehrlander/home:projects/text/runs/2026-11-06-prompt-sentiment/src/flag_inspection.py,yes,,"outputs a model or a script made from its inputs, each anchored to a passage, for a note and, where verdicts are declared, a verdict"
 ladder/1,python/swarm/ladder.py,none,no,kind,python/swarm/ladder.py,yes,,"an edit ladder: single edits per paragraph, judged and ordered from safest to boldest"
 ladder/2,python/swarm/ladder.py,none,no,kind,python/swarm/ladder.py,yes,,"a bold edit ladder: a reader's and scouts' ideas, then the edits drawn from them and their ratings"
 list,lib/kits/lists.js,none,no,none,lib/kits/lists.js,no,,"one list in the registry's lists/ folder, the snag list among them: a title and its items"
