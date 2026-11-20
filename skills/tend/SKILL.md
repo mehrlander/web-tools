@@ -164,14 +164,16 @@ reading and triggers nothing.
 
 `/tend prod` asks each session with open work to tend its own work. List the
 account's sessions and take each one that is idle, last showed activity
-between two hours and a week ago, and has open work. Open work is an open
-pull request, a blocked or review-ready status, or a last reply (its record's
-`last_message`) whose closing line is ❇️ Ready to assess or 🟢 Ready to
-continue; [`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
-defines both. A session idle for less than two hours tends its own work at
-its check-ins, the messages a cloud session schedules to itself 55 minutes and
-about two hours after the owner's last prompt
-([`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)).
+between two hours and a week ago, and has open work. A session has open work
+when it has an open pull request or a blocked or review-ready status. It also
+has open work when its last reply (its record's `last_message`) closed on ❇️
+Ready to assess or 🟢 Ready to continue, two closing states that
+[`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
+defines. A session idle for less than two hours tends its own work at its
+check-ins. A check-in is a message a cloud session schedules to itself, 55
+minutes and again about two hours after the owner's last prompt, at the times
+[`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)
+sets.
 A message to a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
 ([`docs/environment/container.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md#the-prompt-cache)).
@@ -215,8 +217,8 @@ report what each session left waiting on the owner.
 A session that receives it works through whichever of these apply, under the
 principles above:
 
-- **Take the step the last reply's closing line names,** where that line is
-  ❇️ or 🟢, the closing states named above, and the owner has not written
+- **Take the step the last reply named,** where that reply closed on ❇️
+  Ready to assess or 🟢 Ready to continue. Skip it if the owner has written
   since.
 - **Land what is already approved,** up to a pull request ready to merge:
   merge main into the branch, fix conflicts and failing checks, sync the
