@@ -91,7 +91,10 @@ window.GH = class {
     return { text: readFileSync(path.join(repoRoot, file), 'utf8') };
   }
 };
-for (const file of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/vanilla-bundle.js', 'lib/alpineComponents/map.js'])
+// program.js carries window.Programs, the reading of a program declaration the
+// Map's Programs list shares with the Program view.
+for (const file of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/vanilla-bundle.js',
+  'lib/alpineComponents/program.js', 'lib/alpineComponents/map.js'])
   new window.Function(readFileSync(path.join(repoRoot, file), 'utf8'))();
 Alpine.start();
 const el = window.document.getElementById('map'), data = Alpine.$data(el);
@@ -203,169 +206,50 @@ test('Programs lists each declaration on shared columns, with its open tasks fro
   data.setTab('research');
 });
 
-test("a program's title opens its page in the tab, and Back to the list closes it", async () => {
-  const stamped = [];
-  window.__shell.setMapCtx = (spec, o) => stamped.push([{ ...spec }, { ...o }]);
+// A program's page is the Program view since 2026-11-18 (program-view.test.mjs
+// holds the page). The list opens it: a title on its first tab, a measure's
+// name on Measures. A row is its title, one row of flair (an icon and a count
+// each) and its views; a list among the flair opens in the chart panel-tip
+// rather than under the row.
+test("a program's title opens the Program view, and a measure's name opens it on Measures", async () => {
+  const opened = [];
+  window.__shell.goProgram = (name, tab) => opened.push([name, tab]);
+  const tip = () => el.querySelector('[data-map-chart-tip]');
   try {
     data.setTab('programs'); await settled();
-    el.querySelector('[data-map-programs] [data-map-program="surfacing"] [data-map-program-open]').click();
-    // Wait for the list to hide rather than a fixed count of ticks, which a
-    // loaded CI runner can outlast.
-    for (let i = 0; i < 100 && el.querySelector('[data-map-programs]').style.display !== 'none'; i++) await new Promise(r => setTimeout(r, 20));
-    assert.equal(data.programSel, 'surfacing');
-    assert.deepEqual(stamped.at(-1), [{ program: 'surfacing' }, { push: true }], 'opening stamps the address as a new entry');
-    assert.equal(el.querySelector('[data-map-programs]').style.display, 'none', 'the page takes the list\'s place');
-    const page = el.querySelector('[data-map-program-page]');
-    assert.equal(page.dataset.mapProgram, 'surfacing');
-    assert.match(page.querySelector('[data-part="title"]').textContent, /Surfacing/);
-    assert.match(page.querySelector('[data-map-program-charter-open]').textContent, /programs\/surfacing\/README\.md/);
-    el.querySelector('[data-map-program-back]').click();
-    // x-show reveals a frame later (Alpine defers a show past the click).
-    await tick(3); await new Promise(r => window.requestAnimationFrame(() => r()));
-    assert.equal(data.programSel, '');
-    assert.deepEqual(stamped.at(-1), [{ program: '' }, { push: true }]);
-    assert.equal(el.querySelector('[data-map-program-page]'), null);
-    assert.notEqual(el.querySelector('[data-map-programs]').style.display, 'none');
-  } finally { delete window.__shell.setMapCtx; }
-});
+    const row = el.querySelector('[data-map-programs] [data-map-program="surfacing"]');
+    row.querySelector('[data-map-program-open]').click();
+    assert.deepEqual(opened.at(-1), ['surfacing', undefined]);
+    const flair = [...row.querySelectorAll('[data-map-program-flair]')];
+    assert.deepEqual(flair.map(f => f.dataset.mapProgramFlair), ['governs', 'tasks', 'measures', 'reviewers'], 'one row, in one order');
+    assert.deepEqual(flair.map(f => f.textContent.trim()), ['2', '2', '1', ''], 'counts, the reviewers by their icons');
+    assert.equal(row.querySelector('[data-map-program-measure]'), null, 'no list sits in the row');
 
-test("the list draws no measure charts; a measure's name opens the page on its Measures tab", async () => {
-  window.__shell.setMapCtx = () => {};
-  data.setTab('programs'); await settled();
-  const row = el.querySelector('[data-map-programs] [data-map-program="surfacing"]');
-  assert.equal(el.querySelector('[data-map-programs] [data-map-program-measures]'), null);
-  row.querySelector('[data-map-program-measure]').click();
-  await tick(3);
-  assert.equal(data.programSel, 'surfacing');
-  assert.equal(data.programTab, 'measures');
-  data.closeProgram();
-  await tick(3); await new Promise(r => window.requestAnimationFrame(() => r()));
-});
+    row.querySelector('[data-map-program-flair="measures"]').click(); await settled();
+    assert.equal(data.chartTip?.key, 'measures:' + hub + ':surfacing');
+    assert.equal(data.chartTip.pinned, true, 'a tap pins it');
+    tip().querySelector('[data-chart-tip-link="measure:owner/private@background:state/closings.json"]').click();
+    assert.deepEqual(opened.at(-1), ['surfacing', 'measures']);
+    assert.equal(data.chartTip, null, 'following a link closes the panel-tip');
 
-test('Back and Forward on Programs open the page the address names', async () => {
-  const before = window.location.search;
-  window.history.replaceState({}, '', '?view=map&tab=programs&program=surfacing');
-  window.dispatchEvent(new window.PopStateEvent('popstate'));
-  assert.equal(data.programSel, 'surfacing');
-  window.history.replaceState({}, '', '?view=map&tab=programs');
-  window.dispatchEvent(new window.PopStateEvent('popstate'));
-  assert.equal(data.programSel, '', 'an address naming no program is the list');
-  window.history.replaceState({}, '', '?view=map&tab=docs&program=surfacing');
-  window.dispatchEvent(new window.PopStateEvent('popstate'));
-  assert.equal(data.programSel, '', 'the key means nothing off the Programs tab');
-  window.history.replaceState({}, '', before);
-});
+    row.querySelector('[data-map-program-flair="governs"]').click(); await settled();
+    assert.deepEqual([...tip().querySelectorAll('[x-blob]')].slice(1).map(a => a.textContent), ['CONVERSATION.md', 'showing.py'],
+      'the governed paths, by folder, each its own link');
+    assert.deepEqual([...data.chartTip.body.groups.map(g => g.dir)], ['docs/', 'python/']);
+    row.querySelector('[data-map-program-flair="governs"]').click(); await settled();
+    assert.equal(data.chartTip, null, 'its own flair closes it again');
 
-test("a program's page opens on its charter's areas, and its tabs hold the changes, tasks and notes", async () => {
-  data.setTab('programs'); await settled();
-  data.programSel = 'surfacing'; data.programTab = 'areas';
-  const p = data.programPage;
-  for (let i = 0; i < 30 && (data.programCommitsOf(p).state !== 'ok' || data.programNotesOf(p).state !== 'ok'
-    || data.programCharterOf(p).state !== 'ok'); i++) await tick();
-  await tick(3);
-  const page = el.querySelector('[data-map-program-page]');
-  const shown = sel => page.querySelector(sel) && page.querySelector(sel).style.display !== 'none';
-  // x-show reveals a frame later (Alpine defers a show past the click).
-  const frame = async () => { await tick(3); await new Promise(r => window.requestAnimationFrame(() => r())); };
-  const tab = async k => { page.querySelector('[data-map-program-tab="' + k + '"]').click(); await frame(); };
+    row.querySelector('[data-map-program-flair="reviewers"]').click(); await settled();
+    assert.deepEqual([...data.chartTip.body.links.map(l => l.label)], ['owner-proxy']);
+    data.closeChartTip();
 
-  assert.deepEqual([...page.querySelectorAll('[data-map-program-tab]')].map(b => b.dataset.mapProgramTab),
-    ['areas', 'measures', 'changes', 'tasks', 'notes']);
-  assert.equal(page.querySelector('[role="tab"][aria-selected="true"]').dataset.mapProgramTab, 'areas', 'the page opens on Areas');
-  assert.ok(shown('[data-map-program-areas]'));
-  for (const sel of ['[data-map-program-commits]', '[data-map-program-tasks]', '[data-map-program-notes]'])
-    assert.equal(shown(sel), false, sel + ' waits for its tab');
-  assert.equal(page.querySelector('[data-map-program-measures]'), null, 'the measures mount with their tab');
-  assert.equal(page.querySelector('[data-map-program-charter]'), null, 'the charter no longer renders inline');
-
-  const areas = [...page.querySelectorAll('[data-map-program-area]')];
-  assert.deepEqual(areas.map(r => r.dataset.area), ['Reply', 'Showing'], 'the rows of the table under Areas only');
-  const link = areas[0].querySelector('a');
-  assert.equal(link.getAttribute('href'), 'https://github.com/' + hub + '/blob/codex/research-preview/docs/CONVERSATION.md',
-    'a relative link resolves from the charter\'s folder');
-  assert.equal(link.querySelector('code')?.textContent, 'CONVERSATION.md');
-  assert.equal(areas[1].querySelector('code')?.textContent, 'showing.py', 'inline code stays code');
-  assert.equal(areas[1].querySelector('a').getAttribute('href'), 'https://example.com/?view=map');
-
-  const marks = Object.fromEntries([...page.querySelectorAll('[data-map-program-mark]')]
-    .map(b => [b.dataset.mapProgramMark, b.style.display === 'none' ? null : b.textContent.trim()]));
-  assert.equal(marks.tasks, '2 open');
-  assert.equal(marks.changes, data.programRecent(p) + ' in 14 days');
-  assert.equal(marks.notes, '2 notes');
-
-  const views = [...page.querySelectorAll('[data-map-program-views] a')];
-  assert.deepEqual(views.map(a => a.textContent.trim()), ['Showing'], 'the views ride in the header');
-  assert.equal(new URL(views[0].href).searchParams.get('tab'), 'showing');
-
-  await tab('changes');
-  assert.ok(shown('[data-map-program-commits]'));
-  assert.equal(shown('[data-map-program-areas]'), false);
-  const shas = [...page.querySelectorAll('[data-map-program-commit]')].map(li => li.dataset.sha);
-  assert.deepEqual(shas, ['c3c3c3c3c3', 'c2c2c2c2c2', 'c1c1c1c1c1'], 'joined by sha, newest first');
-  const top = page.querySelector('[data-map-program-commit]');
-  assert.match(top.textContent, /Both files at once/);
-  assert.doesNotMatch(top.textContent, /Body/, 'the subject line only');
-  assert.equal(top.querySelector('a').getAttribute('href'), 'https://github.com/' + hub + '/commit/c3c3c3c3c3');
-  assert.equal(top.querySelector('a').textContent, 'c3c3c3c');
-  assert.match(top.textContent, /2026-11-10/);
-  assert.deepEqual([...data.programCommitsOf(p).rows[0].paths], ['docs/CONVERSATION.md', 'python/showing.py']);
-  const reads = asked.filter(a => a.file.startsWith('commits?'));
-  assert.ok(reads.every(a => a.repo === hub && new URLSearchParams(a.file.slice(8)).get('per_page') === '5'));
-
-  page.querySelector('[data-map-program-mark="tasks"]').click(); await frame();
-  assert.equal(data.programTab, 'tasks', 'a mark opens the tab it counts');
-  assert.ok(shown('[data-map-program-tasks]'));
-  assert.equal(shown('[data-map-program-commits]'), false);
-  const tasks = [...page.querySelectorAll('[data-map-program-task]')];
-  assert.deepEqual(tasks.map(t => t.textContent.trim()), ['Draft the page', 'A'], 'titles, in progress first');
-  assert.deepEqual(tasks.map(t => t.dataset.status), ['in-progress', 'backlog']);
-  assert.deepEqual([...data.programTaskRows(p).map(t => t.path)], ['tracker/tasks/e.md', 'tracker/tasks/a.md']);
-
-  await tab('notes');
-  assert.ok(shown('[data-map-program-notes]'));
-  const noted = [...page.querySelectorAll('[data-map-program-note]')].map(li => li.textContent.replace(/\s+/g, ' ').trim());
-  assert.equal(noted.length, 2, 'notes on the charter and its sections, not on other files or replies');
-  assert.match(noted[0], /On a section/);
-  assert.match(noted[1], /The first note.*1 reply/);
-
-  await tab('measures');
-  assert.ok(page.querySelector('[data-map-program-measures] [data-map-measure="closings.json"]'), 'the measures draw in their tab');
-
-  data.closeProgram(); await tick(3);
-  data.openProgram(p); await tick(3);
-  assert.equal(data.programTab, 'areas', 'a page opens on Areas again');
-  assert.deepEqual(problems, []);
-});
-
-test('a charter without an Areas table gives its first paragraph', async () => {
-  const plain = { key: hub + ':plain', repo: hub, ref: 'codex/research-preview', name: 'plain', label: 'Plain',
-    charter: 'programs/plain/README.md', measures: [], governs: [], root: { kind: 'repo', repo: hub, ref: 'codex/research-preview', tracker: '' } };
-  await data.loadProgramCharter(plain);
-  const c = data.programCharterOf(plain);
-  assert.equal(c.state, 'ok');
-  assert.deepEqual([...c.areas], [], 'a table under another heading is not the areas');
-  assert.match(c.lead, /^A charter with <a href="https:\/\/github\.com\/mehrlander\/web-tools\/blob\/codex\/research-preview\/docs\/APP\.md"/);
-  assert.deepEqual([...data.programTabs({ ...plain, charter: '' }).map(t => t.k)].includes('areas'), false,
-    'a program without a charter has no Areas tab');
-});
-
-test("signed out, a program's page reads fewer paths and leaves out the notes", async () => {
-  window.TOKEN = ''; window.__shell._authState = 'public';
-  try {
-    await settled();
-    const p = data.programPage;
-    assert.ok(p, 'the hub program stays');
-    for (let i = 0; i < 30 && !(data.programCommitsOf(p).state === 'ok' && data.programCommitsOf(p).authed === false); i++) await tick();
-    assert.equal(data.programCommitsOf(p).authed, false, 'a sign-out reads the changes again, unauthenticated');
-    await tick();
-    assert.equal(el.querySelector('[data-map-program-notes]').style.display, 'none');
-    assert.equal(el.querySelector('[data-map-program-tab="notes"]'), null, 'signed out, no Notes tab');
-    assert.equal(el.querySelector('[data-map-program-mark="notes"]').style.display, 'none', 'nor a count of notes');
-  } finally {
-    window.TOKEN = 'fixture-token'; window.__shell._authState = 'auth';
-    await settled();
-    data.programSel = ''; data.setTab('research');
-  }
+    const views = row.querySelector('[data-map-program-views]');
+    assert.match(views.className, /overflow-x-auto/, 'the views run on one line that scrolls sideways');
+    assert.match(views.className, /flex-nowrap/);
+    assert.equal(el.querySelector('[data-map-program-page]'), null, 'the Map draws no page of its own');
+    assert.equal(el.querySelector('[data-map-programs] [data-program-measures]'), null, 'nor any measure charts');
+    assert.notEqual(el.querySelector('[data-map-programs]').style.display, 'none', 'the list stays');
+  } finally { delete window.__shell.goProgram; data.closeChartTip(); data.setTab('research'); }
 });
 
 test('Docs omits research folders and declared studies while keeping neighboring documents', () => {

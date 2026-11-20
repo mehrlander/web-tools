@@ -81,6 +81,7 @@ test('the Activity nav stop opens Sessions', () => {
 // absent from here stamps from its key alone.
 const SEED = {
   project: (s) => { s.projectPath = 'projects/budget-drs'; },
+  program: (s) => { s.programName = 'sessions'; },
   state: (s) => { s.stateItem = 'sessions'; },
   search: (s) => { s.searchSeed = { q: 'tracker', mode: 'names' }; },
   app: (s) => { s.appView = { repo: 'mehrlander/home', path: 'links/index.html' }; },
@@ -128,6 +129,8 @@ test('the second key rides along, for the views that carry one', () => {
     ['map', (s) => { s.mapTab = 'showing'; }, 'tab', 'showing'],
     ['branches', (s) => { s.detailSpec = 'mehrlander/web-tools@main'; }, 'detail', 'mehrlander/web-tools@main'],
     ['waiting', (s) => { s.waitingCall = '2708d02c-close-four-tasks'; }, 'call', '2708d02c-close-four-tasks'],
+    ['program', (s) => { s.programName = 'sessions'; }, 'program', 'sessions'],
+    ['program', (s) => { s.programName = 'sessions'; s.programTab = 'measures'; }, 'tab', 'measures'],
   ];
   for (const [view, seed, key, want] of cases) {
     const { shell: s } = makeShell({ browserStore: {
@@ -143,6 +146,67 @@ test('the second key rides along, for the views that carry one', () => {
     const got = key === 'detail' ? reopened.detailSpec : reopened.parseUrl()[key];
     assert.equal(got, want, `?view=${view}&${key}= did not survive the round trip`);
   }
+});
+
+// ── The Program view, and the Map address it replaced ───────────────────────
+//
+// A program's page was the Map's Programs tab's until 2026-11-18, at
+// ?view=map&tab=programs&program=<name>. It is a view of its own now, and the
+// old address is a link people hold, so it has to open the new view and stamp
+// the new address rather than land on the list.
+
+test('?view=program opens a program, and its first tab stays out of the address', () => {
+  const { shell: s } = makeShell({ search: '?view=program&program=testing&tab=changes', browserStore: { repo: '' } });
+  s.syncUrl = () => {};
+  const url = s.parseUrl();
+  assert.equal(url.program, 'testing');
+  s.routeFor(url.view).open.call(s, url);
+  assert.equal(s.view, 'program');
+  assert.equal(s.programName, 'testing');
+  assert.equal(s.programTab, 'changes');
+  let p = s.deepLinkParams(new URLSearchParams());
+  assert.equal(p.get('view'), 'program');
+  assert.equal(p.get('program'), 'testing');
+  assert.equal(p.get('tab'), 'changes');
+  s.goProgramTab('areas');
+  p = s.deepLinkParams(new URLSearchParams());
+  assert.equal(p.has('tab'), false, 'Areas is the first tab, so a bare address means it');
+  s.goProgramTab('bogus');
+  assert.equal(s.programTab, '', 'a tab the view does not draw is ignored');
+  s.goProgram('content', 'nowhere');
+  assert.equal(s.programTab, '', 'an unknown tab from a link opens the first');
+  assert.equal(s.estateCtx, true, 'a program is estate-level, so the sidebar is the estate one');
+});
+
+test('a program address with no name lands on the landing, and goProgram with none opens the list', () => {
+  const { shell: s } = makeShell({ search: '?view=program', browserStore: { repo: '' } });
+  s.syncUrl = () => {};
+  const url = s.parseUrl();
+  const r = s.routeFor(url.view);
+  assert.equal(r.when(url), false, 'the row needs a name');
+  s.goProgram('');
+  assert.equal(s.view, 'map');
+  assert.equal(s.mapTab, 'programs');
+});
+
+test("the Map's old program address opens the Program view and stamps the new one", () => {
+  const { shell: s } = makeShell({ search: '?view=map&tab=programs&program=sessions', browserStore: { repo: '' } });
+  s.syncUrl = () => {};
+  const url = s.parseUrl();
+  assert.equal(url.view, 'map');
+  s.routeFor(url.view).open.call(s, url);
+  assert.equal(s.view, 'program', 'the redirect is the map row\'s, through the table');
+  assert.equal(s.programName, 'sessions');
+  const p = s.deepLinkParams(new URLSearchParams('view=map&tab=programs&program=sessions'));
+  assert.equal(p.get('view'), 'program');
+  assert.equal(p.get('program'), 'sessions');
+  assert.equal(p.has('tab'), false, 'the Programs tab key does not ride onto the program');
+  // And the Programs list itself is still the Map's.
+  const { shell: m } = makeShell({ search: '?view=map&tab=programs', browserStore: { repo: '' } });
+  m.syncUrl = () => {};
+  m.routeFor('map').open.call(m, m.parseUrl());
+  assert.equal(m.view, 'map');
+  assert.equal(m.mapTab, 'programs');
 });
 
 // ── ?header= and ?sidebar=, READING parameters beside the view table ────────

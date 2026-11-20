@@ -17,7 +17,11 @@ await writeFile(join(folderRoot,'project','note.txt'),'PRIVATE CONTENT');
 await writeFile(join(fixture,'outside.txt'),'PRIVATE OUTSIDE');
 await symlink(fixture,join(folderRoot,'junction'),'junction');
 await writeFile(join(fixture,'settings.json'),JSON.stringify({RepositoriesRoot:folderRoot}));
-const port = 47832;
+// Parallel sessions can run companion checks on the same laptop.
+const reservation=createServer();
+await new Promise(resolve=>reservation.listen(0,'127.0.0.1',resolve));
+const port=reservation.address().port;
+await new Promise(resolve=>reservation.close(resolve));
 const mediaActions=[];
 let mediaState={sessionAvailable:true,source:'Fixture player',title:'Fixture track',artist:'Artist',album:'Album',playbackStatus:'Playing',positionSeconds:12,endSeconds:120,canPlayPause:true,canGoPrevious:false,canGoNext:true};
 let mediaMode='normal', actionMode='normal';

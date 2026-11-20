@@ -113,6 +113,7 @@
     if(branchTip){const target=[...document.querySelectorAll('[data-file-branch]')].find(n=>n.dataset.fileBranch===branchTip);if(target)window.TitleTip?.open(target);else window.TitleTip?.close();}
     if(scrollPosition()!==viewport)restoreScroll(viewport);
     window.NowRepositories.positionPanels();requestAnimationFrame(()=>window.NowRepositories.positionPanels());
+    window.NowViews?.refreshContext?.();
   }
   async function poll(){
     clearTimeout(timer);if(!active||document.hidden||controller)return;
@@ -154,5 +155,9 @@
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else clearTimeout(timer);});
   window.addEventListener('online',poll);
   for(const key of ['web-tools-files-root','web-tools-files-snapshot'])try{const prior=JSON.parse(localStorage.getItem(key));if(validListing(prior,key==='web-tools-files-root'?'':prior?.path))cache.set(prior.path,prior);}catch{}
-  window.NowLocalFiles={valid,render,header,stop,setFilter,filter:()=>filter,refresh:()=>{signature='';results();}};
+  function gitState(path){
+    const parts=String(path).split('/'),name=parts.pop(),parent=parts.join('/');
+    return cache.get(parent)?.entries.find(entry=>entry.name===name)?.gitState??null;
+  }
+  window.NowLocalFiles={valid,render,header,stop,setFilter,gitState,filter:()=>filter,refresh:()=>{signature='';results();}};
 })();

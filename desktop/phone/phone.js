@@ -31,12 +31,11 @@
     detailTitle:'text-[21px] font-semibold leading-7 [overflow-wrap:anywhere] mt-3 mx-0 mb-[9px] text-[#373129] outline-none',
     facets:'phone-facets flex gap-[3px] p-[3px] rounded-lg bg-[#efede7] mt-[18px] mx-0 mb-3',
     facet:`flex-1 min-w-0 min-h-[34px] py-1 px-1.5 text-xs leading-[18px] text-[#7b7265] rounded-[5px] whitespace-nowrap aria-selected:bg-white aria-selected:text-[#3d362c] aria-selected:shadow-[0_1px_3px_#29252414] aria-selected:font-[550] pointer-coarse:min-h-10 ${focusStyle}`,
-    detailBody:'phone-detail-body text-sm leading-[22px] text-[#5e5549] [overflow-wrap:anywhere] min-h-20 [&_p]:my-[.7em] [&_pre]:whitespace-pre-wrap [&_pre]:[overflow-wrap:anywhere] [&_a]:text-[#277b67] [&_a]:underline [&_a]:underline-offset-2',
-    tokenDialog:'phone-token-dialog w-[min(360px,calc(100vw_-_24px))] p-[18px] border border-[#ddd6ca] rounded-[14px] text-[#4b4338] shadow-[0_10px_40px_#29252430] text-xs leading-[18px] backdrop:bg-[#29252430]',
+    detailBody:'phone-detail-body text-[17px] leading-[1.65] text-[#5e5549] [overflow-wrap:anywhere] min-h-20 [&_p]:my-[.7em] [&_pre]:whitespace-pre-wrap [&_pre]:[overflow-wrap:anywhere] [&_a]:text-[#277b67] [&_a]:underline [&_a]:underline-offset-2',
+    sessionStep:`grid size-10 place-items-center rounded text-xl text-[#686156] disabled:opacity-30 ${focusStyle}`,
     dialogTitle:'text-[15px] font-semibold leading-[21px] pr-[25px] mt-0 mx-0 mb-[9px] [overflow-wrap:anywhere]',
     dialogNote:'my-2 text-[#817565]',
-    dialogCounts:'grid grid-cols-[minmax(0,1fr)_auto] gap-y-[5px] gap-x-3 my-3 [&_dd]:tabular-nums [&_dd]:text-right',
-    dialogClose:'phone-dialog-close absolute right-[7px] top-[5px] size-[34px] text-2xl leading-[18px] text-[#8b8172]'
+    dialogCounts:'grid grid-cols-[minmax(0,1fr)_auto] gap-y-[5px] gap-x-3 my-3 [&_dd]:tabular-nums [&_dd]:text-right'
   };
   if (el('assistants')) el('assistants').className=ui.assistants;
   // Status counts can change the strip's height. Keep section headings just
@@ -51,31 +50,32 @@
     const node = el(id);
     if (node && rendered.get(node) !== value) { node.innerHTML = value; rendered.set(node,value); }
   };
-  const labels = {working:'Working',quiet:'Quiet',idle:'Idle',interrupted:'Interrupted',recent:'Recent',recorded:'Recorded',queued:'Waiting',claimed:'Claimed',reply:'Reply arriving',complete:'Complete',failed:'Needs review'};
+  const labels = {working:'Working',quiet:'No recent update',idle:'Idle',interrupted:'Interrupted',recent:'Recent',recorded:'Recorded',queued:'Waiting',claimed:'Accepted',reply:'Reply arriving',complete:'Complete',declined:'Declined',failed:'Needs review'};
   const tones = {working:'bg-emerald-100 text-emerald-900',quiet:'bg-amber-100 text-amber-900',queued:'bg-amber-100 text-amber-900',claimed:'bg-blue-100 text-blue-900',failed:'bg-rose-100 text-rose-900',interrupted:'bg-rose-100 text-rose-900',complete:'bg-emerald-50 text-emerald-900',recorded:'bg-violet-50 text-violet-900'};
   const colours = {codex:'text-emerald-700',gemini:'text-blue-700',claude:'text-orange-700'};
   const keyFor = provider => /gemini/i.test(provider) ? 'gemini' : /claude/i.test(provider) ? 'claude' : 'codex';
   const mark = (provider, cls = 'size-5 shrink-0') => window.assistantMark?.svg(keyFor(provider), {cls}) || '';
   const paths = {working:'M3 12h4l3-8 4 16 3-8h4',quiet:'M8 5v14M16 5v14',idle:'M20 12a8 8 0 1 1-16 0 8 8 0 0 1 16 0',queued:'M7 3h10M7 21h10M8 3v5l8 8v5M16 3v5l-8 8v5',claimed:'M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',reply:'M5 9H2V6m0 3a9 9 0 1 1 1 9',complete:'m5 12 4 4L19 6',failed:'m12 3 10 18H2Zm0 6v5m0 3h.01',attention:'M8 12V7a2 2 0 0 1 4 0v4m0-4a2 2 0 0 1 4 0v5m0-3a2 2 0 0 1 4 0v6c0 4-3 6-7 6-3 0-4-1-6-4l-3-4a2 2 0 0 1 3-2l1 1',more:'M12 5h.01M12 12h.01M12 19h.01'};
+  paths.declined = 'M8 12h8M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0';
   const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${name === 'more' ? 3 : 1.7}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${paths[name] || paths.idle}"/></svg>`;
   function status(item) {
     if (item.state === 'failed') return {glyph:'failed',label:'Needs review: failed',tone:'attention'};
     if (item.state === 'interrupted') return {glyph:'attention',label:'Interrupted',tone:'attention'};
     if (item.needsAttention || item.state === 'needs-you') return {glyph:'attention',label:'Needs attention',tone:'attention'};
-    return {glyph:paths[item.state] ? item.state : 'idle',label:({quiet:'No recent activity',claimed:'Claimed; awaiting an update',recent:'Recent activity'})[item.state] || labels[item.state] || 'Recorded',tone:({working:'working',reply:'working',queued:'waiting',claimed:'accepted',quiet:'quiet'})[item.state] || 'quiet'};
+    return {glyph:paths[item.state] ? item.state : 'idle',label:({quiet:'No recent update',claimed:'Accepted; awaiting an update',recent:'Recent activity'})[item.state] || labels[item.state] || 'Recorded',tone:({working:'working',reply:'working',queued:'waiting',claimed:'accepted',quiet:'quiet'})[item.state] || 'quiet'};
   }
-  const badge = item => { const value=status(typeof item==='string'?{state:item}:item); return `<span class="${ui.status} phone-status-${value.tone} ${statusTones[value.tone]}" title="${escape(value.label)}">${icon(value.glyph)}<span>${escape(value.label)}</span></span>`; };
+  const badge = item => { const value=status(typeof item==='string'?{state:item}:item); return `<span class="${ui.status} phone-status-${value.tone} ${statusTones[value.tone]}">${icon(value.glyph)}<span>${escape(value.label)}</span></span>`; };
   const age = at => { const seconds = Math.max(0, Math.round((Date.now() - new Date(at).getTime()) / 1000)); return seconds < 60 ? 'just now' : seconds < 3600 ? `${Math.floor(seconds / 60)}m ago` : seconds < 86400 ? `${Math.floor(seconds / 3600)}h ago` : new Date(at).toLocaleDateString(); };
-  const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" title="${escape(stamp(at))}">${escape(stamp(at))}</time>`;
+  const observedTime = at => `<time data-at="${escape(at)}" datetime="${escape(at)}" data-title-tip="${escape('Observed '+stamp(at))}">${escape(stamp(at))}</time>`;
   const stamp = at => at ? new Date(at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) : 'Not yet';
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
   let data, assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
-  let launchKey = '', copiedTitle = '', savedKey = '', temporaryItem = null, forceAfterPoll = false;
+  let launchKey = '', copiedTitle = '', savedKey = '', temporaryItem = null, forceAfterPoll = false, detailTrail = null;
   const desktop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const selectedDetails = new Map();
   const replies = new Map();
   const filtered = () => (data?.items || []).filter(i => !assistant || keyFor(i.provider) === assistant);
-  const active = i => ['working','quiet','claimed','reply'].includes(i.state) && !i.needsAttention;
+  const active = i => i.state === 'working' && !i.needsAttention;
   const recordedChange = change => ({...change,kind:'change',state:'recorded'});
   const selected = () => { try { const p=new URLSearchParams(location.hash.slice(1)); return p.get('item') || ((!p.get('view') || p.get('view') === 'now') ? p.get('session') || '' : ''); } catch { return ''; } };
   const backLabel = () => history.state?.nowDetail && history.state?.originView === 'usage' ? '← Usage' : '← Now';
@@ -137,6 +137,22 @@
     }
     return [...recent.values()].sort((a,b) => Date.parse(b.at) - Date.parse(a.at));
   }
+  function activityGroups(items = filtered()) {
+    const current = items.filter(active);
+    const needs = items.filter(i => i.needsAttention && !active(i) && i.state !== 'queued');
+    const accepted = items.filter(i => i.state === 'claimed' && !i.needsAttention);
+    const arriving = items.filter(i => i.state === 'reply' && !i.needsAttention);
+    const quiet = items.filter(i => i.state === 'quiet' && !i.needsAttention);
+    const queued = items.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
+    const shown = new Set([...current,...needs,...accepted,...arriving,...queued,...quiet].map(i => i.key));
+    return {current,needs,accepted,arriving,queued,quiet,recent:recentItems(items,shown)};
+  }
+  const sessionItem = item => item && (['session','cloud'].includes(item.kind) || item.kind === 'change' && /^(session:|cloud:)/.test(item.key));
+  function sessionKeys(originView) {
+    if (originView === 'usage') return (window.NowPhoneUsage?.recentRows?.() || []).map(row => row.identity).filter(key => typeof key === 'string');
+    const {current,needs,accepted,arriving,queued,quiet,recent} = activityGroups();
+    return [...current,...needs,...accepted,...arriving,...queued,...quiet,...recent].filter(sessionItem).map(item => item.key);
+  }
   function workerReport(recentOnly = false) {
     const report = data.sources.workerActivity;
     if (!report || assistant && assistant !== 'gemini' || recentOnly && (data.sources.workerState !== 'detected' || Date.now() - Date.parse(report.at) > 900000)) return '';
@@ -180,14 +196,12 @@
     const notices = [...data.sources.notices];
     if (waiting.some(i => keyFor(i.provider) === 'gemini') && data.sources.workerState === 'absent') notices.unshift('Gemini errands are waiting. Worker not detected.');
     html('notice', notices.map(escape).join('<br>'));
-    const current = items.filter(active);
-    const queued = items.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
-    const needs = items.filter(i => i.needsAttention && !active(i) && i.state !== 'queued');
-    const shown = new Set([...current,...queued,...needs].map(i => i.key));
-    const recent = recentItems(items,shown);
+    const {current,needs,accepted,arriving,queued,quiet,recent} = activityGroups(items);
     const queueTitle = data.sources.recordsConnected ? 'Waiting' : 'Waiting · Saved queue';
     const queue = queued.length ? group(queueTitle,queued,'',true) : assistant === 'gemini' && !data.sources.queueAvailable ? group('Waiting',[],'Queue unavailable') : '';
-    html('content', group('In progress',current,'No current work observed') + (needs.length ? group('Needs you',needs) : '') + queue + workerReport(true) + group('Other recent',recent,'No recent activity.'));
+    html('content', group('In progress',current,'No current work observed') + (needs.length ? group('Needs you',needs) : '')
+      + (accepted.length ? group('Accepted',accepted) : '') + (arriving.length ? group('Reply arriving',arriving) : '')
+      + queue + workerReport(true) + (quiet.length ? group('No recent update',quiet) : '') + group('Other recent',recent,'No recent activity.'));
     html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     updateTimes(); detail(); connection(); renderLaunch();
     if (focusAction && !focus.isConnected) [...document.querySelectorAll('#content button,#content a,#assistants button,#assistants a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
@@ -227,7 +241,9 @@
     if(launchKey.startsWith('provider:')){
       const key=launchKey.slice(9),url={codex:'https://chatgpt.com/',gemini:'https://antigravity.google.com/',claude:'https://claude.ai/code'}[key];
       if(!url){closeLaunch();return;}
-      value=`<a data-provider-link="${key}" href="${url}" target="_blank" rel="noopener noreferrer">Open ${{codex:'ChatGPT',gemini:'Antigravity',claude:'Claude Code'}[key]}</a>`;
+      const counts = new Map();
+      for (const item of data?.items || []) if (keyFor(item.provider) === key) { const label = status(item).label; counts.set(label,(counts.get(label) || 0) + 1); }
+      value=`<p data-provider-status>${escape([...counts].map(([label,count]) => count+' '+label).join(' · ') || 'No observed activity')}</p><a data-provider-link="${key}" href="${url}" target="_blank" rel="noopener noreferrer">Open ${{codex:'ChatGPT',gemini:'Antigravity',claude:'Claude Code'}[key]}</a>`;
     }else{
       const item=findItem(launchKey);if(!item){closeLaunch();return;}
       value=window.NowView.sessionActions(item,{desktop,copied:copiedTitle===item.key});
@@ -237,30 +253,51 @@
     launchMenu.hidden=false;launchAnchor()?.setAttribute('aria-expanded','true');placeLaunch();
     if(action&&focusKey)[...launchMenu.querySelectorAll('a,button')].find(n=>n.dataset[action]===focusKey)?.focus({preventScroll:true});
   }
-  function openLaunch(key){if(launchKey===key){closeLaunch();return;}closeLaunch();launchKey=key;copiedTitle='';renderLaunch();}
+  function openLaunch(key){if(launchKey===key){closeLaunch();return;}window.NowPhoneInfo?.close({restoreFocus:false});closeLaunch();launchKey=key;copiedTitle='';renderLaunch();}
+  function makeTrail(key, originView) {
+    const keys = [...new Set(sessionKeys(originView))];
+    return {keys:keys.includes(key) ? keys : [key],originView,filter:assistant,scroll:nowScroll(),returnKey:key};
+  }
+  function currentTrail(key = selected()) {
+    const stored = history.state?.nowSessionTrail;
+    if (stored && Array.isArray(stored.keys) && stored.keys.length <= 512 && stored.keys.every(value => typeof value === 'string') && stored.keys.includes(key)) detailTrail = stored;
+    if (!detailTrail?.keys.includes(key)) detailTrail = makeTrail(key,'now');
+    return detailTrail;
+  }
+  function sessionNavigation(key) {
+    const trail=currentTrail(key),index=trail.keys.indexOf(key);
+    if (trail.keys.length < 2) return '';
+    return `<nav class="flex items-center gap-0.5" aria-label="Neighboring sessions"><button class="${ui.sessionStep}" data-session-step="-1" aria-label="Previous session" ${index<=0?'disabled':''}>‹</button><span class="min-w-9 text-center text-xs tabular-nums text-stone-500" aria-label="Session ${index+1} of ${trail.keys.length}">${index+1}/${trail.keys.length}</span><button class="${ui.sessionStep}" data-session-step="1" aria-label="Next session" ${index>=trail.keys.length-1?'disabled':''}>›</button></nav>`;
+  }
+  function stepSession(direction) {
+    const key=selected(),trail=currentTrail(key),index=trail.keys.indexOf(key),next=trail.keys[index+direction];
+    if (!next) return;
+    window.NowPhoneInfo?.close({restoreFocus:false});closeLaunch();
+    history.replaceState({...history.state,nowSessionTrail:trail},'','#view=now&session='+encodeURIComponent(next));
+    detail();connection();window.scrollTo(0,0);
+    el('detail').querySelector('h2')?.focus({preventScroll:true});
+  }
   function openSession(key){
     if(typeof key!=='string'||!key||key.length>1024||/[\u0000-\u001f]/.test(key))return;
-    savedScroll=nowScroll();savedKey=key;closeLaunch();assistant='';
     const route='#view=now&session='+encodeURIComponent(key),originView=window.NowViews?.current?.()==='usage'?'usage':'now';
-    if(location.hash!==route)history.pushState({nowDetail:true,originView},'',route);
+    detailTrail=makeTrail(key,originView);savedScroll=detailTrail.scroll;savedKey=key;closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});
+    if(location.hash!==route)history.pushState({nowDetail:true,originView,nowSessionTrail:detailTrail},'',route);
     window.NowViews?.setView?.('now',false);render();detail();connection();window.scrollTo(0,0);
     el('detail').querySelector('h2')?.focus({preventScroll:true});
   }
   function restoreNow(){
+    if (detailTrail) { assistant=detailTrail.filter || ''; savedScroll=detailTrail.scroll; savedKey=detailTrail.returnKey; }
     render();scrollNow(savedScroll);
     ([...el('content').querySelectorAll('[data-pick]')].find(n=>n.dataset.pick===savedKey)||el('view-picker'))?.focus({preventScroll:true});
+    detailTrail=null;
   }
   function updateTimes(){document.querySelectorAll('time[data-at]').forEach(node=>{node.textContent=age(node.dataset.at);});}
-  function showTokens(key){
+  function showTokens(key, anchor){
     const item=findItem(key),reading=window.NowRecentUsage?.matchUsage?.(item&&adapted(item),metadata(),{now:Date.now()});
     if(!reading)return;
     closeLaunch();
     const number=n=>Number.isSafeInteger(n)&&n>=0?n.toLocaleString('en-US'):'Not recorded';
-    const panel=document.createElement('dialog');panel.className=ui.tokenDialog;panel.setAttribute('aria-label','Recorded session tokens');
-    panel.innerHTML=`<form method="dialog"><button class="${ui.dialogClose}" aria-label="Close token details">×</button></form><h2 class="${ui.dialogTitle}">${escape(item.title)}</h2><p class="${ui.dialogNote}">Recorded main-conversation calls · badge shows output</p><dl class="${ui.dialogCounts}">${[['Output',reading.outputTokens],['Fresh input',reading.inputTokens],['Cache read',reading.cacheReadTokens],['Cache write',reading.cacheWriteTokens]].map(([label,value])=>`<dt>${label}</dt><dd>${number(value)}</dd>`).join('')}</dl><p class="${ui.dialogNote}">Last input context: ${number(reading.contextTokens)} tokens. Measured ${escape(stamp(new Date(reading.usageAt).toISOString()))}. ${reading.saved?'Saved reading; usage sync is unavailable. ':''}Counts cover all recorded calls. Subagent calls are excluded. Context describes one call.</p>`;
-    document.body.append(panel);const opener=document.activeElement;
-    panel.addEventListener('close',()=>{panel.remove();opener?.focus({preventScroll:true});});
-    if(panel.showModal)panel.showModal();else panel.setAttribute('open','');
+    window.NowPhoneInfo?.open({anchor,title:'Recorded session tokens',body:`<h3 class="${ui.dialogTitle}">${escape(item.title)}</h3><p class="${ui.dialogNote}">Recorded main-conversation calls · badge shows output</p><dl class="${ui.dialogCounts}">${[['Output',reading.outputTokens],['Fresh input',reading.inputTokens],['Cache read',reading.cacheReadTokens],['Cache write',reading.cacheWriteTokens]].map(([label,value])=>`<dt>${label}</dt><dd>${number(value)}</dd>`).join('')}</dl><p class="${ui.dialogNote}">Last input context: ${number(reading.contextTokens)} tokens. Measured ${escape(stamp(new Date(reading.usageAt).toISOString()))}. ${reading.saved?'Saved reading; usage sync is unavailable. ':''}Counts cover all recorded calls. Subagent calls are excluded. Context describes one call.</p>`});
   }
   const markdown = text => window.NowReading?.markdown(text) || `<p class="whitespace-pre-wrap">${escape(text)}</p>`;
   function observedEvents(item, inline) {
@@ -287,7 +324,7 @@
     const parts = [], reply = replies.get(item.id), events = observedEvents(item,inline);
     if (latestWork(item)) parts.push({id:'summary',label:'Summary',title:'Work updates',body:workBody(item,inline)});
     if (item.turn?.response?.trim()) parts.push({id:'reply',label:'Reply',title:'Latest reply',body:markdown(item.turn.response)});
-    else if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
+    else if (item.kind === 'errand' && ['reply','complete','declined','failed'].includes(item.state)) parts.push({id:'reply',label:'Reply',title:'Errand result',body:`<div data-reply="${escape(item.key)}">${reply === undefined ? '<p class="text-stone-500">Reading result…</p>' : markdown(reply)}</div>`});
     if (item.checkpoint && !parts.some(p => p.id === 'summary')) parts.push({id:'summary',label:'Summary',title:'Published summary',body:checkpointBody(item.checkpoint,inline)});
     if (item.turn?.prompt?.trim()) {
       const notice = window.NowReading?.notification(item.turn.prompt);
@@ -296,8 +333,8 @@
     const detail = usefulDetail(item);
     const meaningful = detail && !/^(Conversation (running|idle|interrupted)|No recent event|Delegated work: \d+ agents?)$/.test(detail);
     const agents = item.work?.agents || 0;
-    const observation = agents ? `<div aria-label="Current observation" class="mb-2 flex flex-wrap items-center gap-1.5 text-[10px] text-stone-500">${badge(item.state)}<span>${agents} delegated ${agents === 1 ? 'agent' : 'agents'}</span><span>Observed ${observedTime(item.at)}</span></div>` : '';
-    if (events.length || item.turn || meaningful || agents) parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${observation}${item.turn ? `<dl class="mb-2 text-[10px] text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-[10px] text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : agents && !meaningful && !item.turn?.lastTool ? '<p class="text-xs text-stone-500">No detailed action reports captured for this group.</p>' : ''}`});
+    const observation = `<div aria-label="Current observation" class="mb-2 flex flex-wrap items-center gap-1.5 text-xs text-stone-500">${badge(item)}${agents ? `<span>${agents} delegated ${agents === 1 ? 'agent' : 'agents'}</span>` : ''}<span>Observed ${observedTime(item.at)}</span></div>`;
+    parts.push({id:'activity',label:'Activity',title:'Observed activity',body:`${observation}${item.turn ? `<dl class="mb-2 text-xs text-stone-500"><div class="flex flex-wrap gap-x-1"><dt>Turn started</dt><dd>${escape(stamp(item.turn.startedAt))}</dd></div>${item.turn.lastTool ? `<div class="mt-1 flex items-center gap-1"><dt>Last tool</dt><dd class="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-900">${escape(item.turn.lastTool)}</dd></div>` : ''}</dl>` : ''}${meaningful && !events.some(e => e.detail === detail) && !(item.turn?.lastTool && /^Using /.test(detail)) ? markdown(detail) : ''}${events.length ? `<ol class="divide-y divide-stone-100">${events.map(e => `<li class="flex items-start gap-2 py-1.5"><span class="w-12 shrink-0 pt-0.5 text-xs text-stone-500">${observedTime(e.at)}</span><div class="min-w-0 flex-1">${markdown(e.detail || labels[e.state] || e.state)}</div></li>`).join('')}</ol>` : agents && !meaningful && !item.turn?.lastTool ? '<p class="text-xs text-stone-500">No detailed action reports captured for this group.</p>' : ''}`});
     return parts;
   }
   function itemBody(item) {
@@ -312,22 +349,24 @@
     if(window.NowViews?.active())return;
     const key = selected(), item = findItem(key);
     el('overview').hidden = !!key; el('detail').hidden = !key;
+    window.NowViews?.setContext?.(key && key !== 'worker:gemini' ? item || null : null);
     if (!key) return;
     if (key === 'worker:gemini') { workerDetail(); return; }
     if (!item) {
-      html('detail',`<header class="sticky top-0 border-b border-stone-200 bg-white p-3"><button data-back class="min-h-11 px-2 text-base">${backLabel()}</button></header><div id="detail-connection"></div><p class="p-4 text-base">Activity is no longer in the current snapshot.</p>`);
+      html('detail',`<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button>${sessionNavigation(key)}</header><div id="detail-connection"></div><p class="p-4 text-base">Activity is no longer in the current snapshot.</p>`);
       return;
     }
     const viewport={left:window.scrollX,top:window.scrollY},focused=document.activeElement,focus=focused?.closest('[data-facet]')?.dataset.facet;
-    const focusAction=['launch','sessionTokens','back'].find(name=>focused?.hasAttribute('data-'+name.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()))),focusHeading=focused?.matches('#detail h2');
-    const value = `<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button><button data-launch="${escape(item.key)}" class="${ui.more}" aria-label="${escape('Actions for '+item.title)}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-expanded="${launchKey===item.key}">${icon('more')}</button></header><div id="detail-connection"></div><article class="${ui.detailArticle}"><div class="${ui.meta}">${mark(item.provider)}<span>${escape(item.provider)}</span>${locationMark(item.location)}</div><h2 tabindex="-1" class="${ui.detailTitle}">${escape(item.title)}</h2><div class="${ui.meta}">${badge(item)}${observedTime(item.at)}${tokenBadge(item)}</div>${itemBody(item)}</article>`;
+    const focusAction=['launch','sessionTokens','sessionStep','back'].find(name=>focused?.hasAttribute('data-'+name.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()))),focusHeading=focused?.matches('#detail h2');
+    const focusAttribute=focusAction&&'data-'+focusAction.replace(/[A-Z]/g,c=>'-'+c.toLowerCase()),focusValue=focusAttribute&&focused.getAttribute(focusAttribute);
+    const value = `<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button>${sessionNavigation(key)}<button data-launch="${escape(item.key)}" class="${ui.more}" aria-label="${escape('Actions for '+item.title)}" aria-controls="phone-session-menu" aria-haspopup="menu" aria-expanded="${launchKey===item.key}">${icon('more')}</button></header><div id="detail-connection"></div><article class="${ui.detailArticle}"><div class="${ui.meta}">${mark(item.provider)}<span>${escape(item.provider)}</span>${locationMark(item.location)}</div><h2 tabindex="-1" class="${ui.detailTitle}">${escape(item.title)}</h2><div class="${ui.meta}">${badge(item)}${observedTime(item.at)}${tokenBadge(item)}</div>${itemBody(item)}</article>`;
     html('detail', value);
     updateTimes();
     if(focus)el('detail').querySelector(`[data-facet="${focus}"]`)?.focus({preventScroll:true});
-    else if(focusAction)el('detail').querySelector('[data-'+focusAction.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())+']')?.focus({preventScroll:true});
+    else if(focusAction)[...el('detail').querySelectorAll('['+focusAttribute+']')].find(node=>node.getAttribute(focusAttribute)===focusValue)?.focus({preventScroll:true});
     else if(focusHeading)el('detail').querySelector('h2')?.focus({preventScroll:true});
     if(window.scrollY!==viewport.top)window.scrollTo(viewport.left,viewport.top);
-    if (item.kind === 'errand' && ['reply','complete','failed'].includes(item.state) && !replies.has(item.id)) loadReply(item);
+    if (item.kind === 'errand' && ['reply','complete','declined','failed'].includes(item.state) && !replies.has(item.id)) loadReply(item);
   }
 
   function workerDetail() {
@@ -381,9 +420,10 @@
 
   document.addEventListener('click', event => {
     const button = event.target.closest('button');
-    if (!button) { if(event.target.closest('#phone-session-menu a')){closeLaunch();return;} if(!event.target.closest('#phone-session-menu'))closeLaunch();const card=event.target.closest('#content [data-item]');if(card&&!event.target.closest('a,input,select,textarea'))openSession(card.dataset.item);return; }
+    if (!button) { if(event.target.closest('#phone-session-menu a')){closeLaunch();return;} if(!event.target.closest('#phone-session-menu'))closeLaunch();const card=event.target.closest('#content [data-item]');if(card&&!event.target.closest('a,input,select,textarea,[data-title-tip]'))openSession(card.dataset.item);return; }
     if(button.dataset.providerMenu){openLaunch('provider:'+button.dataset.providerMenu);return;}
     if(button.dataset.launch){openLaunch(button.dataset.launch);return;}
+    if(button.dataset.sessionStep){stepSession(Number(button.dataset.sessionStep));return;}
     if (button.dataset.copyTitle) {
       const key = button.dataset.copyTitle, item = findItem(key);
       if (item && navigator.clipboard?.writeText) navigator.clipboard.writeText(item.title).then(() => { copiedTitle = key; renderLaunch(); }).catch(() => { button.textContent = 'Copy unavailable'; });
@@ -398,11 +438,11 @@
       return;
     }
     if(button.dataset.status){selectedDetails.set(button.dataset.status,'activity');openSession(button.dataset.status);return;}
-    if(button.dataset.sessionTokens){showTokens(button.dataset.sessionTokens);return;}
+    if(button.dataset.sessionTokens){showTokens(button.dataset.sessionTokens,button);return;}
     if (button.dataset.assistant) { closeLaunch();assistant = assistant === button.dataset.assistant ? '' : button.dataset.assistant; render();return; }
     if (button.dataset.pick) { openSession(button.dataset.pick);return; }
     if (button.hasAttribute('data-back')) {
-      closeLaunch();
+      closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});
       if (history.state?.nowDetail) history.back();
       else { history.replaceState(null,'',location.pathname+location.search+'#view=now'); restoreNow(); }
       return;
@@ -426,10 +466,10 @@
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
-  const routeChanged=()=>{closeLaunch();if(window.NowViews?.active())return;if(selected()){savedKey=selected();render();detail();connection();window.scrollTo(0,0);}else restoreNow();};
+  const routeChanged=()=>{closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});if(window.NowViews?.active())return;if(selected()){if(history.state?.nowSessionTrail)assistant=currentTrail().filter||'';render();detail();connection();window.scrollTo(0,0);}else restoreNow();};
   window.addEventListener('popstate',routeChanged);
   window.addEventListener('hashchange',routeChanged);
-  window.addEventListener('nowviewchange', () => {closeLaunch();if (!window.NowViews?.active() || window.NowViews.current?.() === 'usage') { render(); connection(); } });
+  window.addEventListener('nowviewchange', () => {closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});if(window.NowViews?.active()&&!selected())detailTrail=null;if (!window.NowViews?.active() || window.NowViews.current?.() === 'usage') { render(); connection(); } });
   window.addEventListener('nowusagearchivechange',render);
   window.addEventListener('resize',()=>{if(launchKey)placeLaunch();});
   document.addEventListener('scroll',()=>{if(launchKey)closeLaunch();},{capture:true,passive:true});

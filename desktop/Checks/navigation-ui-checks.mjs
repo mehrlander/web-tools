@@ -192,4 +192,38 @@ try {
   check(explicitRefresh.updates()>updates&&doc.getElementById('view-menu').hidden&&doc.activeElement.id==='view-picker'&&explicitRefresh.errors.some(error=>/navigation/i.test(error.message)),'An explicit Refresh closes the menu, restores picker focus, checks the worker, and requests a reload; foreground checks alone never reload.');
 } finally {explicitRefresh.dom.window.close();}
 
+
+
+const contextual=await fixture();
+try {
+  const {w,doc}=contextual,link=doc.getElementById('web-tools-link');
+  const target=()=>new URL(link.href);
+  for(const [view,main] of [['now','sessions'],['usage','usage'],['errands','stage'],['computer','local-work'],['files','local-work']]) {
+    w.NowViews.setView(view);contextual.frames();
+    check(target().searchParams.get('view')===main,'The '+view+' header opens the corresponding Web Tools view.');
+    if(view==='errands')check(target().searchParams.get('tab')==='errands','Errands opens the main app queue rather than the Stage landing.');
+  }
+  w.NowViews.setView('now');
+  const recorded='https://mehrlander.github.io/web-tools/pages/session.html#gh=mehrlander/web-tools-private@main:sessions/2026/11/2026-11-18-abcdef1234567890.json';
+  w.NowViews.setContext({kind:'session',url:recorded});
+  check(link.href===recorded&&link.getAttribute('aria-label').includes('captured session'),'A selected captured session keeps its exact Web Tools reader destination.');
+  for(const url of ['javascript:alert(1)','https://mehrlander.github.io.evil.test/web-tools/app/','https://user@mehrlander.github.io/web-tools/app/']) {
+    w.NowViews.setContext({url});check(target().searchParams.get('view')==='sessions','Untrusted context links fall back to the owning view.');
+  }
+  w.NowViews.setContext({kind:'errand',url:'https://mehrlander.github.io/web-tools/app/?view=stage&errand=saved-1'});
+  check(target().searchParams.get('errand')==='saved-1'&&link.getAttribute('aria-label').includes('errand'),'Selected errands preserve their saved request or result destination.');
+  w.NowViews.setContext(null);
+  check(target().searchParams.get('view')==='sessions'&&!target().searchParams.has('errand'),'Closing a detail clears its context destination.');
+  w.NowRepositories.context=()=>({repo:'fixture/project',ref:'codex/topic',path:'src/nested folder'});
+  w.NowViews.setView('files');contextual.frames();
+  check(target().searchParams.get('repo')==='fixture/project'&&target().searchParams.get('view')==='files'
+    &&target().searchParams.get('ref')==='codex/topic'&&target().searchParams.get('path')==='src/nested folder',
+    'A local Git folder carries repository, branch and relative path into the GitHub Files reader.');
+  w.NowRepositories.context=()=>({repo:'fixture/project',ref:'(detached)',path:'src'});w.NowViews.refreshContext();
+  check(target().searchParams.get('repo')==='fixture/project'&&!target().searchParams.has('view')&&!target().searchParams.has('ref'),'A detached folder without a named source opens the repository overview rather than guessing a GitHub branch.');
+  w.NowRepositories.context=()=>({repo:'fixture/project',ref:'main',path:'../private'});w.NowViews.refreshContext();
+  check(target().searchParams.get('view')==='local-work','A folder traversal cannot enter a Web Tools file address.');
+  check(!contextual.errors.length,'Contextual navigation does not cause browser or script errors.');
+} finally {contextual.dom.window.close();}
+
 console.log(`${checks} navigation interaction checks passed.`);

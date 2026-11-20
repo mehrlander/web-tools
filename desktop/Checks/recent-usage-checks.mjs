@@ -81,18 +81,19 @@ check(link.dataset.recentSession === rows[0].identity && link.getAttribute('href
   && !link.hasAttribute('target') && !link.hasAttribute('rel'),
   'A compact cloud row navigates to the exact encoded session identity in this app\'s Now view.');
 const heading = doc.querySelector('section[aria-label="Claude one-hour cache window"]');
-const explanation = [heading?.getAttribute('title'),heading?.querySelector('header')?.getAttribute('title'),heading?.querySelector('h2')?.getAttribute('title')].filter(Boolean).join(' ');
+const explanation = U.INFO;
 check(heading?.querySelector('h2').textContent === 'Claude · 1h cache window' && heading.querySelector('header').textContent.includes('Context')
-  && /hour/i.test(explanation) && /cache/i.test(explanation) && /not|cannot|unconfirmed|doesn.t/i.test(explanation),
-  'The fixed Claude heading labels input context and explains that past-hour activity does not establish cache availability.');
+  && heading.querySelector('[data-cache-info="window"]') && /hour/i.test(explanation) && /cache/i.test(explanation) && /not|cannot|unconfirmed|doesn.t/i.test(explanation),
+  'The fixed Claude heading offers a touch explanation that past-hour activity does not establish cache availability.');
 check(doc.querySelector('.nru-value').textContent === '354k' && !doc.querySelector('.nru-meta') && !link.querySelector('svg,[data-assistant-mark]')
   && !/ago|updated|warm|%/i.test(link.textContent),
   'Each row contains a compact context amount without provider icons, timestamps, or a cache-state claim.');
 const titleStyle = window.getComputedStyle(doc.querySelector('.nru-title'));
 check(titleStyle.whiteSpace === 'nowrap' && titleStyle.textOverflow === 'ellipsis' && titleStyle.overflow === 'hidden',
   'Long session titles stay on one line and use ellipsis within the available space.');
-check(!doc.querySelector('.nru button,[data-recent-hours],[data-recent-usage-info],[data-recent-usage-detail],[data-recent-session-actions]') && typeof U.detail === 'undefined',
-  'The list has no range selector, information button, metric detail, action menu, or detail-rendering API.');
+check(!doc.querySelector('.nru-row button,[data-recent-hours],[data-recent-usage-detail],[data-recent-session-actions]') && typeof U.detail === 'undefined'
+  && heading.querySelectorAll('[data-cache-info]').length === 3 && !heading.querySelector('[title]'),
+  'Rows stay minimal, while header explanations are reachable by touch instead of native hover titles.');
 
 const preferred = 'https://mehrlander.github.io/web-tools/app/?view=sessions&session=recorded-detail';
 render(select([item('alternate-id',{identity:'cloud:alternate-id',url:preferred})]));
@@ -118,7 +119,7 @@ check(/^[–—-]$/.test(doc.querySelector('.nru-value').textContent.trim()) && 
   'Missing context remains an unknown dash, while the removed range option never appears.');
 render([]);
 check(doc.querySelector('section[aria-label="Claude one-hour cache window"]') && doc.querySelector('.nru-empty').textContent.includes('past hour')
-  && !doc.querySelector('.nru a,.nru button'),'An empty list retains the Claude one-hour label without adding controls.');
+  && !doc.querySelector('.nru-row,a.nru-row') && doc.querySelector('[data-cache-info="window"]'),'An empty list retains the Claude one-hour label and its touch explanation without adding session controls.');
 check(doc.querySelectorAll('#now-recent-usage-style').length === 1,'Repeated rendering keeps one shared component stylesheet.');
 
 // The timer follows observed activity, not archive polling or confirmed cache expiry.
@@ -138,7 +139,7 @@ rows = select([item('poll-independent',{at:now-40*minute})],
   [usage('poll-independent',123456,{usageAt:iso(now-2*60*minute)})]);
 render(rows);
 check(doc.querySelector('.nru-time').textContent === '20m' && doc.querySelector('.nru-value').textContent === '123.5k'
-  && doc.querySelector('.nru-row').title.includes(new Date(now-2*60*minute).toLocaleString()),
+  && doc.querySelector('.nru-row').getAttribute('data-title-tip').includes(new Date(now-2*60*minute).toLocaleString()),
   'A fresh archive poll does not reset the activity timer, and older context retains its own measured timestamp.');
 render(rows,{now:now+15*minute});
 check(doc.querySelector('.nru-time').textContent === '5m'

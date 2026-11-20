@@ -46,6 +46,7 @@ check((await(await request('/?version=2')).text()).includes('Interface /'),'A sa
 check((await(await request('/computer.js')).text()).includes('Interface /computer.js'),'The Computer interface can load offline.');
 check((await(await request('/local-files.js')).text()).includes('Interface /local-files.js'),'The local-files detail interface is available in the saved shell.');
 check((await(await request('/vendor/title-tip.js')).text()).includes('Interface /vendor/title-tip.js'),'Commit tooltips remain available in the saved interface.');
+check((await(await request('/vendor/panel-tip.js')).text()).includes('Interface /vendor/panel-tip.js') && (await(await request('/phone-info.js')).text()).includes('Interface /phone-info.js'),'Touch metric disclosures and their shared dismissal behavior remain available offline.');
 check((await(await request('/devices.js')).text()).includes('Interface /devices.js') && (await(await request('/views.js')).text()).includes('Interface /views.js'),'The Devices interface and shared view navigation can load offline.');
 check((await(await request('/phone-usage.js')).text()).includes('Interface /phone-usage.js') && (await(await request('/phone-usage.css')).text()).includes('Interface /phone-usage.css') && (await(await request('/phone-ui.css')).text()).includes('Interface /phone-ui.css') && (await(await request('/vendor/swipe-deck.js')).text()).includes('Interface /vendor/swipe-deck.js'),'The unified Usage view, native presentation and shared swipe driver remain available offline.');
 network=502;

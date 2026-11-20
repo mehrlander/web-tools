@@ -186,27 +186,6 @@
   // .daily-loading
   "[&_.daily-loading]:[padding-top:20px]", "[&_.daily-loading]:[padding-right:12px]", "[&_.daily-loading]:[padding-bottom:20px]", "[&_.daily-loading]:[padding-left:12px]", "[&_.daily-loading]:[padding:20px_12px]", "[&_.daily-loading]:[color:rgb(120,_113,_108)]", "[&_.daily-loading]:[font-size:13px]",
  ];
- const dialogUtilities=[
-  // .pu-dialog
-  "[&.pu-dialog]:[max-height:calc(100dvh_-_80px)]", "[&.pu-dialog]:[padding-top:0px]", "[&.pu-dialog]:[padding-right:0px]", "[&.pu-dialog]:[padding-bottom:0px]", "[&.pu-dialog]:[padding-left:0px]", "[&.pu-dialog]:[padding:0px]", "[&.pu-dialog]:[border:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-width:1px]", "[&.pu-dialog]:[border-style:solid]", "[&.pu-dialog]:[border-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-top:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-top-width:1px]", "[&.pu-dialog]:[border-top-style:solid]", "[&.pu-dialog]:[border-top-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-right:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-right-width:1px]", "[&.pu-dialog]:[border-right-style:solid]", "[&.pu-dialog]:[border-right-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-bottom:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-bottom-width:1px]", "[&.pu-dialog]:[border-bottom-style:solid]", "[&.pu-dialog]:[border-bottom-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-left:1px_solid_rgb(230,_227,_222)]", "[&.pu-dialog]:[border-left-width:1px]", "[&.pu-dialog]:[border-left-style:solid]", "[&.pu-dialog]:[border-left-color:rgb(230,_227,_222)]", "[&.pu-dialog]:[border-image:none]", "[&.pu-dialog]:[border-radius:14px]", "[&.pu-dialog]:[background-image:none]", "[&.pu-dialog]:[background-position:0%_0%]", "[&.pu-dialog]:[background-size:auto]", "[&.pu-dialog]:[background-repeat:repeat]", "[&.pu-dialog]:[background-origin:padding-box]", "[&.pu-dialog]:[background-clip:border-box]", "[&.pu-dialog]:[background-attachment:scroll]", "[&.pu-dialog]:[background-color:rgb(255,_255,_255)]", "[&.pu-dialog]:[background:rgb(255,_255,_255)]", "[&.pu-dialog]:[color:rgb(41,_37,_36)]", "[&.pu-dialog]:[box-shadow:0_16px_50px_#29252430]", "[&.pu-dialog]:[overflow:auto]",
-  // .pu-dialog::backdrop
-  "[&.pu-dialog::backdrop]:[background-image:none]", "[&.pu-dialog::backdrop]:[background-position:0%_0%]", "[&.pu-dialog::backdrop]:[background-size:auto]", "[&.pu-dialog::backdrop]:[background-repeat:repeat]", "[&.pu-dialog::backdrop]:[background-origin:padding-box]", "[&.pu-dialog::backdrop]:[background-clip:border-box]", "[&.pu-dialog::backdrop]:[background-attachment:scroll]", "[&.pu-dialog::backdrop]:[background-color:rgba(41,_37,_36,_0.208)]", "[&.pu-dialog::backdrop]:[background:rgba(41,_37,_36,_0.208)]",
-  // .pu-dialog>header
-  "[&.pu-dialog>header]:[position:sticky]", "[&.pu-dialog>header]:[top:0px]", "[&.pu-dialog>header]:[z-index:1]", "[&.pu-dialog>header]:[display:flex]", "[&.pu-dialog>header]:[align-items:center]", "[&.pu-dialog>header]:[justify-content:space-between]", "[&.pu-dialog>header]:[padding-top:3px]", "[&.pu-dialog>header]:[padding-right:7px]", "[&.pu-dialog>header]:[padding-bottom:3px]", "[&.pu-dialog>header]:[padding-left:14px]", "[&.pu-dialog>header]:[padding:3px_7px_3px_14px]", "[&.pu-dialog>header]:[border-bottom:1px_solid_rgb(238,_234,_228)]", "[&.pu-dialog>header]:[border-bottom-width:1px]", "[&.pu-dialog>header]:[border-bottom-style:solid]", "[&.pu-dialog>header]:[border-bottom-color:rgb(238,_234,_228)]", "[&.pu-dialog>header]:[background-image:none]", "[&.pu-dialog>header]:[background-position:0%_0%]", "[&.pu-dialog>header]:[background-size:auto]", "[&.pu-dialog>header]:[background-repeat:repeat]", "[&.pu-dialog>header]:[background-origin:padding-box]", "[&.pu-dialog>header]:[background-clip:border-box]", "[&.pu-dialog>header]:[background-attachment:scroll]", "[&.pu-dialog>header]:[background-color:rgb(255,_255,_255)]", "[&.pu-dialog>header]:[background:rgb(255,_255,_255)]",
-  // .pu-dialog h2
-  "[&.pu-dialog_h2]:[margin-top:0px]", "[&.pu-dialog_h2]:[margin-right:0px]", "[&.pu-dialog_h2]:[margin-bottom:0px]", "[&.pu-dialog_h2]:[margin-left:0px]", "[&.pu-dialog_h2]:[margin:0px]", "[&.pu-dialog_h2]:[font-size:15px]", "[&.pu-dialog_h2]:[font-weight:600]",
-  // .pu-dialog [data-usage-close]
-  "[&.pu-dialog_[data-usage-close]]:[width:40px]", "[&.pu-dialog_[data-usage-close]]:[height:40px]", "[&.pu-dialog_[data-usage-close]]:[border:0px]", "[&.pu-dialog_[data-usage-close]]:[border-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-top:0px]", "[&.pu-dialog_[data-usage-close]]:[border-top-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-top-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-top-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-right:0px]", "[&.pu-dialog_[data-usage-close]]:[border-right-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-right-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-right-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-bottom:0px]", "[&.pu-dialog_[data-usage-close]]:[border-bottom-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-bottom-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-bottom-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-left:0px]", "[&.pu-dialog_[data-usage-close]]:[border-left-width:0px]", "[&.pu-dialog_[data-usage-close]]:[border-left-style:none]", "[&.pu-dialog_[data-usage-close]]:[border-left-color:currentcolor]", "[&.pu-dialog_[data-usage-close]]:[border-image:none]", "[&.pu-dialog_[data-usage-close]]:[background-image:none]", "[&.pu-dialog_[data-usage-close]]:[background-position:0%_0%]", "[&.pu-dialog_[data-usage-close]]:[background-size:auto]", "[&.pu-dialog_[data-usage-close]]:[background-repeat:repeat]", "[&.pu-dialog_[data-usage-close]]:[background-origin:padding-box]", "[&.pu-dialog_[data-usage-close]]:[background-clip:border-box]", "[&.pu-dialog_[data-usage-close]]:[background-attachment:scroll]", "[&.pu-dialog_[data-usage-close]]:[background-color:transparent]", "[&.pu-dialog_[data-usage-close]]:[background:none]", "[&.pu-dialog_[data-usage-close]]:[font-style:normal]", "[&.pu-dialog_[data-usage-close]]:[font-variant:normal]", "[&.pu-dialog_[data-usage-close]]:[font-weight:normal]", "[&.pu-dialog_[data-usage-close]]:[font-size:24px]", "[&.pu-dialog_[data-usage-close]]:[line-height:1]", "[&.pu-dialog_[data-usage-close]]:[font-family:sans-serif]", "[&.pu-dialog_[data-usage-close]]:[font:24px_/_1_sans-serif]", "[&.pu-dialog_[data-usage-close]]:[color:rgb(120,_113,_108)]",
-  // .pu-dialog-body
-  "[&.pu-dialog-body]:[padding-top:12px]", "[&.pu-dialog-body]:[padding-right:14px]", "[&.pu-dialog-body]:[padding-bottom:12px]", "[&.pu-dialog-body]:[padding-left:14px]", "[&.pu-dialog-body]:[padding:12px_14px]", "[&.pu-dialog-body]:[font-size:13px]", "[&.pu-dialog-body]:[line-height:1.55]", "[&.pu-dialog-body]:[overflow-wrap:anywhere]",
-  // .pu-dialog-body>p
-  "[&.pu-dialog-body>p]:[margin-top:0px]", "[&.pu-dialog-body>p]:[margin-right:0px]", "[&.pu-dialog-body>p]:[margin-bottom:12px]", "[&.pu-dialog-body>p]:[margin-left:0px]", "[&.pu-dialog-body>p]:[margin:0px_0px_12px]",
-  // .pu-dialog-body .pu-note
-  "[&.pu-dialog-body_.pu-note]:[font-size:11px]", "[&.pu-dialog-body_.pu-note]:[color:rgb(120,_113,_108)]",
-  // .pu-dialog-body>section
-  "[&.pu-dialog-body>section]:[margin-inline:-14px]",
- ];
-
  const $=id=>document.getElementById(id);
  const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const P={codex:{name:'Codex',color:'#169b7e'},gemini:{name:'Gemini',color:'#2a71ce'},claude:{name:'Claude',color:'#c77d55'}};
@@ -216,7 +195,7 @@
  let HISTORY=emptyHistory(),snapshot=null,now=Date.now(),host=null;
  let archiveLoaded=false,archiveBusy=false,archiveAttempted=false,archiveSaved=false;
  let timelineFollowToday=true,timelineAnchor=null,timelinePlan=null,timelineRestoring=false,timelinePointer=false,timelineLastScroll=0,timelineDeferred,timelineKeyboardDetail=false;
- let selectedDailyDay=null,dialogFocus=null,rendering=false;
+ let selectedDailyDay=null,detailAnchor=null,rendering=false;
  const HISTORY_KEY='web-tools-phone-usage-history-v1',MAX_HISTORY=8*1024*1024;
  function currentRows(key){
   return rows(key).filter(row=>row.durationMinutes===10080).sort((a,b)=>{
@@ -350,7 +329,7 @@ function updateTimelineIdentity(){const identities=$('history-identities');if(id
 function calendarStamp(value,options){return new Date(value).toLocaleString('en-US',{timeZone:calendarZone()||undefined,...options});}
 function updateTodayControl(){
  const button=document.querySelector('[data-timeline-today]');if(button)button.style.visibility=timelineFollowToday?'hidden':'visible';
- const month=document.querySelector('.history-rail-month');if(month){const date=new Date(timelineFollowToday?now:timelineAnchor??now);month.textContent=calendarStamp(date,{month:'short'});month.title=calendarStamp(date,{year:'numeric',month:'long'});}
+ const month=document.querySelector('.history-rail-month');if(month){const date=new Date(timelineFollowToday?now:timelineAnchor??now);month.textContent=calendarStamp(date,{month:'short'});month.setAttribute('data-title-tip',calendarStamp(date,{year:'numeric',month:'long'}));}
 }
 function saveTimelinePosition(){
  const viewport=$('reset-history-scroll');if(!viewport||!timelinePlan||timelineRestoring)return;
@@ -557,21 +536,10 @@ function showDailyDay(key,day){
    return `<section class="history-fixed-row" data-provider="${key}"><div class="calendar-identity"><button class="timeline-provider" data-allowance-provider="${key}" aria-label="${P[key].name} allowance details" style="color:${P[key].color}">${mark(key)}<span>${P[key].name}</span></button><button class="calendar-pace ${pace?'':'is-unavailable'}" data-available-pace="${key}" aria-label="${P[key].name}, catch up at ${esc(label)} relative to normal weekly pace"><span class="calendar-pace-label">Catch up at:</span><span class="calendar-pace-value">${esc(label)}</span></button></div></section>`;
   }).join('');
  }
- function ensureDialog(){
-  let dialog=$('phone-usage-dialog');if(dialog)return dialog;
-  dialog=document.createElement('dialog');dialog.id='phone-usage-dialog';dialog.className='pu-dialog';dialog.classList.add(...dialogUtilities);dialog.setAttribute('aria-labelledby','pu-dialog-title');
-  dialog.innerHTML='<header><h2 id="pu-dialog-title"></h2><button type="button" data-usage-close aria-label="Close usage details">×</button></header><div class="pu-dialog-body"></div>';
-  dialog.addEventListener('click',event=>{if(event.target===dialog||event.target.closest('[data-usage-close]'))closeTip();});
-  dialog.addEventListener('close',()=>{if(dialogFocus?.isConnected)dialogFocus.focus({preventScroll:true});dialogFocus=null;});
-  document.body.append(dialog);return dialog;
- }
  function showDetail(title,body){
-  const dialog=ensureDialog();dialogFocus=document.activeElement;
-  dialog.querySelector('h2').textContent=title;dialog.querySelector('.pu-dialog-body').innerHTML=body;
-  if(!dialog.open){if(typeof dialog.showModal==='function')dialog.showModal();else dialog.setAttribute('open','');}
-  dialog.querySelector('[data-usage-close]').focus({preventScroll:true});
+  window.NowPhoneInfo?.open({anchor:detailAnchor||document.activeElement,title,body:`<div class="[&_.pu-note]:text-xs [&_.pu-note]:leading-5 [&_.pu-note]:text-stone-500">${body}</div>`});
  }
- function closeTip(){const dialog=$('phone-usage-dialog');if(!dialog?.open)return;if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');}
+ function closeTip(){window.NowPhoneInfo?.close();}
  function tip(title,body,sub=''){showDetail(title,`<p>${esc(body)}</p>${sub?`<p class="pu-note">${esc(sub)}</p>`:''}`);}
  function showProviderDetails(key){
   if(!P[key])return;
@@ -630,6 +598,8 @@ function showDailyDay(key,day){
  function update(value){snapshot=value;DATA.providers=Array.isArray(value?.usage)?value.usage:[];render();}
  document.addEventListener('click',event=>{
   if(!event.target.closest('#usage'))return;
+  detailAnchor=event.target.closest('button');
+  try{
   const provider=event.target.closest('[data-allowance-provider]');if(provider){showProviderDetails(provider.dataset.allowanceProvider);return;}
   const session=event.target.closest('[data-recent-session]');
   if(session&&!event.metaKey&&!event.ctrlKey&&!event.altKey&&!event.shiftKey){event.preventDefault();window.NowPhone?.openSession(session.dataset.recentSession);return;}
@@ -639,7 +609,8 @@ function showDailyDay(key,day){
   if(event.target.closest('[data-timeline-today]')){showTimelineToday();return;}
   if(event.target.closest('[data-pace-guide-info]')){showDailyPaceGuides();return;}
   if(event.target.closest('[data-daily-info]')){tip('Daily allowance use','Bars show percentage points of weekly allowance consumed on each date. All three vendors share the same scale.','Hatching marks incomplete readings. Striped empty slots lack sufficient readings. Today is unfinished. Unknown gaps and reset tails are not guessed.');return;}
-  if(event.target.closest('[data-timeline-info]'))tip('Usage and resets','Colored reset arrows show the last saved percentage before reset. Gray arrows show current reported use against the next reset. Diamonds mark observed counter drops.','Daily bars measure percentage points of weekly allowance. The catch-up multiplier is available capacity for the remaining time, not a prediction. Dates follow '+calendarZone()+'.');
+  const cacheInfo=event.target.closest('[data-cache-info]');if(cacheInfo){const kind=cacheInfo.dataset.cacheInfo;tip(kind==='context'?'Recorded context':kind==='left'?'Activity window':'Claude one-hour cache window',kind==='context'?'Last recorded input context, including cached tokens. Context size can predate the latest activity.':kind==='left'?'Minutes remaining until one hour after the session’s last observed activity. Shading uses that same clock.':window.NowRecentUsage.INFO,'Recent activity does not confirm that a prompt cache remains available. Open Web Tools Usage for deeper token and cache analysis.');return;}
+  if(event.target.closest('[data-timeline-info]'))tip('Usage and resets','Colored reset arrows show the last saved percentage before reset. Gray arrows show current reported use against the next reset. Diamonds mark observed counter drops.','Daily bars measure percentage points of weekly allowance. The catch-up multiplier is available capacity for the remaining time, not a prediction. Dates follow '+calendarZone()+'.'); }finally{detailAnchor=null;}
  });
  document.addEventListener('keydown',event=>{
   const button=event.target.closest('#usage [data-daily-day]');if(!button||event.altKey||event.ctrlKey||event.metaKey||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
