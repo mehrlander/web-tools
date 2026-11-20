@@ -22,6 +22,7 @@ account links to its own materials. The shared placement rule is in
 - [Code jobs](code-jobs/README.md): whether a model reader finds functions that do one job in several files.
 - [Where tooltip text comes from, 2026-11-16](2026-11-16-tooltip-sources/README.md): every tooltip in web-tools and [budget-drs](https://github.com/mehrlander/budget-drs) by the route its words take, and which commit `git blame` names for them, with a [diagram](2026-11-16-tooltip-sources/diagram.html).
 - [Caption marker, 2026-11-20](2026-11-20-caption-marker.md): how the Claude app draws about sixty forms of the session detail caption, and why it now opens with ⌂ linking the Sessions program.
+- [Provenance across the estate, 2026-11-20](2026-11-20-provenance-map/README.md): 93 provenance terms from the four repositories sorted into seven facets, with each quote checked against its file; where the vocabularies collide; and how 79 probe and research write-ups hold their sources.
 - [Statistical quality control](quality-control-lineage/README.md): two proposed probes of the session-topics daemon's preference flagger, a sample of 20 against judging every flag and a first control chart, with the Shewhart and Deming lineage behind them. Neither has run.
 
 The Excel research is in `projects/office/research/` in `mehrlander/home`.

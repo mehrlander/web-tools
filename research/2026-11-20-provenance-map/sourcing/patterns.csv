@@ -1,0 +1,80 @@
+repo,path,patterns
+budget-drs,data/design/probes/2026-06-23-budget-to-actual-tie.md,links-into-bundles(named)
+budget-drs,data/design/probes/2026-07-11-three-stage-rollup/FINDINGS.md,links-into-bundles(via script)
+budget-drs,data/design/probes/2026-08-24-model-test-alignment/FINDINGS.md,estate-material
+budget-drs,data/design/probes/2026-08-26-submittal-form-content/FINDINGS.md,links-into-bundles(via script)
+budget-drs,data/design/probes/2026-09-05-checks-reading/EXPLANATIONS.md,estate-material
+budget-drs,data/design/probes/2026-09-05-checks-reading/FINDINGS.md,estate-material
+budget-drs,data/design/probes/2026-10-29-monthly-data-model/FINDINGS.md,links-into-bundles(via script); included-files
+budget-drs,data/design/probes/2026-11-04-item-identity/FINDINGS.md,links-into-bundles
+budget-drs,data/design/probes/2026-11-05-revenue-as-payroll.md,links-into-bundles
+budget-drs,data/design/probes/2026-11-07-gated-nonappropriated/FINDINGS.md,own-bundle; links-into-bundles; external-urls
+budget-drs,data/design/probes/2026-11-09-classification-pay-approvals/FINDINGS.md,included-files; external-urls; links-into-bundles
+budget-drs,data/design/probes/2026-11-12-state-share-of-payroll/FINDINGS.md,links-into-bundles
+budget-drs,data/design/probes/2026-11-20-wsprs-plan-accounts/FINDINGS.md,links-into-bundles; external-urls
+budget-drs,data/design/probes/2026-11-20-trust-fund-cost-allocation/FINDINGS.md,links-into-bundles; external-urls
+budget-drs,research/deep-research/2026-06-13-chatgpt-tap-recordkeeping.md,none(citation markers stripped)
+budget-drs,research/deep-research/2026-06-13-claude-tap-recordkeeping.md,none(statutes named)
+budget-drs,research/deep-research/2026-06-13-gemini-tap-recordkeeping.md,external-urls
+budget-drs,research/deep-research/2026-07-26-tap-recordkeeping-reconciliation.md,links-into-bundles
+budget-drs,research/deep-research/2026-07-30-appendix-b-open-determinations.md,links-into-bundles; external-urls
+budget-drs,research/deep-research/appendix-b-determinations/README.md,estate-material; external-urls
+budget-drs,data/findings/2025-27-reduction-round.csv,links-into-bundles(named)
+web-tools,research/2026-11-20-caption-marker.md,estate-material
+web-tools,research/quality-control-lineage/README.md,external-urls
+web-tools,research/2026-11-16-tooltip-sources/README.md,estate-material
+web-tools,research/2026-10-29-policy-candidates/README.md,estate-material
+web-tools,research/2026-10-27-peeves-review.md,estate-material
+web-tools,research/DOC_CRAFT_STUDY.md,included-files; estate-material
+web-tools,research/minimal-progressive-structure/README.md,included-files
+web-tools,research/2026-10-25-fan-out-review.md,estate-material
+web-tools,research/code-jobs/README.md,estate-material
+web-tools,research/category-mapping/README.md,none(titles without addresses)
+home,projects/text/probes/README.md,estate-material
+home,projects/text/runs/2026-09-27-doc-grades/README.md,estate-material
+home,projects/text/doc-audit/runs/2026-06-09-web-tools-readme/README.md,estate-material
+home,projects/text/instruments/concept-lab/findings.md,estate-material; included-files
+home,chron/2026/10/2026-10-11-designing-data-intensive-applications.md,external-urls
+home,chron/2026/10/2026-10-11-what-the-estate-could-take-from-ddia.md,estate-material
+home,projects/library/data-warehouse-toolkit/2026-10-15-the-data-warehouse-toolkit.md,external-urls
+home,projects/library/data-warehouse-toolkit/2026-10-15-what-the-estate-could-take-from-kimball.md,estate-material
+home,projects/library/2026-10-15-what-the-first-two-studies-mean-for-the-estate.md,estate-material
+home,projects/library/semiology-of-graphics/2026-10-16-semiology-of-graphics.md,external-urls
+home,projects/library/automating-graphical-presentations/2026-10-16-automating-the-design-of-graphical-presentations.md,external-urls
+home,projects/library/2026-10-16-what-bertin-and-mackinlay-say-about-expressing-content.md,estate-material
+home,projects/library/diataxis/2026-10-28-diataxis.md,external-urls
+home,projects/library/diataxis/2026-10-28-what-the-estate-could-take-from-diataxis.md,estate-material
+home,chron/2026/10/2026-10-16-entity-kinds-against-the-classification-schemes.md,external-urls
+home,projects/office/research/2026-10-30-excel-script-creation/README.md,estate-material; external-urls
+home,projects/office/research/2026-10-08-browser-query-paste/README.md,estate-material; external-urls
+home,projects/office/research/2026-10-08-power-query-clipboard/README.md,estate-material; external-urls
+home,projects/office/research/2026-10-30-power-query-workbook/README.md,estate-material; external-urls
+home,projects/office/research/2026-11-09-xlsx-delta/README.md,links-into-bundles; estate-material
+home,projects/office/research/excel-validation-2026-09-24/README.md,estate-material
+home,projects/office/research/excel-chart-review-2026-09-25/README.md,included-files; estate-material
+home,projects/office/research/excel-chart-cleanup-2026-09-25/README.md,estate-material
+web-tools-private,probes/2026-08-20-private-repo-pr-wake.md,estate-material
+web-tools-private,probes/codex-commit-trigger/README.md,estate-material
+web-tools-private,probes/2026-10-19-constellation-atlas-refresh.md,estate-material
+web-tools-private,probes/2026-10-12-decision-chain-designs/README.md,estate-material
+web-tools-private,probes/2026-10-15-owner-reader/README.md,estate-material
+web-tools-private,sessions/closings/calls-sample/README.md,estate-material
+web-tools-private,research/program-carvings/README.md,estate-material
+web-tools-private,research/session-economics/README.md,estate-material
+web-tools-private,research/peeves-critic/README.md,estate-material
+home,projects/text/runs/2026-08-18-claim-strength/README.md,estate-material; gathered-corpus(script-fetched)
+home,projects/text/runs/2026-08-19-model-voice/README.md,estate-material; gathered-corpus(script-fetched)
+home,projects/text/runs/2026-08-26-scare-quote/README.md,estate-material
+home,projects/text/runs/2026-09-18-passage-history/README.md,estate-material
+home,projects/text/runs/2026-09-28-document-overlap/README.md,estate-material
+home,projects/text/runs/2026-10-17-prompt-voice/README.md,estate-material
+home,projects/text/runs/2026-10-29-detail-levels/README.md,estate-material
+home,projects/text/runs/2026-11-05-detail-concepts/README.md,estate-material
+home,projects/text/runs/2026-11-06-prompt-sentiment/README.md,estate-material
+home,projects/text/runs/2026-11-08-detail-fanout/README.md,estate-material
+home,projects/text/runs/2026-11-09-feature-ladder/README.md,estate-material
+home,projects/text/runs/2026-11-09-genre-ladders/README.md,estate-material
+home,projects/text/runs/2026-11-10-entity-classification/README.md,estate-material
+home,projects/text/runs/2026-11-10-noun-stacks/README.md,estate-material
+web-tools-private,probes/2026-11-17-antigravity-worker-auth.md,estate-material
+web-tools-private,probes/2026-11-17-gemini-summary-length/page.html,estate-material
