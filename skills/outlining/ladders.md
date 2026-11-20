@@ -53,8 +53,22 @@ one of another genre leaves a fifth to a half.
 | `open` | what remains unknown or undone | A gap, a next step not yet taken. |
 | `pointer` | where more lives | A link or reference with nothing else asserted. |
 
-Reference documents, definitions and how a tool or format behaves, have no
-ladder yet; `definition` and `behavior` are its candidate core rungs.
+## Reference: documents that define terms or formats and state how a tool behaves
+
+| Rung | The claim says |
+| --- | --- |
+| `scope` | what the whole subject, dataset or document covers and leaves out |
+| `definition` | what a named term, class, metric or code value means |
+| `form` | the shape, grammar, schema, layout or mapping of an artifact at rest |
+| `behavior` | what a tool, parser, checker, view or measure computes or renders when it works |
+| `limit` | where a form or behavior fails, stops, needs a precondition, misses a case, or is unbuilt |
+| `example` | a concrete instance or worked case beside the rule or shape it illustrates |
+| `rationale` | why an artifact, schema, exclusion or design choice is shaped as it is |
+| `pointer` | only where more lives |
+
+A claim a reader could obey or break is a practice claim. A claim true only of a
+dated run or sample is an inquiry claim. A claim about how a file or command is
+shaped or behaves is a reference claim, even in the second person.
 
 ## Reading the rung counts
 
@@ -63,6 +77,8 @@ ladder yet; `definition` and `behavior` are its candidate core rungs.
   with no way to tell whether they were followed.
 - An inquiry document with more `finding` than `observation` generalizes from
   few cases.
+- A reference document with `behavior` and no `limit` states what tools compute
+  without stating where they break.
 
 ## Output
 
