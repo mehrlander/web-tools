@@ -6,7 +6,7 @@ session changed (to count the edits still waiting on the owner's sign-off), and
 commit-consent.py of each file a commit stages. All three load it by path, since
 the hyphenated name cannot be imported.
 
-doc-craft's Review section states the scope; this file applies it. A file is
+This docstring is the scope doc-craft's Review section points to. A file is
 documentation when it is Markdown and one of these holds:
 
   - its basename is CLAUDE.md, AGENTS.md or SKILL.md;
