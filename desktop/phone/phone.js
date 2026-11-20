@@ -202,7 +202,7 @@
     const report = data.sources.workerActivity;
     if (!report || assistant && assistant !== 'gemini' || recentOnly && (data.sources.workerState !== 'detected' || Date.now() - Date.parse(report.at) > 900000)) return '';
     const job = report.itemId && data.items.find(i => i.kind === 'errand' && i.id === report.itemId);
-    return `<button data-pick="worker:gemini" aria-label="Gemini worker details" class="mx-3 mt-2 block w-[calc(100%-1.5rem)] rounded-lg border-l-4 border-blue-400 bg-blue-50 px-2 py-2 text-left active:bg-blue-100"><span class="float-right text-xl text-blue-600" aria-hidden="true">›</span><p class="text-xs font-medium text-blue-900">Gemini worker · Last reported task</p><p class="mt-0.5 text-[13px] leading-5">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-sm text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${observedTime(report.at)}</p></button>`;
+    return `<button data-pick="worker:gemini" aria-label="Gemini daemon details" class="mx-3 mt-2 block w-[calc(100%-1.5rem)] rounded-lg border-l-4 border-blue-400 bg-blue-50 px-2 py-2 text-left active:bg-blue-100"><span class="float-right text-xl text-blue-600" aria-hidden="true">›</span><p class="text-xs font-medium text-blue-900">Gemini daemon · Last reported task</p><p class="mt-0.5 text-[13px] leading-5">${escape(report.headline)}</p>${job ? `<p class="mt-1 text-sm text-stone-600">${escape(job.title)}</p>` : ''}<p class="mt-1 text-xs text-stone-500">Reported ${observedTime(report.at)}</p></button>`;
   }
 
   function renderUsage() {
@@ -217,13 +217,18 @@
     if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
   }
 
+  function savedObservation() {
+    const at = Date.parse(data.observedAt);
+    return !connected || !data.sources.recordsConnected || !Number.isFinite(at) || Date.now()-at >= 15000;
+  }
+
   function queueNotice() {
     const waiting = data.items.filter(item => item.kind === 'errand' && keyFor(item.provider) === 'gemini' && item.state === 'queued');
     if (!waiting.length || data.sources.workerState !== 'absent') return '';
     const label = `${waiting.length} Gemini ${waiting.length === 1 ? 'errand' : 'errands'} waiting`;
-    const at = Date.parse(data.observedAt), saved = !connected || !data.sources.recordsConnected || !Number.isFinite(at) || Date.now()-at >= 15000;
+    const saved = savedObservation();
     const link = `inline-flex min-h-7 items-center gap-1 rounded underline decoration-amber-700/40 underline-offset-4 ${focusStyle}`;
-    return `<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><a data-queue-notice="gemini" href="#view=errands&amp;provider=gemini&amp;tab=waiting" class="${link} text-sm font-medium" aria-label="${escape('Review '+label)}">${escape(label)}<span aria-hidden="true">›</span></a><a data-worker-status="gemini" href="#view=now&amp;session=worker%3Agemini" class="${link}" aria-label="${saved?'Last observation: Gemini errand worker not detected.':'Gemini errand worker not detected.'} Open worker status.">${saved?'Worker status':'Worker offline'}<span aria-hidden="true">›</span></a>${saved ? '<span class="w-full text-xs">Saved queue and worker status</span>' : ''}</div>`;
+    return `<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><a data-queue-notice="gemini" href="#view=errands&amp;provider=gemini&amp;tab=waiting" class="${link} text-sm font-medium" aria-label="${escape('Review '+label)}">${escape(label)}<span aria-hidden="true">›</span></a><a data-worker-status="gemini" href="#view=now&amp;session=worker%3Agemini" class="${link}" aria-label="${saved?'Last observation: Gemini errand daemon not detected.':'Gemini errand daemon not detected.'} Open daemon status.">${saved?'Daemon status':'Daemon not detected'}<span aria-hidden="true">›</span></a>${saved ? '<span class="w-full text-xs">Saved queue and daemon status</span>' : ''}</div>`;
   }
 
   function render() {
@@ -449,14 +454,26 @@
 
   function workerDetail() {
     if (!data) return;
+    const viewport = {left:window.scrollX,top:window.scrollY}, focused = document.activeElement;
+    const headingFocused = focused === el('detail').querySelector('h2');
+    const focusAttribute = el('detail').contains(focused) && ['data-back','data-pick','data-status','data-launch','data-session-tokens','data-topic-context'].find(attribute => focused.hasAttribute(attribute));
+    const focusValue = focusAttribute && focused.getAttribute(focusAttribute);
     const source = data.sources;
     const reports = source.workerReports?.length ? source.workerReports : source.workerActivity ? [source.workerActivity] : [];
     const jobs = data.items.filter(i => i.kind === 'errand' && keyFor(i.provider) === 'gemini' && ['queued','claimed','reply'].includes(i.state));
     const queued = jobs.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
     const accepted = jobs.filter(i => i.state !== 'queued');
-    const status = source.workerState === 'detected' ? 'Process detected' : source.workerState === 'absent' ? 'Process not detected' : 'Process status unavailable';
+    const status = source.workerState === 'detected' ? 'Detected' : source.workerState === 'absent' ? 'Not detected' : 'Status unavailable';
+    const saved = savedObservation(), now = Date.now();
+    const session = data.items.filter(i => ['session','cloud'].includes(i.kind) && keyFor(i.provider) === 'gemini'
+      && Number.isFinite(Date.parse(i.at)) && Date.parse(i.at) <= now && now-Date.parse(i.at) < 86400000)
+      .sort((a,b) => Date.parse(b.at)-Date.parse(a.at))[0];
+    const observations = `<dl class="mt-3 space-y-3 text-sm"><div data-daemon-observation><dt class="text-xs text-stone-500">Errand daemon${saved?' · Saved observation':''}</dt><dd class="mt-0.5 font-medium ${source.workerState === 'absent'?'text-amber-800':'text-stone-700'}">${status}</dd>${Number.isFinite(Date.parse(data.observedAt))?`<dd class="mt-0.5 text-xs text-stone-500">Observed ${observedTime(data.observedAt)}</dd>`:''}</div><div data-gemini-observation><dt class="text-xs text-stone-500">Gemini sessions${saved?' · Saved observation':''}</dt><dd class="mt-0.5 text-stone-700">${session?`Session update observed ${observedTime(session.at)}`:'No session update in the past day in this snapshot'}</dd></div><div><dt class="text-xs text-stone-500">Gemini connection</dt><dd class="mt-0.5 text-stone-700">Not checked</dd></div></dl>`;
     const reportRows = (reports.length ? `<ol class="px-4">${reports.map(r => { const job = r.itemId && data.items.find(i => i.kind === 'errand' && i.id === r.itemId); return `<li class="border-b border-stone-100 py-3"><p class="text-xs text-stone-500">${escape(stamp(r.at))}</p><p class="mt-0.5 text-[13px] leading-5">${escape(r.headline)}</p>${job ? `<button data-pick="${escape(job.key)}" class="min-h-11 text-left text-sm text-blue-800">${escape(job.title)} ›</button>` : ''}</li>`; }).join('')}</ol>` : '<p class="px-4 py-3 text-stone-500">No reports available</p>');
-    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 tabindex="-1" class="text-xl font-semibold">Gemini errand worker</h2></div><p class="mt-3 text-sm text-stone-600">${status}${source.recordsConnected ? '' : ' · Saved queue'}</p><p class="mt-1 text-sm text-stone-600">The background errand worker runs separately from interactive Gemini sessions.</p>${reports[0] ? `<p class="mt-2 text-xs text-stone-500">Last report ${observedTime(reports[0].at)} · ${escape(reports[0].headline)}</p>` : ''}<div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by worker',accepted,'',false,false) : ''}<section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section><p class="px-4 pt-5 text-xs leading-5 text-stone-500">Reports show the worker’s last recorded tasks. A detected process or accepted errand does not confirm that a task is still running.</p></article>`);
+    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 tabindex="-1" class="text-xl font-semibold">Gemini errand daemon</h2></div>${observations}${reports[0] ? `<p class="mt-2 text-xs text-stone-500">Last report ${observedTime(reports[0].at)} · ${escape(reports[0].headline)}</p>` : ''}<div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by daemon',accepted,'',false,false) : ''}<section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section><p class="px-4 pt-5 text-xs leading-5 text-stone-500">Session updates do not verify the daemon’s Gemini connection. Reports show the daemon’s last recorded tasks; process detection or acceptance does not confirm a running task.</p></article>`);
+    if (headingFocused) el('detail').querySelector('h2')?.focus({preventScroll:true});
+    else if (focusAttribute) [...el('detail').querySelectorAll('['+focusAttribute+']')].find(node => node.getAttribute(focusAttribute) === focusValue)?.focus({preventScroll:true});
+    if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
   }
 
   const replyRequests = new Set();

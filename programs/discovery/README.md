@@ -6,7 +6,7 @@ Discovery is the owner's research, into their own work and into what others know
 
 | Area | Covers |
 | --- | --- |
-| Probes | investigations that test the owner's tools, workflows, data or assumptions, often by building something and trying it. Each write-up is listed under `research` in its repository's `.web-tools.json` with the kind `probe`, indexed for web-tools in [`research/README.md`](../../research/README.md) and shown in the Map's [Probes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=research) |
+| Probes | investigations that test the owner's tools, workflows, data or assumptions, often by building something and trying it. Each write-up is listed under `research` in its repository's `.web-tools.json` with the kind `probe`, kept in [web-tools-private `research/`](https://github.com/mehrlander/web-tools-private/tree/main/research) unless a project keeps its own, and shown in the Map's [Probes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=research) |
 | Exploration | information gathered from outside sources, listed with the kind `exploration` and shown in the Map's [Exploration tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=exploration), and the skills that gather it, such as [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md) |
 
 ## Processes

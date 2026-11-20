@@ -5,6 +5,14 @@ static class PhoneChecks
 {
     public static void Run(Action<bool, string> check)
     {
+        check(NavigationPolicy.FilesUrl("https://laptop.fixture.ts.net/") == "https://laptop.fixture.ts.net/#view=files",
+            "The native Files entry opens the configured private Now root at its Files view.");
+        check(new string?[] { null, "", "http://laptop.fixture.ts.net/", "https://laptop.fixture.ts.net:8443/",
+            "https://user:secret@laptop.fixture.ts.net/", "https://laptop.fixture.ts.net/?token=secret",
+            "https://laptop.fixture.ts.net/#view=now", "https://laptop.fixture.ts.net/other",
+            "https://laptop.fixture.ts.net.evil.test/", "https://fixture.example/", "file:///private" }
+            .All(url => NavigationPolicy.FilesUrl(url) is null),
+            "The native Files entry accepts only a private HTTPS root without credentials, query data or alternate routes.");
         var now = DateTimeOffset.UtcNow;
         var job = new Errand("test-1", "A result", "Private request note", "complete", now, now,
             "private host", "Settled", new string('r', 25000), true, true, true);

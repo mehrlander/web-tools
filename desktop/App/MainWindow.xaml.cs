@@ -204,6 +204,10 @@ public partial class MainWindow : Window
                     }
                     break;
                 case "web": SelectLaptop(false); break;
+                case "files":
+                    var filesUrl = NavigationPolicy.FilesUrl(CompanionAccess.Load().PhoneUrl);
+                    if (filesUrl is null) throw new InvalidOperationException("Private Files is unavailable. Configure the private phone address first.");
+                    OpenExternal(filesUrl); break;
                 case "activity":
                     settings.WebUrl = NavigationPolicy.AppUrl + "?view=sessions";
                     WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false); break;
