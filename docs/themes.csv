@@ -66,7 +66,9 @@ docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summa
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,219
 skills/doc-craft/SKILL.md,skills/user-calls/SKILL.md,6,,review https github com mehrlander web tools blob main docs envelopes user call md review,10,219
 docs/house-policies.md,skills/report-distiller/SKILL.md,6,,qualified writing md https github com mehrlander web tools blob main docs qualified writing md,10,219
+docs/house-policies.md,skills/doc-craft/references/minimal-edit.md,6,,conversation md https github com mehrlander web tools blob main docs conversation md every reply,10,219
 skills/scour/PRIOR-ART.md,skills/scour/SKILL.md,5,,relevant cluster can sit behind a page that scores low on its own;leads harvested from a business association return more business associations,10,219
+skills/doc-craft/references/minimal-edit.md,skills/tend/SKILL.md,5,,md https github com mehrlander web tools blob main docs conversation md every reply,10,219
 skills/agents/house-style-critic.md,skills/screenshot-review/SKILL.md,5,,a style verdict on a broken render grades the failure as a design choice,10,219
 docs/envelopes/data-view.md,docs/environment/testing.md,5,,node render scenarios data view item mjs node render scenarios data view item mjs,10,219
 docs/envelopes/audit.md,docs/envelopes/shorter.md,5,,pages audit render html https mehrlander github io web tools pages audit render html,10,219
@@ -74,6 +76,7 @@ docs/CONVERSATION.md,docs/house-policies.md,5,,https github com mehrlander web t
 README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,219
 skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,4,,mcp github get file contents with owner mehrlander repo web tools path;invocable in sessions started from a branch that contains it,10,219
 skills/html-style/references/mechanics.md,skills/look-markers/SKILL.md,4,,html https github com mehrlander web tools blob main lib kits demos;js https github com mehrlander web tools blob main lib,10,219
+skills/doc-craft/references/minimal-edit.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,219
 lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loader md docs loader md,10,219
 docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,219
 courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a page bookmarklets readme md which route reaches a page,10,219
@@ -82,6 +85,7 @@ skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com
 skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,219
 skills/design-sprint/SKILL.md,skills/tend/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,219
 skills/design-sprint/SKILL.md,skills/html-style/SKILL.md,3,,https github com mehrlander web tools blob main docs forms readme md,10,219
+skills/design-sprint/SKILL.md,skills/doc-craft/references/minimal-edit.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,219
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,219
 python/swarm/bold.md,python/swarm/dome.md,3,,write json lines to the output path one edit per line;run the check command and fix every line it reports,10,219
 programs/organization/manager.md,skills/tend/SKILL.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,219

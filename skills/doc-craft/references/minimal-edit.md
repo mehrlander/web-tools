@@ -1,10 +1,11 @@
 # One point, added two ways
 
 One documentation edit in two versions, for a session about to add a point to a
-document it did not write. Both versions add the same point to the tend skill's
-`/tend prod`: it should also take a session whose last reply closed on ❇️ Ready to
-assess or 🟢 Ready to continue, and that session should take the step its reply
-named. The owner approved the second version.
+document it did not write. Both versions add the same point to `/tend prod` in
+[`skills/tend/SKILL.md`](../../tend/SKILL.md). The command should also take a
+session whose last reply closed on ❇️ Ready to assess or 🟢 Ready to continue.
+That session should take the step its reply named. The second version is the
+one to imitate.
 
 ## Explained in place
 
@@ -70,11 +71,12 @@ named. The owner approved the second version.
 
 ## What changed between them
 
-- The point became a third alternative in the existing selection sentence, in
+- The point became a third alternative in the sentence that picks sessions, in
   place of a new definition of "open work".
-- The two closing states link to their definitions in `docs/CONVERSATION.md`, in
-  place of being named and described.
-- The check-in definition and the two-hour window left. The definition
-  supported the window, and the window changed Prod's behavior beyond what the
-  request asked.
+- The two closing states link to their definitions in
+  [`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply),
+  in place of being spelled out in the skill.
+- The check-in definition and the two-hour window were cut. The window changed
+  which sessions `/tend prod` takes, which the point did not require. The
+  definition existed only to support the window.
 - The new list item is one line.

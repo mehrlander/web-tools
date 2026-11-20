@@ -15,7 +15,7 @@ Content should only be included where behavior depends on it. For a basic test: 
 
 - **Consider the context**: Read the entire file and adjacent files before changing a part, to ensure that any change is aligned and exactly where it should be.
 - **Open with the premise**: A document's first paragraph says what the document is for and who reads it, before any definition or mechanism. When an edit touches a document whose opening lacks a premise, say so in the review rather than widening the edit.
-- **Integrate explanations**:  Prefer editing an existing sentence, parameter entry, or bullet to adding a section. [`references/minimal-edit.md`](references/minimal-edit.md) shows one point added both ways.
+- **Integrate explanations**:  Prefer editing an existing sentence, parameter entry, or bullet to adding a section. [An example](references/minimal-edit.md) contrasts one point explained in place with the same point attached to existing text.
 - **Earn each sentence**: If material can be removed and it is unlikely to affect future assistant behavior, it likely should be.
 - **State current reality**: Omit debugging narratives, discovery steps, and authoring commentary.
 - **Retain actionable rationale**: Include reasons only when they directly clarify intent, and then as minimally as possible.
