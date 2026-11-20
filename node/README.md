@@ -292,15 +292,12 @@ Most of these files are generated whole. Four are not. `docs/docs.csv`, `docs/ha
 the registry and is also a row in it, so the hook runs `docs-reach` a second
 time after `docs-readme`. One more stamp settles it.
 
-**Order is part of the contract, and it runs one way: a leg that WRITES into a
-folder precedes the leg that MEASURES it.** `docs-reach` stamps every `docs/`
-file's length into the registry's `words`, so `tests-index`, `tools-index`,
-`registries-reach` and `themes-graph` all run above it: each writes a file under
-`docs/`, and a stamp taken before that write is stale by exactly that file's own
-delta. Nothing local reports it either, because the hook does not verify what it
-stamps; `docs-registry.test.mjs` catches it in CI, after the push. So a new
-generator that writes under `docs/` goes above leg docs-reach, and one that only
-reads goes wherever it likes.
+**Leg order.** `docs-reach` records the word count of every file under `docs/`
+in the `words` column of `docs/docs.csv`. Apart from `docs-readme`, place every
+leg that writes a file under `docs/` above `docs-reach`. A writing leg placed
+below `docs-reach` leaves a stale count for the file it writes. A leg that only
+reads can run in any position. The hook does not check the counts. A wrong count
+fails `docs-registry.test.mjs` in CI, after the push.
 
 **And a leg has to stage the file it actually writes.** Every `git add` in the
 hook goes through a `stage()` helper that reports a path that is not there,
