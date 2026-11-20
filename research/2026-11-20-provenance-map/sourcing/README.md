@@ -1,6 +1,6 @@
 # Sourcing measures and patterns
 
-[`measure.py`](measure.py) writes [`measures.csv`](measures.csv), one row for each probe and research write-up the account surveys. Each row counts:
+[`measure.py`](measure.py) writes [`measures.csv`](measures.csv), one row for each probe and research write-up the probe surveys. Each row counts:
 
 - words
 - links into stores of fetched outside material
@@ -11,7 +11,7 @@
 
 The script's docstring defines each column and gives the commands that extract the trees it reads.
 
-[`patterns.csv`](patterns.csv) holds an authored call: each write-up's sourcing patterns, assigned by a subagent that read it, with the values the [account's pattern table](../README.md#how-the-write-ups-hold-their-sources) defines. A write-up the subagent did not single out got `estate-material`, plus `external-urls` where it cites a web address.
+[`patterns.csv`](patterns.csv) holds an authored call: each write-up's sourcing patterns, assigned by a subagent that read it, with the values the [probe's pattern table](../README.md#how-the-write-ups-hold-their-sources) defines. A write-up the subagent did not single out got `estate-material`, plus `external-urls` where it cites a web address.
 
 The same subagent recounted the own-folder files of five write-ups whose folders the script's naming rule misread. `measures.csv` keeps the script's counts; these are the counts as read:
 
