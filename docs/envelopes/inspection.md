@@ -2,7 +2,7 @@
 
 An **inspection** asks the owner to judge, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner gives it one verdict from a declared set and may add a note.
 
-An `inspection/1` payload holds the inputs and outputs as [runs](#the-payload), one input to a run. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output under its passage. It appends the verdicts to the payload's [answers file](#answers), which the session that made the inspection reads.
+An `inspection/1` payload holds its inputs and outputs as runs, where a run is one input and the outputs made from it. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output under its passage. It appends the verdicts to the payload's [answers file](#answers).
 
 The first producer is [`flag_inspection.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_inspection.py) in [home](https://github.com/mehrlander/home). The script's outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 
@@ -25,19 +25,27 @@ The page reads `#gz=` before `?src=`:
 | `question` | What a verdict answers, such as *is this flag right?* |
 | `verdicts` | In order, each with `verdict` (the value written), `label` (the button) and `gloss` (its meaning, in a line) |
 | `tags` | Optional: the values an output's `tag` takes, each with `tag`, `label` and optionally an `icon` and a `tone` |
-| `answers` | Optional: the answers file, as a repo path or an `owner/repo[@ref]:path` address |
+| `answers` | Optional: where the verdicts are saved, as [Answers](#answers) describes |
 | `made` | Optional: `by` (the producer's address) and `from` (the addresses it read) |
 | `runs` | In order |
 
-A verdict may also have an `icon`, a Phosphor class such as `ph-check`, and a `tone`, the colour of its chosen button and of its marks: `success`, `error`, `warning`, `info` or `neutral`. A tag may have a `tone` too: the colour of its icon, which is shown alone with its label in a tip, or of its badge when it has no icon, and of the passages its output rests on. Without one, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
+A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `tone` is `success`, `error`, `warning`, `info` or `neutral`. The tone colours the verdict's button when chosen. It also colours the tab and the number of each output given that verdict.
 
-A **run** is one input and the outputs made from it. It has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives.
+A tag with an `icon` is drawn as that icon alone, in the tag's tone, with its label in a tooltip. A tag without one is a badge in its tone. The tone also colours the passages the tag's output rests on. Without a `tone`, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
 
-An **output** has an `id` unique in its run and a `text`. It may have a `tag`, `flair` (short marks shown after the text, each `{icon, label, tip}`, the tip saying what the label marks), a `note` (the producer's remark, shown in a tip from an icon after the text) and an `anchor`. An anchor is `{block, start, end}`: offsets into that block's text, in code points, with `end` exclusive. Where no span applies it is `{block}` alone. An output that rests on several passages has `anchors`, a list of anchors, in place of `anchor`; the page marks each and scrolls to the first.
+A **run** has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives.
+
+An **output** has an `id` unique in its run and a `text`, and may have:
+
+| Field | Holds |
+| --- | --- |
+| `tag` | One of `tags` |
+| `flair` | Short marks drawn after the text, each `{icon, label, tip}`. The `tip` is the mark's tooltip and says what the label marks. |
+| `note` | The producer's remark, shown as the tooltip of an icon after the text |
+| `anchor` | The passage the output rests on, as `{block, start, end}`. `start` and `end` are offsets into that block's text in code points, with `end` exclusive. Where no span applies, the anchor is `{block}` alone. |
+| `anchors` | A list of anchors, in place of `anchor`, for an output that rests on several passages. The page marks each passage and scrolls to the first. |
 
 ## Answers
-
-Where the answers file is, and the ref each save commits to:
 
 | `answers` | The file | The commit lands on |
 | --- | --- | --- |
@@ -45,7 +53,7 @@ Where the answers file is, and the ref each save commits to:
 | a repo path | that path in the payload's repository | the payload's ref, else `main` |
 | an `owner/repo[@ref]:path` address | that file | the address's ref, else `main` |
 
-A `#gz=` payload has no path, and saves only to an address.
+A `#gz=` payload has no path. It saves only to an address.
 
 Each save appends one JSON line per output whose verdict or note changed, in one commit:
 
