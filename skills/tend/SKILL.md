@@ -166,7 +166,9 @@ reading and triggers nothing.
 account's sessions and take each one that is idle, last showed activity
 between two hours and a week ago, and has an open pull request, a blocked or
 review-ready status, or a last reply (its record's `last_message`) that
-closed on ❇️ or 🟢. A session idle for less than two hours tends its own work
+closed on ❇️ Ready to assess or 🟢 Ready to continue, two of the closing states
+[`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
+defines. A session idle for less than two hours tends its own work
 at its check-ins
 ([`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)).
 A message to a session idle for more than 55 minutes
@@ -212,8 +214,9 @@ report what each session left waiting on the owner.
 A session that receives it works through whichever of these apply, under the
 principles above:
 
-- **Do what the last reply offered,** where it closed on ❇️ or 🟢 and the
-  owner has not written since.
+- **Take the step the last reply's closing line names,** where that line is
+  ❇️ Ready to assess or 🟢 Ready to continue and the owner has not written
+  since.
 - **Land what is already approved,** up to a pull request ready to merge:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.
