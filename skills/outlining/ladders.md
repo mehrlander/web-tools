@@ -72,11 +72,11 @@ Three tests separate a Reference claim from its neighbours:
   `condition` or `procedure`). One that states how a file or command is built
   or behaves is Reference, even in the second person.
 - **Inquiry:** a predicate whose truth rests on a dated run or sample is
-  Inquiry. A standing property of a system, concept or convention is Reference,
-  so a conceptual explanation places on `definition`, `form`, `limit` and
-  `rationale` without a ladder of its own.
-- **Page:** Page describes a surface as its user meets it and sends the
-  builder's slice to `not-page`. Reference places that slice directly.
+  Inquiry. A standing property of a system, concept or convention is Reference.
+  A conceptual explanation is Reference too: its claims place on `definition`,
+  `form`, `limit` and `rationale`.
+- **Page:** a claim the Page ladder would put on `not-page` belongs on a
+  Reference rung.
 
 ## Reading the rung counts
 
