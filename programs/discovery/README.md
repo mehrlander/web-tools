@@ -9,6 +9,14 @@ Discovery is the owner's research, into their own work and into what others know
 | Probes | investigations that test the owner's tools, workflows, data or assumptions, often by building something and trying it. Each write-up is listed under `research` in its repository's `.web-tools.json` with the kind `probe`, indexed for web-tools in [`research/README.md`](../../research/README.md) and shown in the Map's [Probes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=research) |
 | Exploration | information gathered from outside sources, listed with the kind `exploration` and shown in the Map's [Exploration tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=exploration), and the skills that gather it, such as [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md) |
 
+## Processes
+
+A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+
+| Process | Starts when |
+| --- | --- |
+| Prior work | a session or the owner asks what existing probes, explorations and gathered source files already establish on a subject before starting a new investigation |
+
 ## Measures
 
 None yet.

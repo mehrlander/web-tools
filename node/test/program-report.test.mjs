@@ -63,3 +63,84 @@ test('the report counts governed commits per entry and lists the latest', () => 
     rmSync(base, { recursive: true, force: true });
   }
 });
+
+test('the report renders tabular and flat-object measures and joins open tasks by project, tag, and governed path', () => {
+  const base = mkdtempSync(join(tmpdir(), 'program-report-tasks-'));
+  const origin = join(base, 'origin.git'), work = join(base, 'work');
+  const git = (...args) => spawnSync('git', args, { cwd: work, env, encoding: 'utf8' });
+  try {
+    spawnSync('git', ['init', '-q', '--bare', '-b', 'main', origin]);
+    spawnSync('git', ['clone', '-q', origin, work]);
+    const write = (files) => {
+      for (const [p, text] of Object.entries(files)) {
+        mkdirSync(join(work, dirname(p)), { recursive: true });
+        writeFileSync(join(work, p), text);
+      }
+      git('add', '-A');
+      git('commit', '-q', '--no-verify', '-m', 'seed');
+    };
+    write({
+      '.web-tools.json': JSON.stringify({
+        tracker: 'tracker/board.md',
+        programs: [{
+          name: 'demo', label: 'Demo', path: 'programs/demo',
+          formerly: ['programs/legacy'],
+          governs: ['docs/a.md', 'docs/forms/'],
+          measures: ['state/tab.json', 'state/flat.json']
+        }]
+      }),
+      'programs/demo/README.md': '# Demo\n',
+      'docs/registries.csv': 'id,path\n',
+      'docs/properties.csv': 'registry,property,mode\n',
+      'docs/a.md': 'a\n',
+      'docs/forms/x.md': 'x\n',
+      'state/tab.json': JSON.stringify({
+        generated: '2026-04-10',
+        summary: { columns: ['week', 'sessions'], rows: [['2026-W15', 2]] },
+        caveats: ['sample window']
+      }),
+      'state/flat.json': JSON.stringify({
+        checked_at: '2026-04-12T18:35Z',
+        summary: { files: 17, copies_edited: 4, sources_ahead: 0 }
+      }),
+      'tracker/board.md': '# Board\n',
+      'tracker/board.csv': [
+        'id,status,project,awaiting,title,href',
+        't-proj,open,demo,,Direct project match,tasks/t-proj.md',
+        't-old,in-progress,legacy,owner,Former program name match,tasks/t-old.md',
+        't-tag,open,other,,Tagged program match,tasks/t-tag.md',
+        't-body,open,,,Body link match,tasks/t-body.md',
+        't-done,done,demo,,Completed task,tasks/t-done.md',
+        't-dormant,dormant,demo,,Dormant task,tasks/t-dormant.md',
+        't-sibling,open,,,Touches docs/forms-old.md only,tasks/t-sibling.md',
+        't-foreign,open,,,Touches other/repo:docs/a.md only,tasks/t-foreign.md'
+      ].join('\n') + '\n',
+      'tracker/board-tags.csv': 'task,tag,value\nt-tag,program,demo\n',
+      'tracker/tasks/t-proj.md': ' Plain body.\n',
+      'tracker/tasks/t-old.md': ' Plain body.\n',
+      'tracker/tasks/t-tag.md': ' Plain body.\n',
+      'tracker/tasks/t-body.md': 'See [form](../../docs/forms/x.md) for context.\n',
+      'tracker/tasks/t-done.md': 'Touch docs/a.md.\n',
+      'tracker/tasks/t-dormant.md': 'Touch docs/a.md.\n',
+      'tracker/tasks/t-sibling.md': 'Only docs/forms-old.md.\n',
+      'tracker/tasks/t-foreign.md': 'Only https://example.com/docs/a.md and other/repo:docs/a.md.\n'
+    });
+    git('push', '-q', 'origin', 'HEAD:main');
+
+    const r = spawnSync('python3', [SCRIPT, 'report', 'demo', '--since', '2000-01-01'], { cwd: work, env, encoding: 'utf8' });
+    assert.equal(r.status, 0, r.stderr);
+    assert.match(r.stdout, /### `state\/tab\.json` \(generated 2026-04-10\)/);
+    assert.match(r.stdout, /\| week \| sessions \|\r?\n\| --- \| --- \|\r?\n\| 2026-W15 \| 2 \|/);
+    assert.match(r.stdout, /- sample window/);
+    assert.match(r.stdout, /### `state\/flat\.json` \(checked 2026-04-12T18:35Z\)/);
+    assert.match(r.stdout, /\| files \| copies_edited \| sources_ahead \|\r?\n\| --- \| --- \| --- \|\r?\n\| 17 \| 4 \| 0 \|/);
+    assert.match(r.stdout, /\| t-proj \| open \|  \| Direct project match \|/);
+    assert.match(r.stdout, /\| t-old \| in-progress \| owner \| Former program name match \|/);
+    assert.match(r.stdout, /\| t-tag \| open \|  \| Tagged program match \|/);
+    assert.match(r.stdout, /\| t-body \| open \|  \| Body link match \|/);
+    assert.doesNotMatch(r.stdout, /t-done|t-dormant|t-sibling|t-foreign/);
+  } finally {
+    rmSync(base, { recursive: true, force: true });
+  }
+});
+
