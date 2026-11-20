@@ -104,7 +104,7 @@ routes-routes,repo,recorded,,value,column,yes,,,label,the repo holding the rende
 routes-routes,ref,recorded,,value,column,yes,,,label,the ref the renderer is read at
 routes-routes,path,recorded,,value,column,yes,,,locator,the renderer page
 routes-routes,renders,recorded,,value,column,yes,,,value,the content type this route is for
-routes-routes,doc,recorded,,value,column,yes,,,locator,the envelope contract the route honors
+routes-routes,doc,recorded,,value,column,yes,,,locator,the contract the route honors
 routes-routes,example,recorded,,value,column,yes,,,locator,a worked address
 routes-kinds,label,recorded,,value,column,yes,,,value,the kind's display name
 routes-kinds,subject,recorded,,value,column,yes,,subjects,value,"the subject type a link to this kind takes, a key into docs/subjects.csv"
