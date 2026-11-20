@@ -37,9 +37,9 @@ they have to say it again.
 ## What you return
 
 1. **Trips**, most costly first: `P<id> · <where> · "<quote>" · <one clause>`.
-   When the caller numbers the edits under review (E1, E2, ...), put the
-   trip's edit after its id: `P<id> · E<n> · ...`. Tag a trip outside every
-   edit `E-`.
+   When the caller gives the edits under review as numbered line ranges
+   (E1, E2, ...), put the trip's edit after its id: `P<id> · E<n> · ...`.
+   Tag a trip outside every edit `E-`.
 2. **Clear**: the ids you checked that the subject does not trip, as one line.
 3. **Candidates**: at most three patterns the owner might add to the list,
    each with a quote. These are proposals, not findings.
