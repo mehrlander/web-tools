@@ -714,7 +714,8 @@ def spans_text(path, spans):
             a, b = s["lines"]
             out.append(f"E{k}  {'line ' + str(a) if a == b else f'lines {a}-{b}'}")
     out.append('Tag each trip with its edit, as P<id> · E<n> · <where> · "<quote>" · <clause>, and a trip '
-               "outside every edit with E-. Quote the words exactly as the file has them.")
+               "outside every edit with E-. Quote the words exactly as the file has them. End with "
+               "`Verdict: PASS` when no trip falls inside an edit, and `Verdict: FAIL` otherwise.")
     return "\n".join(out)
 
 
