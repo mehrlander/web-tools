@@ -490,7 +490,7 @@ document.addEventListener('alpine:init', () => {
         const ranges = X.rng[s.n], m = { fill, ends, pos: this.side(s.n, lit) };
         const gapTone = k => on || fill.has(k);
         const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m) + this.gapsAfter(p, gapTone)).join('');
-        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-primary)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
+        return `<span data-s="${s.n}" data-part="item" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-primary)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
 
@@ -833,11 +833,11 @@ document.addEventListener('alpine:init', () => {
         </div>
         <div x-ref="pwrap" class="relative">
           <div x-ref="arrows" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
-          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event); passageOver($event)" @pointerout="gapOut($event); passageOut($event)"></p>
+          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" data-part="list" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event); passageOver($event)" @pointerout="gapOut($event); passageOut($event)"></p>
         </div>
       </section>
 
-      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0" data-part="detail">
         <div class="flex items-center gap-1 px-2 sm:px-4 py-1 border-b border-base-200">
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
           <div class="items-center gap-2 px-1" :class="N <= 12 ? 'hidden' : N <= 25 ? 'flex sm:hidden' : 'flex'">

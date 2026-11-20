@@ -353,7 +353,6 @@ async function readerScenario(viewport, label, records = bulk) {
   const last = records.at(-1).short;
   const { page, context } = await openPage(f, viewport, routeUrl({ view: 'search', smode: 'sessions', sq: 'manymatch', sitem: last }));
   await readyResults(page, count);
-  if (viewport.width === 320) await page.evaluate(() => { document.documentElement.dataset.theme = 'dark'; });
   await readyRecord(page, last);
   await page.waitForFunction(id => document.querySelector('[data-session-result="' + id + '"]')?.textContent.includes('2 occurrences'), last);
   check(label + ' cold selected id survives the first 60 results', await selected(page) === last && params(page).get('sitem') === last);
