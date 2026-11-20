@@ -98,11 +98,14 @@
   const FILL = { cur: 'bg-primary/20 data-hot:bg-primary/35', other: 'bg-base-content/10 data-hot:bg-base-content/20' };
   // A passage's number: a 14px disc on its top-left corner, out of the line,
   // between the caps under it and the line or label over it. The input pane's
-  // leading (INPUT) and the label's margin leave it that room, a pixel clear
-  // each way, in the strip and in the deck.
+  // leading (INPUT) and the label's margin (TURN) leave it that room, a pixel
+  // clear each way, in the strip and in the deck.
   const BADGE = 'grid h-3.5 min-w-3.5 cursor-pointer place-items-center rounded-full border px-[2px] font-mono text-[11px] leading-none font-semibold tabular-nums';
   const DISCS = 'absolute -top-[9px] -left-[9px] flex gap-px select-none';
-  const INPUT = { strip: 'px-3.5 leading-8', deck: 'px-4 leading-9' };
+  const INPUT = { strip: 'leading-7.5', deck: 'leading-8.5' };
+  // A turn: every other one on a faint band the width of the pane, its label
+  // over its words.
+  const TURN = { block: 'pt-1.5 even:bg-base-200/80', label: 'mb-1' };
   // A tab under the pointer, or whose passage is.
   const HOT = ['ring-1', 'ring-primary'];
 
@@ -274,8 +277,8 @@
   function cardHTML(r, o, big) {
     const pad = big ? 'px-4' : 'px-3.5';
     const blocks = r.source.blocks.map(b => `
-      <section data-block="${esc(b.id)}" class="flex flex-col py-1.5">
-        <h3 class="mb-px font-mono text-xs text-base-content/50">${esc(b.label || b.id)}</h3>
+      <section data-block="${esc(b.id)}" class="flex flex-col ${pad} ${TURN.block}">
+        <h3 class="${TURN.label} text-xs leading-none font-semibold text-base-content/70">${esc(b.label || b.id)}</h3>
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${marked(r, b, o)}</p>
       </section>`).join('');
     // The seam is the card head's (linked-swiper), on the panel's top edge.
