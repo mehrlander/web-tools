@@ -93,9 +93,21 @@
   };
   // A tag's colour: its own tone, else its stance's; any other tag is neutral.
   const STANCE = { like: 'success', dislike: 'error' };
-  // A passage's fill: the card's own output's in primary, the others' quieter;
-  // a passage under the pointer, and its counterparts, deepen (data-hot).
-  const FILL = { cur: 'bg-primary/20 data-hot:bg-primary/35', other: 'bg-base-content/10 data-hot:bg-base-content/20' };
+  // A passage's fill, by its place in its output (adopt): the card's own
+  // output's in primary, the others' quieter. An output's only passage and
+  // the first of several are filled; the first of several and each later one
+  // carry a line at the foot, so a later one is the line alone. The line is an
+  // inset shadow because title-tip's unlayered rule on [data-title-tip-bare]
+  // removes text decoration. A passage under the pointer, and its
+  // counterparts, deepen (data-hot).
+  const LINE = {
+    cur: 'shadow-[inset_0_-1.5px_0_var(--color-primary)]',
+    other: 'shadow-[inset_0_-1.5px_0_color-mix(in_oklab,var(--color-base-content)_40%,transparent)]',
+  };
+  const FILL = {
+    cur: { single: 'bg-primary/20 data-hot:bg-primary/35', first: 'bg-primary/20 data-hot:bg-primary/35 ' + LINE.cur, again: 'bg-transparent data-hot:bg-primary/15 ' + LINE.cur },
+    other: { single: 'bg-base-content/10 data-hot:bg-base-content/20', first: 'bg-base-content/10 data-hot:bg-base-content/20 ' + LINE.other, again: 'bg-transparent data-hot:bg-base-content/10 ' + LINE.other },
+  };
   // A passage's number: a 14px disc on its top-left corner, out of the line,
   // between the caps under it and the line or label over it. The input pane's
   // leading (INPUT) and the label's margin (TURN) leave it that room, a pixel
@@ -122,18 +134,21 @@
   function adopt(p) {
     for (const r of p.runs) {
       r.blockOf = Object.fromEntries(r.source.blocks.map(b => [b.id, b]));
+      const order = Object.fromEntries(r.source.blocks.map((b, i) => [b.id, i]));
       for (const o of r.outputs) {
-        // An output's anchors in one block that only white space parts read
-        // as one passage, with one number.
+        // An output's anchors in document order; two in one block that only
+        // white space parts read as one passage, with one number.
         o.spans = (o.anchors || (o.anchor ? [o.anchor] : [])).flatMap(a => {
           const b = r.blockOf[a.block];
           return b && Number.isInteger(a.start) && Number.isInteger(a.end) ? [{ block: a.block, at: [u16(b.text, a.start), u16(b.text, a.end)] }] : [];
-        }).reduce((acc, s) => {
+        }).sort((x, y) => order[x.block] - order[y.block] || x.at[0] - y.at[0]).reduce((acc, s) => {
           const q = acc[acc.length - 1];
           if (q?.block === s.block && s.at[0] >= q.at[0] && !/\S/.test(r.blockOf[s.block].text.slice(q.at[1], s.at[0]))) q.at[1] = Math.max(q.at[1], s.at[1]);
           else acc.push(s);
           return acc;
         }, []);
+        // A passage's place in its output: alone, first of several, or later.
+        o.spans.forEach((s, i) => { s.role = o.spans.length === 1 ? 'single' : i ? 'again' : 'first'; });
       }
     }
     p.verdictOf = Object.fromEntries((p.verdicts || []).map(v => [v.verdict, v]));
@@ -198,9 +213,12 @@
   const tone = v => TONE[P.verdictOf[v]?.tone] || TONE.neutral;
   // A badge's colours: primary on the card's own output, as its tab and the
   // head's pill are, else its verdict's, as the stance tag takes its stance's.
-  const badgeTone = (run, out, own) => {
+  // A later passage's badge is the same colour in outline.
+  const badgeTone = (run, out, own, role) => {
+    const v = !own && stateOf(keyOf(run, out)).verdict;
+    if (role === 'again') return own ? 'border-primary bg-base-100 text-primary'
+      : v ? tone(v).tag.split(' ')[0] + ' bg-base-100 text-base-content' : 'border-base-content/50 bg-base-100 text-base-content/75';
     if (own) return 'border-primary bg-primary text-primary-content';
-    const v = stateOf(keyOf(run, out)).verdict;
     return v ? tone(v).tag + ' text-base-content' : 'border-transparent bg-base-content/55 text-base-100';
   };
   const doneOf = r => r.outputs.filter(o => stateOf(keyOf(r.id, o.id)).verdict).length;
@@ -248,23 +266,26 @@
   // A block's text with each anchored span marked; overlapping spans split
   // into runs that carry every output resting on them. A passage's opening
   // run carries its output's number. A run the card's own output rests on
-  // takes the primary fill; its first anchor's opening run is data-first,
-  // where place() scrolls.
+  // takes the primary fill and that output's place; any other run takes the
+  // most prominent place among the outputs on it. The own output's first
+  // passage's opening run is data-first, where place() scrolls.
   function marked(r, b, own) {
-    const spans = r.outputs.flatMap(o => o.spans.filter(s => s.block === b.id).map(s => ({ o, at: s.at })));
+    const spans = r.outputs.flatMap(o => o.spans.filter(s => s.block === b.id).map(s => ({ o, at: s.at, role: s.role })));
     const first = own?.spans[0];
     const cuts = [...new Set([0, b.text.length, ...spans.flatMap(s => s.at)])].sort((x, y) => x - y);
     let h = '';
     for (let i = 0; i + 1 < cuts.length; i++) {
-      const [a, z] = [cuts[i], cuts[i + 1]], on = [...new Set(spans.filter(s => s.at[0] <= a && s.at[1] >= z).map(s => s.o))];
+      const [a, z] = [cuts[i], cuts[i + 1]], over = spans.filter(s => s.at[0] <= a && s.at[1] >= z), on = [...new Set(over.map(s => s.o))];
       const t = esc(b.text.slice(a, z));
       if (!on.length) { h += t; continue; }
       const mine = !!own && on.includes(own);
+      const pick = mine ? over.filter(s => s.o === own) : over;
+      const role = ['first', 'single', 'again'].find(x => pick.some(s => s.role === x));
       const top = mine && first.block === b.id && first.at[0] === a;
-      const nums = spans.filter(s => s.at[0] === a).map(({ o }) =>
-        `<span data-badge="${esc(o.id)}" class="${BADGE} ${badgeTone(r.id, o.id, o === own)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
+      const nums = spans.filter(s => s.at[0] === a).map(({ o, role }) =>
+        `<span data-badge="${esc(o.id)}" data-role="${role}" class="${BADGE} ${badgeTone(r.id, o.id, o === own, role)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
       h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} data-title-tip-bare tabindex="-1"`
-        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative rounded-sm text-inherit box-decoration-clone ${mine ? FILL.cur : FILL.other}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
+        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${FILL[mine ? 'cur' : 'other'][role]}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
     }
     return h;
   }
@@ -369,7 +390,7 @@
       }
     }
     for (const b of document.querySelectorAll(`mark[data-run="${CSS.escape(run)}"] [data-badge="${CSS.escape(out)}"]`))
-      b.className = BADGE + ' ' + badgeTone(run, out, b.closest('[data-flag]')?.dataset.flag === out);
+      b.className = BADGE + ' ' + badgeTone(run, out, b.closest('[data-flag]')?.dataset.flag === out, b.dataset.role);
     const count = $('list')?.querySelector(`[data-run="${CSS.escape(run)}"] [data-count]`);
     if (count) count.textContent = countOf(runOf(run));
     swiper?.tabs(run);
