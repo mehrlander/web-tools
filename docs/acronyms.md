@@ -10,7 +10,7 @@ Summary of Position for Unfamiliar Reader. Asked for a SPUR, summarize where the
 
 Thorough Overview for Unfamiliar Reader. Asked for a TOUR, reassess the session's work from the reader's goal rather than from the session's current position: restate the goal, test whether the session's reasoning serves it, lay out the ways to reach the goal with the tradeoffs of each, and recommend one with its reason and the session's confidence. Write it for the reader of a [SPUR](#spur). A SPUR is the short ask and a TOUR the full one.
 
-TOUR was earlier named FAIR, Fresh Assessment of Intention and Reasoning. Names passed over: LEAF, SLATE, SLEDGE and DELVE.
+Names passed over for TOUR: FAIR, LEAF, SLATE, SLEDGE and DELVE.
 
 ## CDE
 
