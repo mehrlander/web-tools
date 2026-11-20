@@ -120,14 +120,32 @@ premises against the tree, not only its body.
 
 ## Pull requests
 
-Read `## Open threads` in merged pull requests, back to the previous tend pass
-or as far as threads stay live, and state the window. 🟢 and 🟡 items are open;
-check each against `main`. Read open pull requests too, testing each head as
-Branches does.
+Read the open topics of sessions that ended since the previous tend pass, and
+state the window. Each row of the registry's
+[`state/session-topics.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/session-topics.json)
+is one session. Its `topic_status` holds the session's topics, with fields that
+web-tools-private
+[`sessions/topics/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/topics/README.md)
+defines. Check
+each open topic against `main` and against the pull requests its agenda lists
+under `prs`. Read open pull requests too, testing each head as Branches does.
 
+- **Act:** mark an open topic done when all three hold:
+  1. its `basis` is `closing` or `model`;
+  2. its agenda lists at least one pull request, and each has merged;
+  3. no such pull request's body lists an item under `## Open threads`.
+
+  Append the status with [`topic_correct.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/topic_correct.py) from
+  a web-tools-private checkout. The row's key is `<short>`, and the topic's
+  name is `<name>`:
+  `python3 sessions/tools/topic_correct.py status <short> --by tend --topic "<name>" --status done`.
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
   lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving,
-  one that sidesteps an ask, and a live thread.
+  and one that sidesteps an ask.
+- **Find:** an open topic whose pull requests have no commit since the previous
+  pass, and an open topic that lists no pull request.
+- **Propose:** in the pass's user call, `dropped` for an open topic whose work
+  `main` or another session's topic has since done.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.
 
