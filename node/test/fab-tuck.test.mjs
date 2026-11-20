@@ -1,6 +1,6 @@
 // fab-tuck.test.mjs — the FAB's tuck: the launcher steps aside into a handle
 // in the corner while a page's mark pad (lib/kits/mark-pad.js) is up, or when
-// the menu's Hide asks, and a tap or a pull on the handle brings it back.
+// the menu's Hide asks, and a tap on the handle brings it back.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -51,14 +51,6 @@ test('a page’s mark pad tucks the launcher into its corner, and a tap brings i
     assert.equal(d.tuckNow, false, 'and it stays back while that pad is up');
     pad(false); pad(true); await tick(2);
     assert.equal(d.tuckNow, true, 'until the pad next comes up');
-    d.tabStart({ clientX: 300, clientY: 600 }); d.tabMove({ clientX: 296, clientY: 597 });
-    assert.equal(d.tuckNow, true, 'a touch that barely moves is not a pull');
-    d.tabMove({ clientX: 280, clientY: 598 });
-    assert.equal(d.tuckNow, false, 'a pull to the left brings it back');
-    pad(false); pad(true); await tick(2);
-    d.tabStart({ clientX: 300, clientY: 600 }); d.tabMove({ clientX: 300, clientY: 580 });
-    assert.equal(d.tuckNow, false, 'and so does a pull up');
-    pad(false); pad(true); await tick(2);
     d.open = true; await tick(2);
     assert.equal(d.tuckNow, false, 'an open drawer is never tucked');
     d.open = false;
