@@ -34,7 +34,7 @@ substituting the current repo in URL templates.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
   `` `11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](…) · [🧭](…/app/?view=program&program=sessions) ``
-  The opening stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816𝗄` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page, `🧭` links the Sessions program page, and `<short>` is the session id's first eight characters. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) · PR event`.
+  The opening stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816𝗄` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page, `🧭` links the page of the Sessions program, which governs this document and the caption hook, and `<short>` is the session id's first eight characters. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) · PR event`.
 
 ## A reply that changed files
 

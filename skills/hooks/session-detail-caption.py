@@ -28,8 +28,7 @@ root that holds a .git, that are documentation, by governing-docs.py beside
 this file (the test warn-governing-docs.sh applies). A
 zero count is left off, and so is a part the transcript cannot supply: the time
 before any owner message, the context before any response. 🧭 closes every
-line: a fixed link to the Sessions program's page in the Web Tools app
-(PROGRAM below).
+line, linking PROGRAM below.
 
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
 `user-calls/<short>-<slug>.json` (the user-calls skill, skills/user-calls/SKILL.md,
