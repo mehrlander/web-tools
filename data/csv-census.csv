@@ -29,7 +29,7 @@ docs/app-routes.csv,29,11,20249,"[""key"",""address"",""label"",""stop"",""group
 docs/assistant-branches.csv,7,5,1090,"[""branch"",""repo"",""assistant"",""basis"",""declared""]"
 docs/components.csv,46,22,22640,"[""path"",""names"",""gloss"",""lines"",""routes"",""views"",""leads"",""loads"",""mounts"",""mounted_by"",""pages"",""patterns"",""kits"",""events"",""options"",""hears"",""codes"",""parts"",""setups"",""seen_at"",""seen_label"",""tested""]"
 docs/context-links.csv,5,4,657,"[""from"",""to"",""kind"",""gloss""]"
-docs/context-sources.csv,35,20,9519,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss"",""assistant"",""discretion"",""role""]"
+docs/context-sources.csv,35,20,9523,"[""id"",""circle"",""item"",""repo"",""path"",""defined_in"",""link"",""arrives"",""when"",""reach"",""read"",""change"",""evidence"",""status"",""tally"",""topics"",""gloss"",""assistant"",""discretion"",""role""]"
 docs/context-topics.csv,12,4,2749,"[""topic"",""label"",""verdict"",""gloss""]"
 docs/credentials.csv,7,6,1367,"[""credential"",""label"",""kind"",""held_at"",""commits_as"",""gloss""]"
 docs/css-baseline.csv,86,2,2664,"[""path"",""declarations""]"
