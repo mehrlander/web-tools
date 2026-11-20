@@ -25,7 +25,9 @@ has assessed the codes.
 | `thumbs/component-*` | each component that names where the app shows it (`docs/components.csv`, `seen_at`), shot at that address uncropped, and `component-shots.json` with each component's box in each shot | `node/build/component-shots.mjs` |
 
 Regenerate the snapshot with `npm run ui-units -- --write --date <date>`,
-from a checkout that has `home` beside it. Without `--write` it prints counts.
+from a checkout that has `home` and `budget-drs` beside it. Without `--write`
+it prints counts. Add `--store public` or `--store home` to write only this
+repo's tables or only home's.
 The names are stable so the Map can read them without listing the folder; git
 holds the earlier snapshots.
 
@@ -38,9 +40,12 @@ shot reads only the sibling checkouts named in `PUBLIC_SIBLINGS`
 missing, so add a repository there only once it is public.
 
 **The public and private halves are split by visibility.** Rows whose unit
-lives in this repo are written here. Rows for home's own pages and for
-everything the budget-drs app draws or frames go to home's `data/ui-units/`,
-so no private file name lands in public source. The 2026-10-06 snapshot holds
+lives in this repo are written here. Rows for home's own pages, for
+budget-drs's own pages and for everything the budget-drs app draws or frames go
+to home's `data/ui-units/`, so no private file name lands in public source.
+`node/ui-units.mjs` reads budget-drs from the mehrlander/budget-drs checkout
+beside this one. It keys the app's views `budget-drs:view/<view>[/<tab>]` and
+the repository's pages `budget-drs:<path>`. The 2026-10-06 snapshot holds
 158 units here and 65 in home, and 57 and 45 of them are coded. Units in other
 repositories, such as shortcut-tools' own pages, are counted by the script and
 written nowhere.
