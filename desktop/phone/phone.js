@@ -217,6 +217,15 @@
     if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
   }
 
+  function queueNotice() {
+    const waiting = data.items.filter(item => item.kind === 'errand' && keyFor(item.provider) === 'gemini' && item.state === 'queued');
+    if (!waiting.length || data.sources.workerState !== 'absent') return '';
+    const label = `${waiting.length} Gemini ${waiting.length === 1 ? 'errand' : 'errands'} waiting`;
+    const at = Date.parse(data.observedAt), saved = !connected || !data.sources.recordsConnected || !Number.isFinite(at) || Date.now()-at >= 15000;
+    const link = `inline-flex min-h-7 items-center gap-1 rounded underline decoration-amber-700/40 underline-offset-4 ${focusStyle}`;
+    return `<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><a data-queue-notice="gemini" href="#view=errands&amp;provider=gemini&amp;tab=waiting" class="${link} text-sm font-medium" aria-label="${escape('Review '+label)}">${escape(label)}<span aria-hidden="true">›</span></a><a data-worker-status="gemini" href="#view=now&amp;session=worker%3Agemini" class="${link}" aria-label="${saved?'Last observation: Gemini errand worker not detected.':'Gemini errand worker not detected.'} Open worker status.">${saved?'Worker status':'Worker offline'}<span aria-hidden="true">›</span></a>${saved ? '<span class="w-full text-xs">Saved queue and worker status</span>' : ''}</div>`;
+  }
+
   function render() {
     renderUsage();
     if (data) el('machine').textContent = data.machineName;
@@ -224,11 +233,10 @@
     if (!data) { detail(); connection(); return; }
     // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
     const viewport = {left:window.scrollX,top:nowScroll()};
-    const focus = ['content','assistants'].some(id => el(id).contains(document.activeElement)) ? document.activeElement : null;
-    const focusAction = focus && ['pick','status','assistant','providerMenu','launch','sessionTokens','topicContext'].find(key => focus.dataset[key]);
+    const focus = ['content','assistants','notice'].some(id => el(id).contains(document.activeElement)) ? document.activeElement : null;
+    const focusAction = focus && ['pick','status','assistant','providerMenu','launch','sessionTokens','topicContext','queueNotice','workerStatus'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
-    const waiting = data.items.filter(i => i.state === 'queued');
     html('assistants', ['codex','gemini','claude'].map(key => {
       const items = data.items.filter(i => keyFor(i.provider) === key);
       const counts=new Map();
@@ -238,9 +246,7 @@
       return `<div class="${ui.provider}"><button data-assistant="${key}" aria-pressed="${assistant === key}" aria-label="${escape({codex:'Codex',gemini:'Gemini',claude:'Claude'}[key] + ': ' + shown.map(s=>s.count+' '+s.label.toLowerCase()).join(', '))}" class="${ui.providerFilter}"><span class="${ui.providerName} ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="${ui.providerCounts}">${shown.map(s=>`<span class="phone-status-${s.tone} ${statusTones[s.tone]} ${ui.count}" title="${escape(s.count+' '+s.label)}">${icon(s.glyph)}<span>${s.count}</span></span>`).join('')}</span></button><button data-provider-menu="${key}" class="${ui.providerMore}" aria-label="${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]} options" aria-haspopup="menu" aria-expanded="${launchKey === 'provider:'+key}">${icon('more')}</button></div>`;
     }).join(''));
     const items = filtered();
-    const notices = [...data.sources.notices];
-    if (waiting.some(i => keyFor(i.provider) === 'gemini') && data.sources.workerState === 'absent') notices.unshift('Gemini errands are waiting. Worker not detected.');
-    html('notice', notices.map(escape).join('<br>'));
+    html('notice', queueNotice() + data.sources.notices.filter(Boolean).map(note => `<div>${escape(note)}</div>`).join(''));
     const {current,needs,accepted,arriving,queued,quiet,recent} = activityGroups(items);
     const queueTitle = data.sources.recordsConnected ? 'Waiting' : 'Waiting · Saved queue';
     const queue = queued.length ? group(queueTitle,queued,'',true) : assistant === 'gemini' && !data.sources.queueAvailable ? group('Waiting',[],'Queue unavailable') : '';
@@ -249,7 +255,10 @@
       + queue + workerReport(true) + (quiet.length ? group('No recent update',quiet) : '') + group('Other recent',recent,'No recent activity.'));
     html('source-times', `Errands synced ${escape(stamp(data.sources.recordsSyncedAt))}<br>Cloud records captured ${escape(stamp(data.sources.cloudCapturedAt))}`);
     updateTimes(); detail(); connection(); renderLaunch();
-    if (focusAction && !focus.isConnected) [...document.querySelectorAll('#content button,#content a,#assistants button,#assistants a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner)?.focus({preventScroll:true});
+    if (focusAction && !focus.isConnected) {
+      const target = [...document.querySelectorAll('#content button,#content a,#assistants button,#assistants a,#notice a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner);
+      (target || (['queueNotice','workerStatus'].includes(focusAction) ? el('view-picker') : null))?.focus({preventScroll:true});
+    }
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
     if (!selected() && nowScroll() !== viewport.top) scrollNow(viewport.top);
   }
@@ -447,7 +456,7 @@
     const accepted = jobs.filter(i => i.state !== 'queued');
     const status = source.workerState === 'detected' ? 'Process detected' : source.workerState === 'absent' ? 'Process not detected' : 'Process status unavailable';
     const reportRows = (reports.length ? `<ol class="px-4">${reports.map(r => { const job = r.itemId && data.items.find(i => i.kind === 'errand' && i.id === r.itemId); return `<li class="border-b border-stone-100 py-3"><p class="text-xs text-stone-500">${escape(stamp(r.at))}</p><p class="mt-0.5 text-[13px] leading-5">${escape(r.headline)}</p>${job ? `<button data-pick="${escape(job.key)}" class="min-h-11 text-left text-sm text-blue-800">${escape(job.title)} ›</button>` : ''}</li>`; }).join('')}</ol>` : '<p class="px-4 py-3 text-stone-500">No reports available</p>');
-    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 class="text-xl font-semibold">Gemini worker</h2></div><p class="mt-3 text-sm text-stone-600">${status}${source.recordsConnected ? '' : ' · Saved queue'}</p><div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div><section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by worker',accepted,'',false,false) : ''}<p class="px-4 pt-5 text-xs leading-5 text-stone-500">Reports show the worker’s last recorded tasks. A detected process or accepted errand does not confirm that a task is still running.</p></article>`);
+    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 tabindex="-1" class="text-xl font-semibold">Gemini errand worker</h2></div><p class="mt-3 text-sm text-stone-600">${status}${source.recordsConnected ? '' : ' · Saved queue'}</p><p class="mt-1 text-sm text-stone-600">The background errand worker runs separately from interactive Gemini sessions.</p>${reports[0] ? `<p class="mt-2 text-xs text-stone-500">Last report ${observedTime(reports[0].at)} · ${escape(reports[0].headline)}</p>` : ''}<div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by worker',accepted,'',false,false) : ''}<section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section><p class="px-4 pt-5 text-xs leading-5 text-stone-500">Reports show the worker’s last recorded tasks. A detected process or accepted errand does not confirm that a task is still running.</p></article>`);
   }
 
   const replyRequests = new Set();
@@ -488,6 +497,18 @@
   }
 
   document.addEventListener('click', event => {
+    const notice = event.target.closest('[data-queue-notice],[data-worker-status]');
+    if (notice && !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      if (notice.dataset.workerStatus) { event.preventDefault();openSession('worker:gemini');return; }
+      if (window.NowViews?.setView) {
+        event.preventDefault();closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});
+        const route = notice.getAttribute('href');
+        if (location.hash !== route) history.pushState(null,'',route);
+        window.NowViews.setView('errands',false);
+        (el('panel-errands').querySelector('[data-er-tab="waiting"]') || el('view-picker'))?.focus({preventScroll:true});
+        return;
+      }
+    }
     const button = event.target.closest('button');
     if (!button) { if(event.target.closest('#phone-session-menu a')){closeLaunch();return;} if(!event.target.closest('#phone-session-menu'))closeLaunch();const card=event.target.closest('#content [data-item]');if(card&&!event.target.closest('a,input,select,textarea,[data-title-tip]'))openSession(card.dataset.item);return; }
     if(button.dataset.providerMenu){openLaunch('provider:'+button.dataset.providerMenu);return;}
@@ -537,7 +558,13 @@
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
-  const routeChanged=()=>{closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});if(window.NowViews?.active())return;if(selected()){if(history.state?.nowSessionTrail)assistant=currentTrail().filter||'';render();detail();connection();window.scrollTo(0,0);}else restoreNow();};
+  const routeChanged=()=>{
+    closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});
+    if(window.NowViews?.active())return;
+    if(selected()){if(history.state?.nowSessionTrail)assistant=currentTrail().filter||'';render();detail();connection();window.scrollTo(0,0);}
+    else if(detailTrail)restoreNow();
+    else{render();connection();}
+  };
   window.addEventListener('popstate',routeChanged);
   window.addEventListener('hashchange',routeChanged);
   window.addEventListener('nowviewchange', () => {closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});if(window.NowViews?.active()&&!selected())detailTrail=null;if (!window.NowViews?.active() || window.NowViews.current?.() === 'usage') { render(); connection(); } });
