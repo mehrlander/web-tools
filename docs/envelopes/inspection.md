@@ -1,8 +1,8 @@
 # Inspection: the envelope contract
 
-An **inspection** shows the owner, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner may add a note to it. Where the payload declares a set of verdicts, the owner may also give it one.
+An **inspection** shows the owner, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner may add a note to each output. Where a set of verdicts is declared, the owner may also give each output one verdict from it.
 
-An `inspection/1` payload holds its inputs and outputs as runs, where a run is one input and the outputs made from it. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output under its passage. It appends the notes and verdicts to the payload's [answers file](#answers).
+An `inspection/1` payload holds its inputs and outputs as runs, where a run is one input and the outputs made from it. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) shows a run's input with each output's passages marked, and the selected output below it, numbered to match. It appends the notes and verdicts to the payload's [answers file](#answers).
 
 The first producer is [`flag_inspection.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_inspection.py) in [home](https://github.com/mehrlander/home). The script's outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 
@@ -29,7 +29,9 @@ The page reads `#gz=` before `?src=`:
 | `made` | Optional: `by` (the producer's address) and `from` (the addresses it read) |
 | `runs` | In order |
 
-Without `verdicts`, each output has a note field alone, and the page counts nothing as judged. A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `tone` is `success`, `error`, `warning`, `info` or `neutral`. The tone colours the verdict's button when chosen. It also colours the tab and the number of each output given that verdict.
+Without `verdicts`, each output has only a note field.
+
+A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `tone` is `success`, `error`, `warning`, `info` or `neutral`. The tone colours the verdict's button when chosen. It also colours the tab and the number of each output given that verdict.
 
 A tag with an `icon` is drawn as that icon alone, in the tag's tone, with its label in a tooltip. A tag without one is a badge in its tone. The tone also colours the passages the tag's output rests on. Without a `tone`, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
 
