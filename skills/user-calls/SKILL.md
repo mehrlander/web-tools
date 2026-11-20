@@ -152,6 +152,10 @@ An edit's `background` says how it came up and `proposal` what it changes and do
 
 `edits --old A --new B` writes the edits array from the document and an edited copy of it, pairing blank-line blocks the way home's projects/text/tools/ propose.py does: an insertion or a removal takes its unchanged neighbour as context, so every `from` is text the file holds. `link` prints the call page's address, reading the call from the store at main unless `--at <owner/repo>@<ref>` names another place.
 
+`review` records the [peeves critic](../agents/peeves-critic.md)'s runs on the document in the call's `review`, for [doc-craft](../doc-craft/SKILL.md)'s Review step. A run is one reading by the critic. Its findings are trips. The call page shows the runs in a Critic view, by edit and by run. Before each run, `review <call.json> <document> --spans` prints the call's edits as numbered line ranges (E1, E2, ...) for the critic's prompt. It first recomputes the edits from the document and the call's `base`. The recomputed edits keep the why, background, proposal and notes the session wrote on them. After the run, `review <call.json> <document> <report>` records each trip with the edit it was tagged with. It marks a trip `misquoted` when its quote is not in the document. It also records the changes made to the document between the previous run and this one, numbered c1, c2 and so on. A change in line breaks alone is counted apart, as reflow.
+
+Link each change to the trips it addresses with `--answers <change> <trips>`. Set a trip aside with `--kept <trip> "<why>"`. Recording a run marks the previous run's unanswered trips as `changed` if the document changed in between. `add` refuses a call whose edits differ from the text the last run read. It also refuses a call with a trip left unanswered, unless the trip is tagged `E-`, outside every edit.
+
 ### `task` links
 
 `task` is where the approval envelope's other kind (web-tools docs/envelopes/approval.md) folds in; until it does, that approval stays one.
@@ -173,6 +177,7 @@ python3 user-call.py close <id> <answer> [note]
 python3 user-call.py list [session]              # open calls, newest first
 python3 user-call.py edits --base REF FILE       # a documentation call's edits, FILE against its text at REF
 python3 user-call.py edits --old A --new B       # the same, from two copies
+python3 user-call.py review <call.json> <document> [--spans | <report>]   # a critic run on a documentation call
 ```
 
 `user-call.py` looks for the store in the project root, the folders inside it and the folders beside it, and takes the first checkout whose `.web-tools.json` on main declares `"user-calls"`, a folder in that checkout; `--store <folder>` names the folder instead. A command fetches the store's main before reading it. `add` and `close` commit the call straight to the store's main and push it, leaving the checkout's working tree and branch as they are.
