@@ -1,94 +1,209 @@
 term,facet,repo,home,values,check,definition
 source anchoring (doctrine),binding,home,created/2026-07-19-source-anchoring.md:27,,none,"Three parts: a source, an output, and a chain tying each piece of the output back to a source."
-laundered inference,binding,home,created/2026-07-19-source-anchoring.md:95,,none,"The subtle failure is laundered inference: a stitched conclusion wearing a parent's citation."
+laundered inference,binding,home,created/2026-07-19-source-anchoring.md:95,,none,The subtle failure is laundered inference: a stitched conclusion wearing a parent's citation.
 provenance (leaves),record,home,created/2026-07-19-source-anchoring.md:106,,none,"Each source's origin, how it was obtained, its class, and how completely that is documented"
 lineage (edges),derivation,home,created/2026-07-19-source-anchoring.md:112,,none,"The build graph whose nodes are committed artifacts and whose edges are committed, re-runnable transforms."
 source anchoring (skill),binding,web-tools,skills/source-anchoring/SKILL.md:8,,none,"Every element of the output traces to a source, or is flagged as not."
 anchor (citation),binding,web-tools,skills/source-anchoring/SKILL.md:12,,none,"cite a span (page and quote, a cell range, a cropped image), not a whole document."
-lineage (skill),derivation,web-tools,skills/source-anchoring/SKILL.md:14,,none,"keep each intermediate as a committed file and each step as a re-runnable script."
-anchors.csv,binding,web-tools,skills/source-anchoring/SKILL.md:35,,none,"record the anchoring beside it as anchors.csv"
-provenance state,binding,web-tools,skills/source-anchored-writing/SKILL.md:17,Quoted;Supported;Inferred;Unfiled;Unsupported,budget-drs app/probes/tools/build-probes.py (one probe),"Assign each a provenance state and attach its citation."
-Inferred vs Supported,binding,web-tools,skills/source-anchored-writing/SKILL.md:45,,none,"Restatement stays Supported. Stitching crosses into Inferred."
+lineage (skill),derivation,web-tools,skills/source-anchoring/SKILL.md:14,,none,keep each intermediate as a committed file and each step as a re-runnable script.
+anchors.csv,binding,web-tools,skills/source-anchoring/SKILL.md:35,,none,record the anchoring beside it as anchors.csv
+provenance state,binding,web-tools,skills/source-anchored-writing/SKILL.md:17,Quoted;Supported;Inferred;Unfiled;Unsupported,budget-drs app/probes/tools/build-probes.py (one probe),Assign each a provenance state and attach its citation.
+Inferred vs Supported,binding,web-tools,skills/source-anchored-writing/SKILL.md:45,,none,Restatement stays Supported. Stitching crosses into Inferred.
 typed-number arrival,acquisition,web-tools,skills/source-anchored-xlsx/SKILL.md:15,read from the image;parsed by a script,none,"Say how each typed number arrived: read from the image, or parsed by a script."
 Provenance (workbook sheet),record,web-tools,skills/source-anchored-xlsx/SKILL.md:33,,none,"One line per source: what it is, its date, and any status such as preliminary."
 standoff register,binding,web-tools,skills/document-visual-mapping/SKILL.md:24,,budget-drs submittal/tools/build-submittal.py (one instance),"at one hop, with a coordinate attached."
-locator kind,binding,web-tools,docs/locators.md:46,Path;Fragment;Span;Quote;Content id;Record key;Selector,web-tools python/annotate/anchors.py (partial),"Choose the kind by what should survive."
+locator kind,binding,web-tools,docs/locators.md:46,Path;Fragment;Span;Quote;Content id;Record key;Selector,web-tools python/annotate/anchors.py (partial),Choose the kind by what should survive.
 reference,binding,web-tools,docs/locators.md:13,,none,"is a record with a source, a target locator, and a kind of relation."
 source bundle (portable),acquisition,web-tools,docs/source-bundles.md:3,,web-tools python/source-bundles.py --check,"a folder of material from outside the repository, kept because we need to know where it came from."
 arrival,acquisition,web-tools,docs/source-bundles.md:35,,web-tools python/source-bundles.py,"how it reached the repository, where that was not a pull from"
-not_taken,acquisition,web-tools,docs/source-bundles.md:37,,web-tools python/source-bundles.py,"material at the source deliberately left out"
-fileSources,record,web-tools,docs/source-bundles.md:59,,web-tools python/source-bundles.py,"records what the source said about individual files"
-provenance (store),durability,web-tools,docs/registries.md:151,authored;derived;captured,none,"is independent of shape"
-mode,producer,web-tools,docs/registries.md:104,recorded;computed,web-tools node/test/properties-registry.test.mjs,"(derived by the script named in"
-membership,producer,web-tools,docs/registries.md:97,computed;curated,web-tools node/test/properties-registry.test.mjs,"the row set can be derived;"
-storage rule,durability,web-tools,docs/registries.md:185,,none,"values always; authored judgment cannot be recomputed."
-creation_mode,producer,web-tools,skills/content-registry/SKILL.md:27,supplied;mechanical;human-authored;model-authored;hybrid-authored;mixed,web-tools node/test/content-registry.test.mjs (advisory verify),"(external source material)"
-writers.kind,producer,web-tools,docs/properties.csv:220,agent;process;person,web-tools node/test/writers.test.mjs,"who decided what a commit contains at the moment the commit was made"
-gold set (skill),correctness,web-tools,skills/gold-set/SKILL.md:9,,none (one instance: web-tools node/test/doc-overlap.test.mjs),"a sample of the program's inputs labeled by readers who never see the program's answer"
-fan-out kind,correctness,web-tools,skills/gold-set/SKILL.md:16,judgment;acquisition;measurement,none,"the third kind beside judgment"
+not_taken,acquisition,web-tools,docs/source-bundles.md:37,,web-tools python/source-bundles.py,material at the source deliberately left out
+fileSources,record,web-tools,docs/source-bundles.md:59,,web-tools python/source-bundles.py,records what the source said about individual files
+provenance (store),durability,web-tools,docs/registries.md:151,authored;derived;captured,none,is independent of shape
+mode,producer,web-tools,docs/registries.md:104,recorded;computed,web-tools node/test/properties-registry.test.mjs,(derived by the script named in
+membership,producer,web-tools,docs/registries.md:97,computed;curated,web-tools node/test/properties-registry.test.mjs,the row set can be derived;
+storage rule,durability,web-tools,docs/registries.md:185,,none,values always; authored judgment cannot be recomputed.
+creation_mode,producer,web-tools,skills/content-registry/SKILL.md:27,supplied;mechanical;human-authored;model-authored;hybrid-authored;mixed,web-tools node/test/content-registry.test.mjs (advisory verify),(external source material)
+writers.kind,producer,web-tools,docs/properties.csv:220,agent;process;person,web-tools node/test/writers.test.mjs,who decided what a commit contains at the moment the commit was made
+gold set (skill),correctness,web-tools,skills/gold-set/SKILL.md:9,,none (one instance: web-tools node/test/doc-overlap.test.mjs),a sample of the program's inputs labeled by readers who never see the program's answer
+fan-out kind,correctness,web-tools,skills/gold-set/SKILL.md:16,judgment;acquisition;measurement,none,the third kind beside judgment
 scour corpus,acquisition,web-tools,skills/scour/SKILL.md:11,,none,"The output is a corpus, not a report."
-declared vs inferred tie,binding,web-tools,skills/scour/SKILL.md:122,declared;inferred,none,"which is an inferred tie; keep them apart in the corpus."
-source map,correctness,web-tools,skills/scour/SKILL.md:232,,none,"no figure marked correct"
+declared vs inferred tie,binding,web-tools,skills/scour/SKILL.md:122,declared;inferred,none,which is an inferred tie; keep them apart in the corpus.
+source map,correctness,web-tools,skills/scour/SKILL.md:232,,none,no figure marked correct
 page as served,acquisition,web-tools,skills/wayback/SKILL.md:36,,none,"so a parser fix costs a reparse, not a second harvest."
-research kind,acquisition,web-tools,docs/CONSTELLATION.md:102,probe;exploration,none,"gathers information from outside sources."
+research kind,acquisition,web-tools,docs/CONSTELLATION.md:102,probe;exploration,none,gathers information from outside sources.
 probes.csv (portable),record,web-tools,docs/probes.md:9,,web-tools python/probes.py,"the registry: one row per probe, the source of truth for what the folder holds."
-durably sourced,durability,web-tools,docs/CONSTELLATION.md:32,,none,"inputs are durably sourced"
-historical capture,durability,web-tools,docs/CONSTELLATION.md:113,,none,"Historical captures keep their original bytes"
-workbook-extract provenance,record,web-tools,docs/envelopes/workbook-extract.md:125,source;picked;left,web-tools node/test/xlsx-extract.test.mjs,"The one thing data-view lacks is provenance"
+durably sourced,durability,web-tools,docs/CONSTELLATION.md:32,,none,inputs are durably sourced
+historical capture,durability,web-tools,docs/CONSTELLATION.md:113,,none,Historical captures keep their original bytes
+workbook-extract provenance,record,web-tools,docs/envelopes/workbook-extract.md:125,source;picked;left,web-tools node/test/xlsx-extract.test.mjs,The one thing data-view lacks is provenance
 structured stage,derivation,home,CLAUDE.md:35,,home tools/verify-artifacts.sh,"what we present rests on a structured stage we can inspect, not on judgment smeared into the render."
 consistency vs correctness,correctness,home,CLAUDE.md:35,,none,"A passing check proves consistency with the data, not correctness"
-one authored result column,producer,home,CLAUDE.md:14,,budget-drs data/authored/tools/evidence.py,"An authorship CSV designates exactly one"
-favoring the mechanical,derivation,home,created/2026-07-03-favoring-the-mechanical.md:22,,none,"Use as little judgment as you can to get the data out."
-concordance (doctrine),correctness,home,created/2026-07-03-favoring-the-mechanical.md:43,,none,"record the rate at which the two agree."
-method and documentation rating,record,home,created/2026-07-03-favoring-the-mechanical.md:47,,none,"and rate how completely that provenance is written down."
-correctness anchor,correctness,home,created/2026-07-03-favoring-the-mechanical.md:83,,none,"reconcile to an independent figure"
-gold set (doctrine),correctness,home,created/2026-09-06-gold-sets.md:21,,none,"a set of inputs labeled by readers who never saw the program's answer"
-source manifest,record,home,projects/text/doc-audit/source-manifest.md:10,,none (manual rerun),"and a MANIFEST.md"
-pin the source,binding,home,projects/text/doc-audit/source-manifest.md:35,,none,"A URL with no hash cannot be verified later"
-hallucinated lineage,derivation,home,projects/text/doc-audit/source-manifest.md:48,,none,"A prose account of a transform whose script is not in the bundle or was never re-run."
+one authored result column,producer,home,CLAUDE.md:14,,budget-drs data/authored/tools/evidence.py,An authorship CSV designates exactly one
+favoring the mechanical,derivation,home,created/2026-07-03-favoring-the-mechanical.md:22,,none,Use as little judgment as you can to get the data out.
+concordance (doctrine),correctness,home,created/2026-07-03-favoring-the-mechanical.md:43,,none,record the rate at which the two agree.
+method and documentation rating,record,home,created/2026-07-03-favoring-the-mechanical.md:47,,none,and rate how completely that provenance is written down.
+correctness anchor,correctness,home,created/2026-07-03-favoring-the-mechanical.md:83,,none,reconcile to an independent figure
+gold set (doctrine),correctness,home,created/2026-09-06-gold-sets.md:21,,none,a set of inputs labeled by readers who never saw the program's answer
+source manifest,record,home,projects/text/doc-audit/source-manifest.md:10,,none (manual rerun),and a MANIFEST.md
+pin the source,binding,home,projects/text/doc-audit/source-manifest.md:35,,none,A URL with no hash cannot be verified later
+hallucinated lineage,derivation,home,projects/text/doc-audit/source-manifest.md:48,,none,A prose account of a transform whose script is not in the bundle or was never re-run.
 census verdict,correctness,home,projects/text/doc-audit/fact-census/README.md:20,holds;stale;unverifiable,none,"or unverifiable, with the command run"
-edit policy,durability,home,.gitattributes:1,in-place;append-only;write-once;regenerated;tool-written;by-status,home tools/check-edit-policy.py,"how each file may change"
-three kinds of path,durability,web-tools-private,README.md:17,authored;derived;captured,none,"Every path here is one of three kinds."
-source bundle (budget-drs ruling),acquisition,budget-drs,data/design/LAYERS.md:80,,web-tools python/source-bundles.py --check,"a dated folder of material taken from outside the project"
-intake,acquisition,budget-drs,data/design/LAYERS.md:80,,none,"the dated acquisition event a bundle records"
-three levels of source,derivation,budget-drs,data/design/SOURCES.md:32,origin;extract;schema object,none,"The mapping runs origin"
+edit policy,durability,home,.gitattributes:1,in-place;append-only;write-once;regenerated;tool-written;by-status,home tools/check-edit-policy.py,how each file may change
+three kinds of path,durability,web-tools-private,README.md:17,authored;derived;captured,none,Every path here is one of three kinds.
+source bundle (budget-drs ruling),acquisition,budget-drs,data/design/LAYERS.md:80,,web-tools python/source-bundles.py --check,a dated folder of material taken from outside the project
+intake,acquisition,budget-drs,data/design/LAYERS.md:80,,none,the dated acquisition event a bundle records
+three levels of source,derivation,budget-drs,data/design/SOURCES.md:32,origin;extract;schema object,none,The mapping runs origin
 provenance chain,derivation,budget-drs,data/design/SOURCES.md:363,,none,"Every source has a provenance chain, and the handle names the top of it."
-system of record,acquisition,budget-drs,data/design/SOURCES.md:184,,none,"each stage has its own system of record."
+system of record,acquisition,budget-drs,data/design/SOURCES.md:184,,none,each stage has its own system of record.
 provenance class (production_mode),acquisition,budget-drs,data/design/SOURCES.md:134,public;supplied;generated;authored;planned,budget-drs data/design/tools/verify-properties.py,"a pragmatic partition by acquisition event, how the file came to exist in the repo"
-supplied (budget-drs),acquisition,budget-drs,data/design/catalog/vocabularies.csv:3,,budget-drs data/design/tools/verify-properties.py,"Assembled by hand off-project and provided as a file."
-authored (budget-drs class),producer,budget-drs,data/design/catalog/vocabularies.csv:5,,budget-drs data/design/tools/verify-properties.py,"A project-maintained input that records a human choice"
-pull,acquisition,budget-drs,data/design/properties.csv:18,direct;manual;scripted;import;na,budget-drs data/design/tools/verify-properties.py,"How a file was obtained from its source"
-basis flag,derivation,budget-drs,data/design/SOURCES.md:196,plan;enacted,none,"and we keep the basis rather than force agreement"
-confront,correctness,budget-drs,data/design/SOURCES.md:208,,none,"the gap is a finding"
-origin_family,acquisition,budget-drs,data/design/SOURCES.md:215,ledger;notes;spend;acfr;reversions;forecast;cem;submittal;review;employer;performance;prices;courts;payers,budget-drs app/lineage/tools/build-lineage.py,"which upstream world does this data come from."
-source role,derivation,budget-drs,data/design/SOURCE-CROSSWALK.md:10,populate;classify;enrich;drill;cross-check;DRS-layer,none,"supplies a fact's measure or a dimension's key rows"
+supplied (budget-drs),acquisition,budget-drs,data/design/catalog/vocabularies.csv:3,,budget-drs data/design/tools/verify-properties.py,Assembled by hand off-project and provided as a file.
+authored (budget-drs class),producer,budget-drs,data/design/catalog/vocabularies.csv:5,,budget-drs data/design/tools/verify-properties.py,A project-maintained input that records a human choice
+pull,acquisition,budget-drs,data/design/properties.csv:18,direct;manual;scripted;import;na,budget-drs data/design/tools/verify-properties.py,How a file was obtained from its source
+basis flag,derivation,budget-drs,data/design/SOURCES.md:196,plan;enacted,none,and we keep the basis rather than force agreement
+confront,correctness,budget-drs,data/design/SOURCES.md:208,,none,the gap is a finding
+origin_family,acquisition,budget-drs,data/design/SOURCES.md:215,ledger;notes;spend;acfr;reversions;forecast;cem;submittal;review;employer;performance;prices;courts;payers,budget-drs app/lineage/tools/build-lineage.py,which upstream world does this data come from.
+source role,derivation,budget-drs,data/design/SOURCE-CROSSWALK.md:10,populate;classify;enrich;drill;cross-check;DRS-layer,none,supplies a fact's measure or a dimension's key rows
 data catalog,record,budget-drs,data/design/catalog/README.md:3,,budget-drs data/design/tools/verify-properties.py,"one row per dataset, where it came from, how it was obtained, and how to reproduce or verify it."
-provenance altitudes,record,budget-drs,data/design/catalog/README.md:32,per bundle;per item;per source,none,"Provenance is recorded at three altitudes"
-confidence,record,budget-drs,data/design/catalog/README.md:23,high;med,budget-drs app/catalog/tools/build-catalog-data.py,"rates how completely the provenance is documented"
+provenance altitudes,record,budget-drs,data/design/catalog/README.md:32,per bundle;per item;per source,none,Provenance is recorded at three altitudes
+confidence,record,budget-drs,data/design/catalog/README.md:23,high;med,budget-drs app/catalog/tools/build-catalog-data.py,rates how completely the provenance is documented
 homed (coverage model),record,budget-drs,data/design/catalog/README.md:112,data-catalog row;authored-files row;design-layer descriptor,budget-drs data/design/tools/verify-properties.py,"A leaf is homed three ways, not one"
-pipeline stage,derivation,budget-drs,data/design/LAYERS.md:9,sources;design;build;database;view,none,"in the order data flows."
+pipeline stage,derivation,budget-drs,data/design/LAYERS.md:9,sources;design;build;database;view,none,in the order data flows.
 authored layer,producer,budget-drs,data/design/LAYERS.md:43,,budget-drs data/build/build-model.py,"human judgment as committed data, never as code"
-placement gate,record,budget-drs,data/source/README.md:87,,budget-drs data/build/build-model.py,"refuses any database input outside the sanctioned homes"
-authored column,producer,budget-drs,data/authored/EVIDENCE.md:5,,budget-drs data/authored/tools/evidence.py,"of one file at a time"
-column roles,binding,budget-drs,data/authored/EVIDENCE.md:9,key;call;from;by;shows;note,budget-drs data/authored/tools/evidence.py,"Every column gets exactly one role"
-from (role),binding,budget-drs,data/authored/EVIDENCE.md:15,,budget-drs data/authored/tools/evidence.py,"where an input lives"
+placement gate,record,budget-drs,data/source/README.md:87,,budget-drs data/build/build-model.py,refuses any database input outside the sanctioned homes
+authored column,producer,budget-drs,data/authored/EVIDENCE.md:5,,budget-drs data/authored/tools/evidence.py,of one file at a time
+column roles,binding,budget-drs,data/authored/EVIDENCE.md:9,key;call;from;by;shows;note,budget-drs data/authored/tools/evidence.py,Every column gets exactly one role
+from (role),binding,budget-drs,data/authored/EVIDENCE.md:15,,budget-drs data/authored/tools/evidence.py,where an input lives
 by (role),producer,budget-drs,data/authored/EVIDENCE.md:16,,budget-drs data/authored/tools/evidence.py,"how the call was made, from a declared vocabulary"
-shows (role),binding,budget-drs,data/authored/EVIDENCE.md:17,,budget-drs data/authored/tools/evidence.py,"the witness"
+shows (role),binding,budget-drs,data/authored/EVIDENCE.md:17,,budget-drs data/authored/tools/evidence.py,the witness
 authorship event,producer,budget-drs,data/authored/EVIDENCE.md:24,,budget-drs data/authored/tools/evidence.py,"New authored data follows one CSV, one authored result column."
-by vocabulary (default),producer,budget-drs,data/authored/EVIDENCE.md:57,judgment;rule;verbatim;restatement;recompute;reconciliation;dominant-share;document,budget-drs data/authored/tools/evidence.py,"as the default vocabulary when a file needs no specialized method set."
-empty evidence cell,record,budget-drs,data/authored/EVIDENCE.md:61,,none,"An empty evidence cell means no per-row trace was recorded"
-note basis (uncommitted:),binding,budget-drs,data/authored/README.md:67,,budget-drs data/authored/tools/verify-notes.py,"for a source shown to us and not held here."
+by vocabulary (default),producer,budget-drs,data/authored/EVIDENCE.md:57,judgment;rule;verbatim;restatement;recompute;reconciliation;dominant-share;document,budget-drs data/authored/tools/evidence.py,as the default vocabulary when a file needs no specialized method set.
+empty evidence cell,record,budget-drs,data/authored/EVIDENCE.md:61,,none,An empty evidence cell means no per-row trace was recorded
+note basis (uncommitted:),binding,budget-drs,data/authored/README.md:67,,budget-drs data/authored/tools/verify-notes.py,for a source shown to us and not held here.
 findings,producer,budget-drs,data/findings/README.md:3,,none,"Authored data whose key is the material examined, not the subject judged."
-probes.csv bundle,binding,budget-drs,data/design/lineage/columns.csv:1789,,budget-drs app/probes/tools/build-probes.py,"The source bundle holding the documents the probe's anchors.csv cites"
-claim check,correctness,budget-drs,data/design/catalog/README.md:224,,budget-drs app/view/tools/verify-acfr-quotes.py,"for an authored artifact whose data is quotation and condensation woven into prose"
+probes.csv bundle,binding,budget-drs,data/design/lineage/columns.csv:1789,,budget-drs app/probes/tools/build-probes.py,The source bundle holding the documents the probe's anchors.csv cites
+claim check,correctness,budget-drs,data/design/catalog/README.md:224,,budget-drs app/view/tools/verify-acfr-quotes.py,for an authored artifact whose data is quotation and condensation woven into prose
 table lineage,derivation,budget-drs,app/lineage/README.md:9,,budget-drs app/lineage/tools/verify-lineage.mjs,"files as nodes (tables, scripts, payloads, pages), edges from the manifests."
-column lineage,derivation,budget-drs,app/lineage/README.md:9,,budget-drs app/lineage/tools/check-columns.py,"each row the column's story"
-column_role,producer,budget-drs,app/lineage/README.md:11,source;authored;carried;computed,budget-drs app/lineage/tools/check-columns.py,"(a leaf landed from outside)"
-column_op,derivation,budget-drs,app/lineage/README.md:13,def;carry;rename;cast;agg;join;union;rule;const,budget-drs app/lineage/tools/check-columns.py,"a closed vocabulary"
-declared use,derivation,budget-drs,app/lineage/README.md:27,,budget-drs app/lineage/tools/check-uses.py,"from a committed column to a particular element in a consumer."
-frozen,durability,budget-drs,data/design/properties.csv:21,frozen;live,budget-drs tools/verify-artifacts.sh,"changes only by an explicit re-anchoring decision"
-no update-in-place,durability,budget-drs,data/design/LAYERS.md:88,,budget-drs tools/verify-artifacts.sh,"every change is a new intake or a new authored row"
-transcription_method,acquisition,budget-drs,data/design/properties.csv:41,verbatim;restatement,budget-drs cem/tools/verify-cem.py,"How a figure got from its source into this repo."
-amount_basis,derivation,budget-drs,data/design/properties.csv:32,stated;derived,budget-drs cem/tools/verify-cem.py,"Whether anyone states a line's amount"
-checklist_column_origin,producer,budget-drs,data/design/properties.csv:73,transcribed;judgment;resolved,budget-drs submittal/tools/build-checklist-view.py,"Where a cell's content came from"
-standard (walk back),binding,budget-drs,docs/MANIFESTO.md:15,,none,"a reader can walk back to source one visible stop at a time"
+column lineage,derivation,budget-drs,app/lineage/README.md:9,,budget-drs app/lineage/tools/check-columns.py,each row the column's story
+column_role,producer,budget-drs,app/lineage/README.md:11,source;authored;carried;computed,budget-drs app/lineage/tools/check-columns.py,(a leaf landed from outside)
+column_op,derivation,budget-drs,app/lineage/README.md:13,def;carry;rename;cast;agg;join;union;rule;const,budget-drs app/lineage/tools/check-columns.py,a closed vocabulary
+declared use,derivation,budget-drs,app/lineage/README.md:27,,budget-drs app/lineage/tools/check-uses.py,from a committed column to a particular element in a consumer.
+frozen,durability,budget-drs,data/design/properties.csv:21,frozen;live,budget-drs tools/verify-artifacts.sh,changes only by an explicit re-anchoring decision
+no update-in-place,durability,budget-drs,data/design/LAYERS.md:88,,budget-drs tools/verify-artifacts.sh,every change is a new intake or a new authored row
+transcription_method,acquisition,budget-drs,data/design/properties.csv:41,verbatim;restatement,budget-drs cem/tools/verify-cem.py,How a figure got from its source into this repo.
+amount_basis,derivation,budget-drs,data/design/properties.csv:32,stated;derived,budget-drs cem/tools/verify-cem.py,Whether anyone states a line's amount
+checklist_column_origin,producer,budget-drs,data/design/properties.csv:73,transcribed;judgment;resolved,budget-drs submittal/tools/build-checklist-view.py,Where a cell's content came from
+standard (walk back),binding,budget-drs,docs/MANIFESTO.md:15,,none,a reader can walk back to source one visible stop at a time
+source estate,acquisition,budget-wa,README.md:11,,web-tools python/source-bundles.py --check (via budget-wa crosswalks/verify.sh),"Self-contained source estates: original holdings, provenance, source-specific parsing, and source-specific products"
+evidence record,binding,budget-wa,docs/EVIDENCE-RECORDS.md:15,,none,An evidence record says something and attributes it.
+basis (evidence record),derivation,budget-wa,docs/EVIDENCE-RECORDS.md:62,recorded;derived;inferred;asserted,none,"basis is how we know, not how much to trust it."
+observed vs authored claim,producer,budget-wa,docs/EVIDENCE-RECORDS.md:211,observed;authored,none,Authored: an analysis produced by a person or an agent.
+references are not correctness,correctness,budget-wa,docs/EVIDENCE-RECORDS.md:176,,none,"References establish provenance, not correctness."
+resolution (adjudication),derivation,budget-wa,docs/EVIDENCE-RECORDS.md:82,declared rule;adjudication;not at all,budget-wa crosswalks/bills-ofm-agencies/build.py,"Unresolved is a terminal state, not a to-do."
+evidence (LBN row column),correctness,budget-wa,sources/legislative-budget-notes/extract/PROVENANCE.md:34,digital;ocr-reconciled;ocr-composed;ocr-unchecked;ocr-flagged,budget-wa sources/legislative-budget-notes/validate.py,"know exactly what they excluded, rather than discovering later that a table's rows were of mixed quality"
+evidence sidecar,binding,budget-wa,sources/legislative-budget-notes/extract/PROVENANCE.md:62,,budget-wa sources/legislative-budget-notes/validate.py (presence only),"one object per figure (not per row), written only for OCR-derived figures."
+witness (rendition),correctness,budget-wa,sources/enacted-operating-bills/processing/normalized/reconciliation/rendition-era-boundaries.md:200,,budget-wa sources/enacted-operating-bills/tools/verify.sh,Independence of authorship is not independence of assumption.
+residual disposition,correctness,budget-wa,sources/enacted-operating-bills/processing/normalized/reconciliation/RESIDUALS.md:9,fixed;labeled;scoped,budget-wa sources/enacted-operating-bills/tools/verify.sh (four declared in grammar/rules.json),gives every residual a disposition: fixed (handling added so it resolves) or labeled (a true fact recorded with its reason)
+known defect reading,correctness,budget-wa,sources/osa-pension-valuations/README.md:51,printed;other,budget-wa sources/osa-pension-valuations/validate.py,reading says which figure the extraction keeps (other: the corrected one; printed: the page's own).
+set digest (storage form),record,budget-wa,sources/legislative-budget-notes/README.md:77,whole;pages,budget-wa sources/legislative-budget-notes/pin_manifest.py --check,for a paged edition it pins the set (the digest of the concatenated page digests)
+capture kind and kept pages,acquisition,budget-wa,research/budget-offices/imports/2026-10-15-source-documents/README.md:27,published-pdf;printed-page,none,found every quote in its whole capture and kept only the pages a quote lands on
+capture or pull as a reading,durability,budget-wa,research/budget-offices/imports/archived-postings/README.md:19,,budget-wa research/budget-offices/tools/archived-postings.py --check,A capture is a reading of the page on the day the archive took it.
+moved original,durability,budget-wa,tools/no-moved-originals.py:2,,budget-wa tools/no-moved-originals.py,Fail when original files that moved to budget-wa-lbn or budget-wa-abr come back.
+mirrored path,record,budget-wa-abr,README.md:7,,budget-wa sources/ofm-agency-budget-requests/tools/build-index.py --check,so a manifest's file column resolves against either repo.
+regenerated-on-request report,durability,budget-wa-abr,README.md:18,,none,so a later fetch of the same report differs in its bytes.
+sole writer,acquisition,budget-wa-abr,README.md:39,,none,Only budget-wa's fetchers write here
+curated attachments,acquisition,budget-wa-abr,README.md:16,,none,Curated Excel decision package attachments
+per-page storage,durability,budget-wa-lbn,README.md:14,,budget-wa sources/legislative-budget-notes/pin_manifest.py --check,so the page files sum to the original byte for byte.
+immutable once published,durability,budget-wa-lbn,README.md:3,,none,its files never change once published.
+origin (live or wayback),acquisition,budget-wa-osa,README.md:18,live;wayback,none,as OSA serves them now; earlier ones come from the
+bytes as fetched,durability,budget-wa-osa,.gitattributes:1,,budget-wa sources/osa-pension-valuations/pin_manifest.py --check,"Originals are stored as fetched: no line-ending conversion, no diff."
+declared fetch list,acquisition,budget-wa-osa,README.md:43,,none,A new report is added to the SOURCES list
+listed-by address,acquisition,budget-drs-acfr,README.md:14,,none,at the addresses the State Library's DRS index lists
+publisher-replaced file,durability,budget-drs-acfr,README.md:44,,none,DRS replaced its own FY2020 file.
+manifest here or there,record,budget-drs-acfr,README.md:40,,budget-drs data/source/2026-10-15-drs-acfr-originals/pin_manifest.py --check,Commit the PDF here and the manifest there.
+skip-not-fail,correctness,budget-drs-acfr,README.md:36,,none,A step that needs a file and finds neither stops and says so; a --check skips instead.
+SHA256SUMS,record,fn-data,README.md:67,,fn-data SHA256SUMS (sha256sum -c),"checksums of all 1,889 PDFs"
+manifest status,record,fn-data,README.md:251,ok,fn-data tools/fetch-pdfs.py,means the file was present on disk when the manifest was last regenerated.
+regenerate-and-diff,record,fn-data,README.md:257,,fn-data tools/fetch-pdfs.py,"checking for a clean git diff is the consistency check: no missing files, no manifest drift."
+verbatim response,acquisition,fn-data,summaries/raw/README.md:4,,fn-data summaries/raw/manifest.csv (sha256sum -c),Each file is the verbatim JSON response from a single API call
+kept as provenance,derivation,fn-data,summaries/README.md:8,,none,fn-paste-join.html is kept as provenance and cannot be rerun in place from this repo.
+provenance header,binding,fn-data,extracted/drs/drs-sections/2001-2ssb-5937-2054.md:3,,none,"Extracted from pdfs/2001/2SSB_5937_2054.pdf, pages 7-10 of 10"
+variant (canonical),derivation,fn-data,tools/build-variant-map.py:13,canonical;exact-dup;near-dup,none,canonical: the note to actually read.
+table_checks alarm,correctness,fn-data,extracted/drs/README.md:66,,fn-data tools/extract-drs-sections.py,the document's own III.B or III.C total does not reconcile to its Part I total
+manifest is the contract,record,fn-data,extracted/drs/document-schema.md:143,,fn-data tools/extract-drs-sections.py,"Every page is classified and accounted for, every table disposition recorded, every cross-foot failure named."
+unverified text figure,correctness,fn-data,text/README.md:23,,none,Treat any number read from the text as unverified.
+match ladder,binding,fn-data,joined/README.md:35,date;date+form;date+form+type;tie-latest;bill-only-no-date;no-near-package;draft-id;bill-not-in-spine,none,Each FNS075 row is resolved against its bill's packages by a ladder
+model-written product,producer,fn-data,extracted/drs/README.md:104,,none,The summaries/ folder is the one model-written product and is not regenerated by the script.
+verdict (reader verification),correctness,fn-data,distill/verify/README.md:21,confirmed;corrected;refuted,none,"a passing verdict proves the reader is consistent with the source section as extracted, not that the underlying fiscal note is correct."
+corrections beside readers,durability,fn-data,distill/verify/README.md:12,,none,The original reader files are never overwritten.
+quote held to source text,binding,fn-data,distill/README.md:528,,fn-data tools/verify-explorer.py,so a quote cannot be right merely because both copies drifted together.
+recorded source,acquisition,spend-wa,register/README.md:24,capture;make-script;manifest,spend-wa register/verify.py,A recorded source is three things that travel together
+verbatim (capture discipline),acquisition,spend-wa,register/README.md:37,,spend-wa register/verify.py,"Every field is read and stored as a string with na filtering off, so the parquet round-trips to the exact source values."
+capture is not analysis,derivation,spend-wa,register/README.md:44,,none,"Text-to-number, casing folds, cross-year column harmonization, and de-duplication are analysis, not capture."
+record of record,durability,spend-wa,register/README.md:56,,none,this committed parquet is the record of record
+snapshot not a live pointer,durability,spend-wa,register/SOURCE.md:49,,none,"This is a snapshot, not a live pointer."
+anchored (manifest hashes),record,spend-wa,register/ingest.py:18,source_csv_sha256;content_sha256,spend-wa register/verify.py,"a sha256 of the source CSV bytes (what we ingested), and a deterministic content hash of the values"
+lossless (to the publisher),correctness,spend-wa,checkbook/data/biennium/README.md:32,,none,"here means faithful to LEAP's published file, not to un-truncated reality"
+control totals,correctness,spend-wa,README.md:7,,spend-wa register/verify.py,validated against printed or manifest control totals
+claim audit verdict,correctness,spend-wa,probes/2026-07-findings-claim-audit/CLAIM-AUDIT.md:17,confirmed;discrepant;unverifiable,none,Each claim receives one of three verdicts.
+probe (point-in-time),durability,spend-wa,probes/README.md:7,,none,Treat everything under probes/ as point-in-time and unmaintained.
+cross-repo source document,record,spend-wa,contracts/vendor-ceilings-vs-outlays/SOURCE.md:8,,none,"name the raw source, name the transforming repo and pin it by commit"
+pinned side,acquisition,spend-wa,identity/crosswalk/SOURCE.md:27,,none,home's copy of the crosswalk is now the pinned side
+value-identical restore,durability,spend-wa,contracts/restore-spend-sources.py:16,,spend-wa contracts/restore-spend-sources.py,"Restored files are value-identical to the originals, not byte-identical (quoting may differ)"
+trust seam,derivation,spend-wa,contracts/full-register/PROCESS.md:28,,spend-wa contracts/full-register/build-full-register.py,the script plus the raw CSVs reproduce the committed files
+supplied (spend-wa content.csv),acquisition,spend-wa,data/design/content.csv:11,,none,Payment and contract registers as published
+entry gate,acquisition,legal-data,CLAUDE.md:25,,none,An estate exists when its publisher can be named and fetched from.
+estate (source estate),acquisition,legal-data,sources/README.md:3,,none,"An estate is self-contained: its original holdings, its provenance, the parsing that understands its format, and the products specific to it."
+paths record facts,record,legal-data,docs/ARCHITECTURE.md:12,,none,Paths record facts. Data holds judgments.
+layer (rebuilt from the one above),derivation,legal-data,docs/ARCHITECTURE.md:36,holdings;catalog;text;extractions;findings,legal-data tools/verify.sh,Each layer is rebuilt from the one above it. Only Layer 1 is irreplaceable
+holdings,durability,legal-data,docs/ARCHITECTURE.md:53,,legal-data tools/verify.sh,"Immutable by rule. A correction arrives as a new fetch, not an edit to an old one."
+UNRESOLVED.csv,record,legal-data,docs/ARCHITECTURE.md:55,,legal-data tools/fetch-cap.py,a slice member that could not be retrieved is listed with its reason rather than quietly absent.
+slice,acquisition,legal-data,catalog/README.md:46,,none,A slice is a set of decisions defined by a rule rather than by hand.
+discovery outside the suite,durability,legal-data,CLAUDE.md:104,,none,The committed slice CSV under catalog/slices/ is the durable record of what the slice was when drawn.
+voice,producer,legal-data,text/README.md:19,court;reporter,legal-data tools/build-text.py,"Every row carries voice, either court or reporter"
+interpolated,producer,legal-data,extractions/README.md:40,,legal-data tools/build-extractions.py,marks a citation found inside square brackets.
+first_passage_id,binding,legal-data,extractions/README.md:20,,legal-data tools/check-invariants.py,so a wrong row is correctable rather than merely suspect.
+separate warranties,producer,legal-data,extractions/README.md:17,mechanical;model-read,none,"the model-read tables will be separate files, because the two carry different warranties"
+publisher checksum,correctness,legal-data,sources/caselaw-access-project/PROVENANCE.md:64,,none,so SHA256SUMS here can be verified against the source rather than only against ourselves.
+secondhand terms,record,legal-data,sources/caselaw-access-project/PROVENANCE.md:29,,none,this one is recorded as secondhand rather than verified.
+checksum beside manifest,correctness,legal-data,CLAUDE.md:94,,legal-data tools/verify.sh,a manifest can be perfectly consistent with a corrupted file.
+freshness receipt,record,wa-bills,README.md:67,,none,The heartbeat commit doubles as a freshness receipt
+integrity reference,record,wa-bills,bills/texts/README.md:20,,none,manifest.json is the integrity reference
+complete (size match),correctness,wa-bills,bills/texts/README.md:23,,none,A file on disk matching its manifest size is complete.
+layout mirrors the source,acquisition,wa-bills,bills/texts/README.md:10,,none,Layout mirrors the source
+acted-on set,binding,wa-bills,bills/texts/index/README.md:73,rcw;rcw_links,none,rcw is the acted-on set
+two-format agreement,correctness,wa-bills,bills/texts/index/agreement-report.md:3,,none,"the two independent extractions are compared. Computed over the full corpus, not a sample."
+artifact not the toolchain,derivation,wa-bills,bills/texts/index/README.md:131,,none,"This directory is the artifact, not the toolchain; the parser scripts live in the build session, not the repo."
+early sinceDate pull,acquisition,wa-bills,wsl-api/README.md:73,,none,a pull dated inside a biennium's second calendar year silently drops every bill whose life ended in the first year
+point-in-time pull,durability,wa-bills,wsl-api/README.md:85,point-in-time;snapshot,none,"These are point-in-time pulls. For the open biennium, the continuously refreshed data is in snapshots/, not here."
+snapshot (live store),durability,wa-bills,wsl-api/README.md:93,,none,meta.json records when the snapshot was fetched and its counts.
+shared transform code,derivation,wa-bills,wsl-api/README.md:97,,none,fetches web-tools' dependency-free lib/kits/wsl-core.js at run time and executes it exactly as the browser pages do
+archived,durability,wa-bills,archive/ARCHIVE.md:8,,none,here means exactly that the canonical copy moved to web-tools.
+audit verdict,correctness,wa-bills,probes/audit-2026-07.md:8,confirmed;adjusted;unreviewed,none,An adversarial skeptic pass re-measured each reported discrepancy independently
+supplied (wa-bills content.csv),acquisition,wa-bills,data/design/content.csv:6,,none,Supplied verbatim; nothing here is this repo's voice
+as served (page-captures),acquisition,page-captures,README.md:3,,none,"Web pages captured as their sources served them, kept for the repositories that read them"
+never edited,durability,page-captures,README.md:3,,none,A file here is never edited after it lands.
+reader-named folder,record,page-captures,README.md:7,,none,"Each site's pages sit under a folder named for the repository that reads them, followed by the path they have in that repository."
+manifest in the reading repository,record,page-captures,README.md:9,,budget-wa research/budget-offices/tools/archived-postings.py,"Manifest, in the reading repository"
+content-addressed asset,durability,page-captures,README.md:13,,none,"one copy of each, named by its SHA-256."
+stored decompressed,acquisition,page-captures,README.md:13,,none,A page the source served gzip-compressed is stored decompressed.
+served digest beside stored hash,binding,page-captures,README.md:13,,budget-wa research/budget-offices/tools/archived-postings.py,"Its manifest row records the SHA-1 of the bytes as served, in the Internet Archive's base32 digest form, beside the SHA-256 of the stored file."
+originals check,correctness,page-captures,README.md:28,,budget-wa research/budget-offices/tools/archived-postings.py,its --check confirms each one against its SHA-256 in pages.csv
+batch before rows,record,page-captures,README.md:32,,none,each batch reaches this repo's main before budget-wa commits the pages.csv rows that point at it.
+bytes as fetched,durability,page-captures,.gitattributes:1,,budget-wa research/budget-offices/tools/archived-postings.py,"Every file is kept byte for byte as fetched: no line-ending conversion, whatever the committer's git settings."
+url key,binding,chat-histories,README.md:86,uuid;gemini-session/<id>,chat-histories tools/catalog_coverage.py,"joined to snapshots by url key (uuid for Claude/ChatGPT, gemini-session/<id> for Gemini)"
+url (catalog field),record,chat-histories,annotations/catalog/schema.json:24,,none,Original chat URL (e.g. claude.ai/chat/<uuid>).
+date (catalog field),record,chat-histories,annotations/catalog/schema.json:16,,none,"Date the chat was created, YYYY-MM-DD."
+uuid-linked entry,binding,chat-histories,drs-budget.md:95,,none,an entry stays identifiable even if a later export drops the chat.
+snapshot (immutable export),durability,chat-histories,CLAUDE.md:27,,chat-histories tools/ingest_claude_export.py,A committed snapshot's source data is never edited.
+canonical per slice,acquisition,chat-histories,CLAUDE.md:176,window;delta,none,"Canonical is per slice now, and the slices are cut two ways."
+provider distrust,correctness,chat-histories,CLAUDE.md:31,,chat-histories tools/diff_snapshots.py,"Don't trust a provider's past, or its completeness."
+mutation kind,correctness,chat-histories,tools/diff_snapshots.py:7,metadata-only;serialization;appended;content-changed;restructured,chat-histories tools/diff_snapshots.py,classifies what kind of change each touched chat carries
+precious derivative,durability,chat-histories,CLAUDE.md:59,deterministic;qualitative,none,"committing the exact output is the only way to preserve it, so they are precious."
+hand and machine catalogs,producer,chat-histories,CLAUDE.md:190,hand;machine,none,"Two catalog layers, joined by url key."
+(inferred) label,binding,chat-histories,2026-06-01-gemini-export/deep-research/README.md:40,,none,"two fields here are reconstructed, not given, and are labeled (inferred) wherever they appear"
+archive frontier,record,chat-histories,annotations/catalog/frontier.json:3,,chat-histories .web-tools.json,"The archive can say when it last heard, never how much it is missing."
+provenance sidecar,binding,chat-histories,annotations/code/powershell/reconstructed/README.md:11,verbatim;stitched,none,"per-function provenance (source chat and date, verbatim vs stitched) and the judgment calls made."
+reconstruction validation,correctness,chat-histories,annotations/code/powershell/reconstructed/README.md:30,,chat-histories tools/ps_reconstruction_diff.py,"72% of those faithful, zero inventions"
+named is not held,acquisition,chat-histories,GUIDE.md:249,,none,Finding it named in a chat is not the same as having it.
+extracted deterministically,derivation,art-of-memory,data/README.md:3,,none,"extracted deterministically from Memory list 9.xlsx (January 16, 2019)"
+public sources (Major System),acquisition,art-of-memory,MajorSystem.md:24,,none,"The dataset (38,269 words) joins four public sources"
+emoji_match,binding,art-of-memory,data/README.md:21,name;keyword,none,each marked name or keyword match

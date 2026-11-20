@@ -3,7 +3,8 @@ file its `home` names, on origin/main of the sibling checkout its `repo` names.
 
   python3 research/2026-11-20-provenance-map/check.py [--root DIR]
 
-DIR holds the checkouts side by side (default: the parent of this repository).
+DIR holds the checkouts side by side (default: the parent of this repository);
+a checkout may also sit under DIR/mehrlander/.
 Markdown emphasis and backticks are dropped and whitespace collapsed on both
 sides before matching, so a quote may span wrapped lines. A row passes when its
 quote is found within 12 lines of the cited line; a quote found elsewhere in the
@@ -21,8 +22,16 @@ def norm(s):
     return re.sub(r"\s+", " ", re.sub(r"[*`]", "", s)).strip()
 
 
+def where(repo):
+    """The checkout for repo: a sibling, or under an owner folder as public clones land."""
+    for d in (os.path.join(root, repo), os.path.join(root, "mehrlander", repo)):
+        if os.path.isdir(d):
+            return d
+    return None
+
+
 def show(repo, path):
-    r = subprocess.run(["git", "-C", os.path.join(root, repo), "show", f"origin/main:{path}"],
+    r = subprocess.run(["git", "-C", where(repo), "show", f"origin/main:{path}"],
                        capture_output=True, text=True, encoding="utf-8", errors="replace")
     return r.stdout if r.returncode == 0 else None
 
@@ -31,7 +40,7 @@ rows = list(csv.DictReader(open(os.path.join(HERE, "terms.csv"), encoding="utf-8
 bad, skipped, cache = [], set(), {}
 for i, row in enumerate(rows, 2):
     repo, (path, line) = row["repo"], row["home"].rsplit(":", 1)
-    if not os.path.isdir(os.path.join(root, repo)):
+    if where(repo) is None:
         skipped.add(repo)
         continue
     if (repo, path) not in cache:

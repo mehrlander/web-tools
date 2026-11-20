@@ -1,8 +1,17 @@
-# Provenance across the four repositories
+# Provenance across the owner's repositories
 
-**Question.** Provenance here means how a piece of content, data or a claim ties back to where it came from. What do budget-drs, web-tools, home and web-tools-private hold on provenance? Do their vocabularies agree? How should a probe hold the sources it rests on? The owner asked on 2026-11-20, while proposing that the [Discovery](../../programs/discovery/README.md) program take provenance up. The owner had also asked about the name "authorship bundle" in two earlier sessions, recorded in web-tools-private as [`2026-08-16-2c5c7b71.json`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/2026/08/2026-08-16-2c5c7b71.json) and [`2026-09-09-2066b80c.json`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/2026/09/2026-09-09-2066b80c.json).
+**Question.** Provenance here means how a piece of content, data or a claim ties back to where it came from. What do the owner's repositories hold on provenance? Do their vocabularies agree? What do the repositories that hold sources add to the theory of sources? How should a probe hold the sources it rests on? The owner asked on 2026-11-20, while proposing that the [Discovery](../../programs/discovery/README.md) program take provenance up. The owner had also asked about the name "authorship bundle" in two earlier sessions, recorded in web-tools-private as [`2026-08-16-2c5c7b71.json`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/2026/08/2026-08-16-2c5c7b71.json) and [`2026-09-09-2066b80c.json`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/2026/09/2026-09-09-2066b80c.json).
 
-**Answer.** Each repository is coherent on its own terms. The disagreement sits where they meet, at three words: "provenance" itself, "supplied" and "authored". Five words name a file a script rebuilds. The parts of an "authorship bundle" already exist under other names. One budget-drs probe already shows the source-heavy shape the owner described. That probe has a bundle of its own, and its build fails on any quoted passage it cannot find on the bundle's pages. No shared document describes that shape yet.
+**Scope.** [`repos.csv`](repos.csv) lists all 26 of the owner's repositories in the groups of the [constellation atlas](https://github.com/mehrlander/home/blob/main/created/2026-10-18-constellation-atlas/data/repos.csv). It also says which bear on provenance. Sixteen do, and this probe read them:
+
+- the core repositories: web-tools, home, web-tools-private, budget-drs and the chat archive [chat-histories](https://github.com/mehrlander/chat-histories)
+- the atlas's data repositories, which fetch and build source material: [budget-wa](https://github.com/mehrlander/budget-wa), [fn-data](https://github.com/mehrlander/fn-data), [spend-wa](https://github.com/mehrlander/spend-wa), [legal-data](https://github.com/mehrlander/legal-data) and [wa-bills](https://github.com/mehrlander/wa-bills)
+- the atlas's originals repositories, which hold fetched files as published: [budget-wa-abr](https://github.com/mehrlander/budget-wa-abr), [budget-wa-lbn](https://github.com/mehrlander/budget-wa-lbn), [budget-wa-osa](https://github.com/mehrlander/budget-wa-osa), [budget-drs-acfr](https://github.com/mehrlander/budget-drs-acfr) and [page-captures](https://github.com/mehrlander/page-captures)
+- [art-of-memory](https://github.com/mehrlander/art-of-memory), read to judge its relevance
+
+This probe calls the data and originals repositories together the **source stores**. The other ten repositories are code and personal projects, judged by their atlas descriptions.
+
+**Answer.** The widest disagreement sits where the repositories meet, at three words: "provenance" itself, "supplied" and "authored". Five words name a file a script rebuilds. The data and originals repositories hold most of the practice of source development, and several of their practices appear in no shared document. The parts of an "authorship bundle" already exist under other names. One budget-drs probe already shows the source-heavy shape the owner described. That probe has a bundle of its own, and its build fails on any quoted passage it cannot find on the bundle's pages. No shared document describes that shape yet.
 
 ## Should a probe be source heavy, with a bundle of its own?
 
@@ -36,19 +45,41 @@ budget-drs rules that "bundle" means material from outside the project ([`LAYERS
 
 An authored file is not a dated folder, and `authored-files.csv` has no date column like a bundle's `acquired`. The gated probe joins the two sides: its authored claims cite the source bundle that its registry row names.
 
+## What the source stores add
+
+Three data repositories follow web-tools's [`docs/source-bundles.md`](../../docs/source-bundles.md): budget-wa, spend-wa and legal-data. fn-data and wa-bills keep conventions of their own, as does chat-histories. The five originals repositories keep the bytes and leave the manifest to the repository that reads them: budget-wa for [budget-wa-abr](https://github.com/mehrlander/budget-wa-abr), [budget-wa-lbn](https://github.com/mehrlander/budget-wa-lbn), [budget-wa-osa](https://github.com/mehrlander/budget-wa-osa) and [page-captures](https://github.com/mehrlander/page-captures), and budget-drs for [budget-drs-acfr](https://github.com/mehrlander/budget-drs-acfr).
+
+Practices these repositories run that no shared document describes:
+
+| Practice | Where | What it secures |
+| --- | --- | --- |
+| two digests per page, the archive's digest of the bytes as served and a SHA-256 of the file as stored | [page-captures](https://github.com/mehrlander/page-captures/blob/main/README.md) | a tie to the Internet Archive and a tie to the repository, though the stored page is decompressed |
+| a source hash and a content hash for each capture | [spend-wa](https://github.com/mehrlander/spend-wa/blob/main/register/README.md) | the committed parquet is the only copy of a live source. The content hash re-proves it without the original bytes |
+| a list of what could not be fetched, with the reason | [legal-data](https://github.com/mehrlander/legal-data/blob/main/docs/ARCHITECTURE.md) | a gap in a collection is visible to whoever reads it |
+| a scheduled commit that records an unchanged check | [wa-bills](https://github.com/mehrlander/wa-bills/blob/main/README.md) | a quiet period reads as checked rather than neglected |
+| the index that listed each file's address, beside the address fetched | [budget-drs-acfr](https://github.com/mehrlander/budget-drs-acfr/blob/main/README.md) | where the address came from, as well as where the file came from |
+| an edition stored a page per file, pinned by a digest of its page digests | [budget-wa-lbn](https://github.com/mehrlander/budget-wa-lbn/blob/main/README.md) | the pages sum to the original byte for byte |
+| reports regenerated on each request, kept as first fetched | [budget-wa-abr](https://github.com/mehrlander/budget-wa-abr/blob/main/README.md) | the committed bytes are the only witness, since a refetch differs |
+| five kinds of change between two exports of the same chat | [chat-histories](https://github.com/mehrlander/chat-histories/blob/main/tools/diff_snapshots.py) | each change a provider made to an earlier chat is classified and counted |
+| an `evidence` value per extracted row, and a separate file per figure holding every method's reading | [budget-wa](https://github.com/mehrlander/budget-wa/blob/main/sources/legislative-budget-notes/extract/PROVENANCE.md) | which figures were checked, and how, for scanned pages read several ways |
+| a skeptic model that tries to refute each model reading, and a second reader that settles disagreements | [fn-data](https://github.com/mehrlander/fn-data/blob/main/distill/verify/README.md) | a correctness check on model output; corrections go in separate files, and the first readings are kept |
+
+budget-wa also drafted a general convention, [`docs/EVIDENCE-RECORDS.md`](https://github.com/mehrlander/budget-wa/blob/main/docs/EVIDENCE-RECORDS.md): an evidence record says something and attributes it, in the field the value would occupy. Its status is "proposed". It says it "belongs upstream in `mehrlander/web-tools`" once a second use holds it up.
+
 ## Where the vocabularies meet
 
 1. **"Provenance" names at least five things.**
    - In web-tools [`docs/registries.md`](../../docs/registries.md) it means what a file's loss would cost: authored, derived (rebuilt if lost) or captured (gone if lost).
-   - In [source-anchored-writing](../../skills/source-anchored-writing/SKILL.md) it is a claim's state, Quoted to Unsupported.
+   - In [source-anchored-writing](../../skills/source-anchored-writing/SKILL.md) it is a claim's state: Quoted, Supported, Inferred, Unfiled or Unsupported.
    - In budget-drs [`SOURCES.md`](https://github.com/mehrlander/budget-drs/blob/main/data/design/SOURCES.md) it is how a file came to exist in the repository: public, supplied, generated, authored or planned. The `provenance` column of [`leaves.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/lineage/leaves.csv) holds that class.
    - In [source-anchored-xlsx](../../skills/source-anchored-xlsx/SKILL.md) it is a workbook sheet with one line per source: what it is, its date and its status.
    - In home's draft doctrine [`source-anchoring.md`](https://github.com/mehrlander/home/blob/main/created/2026-07-19-source-anchoring.md) it is each source's origin, method and class, the leaves of a graph whose edges are its lineage.
-2. **"Supplied" covers different material.** The [content-registry](../../skills/content-registry/SKILL.md) skill's `supplied` is "external source material". web-tools's [`content.csv`](../../data/design/content.csv) applies it to bill records a cron job fetches from the Legislature. home's [`content.csv`](https://github.com/mehrlander/home/blob/main/data/design/content.csv) applies it to budget-drs's pulled ACFR extracts. budget-drs's `supplied` is "Assembled by hand off-project and provided as a file". There, a pulled public file is `public`.
+2. **"Supplied" covers different material.** The [content-registry](../../skills/content-registry/SKILL.md) skill's `supplied` is "external source material". web-tools's [`content.csv`](../../data/design/content.csv) applies it to bill records a cron job fetches from the Legislature. home's [`content.csv`](https://github.com/mehrlander/home/blob/main/data/design/content.csv) applies it to budget-drs's pulled ACFR extracts, and the `content.csv` files of budget-wa, spend-wa and wa-bills apply it to their published registers and corpora. budget-drs's `supplied` is "Assembled by hand off-project and provided as a file". There, a pulled public file is `public`.
 3. **Whether "authored" includes model output.**
    - web-tools's `recorded` mode, in [`docs/registries.md`](../../docs/registries.md), counts as authored whoever wrote the value.
    - content-registry splits authorship into human, model and hybrid.
    - budget-drs's `authored` class "records a human choice", although sessions write many of its authored files.
+   - budget-wa's [`EVIDENCE-RECORDS.md`](https://github.com/mehrlander/budget-wa/blob/main/docs/EVIDENCE-RECORDS.md) calls an authored claim "an analysis produced by a person or an agent".
 4. **Five words for a file a script rebuilds:**
    - `derived` (registries)
    - `computed` (the `mode` column of [`docs/properties.csv`](../../docs/properties.csv))
@@ -56,9 +87,16 @@ An authored file is not a dated folder, and `authored-files.csv` has no date col
    - `generated` (budget-drs, renamed from `derived` on 2026-07-16)
    - `regenerated` (home's edit policy, [`.gitattributes`](https://github.com/mehrlander/home/blob/main/.gitattributes))
 5. **One folder, two classes.** web-tools-private's [`content.csv`](https://github.com/mehrlander/web-tools-private/blob/main/data/design/content.csv) marks `sessions/` as `mechanical`. Its [README](https://github.com/mehrlander/web-tools-private/blob/main/README.md) marks the same folder captured, "gone if lost".
+6. **Words the source stores use several ways.**
+   - "Estate" is one publisher's self-contained folder in [budget-wa](https://github.com/mehrlander/budget-wa/blob/main/README.md) and [legal-data](https://github.com/mehrlander/legal-data/blob/main/sources/README.md), and the set of all repositories in web-tools's [`manifest-fields.csv`](../../docs/manifest-fields.csv).
+   - "Snapshot" is a store rewritten daily in [wa-bills](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/README.md), an immutable dated export in [chat-histories](https://github.com/mehrlander/chat-histories/blob/main/CLAUDE.md), and an unrepeatable copy of a live source in [spend-wa](https://github.com/mehrlander/spend-wa/blob/main/register/SOURCE.md).
+   - "Witness" is an independent second parser in budget-wa and the `shows` column role in budget-drs.
+   - "Basis" is how a fact is known in budget-wa's evidence records, and in budget-drs both the plan or enacted flag and the stated or derived amount.
 
 Smaller fixes, each local to one file:
 
+- chat-histories's [README](https://github.com/mehrlander/chat-histories/blob/main/README.md) says "four canonical snapshots" above a table of five.
+- budget-wa's [`archived-postings/README.md`](https://github.com/mehrlander/budget-wa/blob/main/research/budget-offices/imports/archived-postings/README.md) places its page-captures folder under `home/projects/budget-offices/`. The folder is under [`budget-wa/research/budget-offices/`](https://github.com/mehrlander/page-captures/tree/main/budget-wa/research/budget-offices) in page-captures.
 - home's [`favoring-the-mechanical`](https://github.com/mehrlander/home/blob/main/created/2026-07-03-favoring-the-mechanical.md) cites a `PROVENANCE.md` that budget-drs no longer has, and still lists budget-drs's class as `derived`.
 - The draft doctrine cites `projects/budget-drs/MANIFESTO.md`, now budget-drs [`docs/MANIFESTO.md`](https://github.com/mehrlander/budget-drs/blob/main/docs/MANIFESTO.md).
 - budget-drs gives the provenance class three values in [`LAYERS.md`](https://github.com/mehrlander/budget-drs/blob/main/data/design/LAYERS.md?plain=1#L21) (line 21), four in [`app/lineage/README.md`](https://github.com/mehrlander/budget-drs/blob/main/app/lineage/README.md?plain=1#L94) (line 94) and five in [`catalog/vocabularies.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/catalog/vocabularies.csv).
@@ -80,11 +118,25 @@ This probe sorted the terms in [`terms.csv`](terms.csv) by the question each ans
 | durability | What would losing the file cost, and how may it change? | the registries' authored, derived and captured; edit policy |
 | record | Where is the provenance written down, and how completely? | the data catalog; bundle frontmatter |
 
-Tools check the questions unevenly. Of the producer terms, 13 of 14 have a check, mostly budget-drs's [`evidence.py`](https://github.com/mehrlander/budget-drs/blob/main/data/authored/tools/evidence.py) and web-tools's [properties tests](../../node/test/properties-registry.test.mjs). Of the correctness terms, one of 10 does: budget-drs's [`verify-acfr-quotes.py`](https://github.com/mehrlander/budget-drs/blob/main/app/view/tools/verify-acfr-quotes.py). A gold set exists as the [gold-set](../../skills/gold-set/SKILL.md) skill and in one web-tools instance, [`data/doc-overlap/gold-set/`](../../data/doc-overlap/gold-set/).
+The table holds 208 terms from 16 repositories. Tools check the questions unevenly:
+
+| Facet | Terms | Terms with a check |
+| --- | --- | --- |
+| producer | 20 | 15 |
+| record | 33 | 18 |
+| binding | 31 | 13 |
+| correctness | 31 | 12 |
+| durability | 30 | 11 |
+| acquisition | 38 | 13 |
+| derivation | 25 | 9 |
+
+The producer checks are mostly budget-drs's [`evidence.py`](https://github.com/mehrlander/budget-drs/blob/main/data/authored/tools/evidence.py) and web-tools's [properties tests](../../node/test/properties-registry.test.mjs).
+
+The correctness checks sit mostly in the source stores: control totals, checksums beside manifests, and fn-data's skeptic pass. Of the 10 correctness terms in web-tools, home, web-tools-private and budget-drs, one has a check, budget-drs's [`verify-acfr-quotes.py`](https://github.com/mehrlander/budget-drs/blob/main/app/view/tools/verify-acfr-quotes.py). A gold set exists as the [gold-set](../../skills/gold-set/SKILL.md) skill and in one web-tools instance, [`data/doc-overlap/gold-set/`](../../data/doc-overlap/gold-set/).
 
 ## How the write-ups hold their sources
 
-[`sourcing/measures.csv`](sourcing/measures.csv) measures 79 probe and research write-ups across the four repositories, and [`sourcing/patterns.csv`](sourcing/patterns.csv) gives each its patterns as read. A write-up can have several:
+[`sourcing/measures.csv`](sourcing/measures.csv) measures 79 probe and research write-ups in web-tools, home, web-tools-private and budget-drs, and [`sourcing/patterns.csv`](sourcing/patterns.csv) gives each its patterns as read. A write-up can have several:
 
 | Pattern | What it means | Write-ups |
 | --- | --- | --- |
@@ -98,6 +150,7 @@ Tools check the questions unevenly. Of the producer terms, 13 of 14 have a check
 
 - **No rule says where a probe's source material goes.** [`docs/probes.md`](../../docs/probes.md) asks for a question, what was tried and what was found. [`docs/source-bundles.md`](../../docs/source-bundles.md) defines a bundle without mentioning probes. budget-drs's [`probes.csv`](https://github.com/mehrlander/budget-drs/blob/main/data/design/probes/probes.csv) has a `bundle` column. [`build-probes.py`](https://github.com/mehrlander/budget-drs/blob/main/app/probes/tools/build-probes.py) requires it only where an `anchors.csv` exists.
 - **Length barely tracks sourcing.** The rank correlation between word count and links into source stores is 0.12 over all 79 and 0.26 over budget-drs's 14 probes. The three longest write-ups, of 9,000 to 12,400 words, cite no outside source.
+- **The survey covers web-tools, home, web-tools-private and budget-drs.** [budget-wa](https://github.com/mehrlander/budget-wa/blob/main/.web-tools.json) declares 7 research accounts and [art-of-memory](https://github.com/mehrlander/art-of-memory/blob/main/.web-tools.json) declares 3. [spend-wa](https://github.com/mehrlander/spend-wa/tree/main/probes) and [wa-bills](https://github.com/mehrlander/wa-bills/tree/main/probes) keep `probes/` folders. Those write-ups are not measured.
 - **Where a write-up states a claim without a source, it says so.** Besides the trust-fund probe, home's [entity-kinds study](https://github.com/mehrlander/home/blob/main/chron/2026/10/2026-10-16-entity-kinds-against-the-classification-schemes.md) states claims "from memory of their documentation". web-tools's [quality-control-lineage](../quality-control-lineage/README.md) was read "secondhand".
 
 ## Proposals for the Discovery program
@@ -106,19 +159,22 @@ Tools check the questions unevenly. Of the producer terms, 13 of 14 have a check
    - the [source-anchoring](../../skills/source-anchoring/SKILL.md), [source-anchored-writing](../../skills/source-anchored-writing/SKILL.md) and [source-anchored-xlsx](../../skills/source-anchored-xlsx/SKILL.md) skills, with [content-registry](../../skills/content-registry/SKILL.md) and [gold-set](../../skills/gold-set/SKILL.md)
    - [`docs/source-bundles.md`](../../docs/source-bundles.md) and [`docs/probes.md`](../../docs/probes.md), with their checks [`python/source-bundles.py`](../../python/source-bundles.py) and [`python/probes.py`](../../python/probes.py)
 
-   [`docs/registries.md`](../../docs/registries.md) would stay with [Organization](../../programs/organization/README.md) and be named in Discovery's charter.
-2. **Promote home's draft doctrine** to web-tools, as its status line already intends, with the seven questions as its outline. The recommendation rests on their sorting all 93 terms in [`terms.csv`](terms.csv), each into one question.
+   [`docs/registries.md`](../../docs/registries.md) would stay with [Organization](../../programs/organization/README.md) and be named in Discovery's charter. A program governs files only in its own repository. The charter would name the source stores' practices and budget-wa's evidence-record draft without governing them.
+2. **Promote home's draft doctrine** to web-tools, as its status line already intends, with the seven questions as its outline. The recommendation rests on their sorting all 208 terms in [`terms.csv`](terms.csv), each into one question.
 3. **Three vocabulary rulings, each with a recommended answer:**
-   - **`supplied`** keeps budget-drs's meaning, material handed in by hand. content-registry's value becomes `external`, since it means any material from outside the repository.
-   - **`authored`** means a judgment a person or a model made, which no script can rebuild. Who made it is recorded beside it, as content-registry's human, model and hybrid already do. budget-drs's definition widens to match.
+   - **`supplied`** keeps budget-drs's meaning, material handed in by hand. content-registry's value becomes `external`, because it means any material from outside the repository. The `content.csv` rows of [home](https://github.com/mehrlander/home/blob/main/data/design/content.csv), [web-tools](../../data/design/content.csv), [budget-wa](https://github.com/mehrlander/budget-wa/blob/main/data/design/content.csv), [spend-wa](https://github.com/mehrlander/spend-wa/blob/main/data/design/content.csv) and [wa-bills](https://github.com/mehrlander/wa-bills/blob/main/data/design/content.csv) change to match.
+   - **`authored`** means a judgment a person or a model made. No script can rebuild it. budget-wa's evidence records already define it this way. Who made it is recorded beside it, as content-registry's human, model and hybrid already do. budget-drs's definition widens to match.
    - **`generated`** is the one word for a file a script rebuilds, following budget-drs's 2026-07-16 ruling. "Derived from" stays reserved for the lineage relation.
-4. **The gated probe's shape in `docs/probes.md`:** a probe that rests on outside documents takes them in as its own dated bundle, named in its registry row, with claims and anchors tables under a check.
-5. **The manager's brief.** [`manager.md`](../../programs/discovery/manager.md) sends the manager to "`sources.csv`, `manifest.csv` and Wayback tables built under scour and wayback", naming the [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md) skills. The recommended replacement is "a scour corpus's `roster.json` and its sources' `content/*.md` pages, the capture lists and saved pages a wayback run keeps, and the source bundles each checkout declares under `bundles` in [`.web-tools.json`](../../.web-tools.json)". The replacement is a one-line edit, made once the owner approves it.
+4. **The source stores' practices in `docs/source-bundles.md`.** The table under "What the source stores add" lists ten. Three of them would apply to any bundle: page-captures's digests of the served and the stored bytes, legal-data's list of what could not be fetched, and budget-drs-acfr's record of the index that listed each address.
+5. **The gated probe's shape in `docs/probes.md`:** a probe that rests on outside documents takes them in as its own dated bundle, named in its registry row, with claims and anchors tables under a check.
+6. **The manager's brief.** [`manager.md`](../../programs/discovery/manager.md) sends the manager to "`sources.csv`, `manifest.csv` and Wayback tables built under scour and wayback", naming the [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md) skills. The recommended replacement is "a scour corpus's `roster.json` and its sources' `content/*.md` pages, the capture lists and saved pages a wayback run keeps, and the source bundles each checkout declares under `bundles` in [`.web-tools.json`](../../.web-tools.json)". The replacement is a one-line edit, made once the owner approves it.
 
 ## What this leaves open
 
-- The facet of each term, the selection of terms and each write-up's patterns are judgments, made by this probe and the three subagents it sent out. [`check.py`](check.py) checks that each quote in `terms.csv` still appears within 12 lines of its cited line. The classifications have no check.
-- The repositories were read at budget-drs [`ddfabe1`](https://github.com/mehrlander/budget-drs/commit/ddfabe1) (its branch at [`2f7be04`](https://github.com/mehrlander/budget-drs/commit/2f7be04)), web-tools [`5f0e12e`](https://github.com/mehrlander/web-tools/commit/5f0e12e), home [`50639db`](https://github.com/mehrlander/home/commit/50639db) and web-tools-private [`1b330a6`](https://github.com/mehrlander/web-tools-private/commit/1b330a6). The checkouts are shallow. Dates before mid-November come from the files and the session records.
+- The facet of each term, the selection of terms and each write-up's patterns are judgments, made by this probe and the five subagents it sent out. [`check.py`](check.py) checks that each quote in `terms.csv` still appears within 12 lines of its cited line. The classifications have no check.
+- The repositories were read at budget-drs [`ddfabe1`](https://github.com/mehrlander/budget-drs/commit/ddfabe1) (its branch at [`2f7be04`](https://github.com/mehrlander/budget-drs/commit/2f7be04)), web-tools [`5f0e12e`](https://github.com/mehrlander/web-tools/commit/5f0e12e), home [`50639db`](https://github.com/mehrlander/home/commit/50639db) and web-tools-private [`1b330a6`](https://github.com/mehrlander/web-tools-private/commit/1b330a6).
+- The twelve added repositories were read at their `origin/main` of 2026-11-20, from sparse checkouts of their text files; PDFs, page captures and large data files were not opened.
+- The checkouts are shallow. Dates before mid-November come from the files and the session records.
 
 ## Run it
 
