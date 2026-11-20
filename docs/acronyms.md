@@ -1,6 +1,6 @@
 # Acronyms
 
-This file collects, mostly for fun, the acronyms the owner has coined for asks made of a session and for an order of explaining a term. It is for the owner and for a session that meets one of the names.
+This file collects, mostly for fun, the acronyms the owner has coined for asks made of a session and for an order of explaining a term. It is for the owner and for a session that meets one of the names. When a prompt names one in capitals, the portable plugin's [`acronym-hint.py`](../skills/hooks/acronym-hint.py) hook adds its entry to the session's context, so a new entry needs only a `## NAME` heading.
 
 ## SPUR
 
