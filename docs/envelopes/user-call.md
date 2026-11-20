@@ -1,12 +1,12 @@
 # User calls: the envelope contract
 
-A **user call** is one question a session puts to the owner, answered on its page in the Web Tools app. This document is the format, `user-call/1`, for a session that files or reads a call and for the pages that draw one. The [`user-calls`](../../skills/user-calls/SKILL.md) skill says how to file, read and close a call with [`user-call.py`](../../skills/user-calls/user-call.py), which writes the files and refuses a call that breaks a limit given here.
+A **user call** is one question a session puts to the owner, answered on its page in the Web Tools app. Its format, `user-call/1`, is one of the [content envelopes](README.md), the JSON documents that web-tools pages render. The [`user-calls`](../../skills/user-calls/SKILL.md) skill says how to file, read and close a call with [`user-call.py`](../../skills/user-calls/user-call.py).
 
 ## The file
 
 One JSON file per call, `<session>-<slug>.json`, in the store, [web-tools-private](https://github.com/mehrlander/web-tools-private/tree/main/user-calls)'s `user-calls/` folder, where `<session>` is the session id's first eight characters. The session page lists a session's calls by that prefix, reading main only, and shows each with its materials and the controls that send the answer. Each answer is a line appended beside the call ([Answers](#answers)).
 
-`add` stamps each call with `schema` (`user-call/1`), `id` (`<session>-<slug>`), `status` (`open`), `created` and `updated`. `close` sets `status` to `closed` and adds `closed`, {at, answer, note}. [`pages/user-call.html`](../../pages/user-call.html) shows one call, addressed as `#src=owner/repo[@ref]:user-calls/<session>-<slug>.json`.
+`user-call.py add` stamps each call with `schema` (`user-call/1`), `id` (`<session>-<slug>`), `status` (`open`), `created` and `updated`. `user-call.py close` sets `status` to `closed` and adds `closed`, {at, answer, note}. [`pages/user-call.html`](../../pages/user-call.html) shows one call, addressed as `#src=owner/repo[@ref]:user-calls/<session>-<slug>.json`.
 
 ## `decision`
 
@@ -140,27 +140,27 @@ An edit's `background` says how it came up and `proposal` what it changes and do
 
 ## Review
 
-A documentation call's `review` holds the [peeves critic](../../skills/agents/peeves-critic.md)'s runs on its document, in order, so the owner sees what the critic found and how the wording moved in answer. A run is one reading by the critic. Its findings are trips. The call page shows the runs in a Critic view, by edit and by run.
+A documentation call's `review` holds the [peeves critic](../../skills/agents/peeves-critic.md)'s runs on its document, in order. A run is one reading by the critic. The call page shows the runs in a Critic view, by edit and by run.
 
 `review` is {runs}, from 1 to 30 runs. A run holds:
 
 | Field | Holds |
 | --- | --- |
-| `verdict` | `pass` (no trip inside an edit), `fail`, or `unknown` (a report in neither of the critic's forms, with no trips) |
-| `edits` | The spans the critic was given, up to 40, each {lines, edit}: its first and last line in the text the run read, and the call's edit it is (null for one the call no longer carries) |
-| `trips` | What the critic found, each a trip as below |
+| `verdict` | `pass` (no trip inside an edit), `fail`, or `unknown` (the report has no Trips section that `user-call.py` can read, and the run holds no trips) |
+| `edits` | The spans the critic was given, numbered E1, E2 and so on, up to 40. Each is {lines, edit}. `lines` holds its first and last line in the text the run read. `edit` holds the number of the call's edit it covers, or null when the call no longer has that edit |
+| `trips` | The critic's findings, each a trip: one place where the document matches a peeve on the list, as below |
 | `clear` | The peeve ids the critic checked that the document does not trip |
-| `candidates` | Up to 10 patterns the critic proposed adding to the list |
+| `candidates` | Up to 10 patterns the critic proposed adding to the peeves list |
 | `preexisting` | {peeve, text}: trips the critic found in text the edits leave alone |
-| `changes` | {from, to, answers}: the text the session changed after the run, before the next one, numbered c1, c2 and so on, and the trips of the run each change answers |
-| `reflow` | The count of blocks that changed only in their line wrapping, which are not changes |
+| `changes` | {from, to, answers}: each change the session made to the document after the run and before the next one. The changes are numbered c1, c2 and so on. `answers` holds the numbers of the run's trips that the change addresses |
+| `reflow` | The count of paragraphs whose only change was in their line breaks. `changes` leaves these out |
 | `note` | One line on what the session did about the run, 200 characters at most |
 | `report` | The critic's text as it came back, which every trip's id, tag and quote are checked against |
 | `at` | When the run was recorded |
 
-A trip is {peeve, edit, where, quote, clause, answer, why, misquoted}. `edit` is the run's span the critic tagged it with: 1 for E1, and 0 for E-, a trip outside every edit, which needs no answer. `answer` is `changed`, or `kept` with `why` in one line. `misquoted` is true when the quote is not in the text the run read.
+A trip is {peeve, edit, where, quote, clause, answer, why, misquoted}. The first five come from the critic's line, `P<id> · E<n> · <where> · "<quote>" · <clause>`. `edit` is the number of the span the critic tagged the trip with, such as 1 for E1. It is 0 for E-, the critic's tag for a trip outside every span. A trip tagged E- needs no answer. `answer` is `changed`, or `kept` with `why` in one line. `misquoted` is true when the quote is not in the text the run read.
 
-When the document changes between two runs, the earlier run's unanswered trips inside an edit are answered `changed`. While a call is a draft, each run also keeps `text`, the document as the critic read it, and filing drops it. A call is filed only when its last run read every edit as filed and every trip inside an edit has an answer.
+When the document changes between two runs, the earlier run's unanswered trips inside an edit are answered `changed`. Before `add` files a call, each run also keeps `text`, the document as the critic read it. `add` drops `text` when it files the call. `add` refuses a call whose last run did not read every edit's new text, or that leaves a trip inside an edit unanswered.
 
 ## `task` links
 

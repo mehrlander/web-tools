@@ -16,7 +16,7 @@ Complex decisions can benefit from rich supporting context. A user call puts a q
 
 ## Goal and output
 
-One JSON file per call in the store, in the `user-call/1` format that [`docs/envelopes/user-call.md`](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/user-call.md) defines: the kinds `decision`, `pick` and `documentation`, their fields and limits, the answers beside each call, and a documentation call's critic review. Read it before writing a call.
+One JSON file per call in the store, [web-tools-private](https://github.com/mehrlander/web-tools-private/tree/main/user-calls)'s `user-calls/` folder. The `user-call/1` format is in its contract, [`docs/envelopes/user-call.md`](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/user-call.md). Read the contract before writing a call.
 
 Say "user call": "call" alone here also means a GitHub API call a crawl logs and a tool call a session record counts.
 
@@ -31,14 +31,16 @@ python3 user-call.py close <id> <answer> [note]
 python3 user-call.py list [session]              # open calls, newest first
 python3 user-call.py edits --base REF FILE       # a documentation call's edits, FILE against its text at REF
 python3 user-call.py edits --old A --new B       # the same, from two copies
-python3 user-call.py review <call.json> <document> [--spans | <report>]   # a critic run on a documentation call
+python3 user-call.py review <call.json> <document> [--spans | <report>]
 ```
 
 `edits --old A --new B` writes the edits array from the document and an edited copy of it, pairing blank-line blocks the way home's projects/text/tools/ propose.py does: an insertion or a removal takes its unchanged neighbour as context, so every `from` is text the file holds. `link` prints the call page's address, reading the call from the store at main unless `--at <owner/repo>@<ref>` names another place.
 
 `answers` prints each line's summary, and under a documentation line each decision with the edit it is on, named by its `why` or, without one, the start of its `from`, then the owner's note on it, then the other notes: everything a session acting on the answer needs, with no need to read the raw line.
 
-`review` records the [peeves critic](../agents/peeves-critic.md)'s runs on the document in the call's `review`, for [doc-craft](../doc-craft/SKILL.md)'s Review step; the contract's [Review](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/user-call.md#review) section states what a run holds. Before each run, `review <call.json> <document> --spans` prints the call's edits as numbered line ranges (E1, E2, ...) for the critic's prompt. It first recomputes the edits from the document and the call's `base`. The recomputed edits keep the why, background, proposal and notes the session wrote on them. After the run, `review <call.json> <document> <report>` records it. Link each change to the trips it addresses with `--answers <change> <trips>`. Set a trip aside with `--kept <trip> "<why>"`.
+`review` records each run of the [peeves critic](../agents/peeves-critic.md) over the document, for [doc-craft](../doc-craft/SKILL.md)'s Review step. The contract's [Review](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/user-call.md#review) section describes the record. Before each run, `review <call.json> <document> --spans` prints the call's edits as numbered line ranges (E1, E2, ...) for the critic's prompt. `--spans` first recomputes the edits from the document and the call's `base`. The recomputed edits keep the why, background, proposal and notes the session wrote on them.
+
+After the run, `review <call.json> <document> <report>` records it. The record calls each of the critic's findings a trip. The record also numbers the changes made to the document since the previous run c1, c2 and so on. Link each change to the trips it addresses with `--answers <change> <trips>`. Set a trip aside with `--kept <trip> "<why>"`.
 
 `user-call.py` looks for the store in the project root, the folders inside it and the folders beside it, and takes the first checkout whose `.web-tools.json` on main declares `"user-calls"`, a folder in that checkout; `--store <folder>` names the folder instead. A command fetches the store's main before reading it. `add` and `close` commit the call straight to the store's main and push it, leaving the checkout's working tree and branch as they are.
 

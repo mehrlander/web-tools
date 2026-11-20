@@ -2,11 +2,11 @@
 
 An **envelope** is a JSON document that carries a curated, annotated set of items for a reader to open, rendered by a web-tools page rather than by a bespoke viewer. Files, chats, and diffs stay where they live; the envelope layers selection, arrangement, and commentary over them, travels as one unit, and renders through a shared page. This folder is the family's home: the format contracts, the JSON Schemas that describe them, and this note on how the members relate.
 
-Whether a test validates documents against a schema under `schemas/` is the `validated` column of [`docs/formats.csv`](../formats.csv); the `.md` files carry concepts, conventions, and worked examples.
+Whether a test validates documents against a schema under `schemas/` is the `validated` column of [`docs/formats.csv`](../formats.csv); the `.md` files hold concepts, conventions, and worked examples.
 
 ## The members
 
-The members are the rows of [`docs/formats.csv`](../formats.csv) whose `envelope` is `yes`, and [Membership](#membership) says what admits a format. The notes below run from the most general member to the most specific.
+The members are the rows of [`docs/formats.csv`](../formats.csv) whose `envelope` is `yes`. [Membership](#membership) says what admits a format.
 
 **Surface** is the general substrate: the schema is deliberately light at the core (`role`, `view`, `context` optional and open) and tightens through named, versioned **profiles**, of which `branch-review/1` is the first (its schema is under [`schemas/profiles/`](schemas/profiles/)).
 
@@ -35,7 +35,7 @@ A format is a member when three things hold: a producer (a skill or a script) wr
 
 The family is indexed by format, not by page, because a page can be replaced while its format stays and one page can render two formats.
 
-Not members: utility pages ([`docs/tools.csv`](../tools.csv)), subject pages ([`docs/subjects.csv`](../subjects.csv)), app views ([`docs/app-routes.csv`](../app-routes.csv)), and renderers bundled with their producer, such as the show-diff skill's template.
+Not members: utility pages ([`docs/tools.csv`](../tools.csv)), subject pages ([`docs/subjects.csv`](../subjects.csv)), app views ([`docs/app-routes.csv`](../app-routes.csv)), and renderers bundled with their producer, such as the [`show-diff`](../../skills/show-diff/SKILL.md) skill's template.
 
 ## The decision: chat-results stays a sibling
 

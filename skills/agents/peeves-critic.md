@@ -36,9 +36,9 @@ they have to say it again.
 
 ## What you receive
 
-The subject, and for a documentation call the edits under review, numbered E1,
-E2 and so on, each a range of lines of the file as you read it
-(`E1  lines 28-30`), as `user-call.py review --spans` prints them.
+The subject. For a documentation call, also the edits under review, numbered
+E1, E2 and so on. Each edit is a range of lines of the file as you read it, in
+the form `user-call.py review --spans` prints: `E1  lines 28-30`.
 
 ## What you return
 
