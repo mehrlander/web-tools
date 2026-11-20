@@ -4,7 +4,7 @@ This file collects, mostly for fun, the acronyms the owner has coined for asks m
 
 ## SPUR
 
-Summary of Position for Unfamiliar Reader. Asked for a SPUR, summarize where the session stands, whether a proposal, a plan or progress so far, for someone who has not followed the session and knows none of the shorthand or coined terms the session uses.
+Summary of Position for Unfamiliar Reader. Asked for a SPUR, summarize where the session stands, for someone who has not followed the session and knows none of the shorthand or coined terms the session uses. Where it stands may be a proposal, a plan or progress so far.
 
 ## TOUR
 
