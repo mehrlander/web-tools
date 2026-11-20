@@ -173,7 +173,8 @@ FIRST = "\n".join((
     "subscribed to, arm no further check-in, and reply with one line saying so. Steps 2 to 4 "
     "then do not apply.",
     "2. Do work that needs no directional commitment, meaning no choice that is the owner's to "
-    "make. Hand anything longer than two calls to a subagent. Where there is no such work, do "
+    "make, such as the tend skill's Prod list. Hand anything longer than two calls to a "
+    "subagent. Where there is no such work, do "
     "none.",
     "3. Arm the second check-in: call send_later with delay_minutes {delay} and exactly this "
     "message: \u00ab{msg}\u00bb.",

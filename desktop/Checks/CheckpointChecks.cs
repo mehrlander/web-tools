@@ -73,6 +73,14 @@ static class CheckpointChecks
             "Publishing summaries replaces the preceding batch report.");
         check(WorkerLog.Parse(stamp + " [+] Errand daemon-123 claimed by private-host.") is { Kind: "errand", ItemId: "daemon-123" },
             "A worker claim links to its known errand identifier.");
+        check(new[] { 1,4,999 }.All(attempts => WorkerLog.Parse(stamp + " [-] Could not update sessions cache on main after " + attempts + " attempts.")
+                is { Kind: "error", Headline: "Session cache could not be published" }),
+            "The exact bounded session-cache publication failure has a safe headline without raw Git diagnostics or a claim that the worker stopped.");
+        check(new[] { "0", "1000", "-1" }.All(attempts => WorkerLog.Parse(stamp + " [-] Could not update sessions cache on main after " + attempts + " attempts.")
+                ?.Headline == "Worker reported a problem")
+            && WorkerLog.Parse(stamp + " [-] Could not update sessions cache on main after 4 attempts. Private diagnostic")?.Headline == "Worker reported a problem"
+            && WorkerLog.Parse(stamp + " [-] Could not update sessions cache on another-branch after 4 attempts.")?.Headline == "Worker reported a problem",
+            "Messages outside the exact cache-failure allowlist remain generic, including trailing diagnostics and out-of-bound counts.");
         var error = WorkerLog.Parse(stamp + " [-] Private path and error details");
         check(error?.Headline == "Worker reported a problem" && WorkerLog.Parse("not a timestamp [+] Work") is null,
             "Worker errors are summarized safely and malformed log lines are ignored.");
