@@ -23,7 +23,7 @@
       <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight text-zinc-900">
         Show the code. <span class="text-zinc-500">Then prove it.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed text-zinc-600 text-pretty">
+      <p class="mt-3 text-[0.95rem] leading-relaxed text-zinc-600">
         A page is a stack of sections; each section gathers a few examples. Every example pairs prose with a snippet you can edit and a proof that follows in the same card: the markup rendering, the same markup in its habitat, or the console answering back.
       </p>
       <div id="legend" class="mt-4 flex flex-wrap gap-2"></div>
@@ -33,7 +33,7 @@
 
     <footer class="mt-4 pt-6 border-t border-zinc-200">
       <p class="font-mono text-[10px] tracking-widest uppercase text-zinc-400 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed text-zinc-500 text-pretty space-y-2">
+      <div class="text-[0.9rem] leading-relaxed text-zinc-500 space-y-2">
         <p>Two builders, nested: a <code class="font-mono text-[0.85em] text-zinc-700 bg-zinc-100 border border-zinc-200 rounded-sm px-1 py-0.5">section({ title, intro, examples })</code> holds many an <code class="font-mono text-[0.85em] text-zinc-700 bg-zinc-100 border border-zinc-200 rounded-sm px-1 py-0.5">example({ kicker, title, prose, lang, code, kind })</code>. Only the section carries a large heading; examples stay compact, indexed by section.</p>
         <p>The proof is an isolated iframe, so a snippet cannot reach the page around it. Display preferences, pinned top-right, apply to every editor at once.</p>
       </div>
@@ -203,7 +203,7 @@
 
     const kicker = el('p', { class: "font-mono text-[9px] tracking-widest mb-1 text-zinc-400" }, `${si + 1}.${ei + 1}`);
     const title = el('h3', { class: "text-[1.05rem] leading-tight font-semibold text-zinc-800" }, cfg.title);
-    const prose = el('div', { class: 'mt-1 text-[0.9rem] leading-relaxed text-zinc-600 text-pretty', html: cfg.prose });
+    const prose = el('div', { class: 'mt-1 text-[0.9rem] leading-relaxed text-zinc-600', html: cfg.prose });
 
     const card = el('div', { class: 'mt-2.5 lg:mt-0 min-w-0 rounded-sm overflow-hidden bg-white border border-zinc-200 shadow-sm' });
 
@@ -323,7 +323,7 @@
     head.append(
       el('p', { class: "font-mono text-[10px] tracking-widest text-zinc-400 mb-1" }, String(si + 1).padStart(2, '0')),
       el('h2', { class: "text-[1.4rem] leading-tight font-bold tracking-tight text-zinc-900" }, cfg.title));
-    if (cfg.intro) head.append(el('p', { class: 'mt-1.5 text-[0.95rem] leading-relaxed text-zinc-600 text-pretty' }, cfg.intro));
+    if (cfg.intro) head.append(el('p', { class: 'mt-1.5 text-[0.95rem] leading-relaxed text-zinc-600' }, cfg.intro));
     wrap.append(head);
     cfg.examples.forEach((ex, ei) => wrap.append(example(ex, si, ei)));
     return wrap;

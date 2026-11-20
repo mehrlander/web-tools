@@ -123,13 +123,13 @@
 
   const glance = slide => {
     slide.innerHTML = `<article class="space-y-5">
-      <h2 class="text-3xl font-semibold text-balance">Eight survey areas, seven named judgments</h2>
+      <h2 class="text-3xl font-semibold">Eight survey areas, seven named judgments</h2>
       <ol class="divide-y divide-base-300 border-y border-base-300">${C.map((c, i) => `
         <li class="flex cursor-pointer gap-3 py-3 hover:bg-base-200" data-go="${i + 1}">
           <span class="w-5 shrink-0 pt-1 font-mono text-sm text-base-content/50">${i + 1}</span>
           <div class="min-w-0 space-y-1">
             <p class="flex flex-wrap items-center gap-2 text-xl font-medium">${esc(c.title)} ${badge(c.verdict)}</p>
-            <p class="text-lg text-base-content/70 text-pretty">${md(c.short)}</p></div></li>`).join('')}
+            <p class="text-lg text-base-content/70">${md(c.short)}</p></div></li>`).join('')}
       </ol></article>`;
     slide.querySelectorAll('[data-go]').forEach(r =>
       r.addEventListener('click', () => deck.deck.go(+r.dataset.go)));
@@ -138,18 +138,18 @@
   const card = (c, slide) => {
     slide.innerHTML = `<article class="space-y-6">
       <div class="flex flex-wrap items-baseline gap-3">
-        <h2 class="text-3xl font-semibold text-balance">${esc(c.title)}</h2>${badge(c.verdict)}
+        <h2 class="text-3xl font-semibold">${esc(c.title)}</h2>${badge(c.verdict)}
       </div>
       <p class="text-sm text-base-content/50">${md(c.area)}</p>
-      <p class="text-xl leading-8 text-pretty">${md(c.reason)}</p>
+      <p class="text-xl leading-8">${md(c.reason)}</p>
       ${c.names ? `<section class="space-y-2">${label(c.namesLabel || 'Names')}
         <ul class="space-y-1 text-xl leading-8">${c.names.map(n => `<li>${n.pick ? '<i class="ph ph-check text-primary"></i> ' : '<span class="inline-block w-5"></span>'}${md(n.text)}</li>`).join('')}</ul></section>` : ''}
       ${c.draft ? `<section class="space-y-2">${label('Draft entry')}
         <div class="space-y-3 border-l-4 border-primary/40 pl-4 text-xl leading-8">${c.draft.map((p, k) => !k ? `<h3 class="font-semibold">${md(p.replace(/^### /, ''))}</h3>`
-          : p.startsWith('- ') ? `<p class="text-pretty pl-5 -indent-5">•&nbsp; ${md(p.slice(2))}</p>`
-          : `<p class="text-pretty">${md(p)}</p>`).join('')}</div></section>` : ''}
+          : p.startsWith('- ') ? `<p class="pl-5 -indent-5">•&nbsp; ${md(p.slice(2))}</p>`
+          : `<p>${md(p)}</p>`).join('')}</div></section>` : ''}
       <section class="space-y-2">${label('Evidence')}
-        <ul class="list-disc space-y-1 pl-6 text-xl leading-8">${c.evidence.map(e => `<li class="text-pretty">${md(e)}</li>`).join('')}</ul></section>
+        <ul class="list-disc space-y-1 pl-6 text-xl leading-8">${c.evidence.map(e => `<li>${md(e)}</li>`).join('')}</ul></section>
     </article>`;
   };
 

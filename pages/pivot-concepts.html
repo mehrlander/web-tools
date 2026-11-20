@@ -194,7 +194,7 @@
       class="inline-flex items-stretch h-7 max-w-full shrink-0 rounded-full border overflow-hidden font-mono text-[13px] leading-none touch-none select-none [-webkit-touch-callout:none]
         ${placed ? 'bg-primary/10 border-primary/40' : 'bg-base-100 border-base-300'} ${num ? 'text-secondary' : 'text-base-content'}
         ${sel ? 'ring-2 ring-[var(--color-primary)] ring-offset-1 ring-offset-base-100' : ''} ${cls}">
-      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate" ${tipAttrs(field)} data-title-tip-bare>${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
+      ${agg}<span class="inline-flex items-center gap-1 ${isValue ? 'pl-1.5' : 'pl-2.5'} pr-1.5 min-w-0">${roleIcon && placed ? `<i class="ph ${ICON[role]} text-xs opacity-70"></i>` : ''}<span class="truncate" ${tipAttrs(field)}>${esc(label ?? field)}</span></span>${kept}<span data-info class="${seg} px-1.5 text-base-content/50" aria-label="About ${esc(field)}"><i class="ph ph-caret-down text-[10px]"></i></span></button>`;
   }
   const empty = (zone, text) => `<span class="text-xs text-base-content/40 italic px-1" data-empty="${zone}">${text}</span>`;
 
@@ -249,7 +249,7 @@
         const what = st.value
           ? `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="agg">${esc(st.agg === 'avg' ? 'average' : st.agg)}</button> of ${slot('value', st.value, 0)}`
           : `<button type="button" class="link link-primary decoration-dotted font-semibold" data-slot="value" data-index="0">count of rows</button>`;
-        return `<p class="text-xl leading-9 text-pretty">Show ${what}${by}${across}${where}</p>`;
+        return `<p class="text-xl leading-9">Show ${what}${by}${across}${where}</p>`;
       },
     },
     table: {

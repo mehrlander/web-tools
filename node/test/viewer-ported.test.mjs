@@ -261,15 +261,6 @@ test('everything a commented cell knows arrives in one note, in reading order', 
     'the author took the lead line, so the form\'s own title comes back inline');
 });
 
-test('a sheet cell opts out of the title-tip kit\'s underline', () => {
-  // The kit underlines a `data-title-tip` element by default. Excel underlines
-  // nothing, the render\'s claim is that it looks like Excel, and the stored-
-  // value note lands on most numeric cells, so the underline would be on half
-  // the sheet.
-  const html = drawWith(commented());
-  assert.match(html, /data-title-tip-bare(="")?[ >]/);
-});
-
 test('a fact never rides in a title attribute', () => {
   // House style rule 10: a title reaches no touch screen and cannot be captured
   // in a screenshot, so a fact parked in one is invisible to a pixel review.
