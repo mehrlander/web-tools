@@ -31,6 +31,7 @@ python/swarm/bold.md,python/swarm/roles.md,24,true,identifiers file paths comman
 evals/portable/quick-answer/graders/plain-dry.md,skills/peeves/peeves.md,18,true,'it does one thing' 'is the floor' 'held to' 'carries weight' 'does the work' 'deliberately' 'never' used for emphasis a sentence that sounds wise and says little,10,211
 evals/portable/choice/graders/plain-dry.md,skills/peeves/peeves.md,18,true,'it does one thing' 'is the floor' 'held to' 'carries weight' 'does the work' 'deliberately' 'never' used for emphasis a sentence that sounds wise and says little,10,211
 evals/portable/catch-up/graders/plain-dry.md,skills/peeves/peeves.md,18,true,'it does one thing' 'is the floor' 'held to' 'carries weight' 'does the work' 'deliberately' 'never' used for emphasis a sentence that sounds wise and says little,10,211
+docs/CONVERSATION.md,skills/tend/SKILL.md,18,,github com mehrlander web tools private blob main sessions tools topic correct py from a web tools private checkout;with topic correct py https github com mehrlander web tools private blob main sessions topics readme md,10,211
 docs/environment/capabilities.md,skills/sandbox-traps/SKILL.md,17,true,a push carries only the objects the remote lacks so a smaller commit is a smaller push split a large addition across;the branch and any draft pr come up on the first small push,10,211
 docs/loader.md,node/README.md,15,,the build still honors use ref an explicit ref falls through to the network so a built page can be re pinned for review,10,211
 docs/environment/container.md,skills/sandbox-traps/SKILL.md,14,true,a file's apparent first commit is the graft boundary rather than its creation and git log s finds nothing earlier;a rewritten history a rewrite replaces commits a shallow clone omits them,10,211
@@ -68,6 +69,7 @@ skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrla
 skills/design-sprint/SKILL.md,skills/html-style/SKILL.md,3,,https github com mehrlander web tools blob main docs forms readme md,10,211
 skills/agents/house-style-critic.md,skills/agents/peeves-critic.md,3,true,do not rewrite name the fix in one clause only where the,10,211
 python/swarm/bold.md,python/swarm/dome.md,3,,write json lines to the output path one edit per line;run the check command and fix every line it reports,10,211
+programs/organization/manager.md,skills/tend/SKILL.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,211
 pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,pages/drop/fills-concepts/CATALOG.md,3,,aic 2 html aic kimi html collection browser html collection browser 2,10,211
 docs/house-policies.md,skills/tend/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,211
 docs/house-policies.md,skills/notes/SKILL.md,3,,js https github com mehrlander web tools blob main lib kits;md https github com mehrlander web tools blob main docs,10,211
@@ -79,5 +81,7 @@ docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a ca
 docs/environment/capabilities.md,docs/environment/extending.md,3,,sessionstart hooks a per hook size ceiling and where the cut lands,10,211
 docs/envelopes/approval.md,docs/envelopes/surface.md,3,,schemas profiles approval v1 schema json schemas profiles approval v1 schema json,10,211
 docs/TRACKER.md,skills/tasks/SKILL.md,3,,entry to restamp a fact add a new entry that corrects it,10,211
+docs/CONVERSATION.md,programs/organization/manager.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,211
 docs/CONSTELLATION.md,skills/doc-craft/SKILL.md,3,,principle 5 documentation has four places and everything else is a question,10,211
+desktop/README.md,skills/tend/SKILL.md,3,,readme md https github com mehrlander web tools private blob main;https github com mehrlander web tools private blob background state,10,211
 README.md,skills/html-style/SKILL.md,3,,https mehrlander github io web tools app view map tab kits;https mehrlander github io web tools pages toss render html,10,211
