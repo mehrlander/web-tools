@@ -189,6 +189,33 @@ test('long centred text spills the same distance each way, about its own centre'
   assert.ok(Number(m[2]) <= 60, 'and no further than the narrower side allows');
 });
 
+// Row groups: rows 2-3 fold under summary row 4, and the margin's +/- box
+// and level buttons fold and unfold them in place.
+test('a row group draws a +/- box on its summary row and folds its rows in place', () => {
+  const row = (n, level, hidden) => ({ row: n, height: 20, level, hidden, cells: [
+    { col: 0, text: String(n), numeric: false, style: null, raw: null, cf: null,
+      colSpan: 1, rowSpan: 1, spillLeft: 0, spillRight: 0 }] });
+  const layout = {
+    cols: [{ index: 0, width: 60 }], maxCol: 0, freeze: null, truncated: null, images: [], cfSkipped: 0, empty: false,
+    rows: [row(1, 0, false), row(2, 1, true), row(3, 1, true), row(4, 0, false)],
+    outline: { levels: 1, summaryBelow: true, groups: [{ level: 1, r1: 2, r2: 3, summary: 4, collapsed: true }] },
+  };
+  const prev = window.xlsxKit;
+  window.xlsxKit = { sheetLayout: () => layout, colLetter: (n) => String.fromCharCode(65 + n), cellStyle: () => null };
+  let el;
+  try { el = R.drawSheet({ name: 'S', merges: [] }, {}, 'sheet1'); } finally { window.xlsxKit = prev; }
+  const hidden = () => [...el.querySelectorAll('tbody tr.xl-ol-hid')].map(tr => tr.querySelector('th').dataset.r);
+  const box = el.querySelector('tr:last-child .xl-ol-btn');
+  assert.ok(box, 'the summary row carries the box');
+  assert.equal(box.textContent, '+');
+  assert.deepEqual(hidden(), ['2', '3'], 'folded as the file saved it');
+  box.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.deepEqual(hidden(), [], 'the box unfolds the group');
+  assert.equal(box.textContent, '\u2212');
+  el.querySelector('.xl-ol-lv[data-lv="1"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.deepEqual(hidden(), ['2', '3'], 'level 1 folds every group');
+});
+
 test('a conditional format reaches the page as its own rule, not an inline style', () => {
   const html = drawWith(layoutWith({ cf: 3 }));
   assert.match(html, /td\.cf3\{[^}]*background:#ff0000/, 'the dxf became a rule');

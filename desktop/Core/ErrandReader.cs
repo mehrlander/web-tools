@@ -51,20 +51,32 @@ public sealed class ErrandReader(string repository)
                         background = await Git("rev-parse", "--verify", "refs/remotes/origin/background^{commit}");
                         topicSha = await Git("rev-parse", "--verify", background + ":state/session-topics.json");
                     } catch { }
-                    var signature = sha + ":" + topicSha;
+                    var signature = sha + ":" + topicSha + ":" + CloudTurns.SelectionKey(turns, DateTimeOffset.UtcNow);
                     if (signature != cloudSha) {
                         var parsed = CloudSessions.Parse(await Git("cat-file", "blob", sha), DateTimeOffset.UtcNow);
                         if (topicSha is not null) {
                             try {
                                 var rollup = await Git("cat-file", "blob", topicSha);
-                                var paths = SessionCheckpoints.Paths(rollup, parsed.Items);
+                                var candidates = CloudTurns.TopicCandidates(parsed, turns, DateTimeOffset.UtcNow);
+                                var paths = SessionCheckpoints.Paths(rollup, candidates);
                                 var companions = new Dictionary<string, string>();
                                 // A single background revision owns the rollup and all companions.
-                                var tree = await Git("ls-tree", "-r", background!, "--", "sessions/topics");
-                                var blobs = tree.Split('\n', StringSplitOptions.RemoveEmptyEntries)
-                                    .Select(line => line.TrimEnd('\r').Split('\t')).Where(parts => parts.Length == 2)
-                                    .ToDictionary(parts => parts[1], parts => parts[0].Split(' ')[2]);
-                                var wanted = paths.Where(p => blobs.ContainsKey(p.Value)).ToDictionary(p => p.Key, p => blobs[p.Value]);
+                                var tree = await Git("ls-tree", "-r", "-l", background!, "--", "sessions/topics");
+                                var blobs = new Dictionary<string,(string Sha,long Bytes)>();
+                                foreach (var line in tree.Split('\n', StringSplitOptions.RemoveEmptyEntries)) {
+                                    var parts = line.TrimEnd('\r').Split('\t');
+                                    var fields = parts[0].Split(' ',StringSplitOptions.RemoveEmptyEntries);
+                                    if (parts.Length == 2 && fields.Length == 4 && fields[1] == "blob"
+                                        && long.TryParse(fields[3],out var size) && size is >= 0 and <= 2097152)
+                                        blobs[parts[1]] = (fields[2],size);
+                                }
+                                var wanted = new Dictionary<string,string>();
+                                long remaining = 8 * 1024 * 1024;
+                                foreach (var (id,path) in paths)
+                                    if (blobs.TryGetValue(path,out var blob) && blob.Bytes <= remaining) {
+                                        wanted[id] = blob.Sha;
+                                        remaining -= blob.Bytes;
+                                    }
                                 var contents = await ReadBlobs(wanted.Values.Distinct().ToList());
                                 foreach (var (id, blob) in wanted) if (contents.TryGetValue(blob, out var bytes))
                                     companions[id] = Encoding.UTF8.GetString(bytes);

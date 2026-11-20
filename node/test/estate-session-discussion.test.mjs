@@ -204,9 +204,9 @@ test('Inspect snapshots scope before the query, including empty scopes and local
 
 test('route seed restores filters and stamps their normalized state', () => {
   const { data, stamps } = estate();
-  data.applySessionSearchSeed({ q: '  cobalt  ', discussion: true, scope: 'week', repo: 'tools', state: 'all' });
+  data.applySessionSearchSeed({ q: '  cobalt  ', discussion: true, scope: 'week', repo: 'tools', state: 'all', launched: 'hide' });
   data.stampSessionSearch();
-  assert.deepEqual(stamps[0], { q: 'cobalt', discussion: true, scope: 'week', repo: 'tools', state: '' });
+  assert.deepEqual(stamps[0], { q: 'cobalt', discussion: true, scope: 'week', repo: 'tools', state: '', launched: 'hide' });
   data.applySessionSearchSeed({ q: '', discussion: false, scope: 'invalid' });
   assert.equal(data.sessionScope, 'day');
   assert.equal(data.sessionDiscussion, false);

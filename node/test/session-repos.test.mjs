@@ -1,4 +1,4 @@
-// alpineComponents/session-repos.js, the Sessions pane's Repos lens: the
+// alpineComponents/session-repos.js, the Sessions pane's Repos tab: the
 // session rows folded per repo, and where each companion sits in a repo's
 // orbit. An owner-qualified name and a bare one are one repo; a repo's
 // companions count the sessions it shares with each other repo, with that

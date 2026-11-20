@@ -3,7 +3,7 @@ namespace WebTools.Desktop;
 public record PhoneItem(string Key, string Id, string Kind, string Provider, string Location,
     string Title, string State, string Detail, DateTimeOffset At, DateTimeOffset CreatedAt,
     bool NeedsAttention, bool IsNew, string? Url, SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SessionUrl = null,
-    DateTimeOffset? ClaimedAt = null);
+    DateTimeOffset? ClaimedAt = null, List<PhoneItem>? Members = null, int MemberCount = 1, string? ActivityKey = null, List<string>? RelatedKeys = null);
 public record PhoneErrandSnapshot(int SchemaVersion, DateTimeOffset ObservedAt, bool QueueAvailable,
     bool RecordsConnected, DateTimeOffset? SyncedAt, string? Notice, List<PhoneItem> Items);
 public record PhoneSource(bool QueueAvailable, bool RecordsConnected, DateTimeOffset? RecordsSyncedAt,
@@ -60,20 +60,33 @@ public static class PhoneActivity
     {
         var items = snapshot.Activity.Errands.Where(j => j.IsOpen || j.UpdatedAt > observedAt.AddDays(-1))
             .Select(ErrandItem).ToList();
-        items.AddRange(snapshot.Sessions.Items.Concat(snapshot.Cloud.Items).Select(s => new PhoneItem(
-            (s.Location == "Cloud" ? "cloud:" : "session:" + s.Provider + ":") + s.Id, s.Id,
-            s.Location == "Cloud" ? "cloud" : "session", s.Provider, s.Location, s.Title, s.State,
-            s.Detail, s.UpdatedAt, s.UpdatedAt, NeedsAttention(s), false,
-            s.Location == "Cloud" ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(s.Id)
-                : SessionLinks.CapturedRecord(s.Provider,s.Id,snapshot.Cloud.CapturedRecords),
-            s.Checkpoint, s.Turn, s.Work, SessionLinks.For(s.Provider,s.Id,s.SourceUrl,snapshot.GeminiInstanceId))));
+        var changes = SessionLinks.HydrateChanges(snapshot.Changes ?? [],snapshot.Cloud.SessionUrls,snapshot.GeminiInstanceId,snapshot.Cloud.CapturedRecords);
+        var changedThreads = changes.Where(c => c.Key.StartsWith("cloud:",StringComparison.Ordinal))
+            .ToLookup(c => SessionLinks.Safe(c.SessionUrl) ?? "");
+        PhoneItem SessionItem(LocalSession session, bool member = false) {
+            var prefix = session.Location == "Cloud" ? "cloud:" : "session:" + session.Provider + ":";
+            var source = session.Location == "Cloud" ? SessionLinks.Safe(session.SourceUrl) : null;
+            List<string> relatedKeys = source is null || member ? [] : changedThreads[source].Where(c => c.Key != prefix + session.Id)
+                .Select(c => c.Key).Distinct().Take(256).ToList();
+            return new(prefix + session.Id, session.Id, session.Location == "Cloud" ? "cloud" : "session",
+                session.Provider, session.Location, session.Title, session.State, session.Detail,
+                session.UpdatedAt, session.UpdatedAt, NeedsAttention(session), false,
+                session.Location == "Cloud" ? NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(session.Id)
+                    : SessionLinks.CapturedRecord(session.Provider,session.Id,snapshot.Cloud.CapturedRecords),
+                session.Checkpoint, session.Turn, session.Work, SessionLinks.For(session.Provider,session.Id,session.SourceUrl,snapshot.GeminiInstanceId),
+                Members: member ? null : session.Members?.Select(s => SessionItem(s,true)).ToList(),
+                MemberCount: member ? 1 : session.MemberCount,
+                ActivityKey: member || session.ActivityId is null ? null : prefix + session.ActivityId,
+                RelatedKeys: relatedKeys.Count == 0 ? null : relatedKeys);
+        }
+        items.AddRange(snapshot.Sessions.Items.Concat(snapshot.Cloud.Items).Select(s => SessionItem(s)));
         var notices = snapshot.Sessions.Notices.Concat(new[] { snapshot.Activity.Notice, snapshot.Cloud.Notice, error }
             .OfType<string>()).Distinct().ToList();
         return new(1, snapshot.MachineName, observedAt, snapshot.ScanMilliseconds,
             new(snapshot.Activity.Revision is not null, snapshot.Activity.Connected, snapshot.Activity.SyncedAt,
                 snapshot.Daemon.State, snapshot.Daemon.LastLogAt, snapshot.Cloud.CapturedAt, notices, snapshot.Daemon.Activity, snapshot.Daemon.Reports),
             items.OrderByDescending(i => i.At).ToList(), snapshot.Events.Take(50).ToList(),
-            SessionLinks.HydrateChanges(snapshot.Changes ?? [],snapshot.Cloud.SessionUrls,snapshot.GeminiInstanceId,snapshot.Cloud.CapturedRecords), snapshot.Usage ?? []);
+            changes, snapshot.Usage ?? []);
     }
 
     // Reply bodies are requested only for the selected result. Request notes,

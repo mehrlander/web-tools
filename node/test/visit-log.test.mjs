@@ -101,14 +101,15 @@ test('a stage link stores its refs and leaves the folded-in locals behind', () =
 });
 
 test('an app route stores the view and the record, never a free string', () => {
-  const r = at(APP + '?view=sessions&session=2bf8fcae&lens=table&grain=turn&list=a,b');
+  const r = at(APP + '?view=sessions&session=2bf8fcae&tab=table&grain=turn&list=a,b');
   assert.equal(r.kind, 'route');
   assert.equal(r.view, 'sessions');
   assert.equal(r.session, '2bf8fcae');
-  // `lens`, `grain` and `list` are reading parameters. They are not in the app
-  // template's fields, so they are not written, and the key below folds two
+  // The Sessions tab, `grain` and `list` are reading parameters. The tab is
+  // dropped for this view (READING_TABS) and the other two are not in the app
+  // template's fields, so none is written, and the key below folds two
   // readings of one screen into one row.
-  assert.equal(r.lens, undefined);
+  assert.equal(r.tab, undefined);
   assert.equal(r.grain, undefined);
   assert.equal(r.set, undefined);
 });
@@ -157,9 +158,11 @@ test('a misrecognized route is a wrong label, never a leak', () => {
 });
 
 test('the dedupe key folds readings together and splits places apart', () => {
-  const list = at(APP + '?view=sessions&session=abc&lens=list');
-  const table = at(APP + '?view=sessions&session=abc&lens=table&grain=turn');
-  assert.equal(V.key(list), V.key(table), 'a lens change split one screen into two rows');
+  const list = at(APP + '?view=sessions&session=abc&tab=list');
+  const table = at(APP + '?view=sessions&session=abc&tab=table&grain=turn');
+  assert.equal(V.key(list), V.key(table), 'a Sessions tab change split one screen into two rows');
+  // An address from before the key was renamed is the same screen too.
+  assert.equal(V.key(at(APP + '?view=sessions&session=abc&lens=table')), V.key(list));
 
   const setTab = at(APP + '?view=map&tab=set');
   const viewsTab = at(APP + '?view=map&tab=views');

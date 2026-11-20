@@ -160,9 +160,11 @@ try {
     }));
     await CommitFixture();
     var signaled = await reader.Read(seen, force: true);
-    Check(reader.Cloud.Items.Any(s => s.Id == "aabbccdd" && s.State == "working")
+    var signaledThread = reader.Cloud.Items.Single(s => s.SourceUrl == "https://claude.ai/code/session_fixture");
+    Check(signaledThread.Id == "cloud-1" && signaledThread.State == "working" && signaledThread.ActivityId == "aabbccdd"
+        && signaledThread.Members?.Single(s => s.Id == "aabbccdd").Turn?.Prompt == "New cloud work"
         && statusBefore == await Commands.Text("git", ["status", "--porcelain"], checkout),
-        "Fresh background turn signals arrive without waiting for the thirty-second main cache or touching worker edits.");
+        "Fresh background signals update their published provider thread before the main cache refresh, retain exact related prompts and leave worker edits unchanged.");
     await Git(checkout, "remote", "set-url", "origin", Path.Combine(fixture, "missing-remote"));
     var offline = await reader.Read(seen, force: true);
     Check(!offline.Connected && offline.Errands.Count == 3 && offline.Revision == signaled.Revision
@@ -198,6 +200,7 @@ ContextLinkChecks.Run(Check);
 LocalWorkChecks.Run(Check);
 CheckpointChecks.Run(Check);
 CloudTurnChecks.Run(Check);
+TopicThreadChecks.Run(Check);
 UsageChecks.Run(Check);
 await ClaudeUsageChecks.Run(Check);
 Console.WriteLine($"{passed} checks passed.");
