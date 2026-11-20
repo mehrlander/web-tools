@@ -37,7 +37,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { launch } from '../render/chromium.mjs';
-import { HUB, rowsOf, head, evalFrom, needHomeModules, PUBLIC_SIBLINGS, toJpeg } from './ui-recipes.mjs';
+import { HUB, rowsOf, head, evalFrom, PUBLIC_SIBLINGS, toJpeg } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -96,7 +96,6 @@ function fit(read, size) {
   return [r4(x0 / fw), r4(y0 / fh), r4((x1 - x0) / fw), r4((y1 - y0) / fh)];
 }
 
-needHomeModules();
 const work = rowsOf(path.join(HUB, 'docs/components.csv')).filter(c => c.seen_at)
   .map(c => ({ file: path.posix.basename(c.path, '.js'), name: c.names.split(';')[0], at: c.seen_at }))
   .filter(c => !ONLY.length || ONLY.includes(c.file));

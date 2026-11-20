@@ -338,7 +338,7 @@ test('the card badge counts what the chip counts, from one derivation', () => {
 });
 
 test('the badge opens the pane already narrowed to what it counted', () => {
-  // Branches is its own pane again (it spent 2026-08-19 to 2026-08-23 as a lens
+  // Branches is its own pane again (it spent 2026-08-19 to 2026-08-23 as a tab
   // of Sessions), so the jump navigates to it. The scope and repo narrowing are
   // the invariant either way: a badge that counts two abandoned branches has to
   // open on those two.

@@ -142,7 +142,7 @@ test('the Branches list marks the row the deck shows, and the mark follows the d
 test('a session row and a branch tile under it carry the mark too', async () => {
   seed();
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.sessionRows_ = [window.RepoSessionsCache.summarize(rec(), 'sha1')];

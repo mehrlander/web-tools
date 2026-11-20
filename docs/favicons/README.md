@@ -34,9 +34,9 @@ Project, program and agent icons, and the repository and Map marks above, are SV
 
 - `viewBox="1.5 1.75 29 29"`, solid fills, no strokes.
 - Every gap between filled areas at least 2.5 units, about 1.4 CSS px in a 16 px favicon.
-- A project's or program's mark takes a colour no other project or program uses, and a repository's mark one no other repository uses; shortcut-tools' mark keeps the pink and violet of Apple's Shortcuts icon. An agent's icon may repeat a project's colour.
+- A mark may use one or two hex colours. Its main colour is the first colour its SVG lists. The sidebar shows marks in lists: the projects under each repository, the programs, and the repositories. No two marks in one of these lists share a main colour. A colour may repeat between lists. An agent's icon, which no list shows, may take any colour. shortcut-tools' mark keeps the pink and violet of Apple's Shortcuts icon.
 - A mark without a colour of its own, such as a Map mark, is filled with `currentColor`, and a page paints it as a CSS mask in a colour it chooses, since an `<img>` would draw it black.
-- The hub's repositories share a hexagon, the public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`), and a program's mark is cut from a rounded tile in its colour (`<rect x="2" y="2.25" width="28" height="28" rx="7"/>`).
+- The hub's repositories share a hexagon. The public-record stores stand on the detached base bar (`<rect x="2" y="24.4" width="28" height="4.6"/>`). A program's mark sets its symbol in its main colour on a tile of that colour mixed with 80% white (`<rect x="2" y="2.25" width="28" height="28" rx="7"/>`).
 - A `<desc>` says what the mark depicts.
 - The options considered for a mark sit beside it in `alternatives/` as `<mark>.<option>.svg`. Choosing an option swaps it with the current mark, which moves into `alternatives/`. A program's mark is the `icon.svg` in its folder under [`programs/`](../../programs/); [`program-mark-ideas.html`](../prototypes/program-mark-ideas.html) shows every option considered for those marks, more than the programs' `alternatives/` folders hold.
 

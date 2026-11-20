@@ -150,8 +150,8 @@ check(new URLSearchParams(w.location.hash.slice(1)).get('session')==='cloud:clou
  'Usage-origin neighbors follow the cache list order and keep a direct Back path to Usage.');
 w.history.replaceState(null,'','#view=now&session=cloud%3Amissing');w.dispatchEvent(new w.PopStateEvent('popstate'));
 check(doc.querySelector('#detail [data-back]').textContent==='← Now','A direct session route without an originating history entry keeps Now as the safe return destination.');
-clearDetail();snapshot.sources.workerState='absent';snapshot.sources.notices=['A source is stale.'];await refresh();
-check(doc.querySelector('#notice').textContent.includes('Gemini errands are waiting. Worker not detected.')&&doc.querySelector('#notice').textContent.includes('A source is stale.'),'Missing-worker and source notices survive the compact layout.');
+clearDetail();snapshot.observedAt=new Date().toISOString();snapshot.sources.workerState='absent';snapshot.sources.notices=['A source is stale.'];await refresh();
+check(doc.querySelector('#notice [data-queue-notice]').textContent.includes('2 Gemini errands waiting')&&doc.querySelector('#notice [data-worker-status]').textContent.includes('Worker offline')&&doc.querySelector('#notice').textContent.includes('A source is stale.'),'Missing-worker notices expose the real Gemini queue count and worker action while retaining other source notices.');
 snapshot.sources.recordsConnected=false;await refresh();check(doc.querySelector('#content').textContent.includes('Waiting · Saved queue'),'A saved errand queue remains explicitly labeled.');
 snapshot.sources.queueAvailable=false;snapshot.items=snapshot.items.filter(i=>!['queued','claimed'].includes(i.state));await refresh();click('[data-assistant=gemini]');
 check(doc.querySelector('#content').textContent.includes('Queue unavailable')&&!doc.querySelector('#content').textContent.includes('Queue clear'),'An unavailable queue is never presented as empty.');click('[data-assistant=gemini]');
@@ -163,5 +163,126 @@ Object.defineProperty(doc,'hidden',{value:true,configurable:true});doc.dispatchE
 check(![...timers.values()].some(t=>t.delay===2000),'Polling pauses when the app is hidden.');
 Object.defineProperty(doc,'hidden',{value:false,configurable:true});const resumed=fetches;doc.dispatchEvent(new w.Event('visibilitychange'));await flush();check(fetches>resumed,'Returning to the app immediately refreshes observations.');
 check(!doc.querySelector('[data-review]')&&!/Since you last looked|Mark shown seen/.test(doc.querySelector('#content').textContent),'Modern rows preserve recent history without acknowledgement controls.');
+
+const signal=(key,title,prompt,response)=>({...item(key,'working','Claude'),id:key,kind:'cloud',location:'Cloud',title,detail:'Using Bash',turn:{prompt,response,startedAt:earlier(30),updatedAt:earlier(10),lastTool:'Bash'}});
+const firstSignal=signal('cloud:signal-one','First related observation','First member prompt','First member reply');
+const secondSignal=signal('cloud:signal-two','Second related observation','Second member prompt','Second member reply');
+const topicGroup={...signal('cloud:group','Original canonical title','Canonical prompt','Canonical answer'),activityKey:firstSignal.key,members:[firstSignal,secondSignal],memberCount:31,
+ checkpoint:{headline:'Earlier title',summary:'An earlier conversation summary',at:earlier(300),analyzedAt:now,topicsPartial:true,topics:[
+  {topic:'First open topic',status:'open',waitsOn:'owner',waiting:'Choose the branch',basis:'record',evidence:'The reply asks for a choice',first:0,last:0,spans:[{start:1,end:1}]},
+  {topic:'Latest completed topic',status:'done',first:1,last:3,spans:[{start:2,end:4}]},
+  {topic:'Unclassified topic',status:null,first:2,last:2,spans:[{start:3,end:3}]},
+  {topic:'Dropped aside',status:'dropped',minor:true,first:4,last:4}]},
+ work:{through:earlier(600),segments:[{headline:'Retrospective work',summary:'An old work summary generated today',generatedAt:now}]}};
+const actionOnly={...item('cloud:action-only','quiet','Claude'),kind:'cloud',title:'Action only',detail:'Turn has no recent activity report',turn:{lastTool:'Read'}};
+snapshot.items=[topicGroup,actionOnly];snapshot.changes=[{...firstSignal}];snapshot.events=[{id:'member-event',sessionId:firstSignal.id,provider:'Claude',at:now,state:'working',detail:'Member-specific observed activity'}];
+await refresh();
+check(row(topicGroup.key).querySelector('.phone-row-title').textContent==='Latest completed topic'
+ &&!row(topicGroup.key).querySelector('.phone-row-title').textContent.includes('First open'),
+ 'The latest recorded non-aside agenda stretch leads instead of an arbitrary unfinished topic.');
+const recordedTopics=topicGroup.checkpoint.topics;topicGroup.checkpoint.topics=recordedTopics.map(topic=>({...topic,spans:[]}));await refresh();
+check(row(topicGroup.key).querySelector('.phone-row-title').textContent==='Earlier title',
+ 'A fallback topic list without agenda spans cannot manufacture a latest topic from its ordinal order.');
+topicGroup.checkpoint.topics=recordedTopics;await refresh();
+check(row(topicGroup.key).querySelector('[data-summary]').textContent.includes('Canonical answer')
+ &&!row(topicGroup.key).querySelector('[data-summary]').textContent.includes('old work summary')
+ &&(row(topicGroup.key).querySelector('[data-summary]').compareDocumentPosition(row(topicGroup.key).querySelector('.phone-meta'))&w.Node.DOCUMENT_POSITION_FOLLOWING),
+ 'Conversation source times outrank retrospective analysis times, and useful preview text precedes secondary activity metadata.');
+const stablePreview=row(topicGroup.key).querySelector('[data-summary]').textContent;
+topicGroup.state='quiet';topicGroup.detail='Turn has no recent activity report';await refresh();
+check(row(topicGroup.key).querySelector('[data-summary]').textContent===stablePreview
+ &&row(topicGroup.key).closest('section').getAttribute('aria-label')==='No recent update',
+ 'A quiet heartbeat retains the substantive reply and does not turn a recorded owner-wait topic into runtime attention.');
+topicGroup.state='working';topicGroup.detail='Prompt received';await refresh();
+check(row(topicGroup.key).querySelector('[data-summary]').textContent===stablePreview
+ &&row(topicGroup.key).closest('section').getAttribute('aria-label')==='In progress',
+ 'A new working signal cannot replace useful context with Prompt received or hide active work behind an old topic wait.');
+check(row(actionOnly.key).querySelector('[data-summary]').textContent==='Last activity: Used Read',
+ 'With no substantive summary or reply, the last known tool is explicitly qualified as last activity.');
+check(!row(firstSignal.key)&&!row(secondSignal.key)&&doc.querySelectorAll('#content [data-item]').length===2,
+ 'Related signals remain one visible group even when a member also appears in the journal.');
+const topicRoute=w.location.hash;click('[data-topic-context="cloud:group"]');
+check(w.location.hash===topicRoute&&doc.querySelector('#phone-info-card').textContent.includes('Waits on you')
+ &&doc.querySelector('#phone-info-card').textContent.includes('Choose the branch')&&doc.querySelector('#phone-info-card').textContent.includes('The reply asks for a choice')
+ &&doc.querySelector('#phone-info-card [data-topic-status=dropped] strong').classList.contains('line-through')
+ &&!doc.querySelector('#phone-info-card [data-topic-name="Unclassified topic"]').querySelector('span'),
+ 'The anchored topic card gives waiting reasons and evidence, distinguishes dropped work, and leaves unknown disposition blank.');
+check(doc.querySelector('#phone-info-card').textContent.includes('Showing 3 of 31')&&doc.querySelector('#phone-info-card').textContent.includes('Some topic details omitted.')
+ &&!doc.querySelector('#content').textContent.includes('Some topic details omitted.'),
+ 'Bounded observations and partial topic details are disclosed inside the topic panel, without adding prose to the scanning list.');
+click('[data-related-session="cloud:signal-one"]');
+check(new URLSearchParams(w.location.hash.slice(1)).get('session')===firstSignal.key
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('First member reply')
+ &&w.history.state.nowSessionTrail.keys.join(',')==='cloud:group,cloud:action-only',
+ 'Opening a member from the list preserves its own reply, old key and the originating group neighbor order.');
+clearDetail();pick(topicGroup.key).click();
+check(doc.querySelector('#detail h2').textContent==='Latest completed topic'&&doc.querySelector('#detail').textContent.includes('Original canonical title')
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('Canonical answer'),
+ 'Grouped detail leads with topic context while keeping the original session title and canonical reply.');
+click('#detail [data-facet=prompt]');check(doc.querySelector('#detail [role=tabpanel]').textContent.trim()==='Canonical prompt','The canonical bookmark retains its own prompt.');
+click('#detail [data-facet=activity]');
+check(doc.querySelector('#detail [role=tabpanel]').textContent.includes('Activity from First related observation')
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('Member-specific observed activity')
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('Bash'),
+ 'Fresh grouped activity names its actual member and uses that member’s turn and event evidence.');
+const relatedHistory=w.history.length;click('#detail [data-related-session="cloud:signal-one"]');
+check(w.history.length===relatedHistory&&doc.querySelector('#detail [data-back]').textContent==='← Now',
+ 'Selecting a member inside grouped detail adds no intermediate Back step.');
+clearDetail();w.history.replaceState(null,'','#view=now&session='+encodeURIComponent(secondSignal.key));w.dispatchEvent(new w.PopStateEvent('popstate'));
+check(doc.querySelector('#detail [role=tabpanel]').textContent.includes('Second member reply'),'An existing member bookmark resolves the original member reply.');
+click('#detail [data-facet=prompt]');check(doc.querySelector('#detail [role=tabpanel]').textContent.trim()==='Second member prompt','An existing member bookmark resolves the original member prompt.');clearDetail();
+snapshot.items=[firstSignal,secondSignal,actionOnly];snapshot.changes=[];await refresh();click('[data-assistant=claude]');w.NowViews.scrollTo(277);
+w.NowPhoneUsage.recentRows=()=>[{identity:firstSignal.key},{identity:secondSignal.key}];w.NowViews.setView('usage');w.NowPhone.openSession(firstSignal.key);
+const warmHistory=w.history.length;snapshot.items=[topicGroup,actionOnly];await refresh();
+check(w.history.length===warmHistory&&w.history.state.originView==='usage'&&doc.querySelector('#detail [data-back]').textContent==='← Usage'
+ &&doc.querySelector('#detail [role=tabpanel]').textContent.includes('First member reply'),
+ 'Warm regrouping preserves an already-open member’s Usage origin and original reply.');
+clearDetail();
+check(w.NowViews.scrollPosition()===277&&doc.querySelector('[data-assistant=claude]').getAttribute('aria-pressed')==='true'&&doc.activeElement.dataset.pick===topicGroup.key,
+ 'Regrouping normalizes old trail and return keys while preserving the originating filter and scroll.');
+const omitted={key:'cloud:omitted',id:'omitted',provider:'Claude',location:'Cloud',title:'Original omitted observation',detail:'Original lightweight activity evidence',at:earlier(50)};
+topicGroup.relatedKeys=[omitted.key];topicGroup.sessionUrl='https://claude.ai/code/session_shared';snapshot.changes=[omitted];await refresh();
+check(!row(omitted.key)&&row(topicGroup.key),'A grouped omitted-body journal key is hidden under its canonical row instead of returning as a duplicate.');
+w.NowPhone.openSession(omitted.key);
+check(doc.querySelector('#detail h2').textContent===omitted.title&&doc.querySelector('#detail [role=tabpanel]').textContent.includes(omitted.detail)
+ &&!doc.querySelector('#detail [data-facet=prompt]')&&!doc.querySelector('#detail [data-facet=reply]'),
+ 'A capped member bookmark opens its own lightweight journal Activity without borrowing canonical Prompt or Reply.');
+clearDetail();archive.sessions.push({id:'metadata-record',provider:'claude',title:'Metadata own identity',sessionUrl:topicGroup.sessionUrl,usageAt:now,contextTokens:100,outputTokens:1});
+w.NowPhone.openSession('cloud:metadata-record');
+check(doc.querySelector('#detail h2').textContent==='Metadata own identity'&&!doc.querySelector('#detail [data-facet=prompt]')&&!doc.querySelector('#detail [data-facet=reply]'),
+ 'A different metadata record sharing a provider URL cannot inherit the canonical conversation body.');clearDetail();
+clearDetail();snapshot.observedAt=new Date().toISOString();snapshot.items=[item('errand:gemini-one','queued'),item('errand:codex-one','queued','Codex'),{...item('manual','queued'),kind:'session'},item('gemini-accepted','claimed')];snapshot.changes=[];
+snapshot.sources={...snapshot.sources,workerState:'absent',queueAvailable:true,recordsConnected:true,notices:['Saved <a data-evil="yes" href="https://evil.example/">notice</a>'],workerReports:[{kind:'error',headline:'Session cache could not be published',at:earlier(3600)}]};await refresh();
+let queueLink=doc.querySelector('#notice [data-queue-notice]');
+check(queueLink.textContent.includes('1 Gemini errand waiting')&&queueLink.getAttribute('href')==='#view=errands&provider=gemini&tab=waiting'
+ &&doc.querySelector('#notice [data-worker-status]').getAttribute('href')==='#view=now&session=worker%3Agemini'
+ &&!doc.querySelector('#notice [data-evil]')&&doc.querySelector('#notice').textContent.includes('<a data-evil'),
+ 'The warning counts only queued Gemini errands, exposes shareable queue/status routes, and never converts server notices into links.');
+queueLink.focus();snapshot.items.push(item('errand:gemini-two','queued'));await refresh();
+check(doc.activeElement.dataset.queueNotice==='gemini'&&doc.activeElement.textContent.includes('2 Gemini errands waiting'),'A queue-count refresh retains keyboard focus on the notice action.');
+snapshot.sources.workerState='detected';await refresh();
+check(!doc.querySelector('#notice [data-queue-notice]')&&doc.activeElement.id==='view-picker','A detected worker clears the warning and safely returns focus from a removed action.');
+snapshot.sources.workerState='unknown';await refresh();check(!doc.querySelector('#notice [data-queue-notice]'),'Unknown worker presence does not become a false offline warning.');
+snapshot.sources.workerState='absent';snapshot.sources.recordsConnected=false;await refresh();
+check(doc.querySelector('#notice').textContent.includes('Saved queue'),'A cached waiting count retains its saved-queue qualification.');
+snapshot.sources.recordsConnected=true;offline=true;await refresh();
+check(doc.querySelector('#notice').textContent.includes('Saved queue and worker status')&&!doc.querySelector('#notice [data-worker-status]').textContent.includes('Worker offline'),'A failed transport qualifies cached worker and queue observations even when the saved GitHub status was connected.');
+offline=false;snapshot.observedAt=earlier(30);await refresh();
+check(doc.querySelector('#notice').textContent.includes('Saved queue and worker status'),'A stale snapshot is qualified independently of successful transport and recorded GitHub connectivity.');
+snapshot.observedAt=new Date().toISOString();
+snapshot.sources.recordsConnected=true;await refresh();click('[data-assistant=codex]');w.NowViews.scrollTo(222);
+const queueHistory=w.history.length;click('#notice [data-queue-notice]');await flush();
+check(w.NowViews.current()==='errands'&&w.location.hash==='#view=errands&provider=gemini&tab=waiting'&&w.history.length===queueHistory+1&&doc.activeElement.id==='view-picker','The notice opens one history entry for Gemini Waiting and moves focus to visible navigation when the queue controller is absent.');
+const queueBack=new Promise(resolve=>w.addEventListener('popstate',resolve,{once:true}));w.history.back();
+for(let pass=0;pass<5;pass++){for(const[id,task]of [...timers])if(!task.delay){timers.delete(id);task.fn();}await flush();}
+await queueBack;await flush();
+check(w.NowViews.current()==='now'&&doc.querySelector('[data-assistant=codex]').getAttribute('aria-pressed')==='true'&&w.NowViews.scrollPosition()===222,'Back from the queue retains the original Now provider filter and scroll.');
+click('#notice [data-worker-status]');
+check(doc.querySelector('#detail h2').textContent==='Gemini errand worker'&&doc.activeElement===doc.querySelector('#detail h2')&&doc.querySelector('#detail').textContent.includes('separately from interactive Gemini sessions')
+ &&doc.querySelector('#detail').textContent.includes('Last report')&&doc.querySelector('#detail').textContent.includes('Session cache could not be published')
+ &&doc.querySelector('#detail').textContent.indexOf('Waiting')<doc.querySelector('#detail').textContent.indexOf('Recent reports'),
+ 'Worker status distinguishes the errand worker, shows its dated safe report, and places waiting work before report history.');
+clearDetail();snapshot.items=snapshot.items.filter(value=>value.kind!=='errand'||value.provider!=='Gemini'||value.state!=='queued');await refresh();
+check(!doc.querySelector('#notice [data-queue-notice]'),'Manual Gemini sessions and other vendors’ queued errands do not create a Gemini worker warning.');
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();

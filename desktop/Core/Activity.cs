@@ -28,18 +28,28 @@ public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
     DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop",
-    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SourceUrl = null);
+    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SourceUrl = null,
+    List<LocalSession>? Members = null, int MemberCount = 1, string? ActivityId = null);
 public record WorkSegment(string Id, string Headline, string Summary, DateTimeOffset At,
     DateTimeOffset GeneratedAt, List<string> Evidence);
 public record LocalWork(DateTimeOffset Through, int Agents, List<WorkSegment> Segments, List<string>? Members = null);
 public record SessionTurn(string Prompt, string Response, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, string LastTool);
 public record WorkLink(string Label, string Url);
 public record CheckpointTurn(int Turn, string Headline, string Summary, int Files, int Pushes, int Agents);
+public record TopicSpan(int Start, int End);
+public record SessionTopic(string Topic, string? Kind, string? Area, bool Minor, int First, int Last, int Turns,
+    List<TopicSpan> Spans, string? Status, string? WaitsOn, string Waiting, string Basis, string Evidence);
 public record SessionCheckpoint(string Summary, string Headline, DateTimeOffset At,
-    DateTimeOffset? AnalyzedAt, List<CheckpointTurn> Turns, List<WorkLink> Links);
+    DateTimeOffset? AnalyzedAt, List<CheckpointTurn> Turns, List<WorkLink> Links, List<SessionTopic>? Topics = null, bool TopicsPartial = false);
 public record SessionSnapshot(List<LocalSession> Items, List<string> Notices);
 public record CloudSnapshot(List<LocalSession> Items, DateTimeOffset? CapturedAt, string? Notice,
-    Dictionary<string, string>? SessionUrls = null, Dictionary<string, string>? CapturedRecords = null);
+    Dictionary<string, string>? SessionUrls = null, Dictionary<string, string>? CapturedRecords = null)
+{
+    // A bounded published-record catalog helps recover a live thread's parent.
+    // The catalog is never serialized into a desktop or phone response.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<LocalSession>? Catalog { get; init; }
+}
 public record ActivityEvent(string Id, string Provider, string Title, string State,
     DateTimeOffset At, string Detail, string Location, string SessionId);
 public record ActivityChange(string Key, string Id, string Provider, string Title, string State,

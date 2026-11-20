@@ -304,6 +304,48 @@ test('Next, Back and Done move through a walkthrough, and Done takes everything 
   assert.equal(w.document.querySelector('[data-look]'), null, 'no marker left behind');
 });
 
+// THE READER MAY MOVE THE DOCK. jsdom has no layout, so the dock's box is read
+// from its own left and top, 448 by 120, docked at the foot of jsdom's 1024
+// by 768 window until it is moved.
+test('a drag on the dock\'s body moves it and keeps it from step to step; a press on a control drags nothing', async () => {
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p>');
+  w.Look.start([{ at: 'a', say: 'first' }, { at: 'b', say: 'second' }]);
+  await wait(30);
+  const d = card(w);
+  d.getBoundingClientRect = () => {
+    const l = parseFloat(d.style.left), t = parseFloat(d.style.top);
+    const left = Number.isFinite(l) ? l : 12, top = Number.isFinite(t) ? t : 768 - 12 - 120;
+    return { left, top, right: left + 448, bottom: top + 120, width: 448, height: 120 };
+  };
+  const pointer = (el, type, x, y) => el.dispatchEvent(new w.PointerEvent(type,
+    { bubbles: true, clientX: x, clientY: y, pointerId: 1, isPrimary: true, button: 0 }));
+  const drag = (el, [x0, y0], [x1, y1]) => {
+    pointer(el, 'pointerdown', x0, y0);
+    pointer(el, 'pointermove', (x0 + x1) / 2, (y0 + y1) / 2);
+    pointer(el, 'pointermove', x1, y1);
+    pointer(el, 'pointerup', x1, y1);
+  };
+  const where = () => [d.style.left, d.style.top];
+  assert.equal(d.style.touchAction, 'none', 'a finger on the dock does not scroll the page');
+
+  drag(d.querySelector('[data-say]'), [100, 700], [300, 450]);
+  assert.deepEqual(where(), ['212px', '386px'], 'the body drags the dock as far as the pointer went');
+  d.querySelector('[data-go="1"]').click();
+  await wait(60);
+  assert.equal(said(w), 'second');
+  assert.deepEqual(where(), ['212px', '386px'], 'and the next step keeps it there');
+
+  const back = d.querySelector('[data-go="-1"]');
+  drag(back, [500, 450], [700, 200]);
+  back.click();
+  await wait(60);
+  assert.equal(said(w), 'first', 'a press on a control still acts');
+  assert.deepEqual(where(), ['212px', '386px'], 'and drags nothing');
+
+  drag(d.querySelector('[data-say]'), [300, 450], [3000, -900]);
+  assert.deepEqual(where(), [`${1024 - 448 - 8}px`, '8px'], 'it stays inside the window');
+});
+
 // AN INTRO IS A MESSAGE WITH NOTHING TO POINT AT. A link handed over after a
 // change says what changed before it shows where, so the first card has no
 // target: no tint, no warning colour, no "not on this page", and the page is

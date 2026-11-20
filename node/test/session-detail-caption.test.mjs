@@ -19,6 +19,7 @@ const HOOKS_JSON = JSON.parse(
 const PAGES = 'https://mehrlander.github.io/web-tools/pages/';
 const SESSION = 'f701fa79-e1c0-5997-b6c3-709182f8e137';
 const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
+const OPEN = '[`⌂`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
 const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's, of no kind it names
 const MIN = 60_000, HOUR = 60 * MIN;
@@ -100,15 +101,17 @@ function checkout(root, name, { changed = 0, branch = 'claude/work' } = {}) {
   return { repo, git, commit };
 }
 
-// The caption line, with the event and the instruction under it checked.
+// The caption line, with the event and the instruction under it checked, and
+// the program link and stamp that open every line checked and cut off.
 const caption = (out, event = 'UserPromptSubmit') => {
   const d = JSON.parse(out).hookSpecificOutput;
   assert.equal(d.hookEventName, event);
   const [first, second, ...rest] = d.additionalContext.split('\n');
   assert.equal(second, CLOSE);
   assert.deepEqual(rest, []);
-  assert.ok(first.startsWith(`\`${STAMP}\` `), `the line opens with the stamp: ${first}`);
-  return first.slice(STAMP.length + 3);
+  const head = `${OPEN}\`${STAMP}\` `;
+  assert.ok(first.startsWith(head), `the line opens with the program link joined to the stamp: ${first}`);
+  return first.slice(head.length);
 };
 
 test('the line: the count as the session link, then the context, the clock, the age and the waiting docs', () => {
@@ -117,10 +120,10 @@ test('the line: the count as the session link, then the context, the clock, the 
     checkout(s.root, 'app', { changed: 1 });
     const out = s.run([typed('It is a new day.', ago(26 * HOUR + 30 * MIN)), reply(120_000),
       typed('Ok go ahead.'), reply(815_600)], { prompt: 'What next?' });
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 816𝗄 · 1𝖽 2𝗁`, 'changed files that are not docs show nothing');
+    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) \`816k\` \`1d 2h\``, 'changed files that are not docs show nothing');
     doc(checkout(s.root, 'docs-app'), 'docs/guide.md');
     assert.equal(caption(s.run(null, { prompt: 'And now?' })),
-      `💬[3](${SESSION_PAGE}) · 816𝗄 · 1𝖽 2𝗁 · [✍️1](${SESSION_PAGE})`);
+      `💬[3](${SESSION_PAGE}) \`816k\` \`1d 2h\` [✍️1](${SESSION_PAGE})`);
   } finally { s.done(); }
 });
 
@@ -147,7 +150,7 @@ test('✍️ counts the changed documents still waiting on the owner\'s sign-off
   const s = scratch();
   try {
     const entries = [typed('one'), reply(50_000)];
-    const waiting = (i) => caption(s.run(entries, { prompt: 'p' + i })).split(' · ')[3];
+    const waiting = (i) => caption(s.run(entries, { prompt: 'p' + i })).match(/\[✍️\d+\]\([^)]*\)/)?.[0];
     const app = checkout(s.root, 'app', { changed: 1 });
     doc(app, 'chron/2026/11/entry.md', 'notes/dump/raw.md');
     assert.equal(waiting(0), undefined, 'no docs: changed files that are not documentation show nothing');
@@ -178,7 +181,7 @@ test('✍️ counts an open call on a path the test does not take for documentat
   const s = scratch();
   try {
     const entries = [typed('one'), reply(50_000)];
-    const waiting = (i) => caption(s.run(entries, { prompt: 'q' + i })).split(' · ')[3];
+    const waiting = (i) => caption(s.run(entries, { prompt: 'q' + i })).match(/\[✍️\d+\]\([^)]*\)/)?.[0];
     const app = checkout(s.root, 'app', { changed: 1 });
     doc(app, 'notes/dump/raw.md');
     call(s.root, 'raw-words', { file: 'acme/other@claude/work:notes/dump/raw.md' });
@@ -202,20 +205,20 @@ test('without the archive there is no ✍️', () => {
   const s = scratch({ archive: false });
   try {
     doc(checkout(s.root, 'app'), 'docs/guide.md');
-    assert.match(caption(s.run([typed('one'), reply(50_000)])), / · 5𝗆$/);
+    assert.match(caption(s.run([typed('one'), reply(50_000)])), / `5m`$/);
   } finally { s.done(); }
 });
 
 test('the time since the first owner message: minutes, then hours, then days and hours', () => {
   const s = scratch();
   try {
-    const cases = [[30_000, '0𝗆'], [45 * MIN + 30_000, '45𝗆'], [59 * MIN + 30_000, '59𝗆'],
-      [60 * MIN + 30_000, '1𝗁'], [7 * HOUR + 30 * MIN, '7𝗁'], [23 * HOUR + 59 * MIN + 30_000, '23𝗁'],
-      [24 * HOUR + 30_000, '1𝖽 0𝗁'], [26 * HOUR + 30 * MIN, '1𝖽 2𝗁'], [74 * HOUR + 30 * MIN, '3𝖽 2𝗁']];
+    const cases = [[30_000, '`0m`'], [45 * MIN + 30_000, '`45m`'], [59 * MIN + 30_000, '`59m`'],
+      [60 * MIN + 30_000, '`1h`'], [7 * HOUR + 30 * MIN, '`7h`'], [23 * HOUR + 59 * MIN + 30_000, '`23h`'],
+      [24 * HOUR + 30_000, '`1d 0h`'], [26 * HOUR + 30 * MIN, '`1d 2h`'], [74 * HOUR + 30 * MIN, '`3d 2h`']];
     cases.forEach(([ms, want], i) => {
       const got = caption(s.run([typed('first', ago(ms)), reply(50_000), typed('later', ago(10_000))],
         { session_id: 'case-' + i }));
-      assert.equal(got, `💬[2](${PAGES}session.html#id=case-${i}) · 50𝗄 · ${want}`, `${ms} ms ago`);
+      assert.equal(got, `💬[2](${PAGES}session.html#id=case-${i}) \`50k\` ${want}`, `${ms} ms ago`);
     });
   } finally { s.done(); }
 });
@@ -241,7 +244,7 @@ test('it counts what the owner typed, and a mid-turn message once', () => {
       typed('two'),
       reply(41_000),
     ]);
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) · 41𝗄 · 5𝗆`);
+    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) \`41k\` \`5m\``);
   } finally { s.done(); }
 });
 
@@ -291,36 +294,36 @@ test('a turn the owner did not start names what started it, after the count', ()
       ['<system-reminder>x</system-reminder>', 'wake'],
     ];
     kinds.forEach(([prompt, kind], i) => assert.equal(caption(s.run(entries, { prompt, session_id: 'kind-' + i })),
-      `💬[1](${PAGES}session.html#id=kind-${i}) · ${kind} · 50𝗄 · 5𝗆`, prompt.slice(0, 60)));
+      `💬[1](${PAGES}session.html#id=kind-${i}) ${kind} \`50k\` \`5m\``, prompt.slice(0, 60)));
 
     assert.equal(caption(s.run(entries, { prompt: 'What next?', session_id: 'owner' })),
-      `💬[2](${PAGES}session.html#id=owner) · 50𝗄 · 5𝗆`, 'an owner\'s prompt keeps the line as it was');
-    assert.equal(caption(s.run(entries, { session_id: 'none' })), `💬[1](${PAGES}session.html#id=none) · 50𝗄 · 5𝗆`,
+      `💬[2](${PAGES}session.html#id=owner) \`50k\` \`5m\``, 'an owner\'s prompt keeps the line as it was');
+    assert.equal(caption(s.run(entries, { session_id: 'none' })), `💬[1](${PAGES}session.html#id=none) \`50k\` \`5m\``,
       'no prompt in the payload names no kind');
     const bash = s.run(entries, { hook_event_name: 'PostToolUse', tool_name: 'Bash', session_id: 'bash',
       prompt: queued(`1 unread notification (${GITHUB}: 1)`) });
-    assert.equal(caption(bash, 'PostToolUse'), `💬[1](${PAGES}session.html#id=bash) · 50𝗄 · 5𝗆`, 'nor does a Bash call');
+    assert.equal(caption(bash, 'PostToolUse'), `💬[1](${PAGES}session.html#id=bash) \`50k\` \`5m\``, 'nor does a Bash call');
   } finally { s.done(); }
 });
 
 test('a first prompt, before any transcript, is message one at zero minutes', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${SESSION_PAGE}) · 0𝗆`);
+    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${SESSION_PAGE}) \`0m\``);
   } finally { s.done(); }
 });
 
 test('the context is the last main-conversation response that used any, rounded to the thousand', () => {
   const s = scratch();
   try {
-    const context = (entries, i) => caption(s.run(entries, { session_id: 'case-' + i })).split(' · ')[1];
-    assert.equal(context([typed('one'), reply(350_400)], 0), '350𝗄');
-    assert.equal(context([typed('one'), reply(350_600), reply(900_000, { isSidechain: true })], 1), '351𝗄', 'not a subagent\'s');
+    const context = (entries, i) => caption(s.run(entries, { session_id: 'case-' + i })).match(/`\d+k`/)?.[0];
+    assert.equal(context([typed('one'), reply(350_400)], 0), '`350k`');
+    assert.equal(context([typed('one'), reply(350_600), reply(900_000, { isSidechain: true })], 1), '`351k`', 'not a subagent\'s');
     const notice = line({ type: 'assistant', message: { role: 'assistant', model: '<synthetic>',
       content: [{ type: 'text', text: 'You\'ve reached your limit.' }],
       usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 0 } } });
-    assert.equal(context([typed('one'), reply(350_400), notice], 2), '350𝗄', 'not a notice written in the model\'s place');
-    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${PAGES}session.html#id=case-3) · 5𝗆`,
+    assert.equal(context([typed('one'), reply(350_400), notice], 2), '`350k`', 'not a notice written in the model\'s place');
+    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${PAGES}session.html#id=case-3) \`5m\``,
       'no response yet: the part is left off');
   } finally { s.done(); }
 });
@@ -329,7 +332,7 @@ test('waiting docs are summed over the checkouts under the root, and a zero sum 
   const s = scratch();
   try {
     const entries = [typed('one'), reply(50_000)];
-    const waiting = (payload, env) => caption(s.run(entries, payload, env)).split(' · ')[3];
+    const waiting = (payload, env) => caption(s.run(entries, payload, env)).match(/\[✍️\d+\]\([^)]*\)/)?.[0];
     mkdirSync(path.join(s.root, 'notes'));
     checkout(s.root, 'quiet');
     assert.equal(waiting(), undefined, 'nothing changed: no part and no separator');
@@ -358,7 +361,7 @@ test('with the archive checked out the count links the session page, wherever th
     store(far);
     assert.match(caption(s.run(entries)), /^🌿/, 'and not found unnamed');
     assert.equal(caption(s.run(entries, {}, { SESSIONS_STORE: path.join(far, 'sessions') })),
-      `💬[1](${SESSION_PAGE}) · 50𝗄 · 5𝗆`, 'named by SESSIONS_STORE');
+      `💬[1](${SESSION_PAGE}) \`50k\` \`5m\``, 'named by SESSIONS_STORE');
     store(path.join(s.root, 'private'));
     assert.match(caption(s.run(entries)), /^💬\[1\]\(/, 'a child of the root');
     assert.match(caption(s.run(entries, { cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo })), /^💬\[1\]\(/, 'a sibling of the root');
@@ -372,14 +375,14 @@ test('without the archive the count links the branch page of the current checkou
   const s = scratch({ archive: false });
   try {
     const entries = [typed('one'), reply(50_000)];
-    assert.equal(caption(s.run(entries)), `💬1 · 50𝗄 · 5𝗆`, 'no checkout either: the count stands alone');
+    assert.equal(caption(s.run(entries)), `💬1 \`50k\` \`5m\``, 'no checkout either: the count stands alone');
     const app = checkout(s.root, 'app', { changed: 1 });
     const lib = checkout(s.root, 'lib', { changed: 2, branch: 'claude/busy-bell' });
     assert.equal(caption(s.run(entries)),
-      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) · 50𝗄 · 5𝗆`,
+      `🌿[1](${PAGES}branch.html#gh=acme/lib@claude/busy-bell) \`50k\` \`5m\``,
       'from above the checkouts, the one with the most files changed');
     assert.equal(caption(s.run(entries, { cwd: path.join(app.repo, 'src') })),
-      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) · 50𝗄 · 5𝗆`, 'the one the working directory is in');
+      `🌿[1](${PAGES}branch.html#gh=acme/app@claude/work) \`50k\` \`5m\``, 'the one the working directory is in');
     lib.git('checkout', '-q', '--detach');
     assert.match(caption(s.run(entries)), /^🌿\[1\]\(\S+branch\.html#gh=acme\/lib\) /, 'a detached HEAD names no branch');
   } finally { s.done(); }
@@ -392,7 +395,7 @@ test('after a Bash call it speaks only when the ✍️ count moved, and asks git
     doc(app, 'docs/a.md');
     const bash = (more = {}) => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined, ...more });
     assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })),
-      `💬[2](${SESSION_PAGE}) · 50𝗄 · 5𝗆 · [✍️1](${SESSION_PAGE})`);
+      `💬[2](${SESSION_PAGE}) \`50k\` \`5m\` [✍️1](${SESSION_PAGE})`);
     appendFileSync(s.transcript, typed('two') + '\n' + reply(60_000) + '\n');
     assert.equal(bash(), '', 'nothing moved');
 
@@ -408,11 +411,11 @@ test('after a Bash call it speaks only when the ✍️ count moved, and asks git
     doc(app, 'docs/b.md');
     assert.equal(bash({ agent_id: 'a1' }), '', 'a subagent\'s Bash call is passed over');
     assert.equal(caption(bash(), 'PostToolUse'),
-      `💬[2](${SESSION_PAGE}) · 60𝗄 · 5𝗆 · [✍️2](${SESSION_PAGE})`, 'a commit of a doc moved the count');
+      `💬[2](${SESSION_PAGE}) \`60k\` \`5m\` [✍️2](${SESSION_PAGE})`, 'a commit of a doc moved the count');
     assert.equal(bash(), '', 'said once');
 
     app.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) · 60𝗄 · 5𝗆`, 'main caught up: the part goes');
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) \`60k\` \`5m\``, 'main caught up: the part goes');
     app.git('checkout', '-q', '-b', 'claude/next');
     assert.equal(bash(), '', 'a new branch on the same commit');
   } finally { s.done(); }
@@ -424,7 +427,7 @@ test('a Bash call with no caption printed yet prints one', () => {
     checkout(s.root, 'app', { changed: 1 });
     writeFileSync(s.transcript, [typed('one'), reply(50_000)].join('\n') + '\n');
     const bash = () => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined });
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) · 50𝗄 · 5𝗆`);
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) \`50k\` \`5m\``);
     assert.equal(bash(), '');
   } finally { s.done(); }
 });
@@ -443,7 +446,7 @@ test('the owner count is kept, and a run reads only what was appended since', ()
     appendFileSync(s.transcript, typed('three') + '\n' + reply(9000) + '\n');
     const out = s.run(null);
     assert.equal(count(out), 3);
-    assert.match(caption(out), / · 2𝗁$/, 'the first message\'s time is kept too');
+    assert.match(caption(out), / `2h`$/, 'the first message\'s time is kept too');
 
     // A line still being written is left for the run that finds it whole.
     const half = typed('four');
@@ -471,7 +474,7 @@ test('each session keeps its own state', () => {
 test('anything it was not aimed at passes silently, and it never fails a turn', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${SESSION_PAGE}) · 5𝗆`,
+    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${SESSION_PAGE}) \`5m\``,
       'lines it cannot read are skipped');
     assert.equal(caption(s.run(null, { transcript_path: path.join(s.dir, 'missing.jsonl'), session_id: 'sess-x' })),
       `💬[0](${PAGES}session.html#id=sess-x)`, 'no transcript and nobody typing: the link alone');
@@ -482,14 +485,14 @@ test('anything it was not aimed at passes silently, and it never fails a turn', 
         encoding: 'utf8' }).trim(), '', `silent on ${input.slice(0, 40)}`);
     }
     writeFileSync(path.join(s.dir, 'session-detail-caption', SESSION), 'not json');
-    assert.equal(caption(s.run(null)), `💬[1](${SESSION_PAGE}) · 5𝗆`, 'a state file it cannot read is started again');
+    assert.equal(caption(s.run(null)), `💬[1](${SESSION_PAGE}) \`5m\``, 'a state file it cannot read is started again');
   } finally { s.done(); }
 });
 
 test('the clock: the owner\'s month/day and 12-hour time, or UTC with a Z', () => {
   const s = scratch();
   try {
-    const at = (iso, i, zone = 'America/Los_Angeles') => /^`([^`]+)` /.exec(JSON.parse(s.run([typed('one', ago(5 * MIN))],
+    const at = (iso, i, zone = 'America/Los_Angeles') => /^\[`⌂`\]\([^)]+\)`([^`]+)` /.exec(JSON.parse(s.run([typed('one', ago(5 * MIN))],
       { session_id: 'clock-' + i }, { SESSION_CAPTION_NOW: String(Date.parse(iso) / 1000), OWNER_TZ: zone }))
       .hookSpecificOutput.additionalContext)[1];
     const cases = [['2026-11-14T18:14:00Z', '11/14 10:14am'], ['2026-11-14T23:07:00Z', '11/14 3:07pm'],

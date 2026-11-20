@@ -18,23 +18,50 @@ programs, else the first child or sibling that does. The notes store, and the
 snag list in the same checkout, are found as note.py finds the store.
 
 A measure is a repo-root-relative path or an 'owner/repo[@ref]:path' locator
-into a checkout beside this one, read at origin's ref (main by default). A JSON measure may carry "summary" ({"columns": [...],
-"rows": [[...]]}) and "caveats" ([...]); those are printed, so the program that
-writes a measure decides what its reader sees first.
+into a checkout beside this one, read at origin's ref (main by default). A JSON measure may hold "summary" ({"columns": [...],
+"rows": [[...]]} or a flat {metric: value} object) and "caveats" ([...]); those are printed first.
 """
 import argparse
+import csv
+import io
 import json
 import os
+import posixpath
+import re
 import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "notes"))
 import note  # noqa: E402  (skills/notes/note.py, the notes store's one reader and writer)
 
 
 def git(repo, *args):
-    return subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True)
+    return subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+
+def git_blobs(repo, specs):
+    if not specs:
+        return {}
+    res = subprocess.run(["git", "-C", repo, "cat-file", "--batch"],
+                         input=("\n".join(specs) + "\n").encode("utf-8"), capture_output=True)
+    buf, pos, out = res.stdout, 0, {}
+    for spec in specs:
+        nl = buf.find(b"\n", pos)
+        if nl == -1:
+            break
+        hdr = buf[pos:nl].decode("utf-8", errors="replace")
+        pos = nl + 1
+        if hdr.endswith(" missing"):
+            out[spec] = ""
+            continue
+        size = int(hdr.split()[2])
+        out[spec] = buf[pos:pos + size].decode("utf-8", errors="replace")
+        pos += size + 1
+    return out
 
 
 def declared(repo):
@@ -98,7 +125,6 @@ def generator_written(repo, governs):
     """The governed files a generator writes whole: registries whose every
     column is `computed` in docs/properties.csv (docs/registries.md). A commit
     to one records another file's change, so it is no change to the program."""
-    import csv, io
     def rows(path):
         return list(csv.DictReader(io.StringIO(git(repo, "show", f"origin/main:{path}").stdout)))
     modes = {}
@@ -106,6 +132,72 @@ def generator_written(repo, governs):
         modes.setdefault(r.get("registry"), set()).add(r.get("mode"))
     paths = {r.get("path") for r in rows("docs/registries.csv") if modes.get(r.get("id")) == {"computed"}}
     return [g for g in governs if g in paths]
+
+
+def target_matcher(me, paths):
+    """Compiled regex matching repo-relative governed paths (or me:path), while
+    ignoring URL path segments, other repos' locators, and sibling prefixes."""
+    alts = []
+    for p in paths:
+        if not p:
+            continue
+        if p.endswith("/"):
+            stem = p.rstrip("/")
+            if "/" in stem:
+                alts.append(re.escape(stem) + r"(?:/|(?![A-Za-z0-9_.-]))")
+            else:
+                alts.append(re.escape(p))
+        else:
+            alts.append(re.escape(p) + r"(?![A-Za-z0-9_.-])")
+    if not alts:
+        return None
+    prefix = rf"(?:(?<![A-Za-z0-9_./:-])|(?<=\.\./)|(?<={re.escape(me)}:))"
+    return re.compile(prefix + "(?:" + "|".join(alts) + ")")
+
+
+def open_program_tasks(repo, me, prog, governs, charter_path):
+    tracker = ""
+    try:
+        with open(os.path.join(repo, ".web-tools.json"), encoding="utf-8") as fh:
+            tracker = json.load(fh).get("tracker") or ""
+    except (OSError, ValueError):
+        pass
+    if not tracker.endswith(".md"):
+        return []
+    stem = tracker.removesuffix(".md")
+    tdir = posixpath.dirname(tracker)
+    blobs = git_blobs(repo, [f"origin/main:{stem}.csv", f"origin/main:{stem}-tags.csv"])
+    board = blobs.get(f"origin/main:{stem}.csv") or ""
+    if not board:
+        return []
+    prog_names = {prog["name"]} | {old.rstrip("/").split("/")[-1] for old in prog.get("formerly") or [] if old.strip("/")}
+    tagged = set()
+    for tr in csv.DictReader(io.StringIO(blobs.get(f"origin/main:{stem}-tags.csv") or "")):
+        if (tr.get("tag") or "").strip() in ("program", "programs"):
+            vals = {v for v in re.split(r"[,\s;]+", (tr.get("value") or "").strip()) if v}
+            if vals & prog_names and tr.get("task"):
+                tagged.add(tr["task"])
+    candidates = [r for r in csv.DictReader(io.StringIO(board)) if r.get("status") not in ("done", "dormant")]
+    rx = target_matcher(me, [charter_path, *(f"{old.rstrip('/')}/README.md" for old in prog.get("formerly") or []), *governs])
+    need_body = []
+    for r in candidates:
+        if (r.get("project") or "").strip() in prog_names or r.get("id") in tagged:
+            continue
+        href = (r.get("href") or "").strip()
+        if rx and href:
+            rel = posixpath.normpath(posixpath.join(tdir, href)) if tdir else posixpath.normpath(href)
+            need_body.append((r["id"], f"origin/main:{rel}"))
+    task_blobs = git_blobs(repo, [spec for _, spec in need_body]) if need_body else {}
+    body_by_id = {tid: task_blobs.get(spec, "") for tid, spec in need_body}
+    matched = []
+    for r in candidates:
+        if (r.get("project") or "").strip() in prog_names or r.get("id") in tagged:
+            matched.append(r)
+        elif rx:
+            haystack = "\n".join([r.get("title") or "", r.get("awaiting") or "", body_by_id.get(r.get("id"), "")])
+            if rx.search(haystack):
+                matched.append(r)
+    return matched
 
 
 def table(columns, rows):
@@ -194,25 +286,20 @@ def report(repo, prog, since):
         except ValueError:
             print(f"- `{m}`: present, not JSON\n")
             continue
-        print(f"### `{m}`" + (f" (generated {data['generated']})" if data.get("generated") else "") + "\n")
+        stamp = f"generated {data['generated']}" if data.get("generated") else (
+            f"checked {data['checked_at']}" if data.get("checked_at") else "")
+        print(f"### `{m}`" + (f" ({stamp})" if stamp else "") + "\n")
         s = data.get("summary") or {}
-        if s.get("columns") and s.get("rows"):
+        if isinstance(s, dict) and s.get("columns") and s.get("rows"):
             print(table(s["columns"], s["rows"]) + "\n")
+        elif isinstance(s, dict) and s and all(not isinstance(v, (dict, list)) for v in s.values()):
+            print(table(list(s.keys()), [list(s.values())]) + "\n")
         for c in data.get("caveats") or []:
             print(f"- {c}")
         print()
 
     print("## Open tasks\n")
-    tracker = ""
-    try:
-        with open(os.path.join(repo, ".web-tools.json"), encoding="utf-8") as fh:
-            tracker = json.load(fh).get("tracker") or ""
-    except (OSError, ValueError):
-        pass
-    board = git(repo, "show", "origin/main:" + tracker.removesuffix(".md") + ".csv").stdout if tracker.endswith(".md") else ""
-    import csv, io
-    open_rows = [r for r in csv.DictReader(io.StringIO(board))
-                 if r.get("project") == prog["name"] and r.get("status") not in ("done", "dormant")]
+    open_rows = open_program_tasks(repo, me, prog, governs, charter_path)
     print(table(["id", "status", "awaiting", "title"],
                 [[r["id"], r["status"], r.get("awaiting", ""), r["title"]] for r in open_rows]) if open_rows else "None.")
 

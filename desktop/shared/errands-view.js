@@ -32,6 +32,26 @@
   let root, snapshot=null, connected=false, denied=false, pending=false, timer, etag='', signature='', active=false;
   let provider='', tab='waiting', query='', selected='', menuId='', menuVersion=0, resultVersion=0, promptText='';
   const reports=new Map(), requests=new Map();
+  function routeFacets() {
+    const params=new URLSearchParams(location.hash.slice(1));
+    // Qualified links replace the overview filters; a plain route preserves them.
+    if(params.get('view')!=='errands'||!['provider','tab','q'].some(key=>params.has(key)))return null;
+    const picked=providers.find(value=>value.toLowerCase()===(params.get('provider')||'').toLowerCase());
+    const requestedTab=params.get('tab'),requestedQuery=params.get('q')||'';
+    return {provider:picked||'',tab:['waiting','taken','results'].includes(requestedTab)?requestedTab:'waiting',query:requestedQuery.length<=200?requestedQuery:''};
+  }
+  function applyRoute() {
+    const facets=routeFacets();if(!facets)return false;
+    provider=facets.provider;tab=facets.tab;query=facets.query;
+    closeDetail();closeMenu();render();return true;
+  }
+  function stampRoute() {
+    const params=new URLSearchParams(location.hash.slice(1));if(params.get('view')!=='errands')return;
+    params.delete('provider');params.delete('tab');params.delete('q');
+    if(provider)params.set('provider',provider.toLowerCase());
+    params.set('tab',tab);if(query)params.set('q',query);
+    const hash='#'+params.toString();if(hash!==location.hash)history.replaceState(history.state,'',hash);
+  }
   const items = () => (snapshot?.items || []).filter(valid);
   const find = id => items().find(item=>item.id===id);
   const canHandoff = item => valid(item) && item.state==='queued' && ['Codex','Claude'].includes(item.provider);
@@ -186,8 +206,8 @@ If the errand can be taken on, use the normal claim and result workflow. Return 
   }
   document.addEventListener('click',async event=>{
     const button=event.target.closest('button');
-    if(button?.hasAttribute('data-er-provider')){provider=provider===button.dataset.erProvider?'':button.dataset.erProvider;closeDetail();closeMenu();render();return;}
-    if(button?.dataset.erTab){tab=button.dataset.erTab;query='';closeDetail();closeMenu();render();return;}
+    if(button?.hasAttribute('data-er-provider')){provider=provider===button.dataset.erProvider?'':button.dataset.erProvider;closeDetail();closeMenu();stampRoute();render();return;}
+    if(button?.dataset.erTab){tab=button.dataset.erTab;query='';closeDetail();closeMenu();stampRoute();render();return;}
     if(button?.dataset.erMenu){showMenu(button.dataset.erMenu);return;}
     if(button?.dataset.erPick){const id=button.dataset.erPick;closeMenu();if(selected===id)closeDetail();else showDetail(id);return;}
     if(button?.dataset.erHandoff){
@@ -203,7 +223,7 @@ If the errand can be taken on, use the normal claim and result workflow. Return 
     if(!event.target.closest('.erl-menu'))closeMenu();
     if(!event.target.closest('.erl-panel'))closeDetail();
   });
-  document.addEventListener('input',event=>{if(event.target.hasAttribute('data-er-search')){query=event.target.value;render();}});
+  document.addEventListener('input',event=>{if(event.target.hasAttribute('data-er-search')){query=event.target.value.slice(0,200);stampRoute();render();}});
   document.addEventListener('keydown',event=>{
     if(event.key==='Escape'){if(!menu.hidden){closeMenu(true);event.preventDefault();}else if(!panel.hidden){closeDetail(true);event.preventDefault();}}
     const target=event.target.closest('[data-er-tab]');
@@ -218,12 +238,15 @@ If the errand can be taken on, use the normal claim and result workflow. Return 
   });
   document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else refresh();});
   window.addEventListener('online',refresh);
+  window.addEventListener('hashchange',applyRoute);
+  window.addEventListener('popstate',applyRoute);
+  window.addEventListener('nowviewchange',()=>{if(window.NowViews?.current?.()==='errands')applyRoute();});
   window.addEventListener('resize',()=>{if(menuId)place(menu,root?.querySelector(`[data-er-menu="${menuId}"]`));if(selected)place(panel,root?.querySelector(`[data-er-pick="${selected}"]`));});
   window.NowErrands={
-    mount:node=>{root=node;root.classList.add('erl');render();refresh();},
-    setActive:value=>{active=value;if(!value){closeDetail();closeMenu();}else refresh();},
+    mount:node=>{root=node;root.classList.add('erl');if(!applyRoute())render();refresh();},
+    setActive:value=>{active=value;if(!value){closeDetail();closeMenu();}else{applyRoute();refresh();}},
     refresh,
     connection:()=>{const node=document.getElementById('connection');if(node)node.textContent=available()?(stale()?'Saved queue':'Laptop live'):'Queue unavailable';},
-    state:()=>({tab,provider,counts:counts(items()),connected,available:available(),fresh:available()&&!stale(),syncedAt:snapshot?.syncedAt})
+    state:()=>({tab,provider,query,counts:counts(items()),connected,available:available(),fresh:available()&&!stale(),syncedAt:snapshot?.syncedAt})
   };
 })();

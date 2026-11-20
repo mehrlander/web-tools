@@ -235,4 +235,80 @@ denied=true;await w.NowErrands.refresh();
 check(doc.querySelector('.erl-notice').textContent==='Access unavailable'&&!w.NowErrands.state().available,'An owner-access denial clears private observations.');
 click('[data-view=now]');check(doc.querySelector('#panel-errands').inert&&doc.querySelector('.erl-panel').hidden,'Leaving Errands closes its transient panels.');
 check(networkRequests.every(request=>request.method==='GET'),'Queue navigation, handoffs and report reading make no network mutations.');
+async function routeFixture(hash){
+  const frame=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/'+hash,runScripts:'outside-only',pretendToBeVisual:true});
+  const win=frame.window,document=win.document;
+  const data={schemaVersion:1,observedAt:now,syncedAt:now,queueAvailable:true,recordsConnected:true,items:[
+    job('gemini-wait','Gemini','queued',1),{...job('codex-wait','Codex','queued',2),title:'Budget review'},job('claude-done','Claude','complete'),
+    {...job('codex-done','Codex','complete'),title:'Budget result'}]};
+  win.scrollTo=()=>{};win.AbortController=AbortController;
+  win.fetch=async path=>({ok:true,status:200,headers:{get:()=>''},json:async()=>path.startsWith('/api/v1/results/')?{reply:'Saved result'}:structuredClone(data)});
+  for(const path of ['../shared/now-shared.js','../../node_modules/marked/lib/marked.umd.js','../../node_modules/dompurify/dist/purify.min.js','../phone/reading.js','../shared/errands-view.js','../phone/views.js'])win.eval(read(path));
+  await flush();
+  const press=selector=>{const node=document.querySelector(selector);assert.ok(node,selector);node.click();};
+  const search=value=>{const input=document.querySelector('[data-er-search]');input.value=value;input.dispatchEvent(new win.Event('input',{bubbles:true}));};
+  const enter=hash=>{win.history.pushState(null,'',hash);win.NowViews.setView('errands',false);};
+  const visible=()=>[...document.querySelectorAll('[data-er-row]')].map(node=>node.dataset.erRow);
+  return {frame,win,document,press,search,enter,visible};
+}
+const destination='#view=errands&provider=gemini&tab=waiting';
+const cold=await routeFixture(destination);
+try{
+  check(cold.win.NowViews.current()==='errands'&&cold.win.NowErrands.state().provider==='Gemini'&&cold.win.NowErrands.state().tab==='waiting'
+    &&cold.visible().join(',')==='gemini-wait'&&cold.document.querySelector('[data-er-provider=Gemini]').getAttribute('aria-pressed')==='true',
+    'A cold notice URL selects Gemini Waiting directly, without a provider-toggle gesture.');
+  const length=cold.win.history.length;cold.win.NowViews.setView('errands',false);cold.win.NowErrands.setActive(true);await flush();
+  check(cold.win.NowErrands.state().provider==='Gemini'&&cold.visible().join(',')==='gemini-wait'&&cold.win.history.length===length,
+    'Repeated qualified entry remains idempotent and creates no extra history steps.');
+}finally{await flush();cold.frame.window.close();}
+
+const routed=await routeFixture('#view=now');
+try{
+  const {win,document,press,search,enter,visible}=routed;
+  win.NowViews.scrollTo(133);enter(destination);const entryLength=win.history.length;
+  win.history.back();await new Promise(resolve=>setTimeout(resolve,25));
+  check(win.NowViews.current()==='now'&&win.location.hash==='#view=now'&&win.NowViews.scrollPosition()===133,
+    'A qualified queue link returns to the originating Now panel in one Back step with its scroll retained.');
+  win.history.forward();await new Promise(resolve=>setTimeout(resolve,25));
+  check(win.NowViews.current()==='errands'&&win.NowErrands.state().provider==='Gemini'&&visible().join(',')==='gemini-wait',
+    'Forward reapplies the qualified Gemini Waiting route.');
+  press('[data-er-provider=Gemini]');press('[data-er-provider=Claude]');press('[data-er-tab=results]');search('done');
+  press('[data-er-pick=claude-done]');await flush();
+  check(!document.querySelector('.erl-panel').hidden,'The route regression starts with a real selected result and stale facets.');
+  enter(destination);
+  check(win.NowErrands.state().provider==='Gemini'&&win.NowErrands.state().tab==='waiting'&&win.NowErrands.state().query===''
+    &&visible().join(',')==='gemini-wait'&&document.querySelector('.erl-panel').hidden&&document.querySelector('.erl-menu').hidden,
+    'Notice entry clears an old provider, Results tab, search and selected result before showing Gemini Waiting.');
+  press('[data-er-menu=gemini-wait]');win.NowErrands.setActive(true);await flush();
+  check(document.querySelector('.erl-menu').hidden&&win.NowErrands.state().provider==='Gemini',
+    'Reactivating an explicit route clears a stale action menu without toggling its provider off.');
+  const beforeControls=win.history.length;press('[data-er-provider=Gemini]');press('[data-er-provider=Codex]');press('[data-er-tab=results]');search('budget');
+  let params=new URLSearchParams(win.location.hash.slice(1));
+  check(win.history.length===beforeControls&&params.get('provider')==='codex'&&params.get('tab')==='results'&&params.get('q')==='budget'
+    &&visible().join(',')==='codex-done',
+    'Overview controls replace their route facets without adding Back steps or leaving the banner’s old selection in the URL.');
+  win.history.back();await new Promise(resolve=>setTimeout(resolve,25));
+  win.history.forward();await new Promise(resolve=>setTimeout(resolve,25));
+  check(win.NowErrands.state().provider==='Codex'&&win.NowErrands.state().tab==='results'&&win.NowErrands.state().query==='budget'
+    &&visible().join(',')==='codex-done',
+    'Forward restores the overview’s edited facets rather than the original banner selection.');
+  win.history.replaceState(null,'','#view=errands');win.NowErrands.setActive(true);await flush();
+  check(win.NowErrands.state().provider==='Codex'&&win.NowErrands.state().query==='budget',
+    'An unqualified Errands route preserves the existing filter state.');
+  enter('#view=errands&provider=unknown&tab=bogus&q='+('x'.repeat(201)));
+  check(win.NowErrands.state().provider===''&&win.NowErrands.state().tab==='waiting'&&win.NowErrands.state().query===''
+    &&visible().length===2,
+    'Invalid explicit facets safely fall back to all providers, Waiting and empty search.');
+  enter('#view=errands&provider=CODEX&tab=results&q=budget');
+  check(win.NowErrands.state().provider==='Codex'&&win.NowErrands.state().query==='budget'&&visible().join(',')==='codex-done',
+    'Validated provider values normalize to canonical labels and a bounded query is applied.');
+  search('z'.repeat(201));params=new URLSearchParams(win.location.hash.slice(1));
+  check(win.NowErrands.state().query.length===200&&params.get('q').length===200,'Search controls keep stamped queries within the same 200-character route bound.');
+  win.location.hash=destination;await new Promise(resolve=>setTimeout(resolve,25));
+  check(win.NowErrands.state().provider==='Gemini'&&win.NowErrands.state().tab==='waiting'&&win.NowErrands.state().query===''
+    &&visible().join(',')==='gemini-wait',
+    'A native hash navigation reapplies explicit facets while the Errands view is already selected.');
+  check(entryLength===2,'The notice destination uses one route entry from the original Now view.');
+}finally{await flush();routed.frame.window.close();}
+
 dom.window.close();console.log(`${checks} focused errand checks passed.`);

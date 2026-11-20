@@ -93,6 +93,16 @@
   ],
   "research": [
     {
+      "path": "research/2026-11-20-caption-marker.md",
+      "label": "Caption marker: how the session detail caption links the Sessions program",
+      "kind": "probe"
+    },
+    {
+      "path": "research/quality-control-lineage/README.md",
+      "label": "Statistical quality control: two proposed probes of the preference flagger",
+      "kind": "probe"
+    },
+    {
       "path": "research/2026-11-16-tooltip-sources/README.md",
       "label": "Where tooltip text comes from, and what git says about who wrote it",
       "kind": "probe"
@@ -273,7 +283,8 @@
         "docs/TRACKER.md"
       ],
       "measures": [
-        "mehrlander/web-tools-private@background:state/landings.json"
+        "mehrlander/web-tools-private@background:state/landings.json",
+        "mehrlander/web-tools-private@background:state/vendored.json"
       ],
       "reviewers": [
         "portable:owner-proxy",
