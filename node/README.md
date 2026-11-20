@@ -258,11 +258,12 @@ Every derived artifact in the repo is refreshed one of two ways, split on one
 property: whether its generator is **deterministic**.
 
 **Deterministic artifacts ride in the commit that changes their source.** The
-commit-time hook ([`.githooks/pre-commit`](../.githooks/pre-commit), a git hook
-rather than a Claude Code hook, so it fires whatever the session's project root
-is) runs before every `git commit` and regenerates + stages whatever the pending
-changes touch, in this order (the full list, warn-only legs included, is the
-hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-legs.csv)):
+commit hook, [`.githooks/pre-commit`](../.githooks/pre-commit), runs before
+every `git commit`. As a git hook rather than a Claude Code hook, it runs
+whatever the session's project root is. It regenerates and stages the files that
+the pending changes touch. The hook's source calls each of its steps a leg.
+[`docs/hook-legs.csv`](../docs/hook-legs.csv) lists every leg, including those
+that only warn. The table shows the generators in the order the hook runs them:
 
 | Source dirty | Generator | Staged into the same commit |
 |---|---|---|
@@ -288,21 +289,22 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 
 Most of these files are generated whole. Four are not. `docs/docs.csv`, `docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are hand-edited except for the fields or rows a generator writes. Edit a row freely and leave those fields alone.
 
-`docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
-the registry and is also a row in it, so the hook runs `docs-reach` a second
-time after `docs-readme`. One more stamp settles it.
+`docs-readme` and `docs-reach` depend on each other. `docs-readme` generates
+`docs/README.md` from `docs/docs.csv`. `docs/README.md` is also a row in
+`docs/docs.csv`. The hook runs `docs-reach` a second time, after `docs-readme`,
+to count the new README.
 
-**Leg order.** `docs-reach` records the word count of every file under `docs/`
-in the `words` column of `docs/docs.csv`. Apart from `docs-readme`, place every
-leg that writes a file under `docs/` above `docs-reach`. A writing leg placed
-below `docs-reach` leaves a stale count for the file it writes. A leg that only
-reads can run in any position. The hook does not check the counts. A wrong count
-fails `docs-registry.test.mjs` in CI, after the push.
+**Where a new generator goes.** `docs-reach` records the word count of every
+file under `docs/` in the `words` column of `docs/docs.csv`. Apart from
+`docs-readme`, place every generator that writes a file under `docs/` before
+`docs-reach` in the hook. A generator placed after `docs-reach` leaves a stale
+count for the file it writes. A generator that only reads can run in any
+position. The hook does not check the counts. A wrong count fails
+`docs-registry.test.mjs` in CI, after the push.
 
-**And a leg has to stage the file it actually writes.** Every `git add` in the
-hook goes through a `stage()` helper that reports a path that is not there,
-because `git add X 2>/dev/null || true` cannot tell "nothing to stage" from
-"renamed," and the second is the one worth hearing about.
+**Staging.** The hook stages each file through a `stage()` helper. The helper
+reports a path that does not exist. A plain `git add X 2>/dev/null || true` does
+not report it. A missing path can mean that a generator renamed its output.
 
 Every generator is byte-deterministic, so the hook can fire on every commit and
 no-op invisibly when nothing real changed. It's non-blocking: a generator failure
