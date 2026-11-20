@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""user-call.py: writes, closes and reads user calls. The format is in
-SKILL.md beside this script.
+"""user-call.py: writes, closes and reads user calls. The format is web-tools
+docs/envelopes/user-call.md; SKILL.md beside this script says how to run it.
 
     user-call.py add < call.json [--store D]              write (validates, stamps)
     user-call.py close <id> <answer> [note] [--store D]   mark it decided
@@ -20,24 +20,11 @@ SKILL.md beside this script.
     user-call.py review DRAFT --note TEXT                 one line on the latest run: what the session did about it
 
 A documentation call's `review` is the peeves critic's runs on its document, in
-order, so the owner sees what the critic found and how the wording moved in
-answer. Each run is {verdict, edits, trips, clear, candidates, preexisting,
-changes, reflow, note, report}. edits are the spans the critic was given, each
-{lines, edit}: its first and last line in the text the run read, and the call's
-edit it is (null for one the call no longer carries). verdict is pass (no trip
-inside an edit), fail or unknown (a report in neither of the critic's forms).
-Each trip is {peeve, edit, where, quote, clause, answer, why, misquoted}: edit
-is the run's span the critic tagged it with, 1 for E1 and 0 for E-, a trip
-outside every edit, which needs no answer; answer is `changed` or `kept` with
-why; misquoted is true when the quote is not in the text the run read. changes
-are {from, to, answers}, the text the session changed after the run, before the
-next one, and the trips of the run each change answers; reflow counts the
-blocks that changed only in their line wrapping, which are not changes. report
-is the critic's text as it came back, which every trip's id, tag and quote are
-checked against. `review` refreshes the draft's edits from FILE against its
-`base` (or --base REF), parses the report, keeps the document's text in the
-draft, and on the next run works out the changes from it and marks the trips
-inside an edit still unanswered as changed. `add` refuses a call whose edits
+order; the contract's Review section states what a run and a trip hold. `review`
+refreshes the draft's edits from FILE against its `base` (or --base REF), parses
+the report, keeps the document's text in the draft, and on the next run works
+out the changes from it and marks the trips inside an edit still unanswered as
+changed. `add` refuses a call whose edits
 the critic's last run did not read, or with a trip left unanswered, maps each
 run's spans onto the call's edits, and drops the kept texts.
 
