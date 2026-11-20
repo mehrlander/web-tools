@@ -10,6 +10,23 @@ SKILL.md beside this script.
     user-call.py edits --base REF FILE                    the same, from FILE against its text at REF
     user-call.py link <id> [--store D] [--at REPO@REF]    the address of the call's page, where it is answered
     user-call.py patch <id> [--store D]                   the latest answer's recorded patch, for git apply
+    user-call.py review DRAFT FILE [REPORT]               a peeves-critic run on FILE, added to a documentation
+                                                          call's draft; REPORT is the critic's text (default stdin)
+    user-call.py review DRAFT --kept [RUN.]N WHY          trip N of the latest run (or of RUN) set aside, and why
+    user-call.py review DRAFT --note TEXT                 one line on the latest run: what the session did about it
+
+A documentation call's `review` is the peeves critic's runs on its document, in
+order, so the owner sees what the critic found and how the wording moved in
+answer. Each run is {verdict, trips, clear, candidates, preexisting, changes,
+note, report}: verdict is pass (no trips), fail or unknown (a report in neither
+of the critic's forms); each trip is {peeve, where, quote, clause, answer, why},
+answered `changed` or `kept` with why; changes are {from, to}, the text the
+session changed after the run, before the next one; report is the critic's text
+as it came back, which every trip's id and quote are checked against. `review`
+parses the report, keeps the document's text in the draft, and on the next run
+works out the changes from it and marks the trips still unanswered as changed;
+`add` refuses a call whose edits the critic's last run did not read, or with a
+trip left unanswered, and drops the kept texts.
 
 The store is found the way the notes skill's note.py finds its own: a checkout
 whose .web-tools.json on origin/main declares "user-calls" (a path relative to
@@ -54,6 +71,11 @@ CHAIN_REF = r"[^/\s]+/[^@:\s]+@[^:\s]+:[^\s#]+"
 # `recorded`, for work that writes something down and alters no behaviour.
 CHANGES = {"added": {"new"}, "changed": {"old", "new"}, "fixed": {"old", "new"},
            "removed": {"old"}, "recorded": {"new"}}
+
+# A peeves-critic run's verdict, and how the session answered each trip in it.
+VERDICTS = {"pass", "fail", "unknown"}
+TRIP_ANSWERS = {"changed", "kept"}
+PEEVE = r"P\d{2,3}"
 
 
 def stamp():
@@ -140,6 +162,8 @@ def check(c):
                 errs += notes(e.get("notes"), f"edits[{i}]")
         if c.get("options"):
             errs.append("a documentation call has no options: each edit is answered on its card")
+        if "review" in c:
+            errs += review_errors(c["review"])
     elif c.get("kind") == "pick":
         q, brief = (str(c.get(k) or "").strip() for k in ("question", "brief"))
         if not q or len(q) > 80:
@@ -180,6 +204,8 @@ def check(c):
                 errs.append("options are 2 to 4 plain answers, 20 characters each, with no explanation attached")
             if c.get("recommend") and c["recommend"] not in opts:
                 errs.append("recommend must be one of the options")
+    if "review" in c and c.get("kind") != "documentation":
+        errs.append("review is the peeves critic's runs on a documentation call's document")
     if c.get("pr") and not re.fullmatch(r"[^/\s]+/[^#\s]+#\d+", c["pr"]):
         errs.append("pr must read owner/repo#n")
     for l in c.get("materials") or []:
@@ -252,6 +278,283 @@ def shape(c):
                 if not isinstance(x, str) or not any(re.fullmatch(r, x) for r in (PR_REF, CALL_ID, TASK_REF)):
                     errs.append(f"depends_on {x!r} is a PR (owner/repo#n), a call id or a task path")
     return errs
+
+
+def flat(s):
+    return " ".join(str(s or "").split())
+
+
+def review_errors(r):
+    """A documentation call's review: the peeves critic's runs, each checked
+    against the report it was parsed from."""
+    if not isinstance(r, dict) or not isinstance(r.get("runs"), list) or not 1 <= len(r["runs"]) <= 30:
+        return ["review is {runs: [...]}, 1 to 30 critic runs in order"]
+    errs, runs = [], r["runs"]
+    for i, run in enumerate(runs):
+        at = f"review.runs[{i}]"
+        if not isinstance(run, dict):
+            errs.append(f"{at} is a run"); continue
+        v, report, trips = run.get("verdict"), run.get("report"), run.get("trips") or []
+        if v not in VERDICTS:
+            errs.append(f"{at}.verdict is one of {sorted(VERDICTS)}")
+        if not isinstance(report, str) or not report.strip() or len(report) > 20000:
+            errs.append(f"{at}.report is the critic's text as it came back, 20000 characters at most"); continue
+        if not isinstance(trips, list) or (v == "fail") != bool(trips):
+            errs.append(f"{at}: a failed run has trips, and a passed or unknown one none")
+            trips = trips if isinstance(trips, list) else []
+        changes = run.get("changes") or []
+        if not isinstance(changes, list) or len(changes) > 40 or not all(
+                isinstance(x, dict) and isinstance(x.get("from"), str) and isinstance(x.get("to"), str)
+                and x["from"] != x["to"] for x in changes):
+            errs.append(f"{at}.changes are up to 40 {{from, to}} pairs, each a change")
+            changes = []
+        if changes and i == len(runs) - 1:
+            errs.append(f"{at} has changes after it: run the critic again on the text as filed")
+        if len(str(run.get("note") or "")) > 200:
+            errs.append(f"{at}.note is one line, 200 characters at most")
+        for j, t in enumerate(trips):
+            tat = f"{at}.trips[{j}]"
+            if not isinstance(t, dict) or not re.fullmatch(PEEVE, str(t.get("peeve") or "")):
+                errs.append(f"{tat} names its peeve, as P05"); continue
+            if t["peeve"] not in report:
+                errs.append(f"{tat}: {t['peeve']} is not in the run's report")
+            if t.get("quote") and flat(t["quote"]) not in flat(report):
+                errs.append(f"{tat}: its quote is not in the run's report")
+            if any(len(str(t.get(k) or "")) > n for k, n in (("where", 300), ("quote", 1000), ("clause", 600))):
+                errs.append(f"{tat}: where, quote and clause are 300, 1000 and 600 characters at most")
+            a = t.get("answer")
+            if a not in TRIP_ANSWERS:
+                errs.append(f"{tat} ({t['peeve']}) has no answer: changed, or kept with why "
+                            f"(user-call.py review DRAFT --kept {i + 1}.{j + 1} WHY)")
+            elif a == "kept" and not 0 < len(str(t.get("why") or "").strip()) <= 200:
+                errs.append(f"{tat} is kept, so it says why in one line, 200 characters at most")
+            elif a == "changed" and not changes:
+                errs.append(f"{tat} is answered changed, but nothing changed after run {i + 1}")
+        for k in ("clear",):
+            if not isinstance(run.get(k, []), list) or not all(re.fullmatch(PEEVE, str(x)) for x in run.get(k) or []):
+                errs.append(f"{at}.clear is a list of peeve ids")
+        cands = run.get("candidates") or []
+        if not isinstance(cands, list) or len(cands) > 10 or not all(isinstance(x, str) and 0 < len(x) <= 800 for x in cands):
+            errs.append(f"{at}.candidates are up to 10 proposals, 800 characters each")
+        pre = run.get("preexisting") or []
+        if not isinstance(pre, list) or not all(isinstance(x, dict) and re.fullmatch(PEEVE, str(x.get("peeve") or "")) for x in pre):
+            errs.append(f"{at}.preexisting are {{peeve, text}}, trips the critic found in text the edits leave alone")
+        if run.get("text") is not None and not isinstance(run["text"], str):
+            errs.append(f"{at}.text is the document as the critic read it")
+    return errs
+
+
+# A section of a critic's report: its heading on a line of its own, bold or a
+# Markdown heading or followed by a colon, with whatever follows on that line.
+SECTION = re.compile(r"^\s*(?:#{1,6}\s*)?(\*\*|__)?\s*(Trips|Clear|Candidates|Pre-?existing)\b\s*(:)?\s*(\*\*|__)?\s*:?\s*(.*)$", re.I)
+BULLET = re.compile(r"^\s*(?:[-*+•]|\d+[.)])\s+")
+VERDICT_LINE = re.compile(r"^\s*\**\s*VERDICT\s*\**\s*:\s*\**\s*(PASS|FAIL)\b", re.I)
+
+
+def sections(text):
+    """{name: [lines]} for each section the report heads, and the stated verdict."""
+    out, cur, stated = {}, None, None
+    for line in text.splitlines():
+        # A session's detail caption, which a headless run appends after its
+        # last section: a stamp in code, then the record's mark.
+        if re.match(r"^\s*`[^`]+`\s*💬", line):
+            continue
+        m = SECTION.match(line)
+        if m and (m.group(1) or m.group(3) or line.lstrip().startswith("#") or not m.group(5)
+                  or m.group(5).startswith("(")):
+            cur = m.group(2).lower().replace("-", "")
+            out.setdefault(cur, [])
+            rest = m.group(5).strip()
+            if rest and not rest.startswith("("):
+                out[cur].append(rest)
+            continue
+        v = VERDICT_LINE.match(line)
+        if v:
+            stated, cur = v.group(1).lower(), None
+            continue
+        if cur:
+            out[cur].append(line)
+    return out, stated
+
+
+def first_paragraph(lines):
+    out = []
+    for line in lines:
+        if line.strip():
+            out.append(line)
+        elif out:
+            break
+    return out
+
+
+def ids(text):
+    return list(dict.fromkeys(re.findall(r"\b" + PEEVE + r"\b", text)))
+
+
+def trip_of(line):
+    """`P<id> · <where> · "<quote>" · <one clause>`, the critic's own form, or None."""
+    s = BULLET.sub("", line, count=1).strip()
+    m = re.match(r"\**(" + PEEVE + r")\**\s*·\s*(.*)$", s)
+    if not m:
+        return None
+    parts = [p.strip() for p in m.group(2).split(" · ")]
+    where = parts[0] if parts else ""
+    rest = parts[1:]
+    q = next((k for k, p in enumerate(rest) if p[:1] in "\"“'‘"), None)
+    quote, clause = "", " · ".join(rest)
+    if q is not None:
+        quote = rest[q]
+        if len(quote) > 1 and quote[0] in "\"“" and quote[-1] in "\"”" and quote.count('"') <= 2:
+            quote = quote[1:-1]
+        clause = " · ".join(rest[q + 1:])
+        where = " · ".join([where, *rest[:q]])
+    return {"peeve": m.group(1), "where": where, "quote": quote, "clause": clause}
+
+
+def items(lines):
+    """A section's bulleted items, each with its continuation lines; prose with
+    no bullets is one item. A section that says only None has none."""
+    out = []
+    for line in lines:
+        if not line.strip():
+            continue
+        if BULLET.match(line) or not out:
+            out.append(BULLET.sub("", line, count=1).strip())
+        else:
+            out[-1] += " " + line.strip()
+    return [x for x in out if not re.fullmatch(r"none\b.*", x, re.I)]
+
+
+def parse_report(text):
+    """One critic run from its report: the verdict, trips, clear ids, candidates
+    and trips outside the edit. A report in neither of the critic's forms is
+    kept whole with the verdict unknown."""
+    text = str(text or "").replace("\r\n", "\n").strip()
+    secs, stated = sections(text)
+    run = {"verdict": "unknown", "trips": [], "clear": [], "candidates": [], "preexisting": [], "report": text}
+    if "trips" not in secs:
+        return run
+    trips, prose = [], []
+    for line in secs["trips"]:
+        t = trip_of(line) if line.strip() else None
+        if t:
+            trips.append(t)
+        elif line.strip():
+            prose.append(line)
+    said_none = any(re.match(r"\s*\**none\b", x, re.I) for x in prose)
+    if trips:
+        run["verdict"] = "fail"
+    elif said_none or not ids(" ".join(prose)):
+        # Trips the critic wrote in some other shape read as no trips here, so
+        # a section naming peeves without saying None is not taken as a pass.
+        run["verdict"] = "unknown" if stated == "fail" else "pass"
+    run["trips"] = trips
+    run["clear"] = ids(" ".join(first_paragraph(secs.get("clear", []))))
+    run["candidates"] = items(secs.get("candidates", []))[:10]
+    for x in items(secs.get("preexisting", [])):
+        found = ids(x)
+        if found:
+            run["preexisting"].append({"peeve": found[0], "text": re.sub(r"^\**(" + PEEVE + r")(/" + PEEVE + r")*\**\s*[·:]?\s*", "", x)})
+    return run
+
+
+LISTY = re.compile(r"^\s*(?:[-*+]|\d+[.)]|\|)\s")
+
+
+def run_changes(old, new):
+    """What changed between two drafts, as {from, to} pairs: the blocks one has
+    and the other does not, paired in order where their counts match and joined
+    into one pair where they do not. A list or a table is cut to the lines that
+    differ, so one changed bullet is not its whole list."""
+    a, b = blocks(old), blocks(new)
+    left = {}
+    for x in b:
+        left[x] = left.get(x, 0) + 1
+    gone = []
+    for x in a:
+        if left.get(x):
+            left[x] -= 1
+        else:
+            gone.append(x)
+    left = {}
+    for x in a:
+        left[x] = left.get(x, 0) + 1
+    came = []
+    for x in b:
+        if left.get(x):
+            left[x] -= 1
+        else:
+            came.append(x)
+    if not gone and not came:
+        return []
+    pairs = list(zip(gone, came)) if len(gone) == len(came) else [("\n\n".join(gone), "\n\n".join(came))]
+    out = []
+    for f, t in pairs:
+        fl, tl = f.split("\n"), t.split("\n")
+        if all(LISTY.match(x) for x in fl + tl if x.strip()):
+            while fl and tl and fl[0] == tl[0]:
+                fl, tl = fl[1:], tl[1:]
+            while fl and tl and fl[-1] == tl[-1]:
+                fl, tl = fl[:-1], tl[:-1]
+        f, t = "\n".join(fl).strip("\n"), "\n".join(tl).strip("\n")
+        if f != t:
+            out.append({"from": f, "to": t})
+    return out
+
+
+def add_run(draft, doc_text, report_text, when=None):
+    """The draft with one more critic run: the run before it given the changes
+    from its text to this one's, and its unanswered trips answered changed."""
+    review = draft.setdefault("review", {"runs": []})
+    runs = review.setdefault("runs", [])
+    prev = runs[-1] if runs else None
+    if prev is not None and isinstance(prev.get("text"), str):
+        changes = run_changes(prev["text"], doc_text)
+        prev["changes"] = changes
+        for t in prev.get("trips") or []:
+            if changes and t.get("answer") not in TRIP_ANSWERS:
+                t["answer"] = "changed"
+    run = parse_report(report_text)
+    run["at"] = when or stamp()
+    run["text"] = doc_text
+    runs.append(run)
+    return draft
+
+
+def keep_trip(draft, which, why):
+    """Mark a trip set aside: `which` is N for the latest run's trip N, or RUN.N."""
+    runs = (draft.get("review") or {}).get("runs") or []
+    m = re.fullmatch(r"(?:(\d+)\.)?(\d+)", str(which))
+    if not runs or not m:
+        raise ValueError("--kept takes N, or RUN.N, a trip of a run the draft holds")
+    run = runs[int(m.group(1)) - 1] if m.group(1) else runs[-1]
+    trips = run.get("trips") or []
+    n = int(m.group(2))
+    if not 1 <= n <= len(trips):
+        raise ValueError(f"that run has {len(trips)} trips")
+    trips[n - 1].update(answer="kept", why=why)
+    return draft
+
+
+def unread_edits(c):
+    """The call's edits the critic's last run did not read: each edit's `to`
+    must be in the text that run kept."""
+    runs = (c.get("review") or {}).get("runs") or []
+    text = runs[-1].get("text") if runs else None
+    if not isinstance(text, str):
+        return []
+    return [i + 1 for i, e in enumerate(c.get("edits") or []) if flat(e.get("to")) not in flat(text)]
+
+
+def run_lines(run, n):
+    """A run as `review` prints it: the verdict, then each trip numbered."""
+    out = [f"run {n}: {run['verdict']}" + (f", {len(run['trips'])} trip{'s' if len(run['trips']) != 1 else ''}" if run["trips"] else "")]
+    for j, t in enumerate(run["trips"]):
+        ans = f"  [{t['answer']}{': ' + t['why'] if t.get('why') else ''}]" if t.get("answer") else ""
+        out.append(f"  {n}.{j + 1} {t['peeve']} · {t['where']} · \"{t['quote']}\"{ans}")
+    if run["verdict"] == "unknown":
+        out.append("  the report is in neither of the critic's forms; it is kept whole")
+    return out
 
 
 def name_taken(c, calls, cid):
@@ -439,9 +742,39 @@ def answer_lines(r, call=None):
 
 def main(argv):
     argv, at_store = flag(argv, "--store")
-    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "edits", "link", "patch"}:
+    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "edits", "link", "patch", "review"}:
         sys.exit(__doc__)
     cmd = argv[1]
+    if cmd == "review":
+        if len(argv) < 4:
+            sys.exit("user-call: review DRAFT FILE [REPORT], review DRAFT --kept [RUN.]N WHY, or review DRAFT --note TEXT")
+        draft_path = Path(argv[2])
+        draft = json.loads(draft_path.read_text(encoding="utf-8")) if draft_path.exists() else {}
+        runs = (draft.get("review") or {}).get("runs") or []
+        if argv[3] == "--kept":
+            if len(argv) < 6 or not argv[5].strip():
+                sys.exit("user-call: --kept takes the trip, as 2 or 1.2, and why it is kept")
+            try:
+                keep_trip(draft, argv[4], argv[5].strip())
+            except ValueError as e:
+                sys.exit(f"user-call: {e}")
+            shown = [(n, r) for n, r in enumerate(runs, 1)]
+        elif argv[3] == "--note":
+            if not runs or len(argv) < 5 or not argv[4].strip():
+                sys.exit("user-call: --note takes one line on the latest run, for a draft that holds one")
+            runs[-1]["note"] = argv[4].strip()
+            shown = [(len(runs), runs[-1])]
+        else:
+            report = Path(argv[4]).read_text(encoding="utf-8") if len(argv) > 4 else sys.stdin.read()
+            add_run(draft, Path(argv[3]).read_text(encoding="utf-8"), report)
+            runs = draft["review"]["runs"]
+            shown = [(n, r) for n, r in enumerate(runs, 1)][-2:]
+        draft_path.write_text(json.dumps(draft, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+        for n, r in shown:
+            print("\n".join(run_lines(r, n)))
+            if r.get("changes"):
+                print(f"  then {len(r['changes'])} change{'s' if len(r['changes']) != 1 else ''} before run {n + 1}")
+        return
     if cmd == "edits":
         argv, base = flag(argv, "--base")
         if base:
@@ -483,6 +816,13 @@ def main(argv):
         if c.get("kind") == "merge":
             sys.exit("user-call: a merge is not a call; list the pull requests ready to merge in the "
                      "reply, each linked to its branch view")
+        unread = unread_edits(c)
+        if unread:
+            sys.exit(f"user-call: the critic's last run did not read edit{'s' if len(unread) > 1 else ''} "
+                     f"{', '.join(map(str, unread))} as filed: run it again on the document as it stands")
+        for r in (c.get("review") or {}).get("runs") or []:
+            if isinstance(r, dict):
+                r.pop("text", None)
         errs = check(c)
         if errs:
             sys.exit("user-call: " + "; ".join(errs))
