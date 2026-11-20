@@ -6,19 +6,19 @@ import { makeWindow, repoRoot } from './bootstrap.mjs';
 import { makeShell } from './shell.mjs';
 
 test('Activity discussion query and filters survive cold links without changing branch-window grammar', async () => {
-  const { shell, events } = makeShell({ search: '?view=sessions&aq=needle&discussion=1&ascope=week&arepo=me%2Ftools&astate=open&window=12h' });
+  const { shell, events } = makeShell({ search: '?view=sessions&aq=needle&discussion=1&ascope=week&arepo=me%2Ftools&astate=open&alaunched=hide&window=12h' });
   shell.goSessions = () => { shell.view = 'sessions'; };
   const parsed = shell.parseUrl();
   assert.equal(parsed.window, 0.5);
   await shell.routeFromUrl(parsed);
   const p = shell.deepLinkParams();
-  for (const [key, value] of Object.entries({ aq: 'needle', discussion: '1', ascope: 'week', arepo: 'me/tools', astate: 'open' }))
+  for (const [key, value] of Object.entries({ aq: 'needle', discussion: '1', ascope: 'week', arepo: 'me/tools', astate: 'open', alaunched: 'hide' }))
     assert.equal(p.get(key), value);
   const seed = events.find(e => e.type === 'web-tools:session-search-seed').detail;
-  assert.deepEqual(seed, { q: 'needle', discussion: true, scope: 'week', repo: 'me/tools', state: 'open' });
+  assert.deepEqual(seed, { q: 'needle', discussion: true, scope: 'week', repo: 'me/tools', state: 'open', launched: 'hide' });
   shell.view = 'search';
   const other = shell.deepLinkParams(p);
-  for (const key of ['aq', 'discussion', 'ascope', 'arepo', 'astate']) assert.equal(other.has(key), false);
+  for (const key of ['aq', 'discussion', 'ascope', 'arepo', 'astate', 'alaunched']) assert.equal(other.has(key), false);
 });
 
 test('Activity filter edits replace one address rather than adding history per keystroke', () => {
@@ -26,9 +26,11 @@ test('Activity filter edits replace one address rather than adding history per k
   shell.view = 'sessions';
   const calls = [];
   for (const op of ['pushState', 'replaceState']) history[op] = () => calls.push(op);
-  shell.setSessionSearch({ q: 'two words', discussion: true, scope: 'day', repo: '', state: '' });
+  shell.setSessionSearch({ q: 'two words', discussion: true, scope: 'day', repo: '', state: '', launched: '' });
   assert.deepEqual(calls, ['replaceState']);
-  assert.equal(shell.deepLinkParams().has('ascope'), false, 'Day is retained as the default');});
+  assert.equal(shell.deepLinkParams().has('ascope'), false, 'Day is retained as the default');
+  assert.equal(shell.deepLinkParams().has('alaunched'), false, 'every session shown is the default, and silent');
+});
 
 test('Search selection and explicit scope snapshots round-trip, including an empty scope', async () => {
   for (const set of [null, '', 'aaa11111,bbb22222']) {

@@ -6723,7 +6723,8 @@ function app(){ return {
         this.sessionSpec = u.session || '';
         this.sessionFind = this.sessionSpec ? String(u.find || '').trim() : '';
         this.sessionSearchSeed = { q: u.aq || '', discussion: u.discussion === '1',
-          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '' };
+          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '',
+          launched: u.alaunched || '' };
         document.dispatchEvent(new CustomEvent('web-tools:session-search-seed', { detail: this.sessionSearchSeed }));
         this.goSessions();
         if (this._restoring) document.dispatchEvent(new CustomEvent('web-tools:restore-session', {
@@ -6746,6 +6747,9 @@ function app(){ return {
         if (search?.scope && search.scope !== 'day') p.set('ascope', search.scope);
         if (search?.repo) p.set('arepo', search.repo);
         if (search?.state && search.state !== 'all') p.set('astate', search.state);
+        // The launched filter: `only` the sessions another session started, or
+        // `hide` them. Showing every session is the default and stays silent.
+        if (search?.launched) p.set('alaunched', search.launched);
         // The LIST, which is the pane's scope rather than one open record, so it
         // outlives the deck: closing a swiper drops `session=` and leaves the
         // reader on the list they arrived with, not on whatever the default
@@ -6969,7 +6973,7 @@ function app(){ return {
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'itemtab', 'call', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'skind', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
-              'aq', 'discussion', 'ascope', 'arepo', 'astate',
+              'aq', 'discussion', 'ascope', 'arepo', 'astate', 'alaunched',
               'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h', 'program', 'area',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
@@ -7014,6 +7018,7 @@ function app(){ return {
              sextra: p.get('sextra') || '',
              aq: p.get('aq') || '', discussion: p.get('discussion') || '',
              ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
+             alaunched: p.get('alaunched') || '',
              session: p.get('session') || '', find: p.get('find') || '',
              lens: p.get('lens') || '', grain: p.get('grain') || '',
              next: p.get('next') || '',
@@ -7119,8 +7124,10 @@ function app(){ return {
   sessionSearchSeed: (() => {
     const p = new URLSearchParams(location.search);
     return { q: p.get('aq') || '', discussion: p.get('discussion') === '1',
-      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '' };
+      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '',
+      launched: p.get('alaunched') || '' };
   })(),
+
   setSessionSearch(seed){
     this.sessionSearchSeed = seed;
     const restoring = this._restoring;

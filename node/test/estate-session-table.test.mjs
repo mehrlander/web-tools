@@ -552,3 +552,23 @@ test('the branch grain answers the scope off the branch\'s own clock', () => {
   assert.equal(data.grainRows.length, 1, 'the branch committed yesterday');
   data.sessionScope = 'all';
 });
+
+// A session another Claude session launched carries the robot after its name,
+// the mark the List tab gives it, at both grains whose rows are sessions; a
+// session the owner started carries none. Read through the column's own
+// formatter, since Tabulator, which calls it, needs a layout this suite lacks.
+test('the name cell marks a launched session, and only a launched one', () => {
+  const cell = (row, title) => ({ getValue: () => title,
+    getRow: () => ({ getData: () => ({ _row: row, id: row.id }) }) });
+  const name = data.nameColumn().formatter;
+  const launched = { id: 'bot00001', launched: true };
+  const own = { id: 'own00001' };
+  for (const title of ['A named session', '']) {
+    const marked = name(cell(launched, title));
+    assert.match(marked, /data-session-launched-mark/);
+    assert.match(marked, /ph-robot/);
+    assert.match(marked, /data-title-tip="Launched by another Claude session"/);
+    assert.doesNotMatch(name(cell(own, title)), /ph-robot/, 'an owner session is not marked');
+  }
+  assert.ok(name(cell(launched, '')).includes('bot00001'), 'an unnamed row still shows its id');
+});
