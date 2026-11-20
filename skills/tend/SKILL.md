@@ -3,9 +3,8 @@ name: tend
 description: >-
   Cultivate a workspace toward recognized objectives: investigate branches,
   pull requests, trackers and snags, store each conclusion as a finding, and
-  bring the owner a prepared user call only where the next step needs their
-  word. Run when the owner invokes /tend, or when a session receives a
-  /tend prod request.
+  list in the reply each prepared step that needs the owner's word. Run when
+  the owner invokes /tend, or when a session receives a /tend prod request.
 disable-model-invocation: true
 ---
 
@@ -50,12 +49,10 @@ record.
    would survive the owner's first question.
 4. **Write** one finding per conclusion with `findings.py add`: its subjects,
    why it matters, a next step concrete enough to execute, evidence, and
-   witnesses. A step that needs the owner's word, such as closing a pull
-   request, is prepared, then filed with like steps as one user call
-   (`user-calls/user-call.py` in the registry) that the finding names among
-   its subjects; the Waiting view shows it. A next step that is new work,
-   rather than landing work that exists, joins that call as a question to the
-   owner: file it as a task or drop it; either answer settles the finding.
+   witnesses. Prepare a step that needs the owner's word, such as closing a
+   pull request, for the list in step 6. For a next step that is new work,
+   rather than landing work that exists, ask in the reply whether to file it
+   as a task or drop it; either answer settles the finding.
    Witnesses include what lies outside the subjects, such as main's copy of a
    file the work was compared against. Choose as a witness the narrowest file
    that holds the claim: a file edited daily brings the finding back on every
@@ -64,9 +61,9 @@ record.
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
 6. **Reply** with what the pass did and its sidesteps: where the work did
-   something other than what the owner asked. Put each user call it filed in
-   the reply as its question, recommendation and link, and offer one answer
-   that accepts every recommendation, so the calls can close in the session.
+   something other than what the owner asked. List each step that needs the
+   owner's word with its recommendation and, for a pull request, a link to
+   its branch view, and offer one answer that accepts every recommendation.
 
 Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 `gh` or `curl`.
@@ -76,7 +73,7 @@ Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 | Kind | Means |
 | --- | --- |
 | `unreached` | Useful work never reached the owner. *Next* says how to land it. |
-| `answer` | The owner's word decides it. Its user call holds the question. |
+| `answer` | The owner's word decides it; ask for it in the reply. |
 | `overlap` | Separate efforts could be brought together. *Next* says how. |
 | `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. |
 
