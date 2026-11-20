@@ -60,7 +60,19 @@ substituting the current repo in URL templates.
   🌿 [Open the branch](<branch URL>)
   ```
 
-  List only threads still open, and omit an empty section.
+  List only threads still open on this branch, and omit an empty section. Record work left after the branch merges as a topic status (Topic status, below).
+
+* **Topic status.** Correct a missing or wrong status of one of the session's [topics](https://github.com/mehrlander/web-tools-private/blob/main/sessions/topics/README.md) with [`topic_correct.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/topic_correct.py) from a web-tools-private checkout. First list the session's topics:
+
+  ```bash
+  python3 sessions/tools/topic_correct.py show <short>
+  ```
+
+  Then append the status of a topic that `show` printed; `status --help` lists the values each flag takes:
+
+  ```bash
+  python3 sessions/tools/topic_correct.py status <short> --by claude:<short> --topic "<name>" --status open --waits-on owner --waiting "<what it waits on>"
+  ```
 
 ## Displaying content
 
