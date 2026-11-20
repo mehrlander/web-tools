@@ -164,12 +164,12 @@ reading and triggers nothing.
 
 `/tend prod` asks each session with open work to tend its own work. List the
 account's sessions and take each one that is idle, last showed activity
-between two hours and a week ago, and has an open pull request, a blocked or
-review-ready status, or a last reply (its record's `last_message`) that
-closed on ❇️ Ready to assess or 🟢 Ready to continue, two of the closing states
-[`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
-defines. A session idle for less than two hours tends its own work
-at its check-ins
+between two hours and a week ago, and has open work. Open work is an open
+pull request, a blocked or review-ready status, or a last reply (its record's
+`last_message`) whose closing line is ❇️ Ready to assess or 🟢 Ready to
+continue; [`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
+defines both. A session idle for less than two hours tends its own work at
+its check-ins
 ([`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)).
 A message to a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
@@ -215,8 +215,7 @@ A session that receives it works through whichever of these apply, under the
 principles above:
 
 - **Take the step the last reply's closing line names,** where that line is
-  ❇️ Ready to assess or 🟢 Ready to continue and the owner has not written
-  since.
+  one of the two closing states above and the owner has not written since.
 - **Land what is already approved,** up to a pull request ready to merge:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.
