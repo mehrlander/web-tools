@@ -1,8 +1,8 @@
 # Inspection: the envelope contract
 
-An **inspection** asks the owner to judge, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner gives it one verdict from a declared set and may add a note.
+An **inspection** shows the owner, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner may add a note to it. Where the payload declares a set of verdicts, the owner may also give it one.
 
-An `inspection/1` payload holds its inputs and outputs as runs, where a run is one input and the outputs made from it. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output under its passage. It appends the verdicts to the payload's [answers file](#answers).
+An `inspection/1` payload holds its inputs and outputs as runs, where a run is one input and the outputs made from it. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) draws each output under its passage. It appends the notes and verdicts to the payload's [answers file](#answers).
 
 The first producer is [`flag_inspection.py`](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-11-06-prompt-sentiment/src/flag_inspection.py) in [home](https://github.com/mehrlander/home). The script's outputs are the preferences a model flagged in the owner's messages, each anchored at the sentence it quotes.
 
@@ -22,14 +22,14 @@ The page reads `#gz=` before `?src=`:
 | --- | --- |
 | `kind` | `inspection/1` |
 | `title` | What is being inspected |
-| `question` | What a verdict answers, such as *is this flag right?* |
-| `verdicts` | In order, each with `verdict` (the value written), `label` (the button) and `gloss` (its meaning, in a line) |
+| `question` | Optional: what a verdict answers, such as *is this flag right?* |
+| `verdicts` | Optional: in order, each with `verdict` (the value written), `label` (the button) and `gloss` (its meaning, in a line) |
 | `tags` | Optional: the values an output's `tag` takes, each with `tag`, `label` and optionally an `icon` and a `tone` |
-| `answers` | Optional: where the verdicts are saved, as [Answers](#answers) describes |
+| `answers` | Optional: where the notes and verdicts are saved, as [Answers](#answers) describes |
 | `made` | Optional: `by` (the producer's address) and `from` (the addresses it read) |
 | `runs` | In order |
 
-A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `tone` is `success`, `error`, `warning`, `info` or `neutral`. The tone colours the verdict's button when chosen. It also colours the tab and the number of each output given that verdict.
+Without `verdicts`, each output has a note field alone, and the page counts nothing as judged. A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `tone` is `success`, `error`, `warning`, `info` or `neutral`. The tone colours the verdict's button when chosen. It also colours the tab and the number of each output given that verdict.
 
 A tag with an `icon` is drawn as that icon alone, in the tag's tone, with its label in a tooltip. A tag without one is a badge in its tone. The tone also colours the passages the tag's output rests on. Without a `tone`, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
 
@@ -59,10 +59,10 @@ Each save appends one JSON line per output whose verdict or note changed, in one
 
 | Field | Holds |
 | --- | --- |
-| `at` | When the verdict was given, ISO 8601 |
+| `at` | When the verdict was given, else when the line was saved, ISO 8601 |
 | `run`, `output` | The output's ids |
-| `verdict` | One of `verdicts`, or `null` for a verdict withdrawn |
+| `verdict` | One of `verdicts`, or `null` for none or a verdict withdrawn |
 | `note` | The owner's note, `""` for none |
 | `by` | The GitHub login that saved it |
 
-Lines are not edited. An output's latest line holds its verdict, for the page on load and for any session reading the file. The write is `postAnswer` in [`user-call-form.js`](../../lib/alpineComponents/user-call-form.js).
+Lines are not edited. An output's latest line holds its verdict and note, for the page on load and for any session reading the file. The write is `postAnswer` in [`user-call-form.js`](../../lib/alpineComponents/user-call-form.js).
