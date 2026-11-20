@@ -19,7 +19,7 @@ node/build/build-app.mjs,"emit dist/app.js, the app's own pre-build: the part of
 node/build/build-lib.mjs,"emit dist/web-tools.js, the pre-build: the whole lib/ as one self-booting offline artifact",node/build,112,npm:build:lib,.githooks/pre-commit;node/test/;python/showing.py,yes,yes,yes
 node/build/build.mjs,"emit dist/<page>.js: a page's gh.load chain frozen offline, through lib/build.js's emitter",node/build,102,npm:build,node/render/screenshot.mjs;node/test/,yes,yes,yes
 node/build/cache-readers.mjs,"derive the cache-to-module half of the cache-to-view relation: for each thing the estate keeps derived, the app files that read it, with the shell and the declaring kit excluded as writers rather than consumers",node/build,125,imported,node/test/,no,yes,yes
-node/build/component-shots.mjs,,node/build,142,npm:component-shots,,yes,yes,no
+node/build/component-shots.mjs,,node/build,141,npm:component-shots,,yes,yes,no
 node/build/components-index.mjs,,node/build,281,npm:components-index,.githooks/pre-commit,yes,no,yes
 node/build/console-suite.mjs,assemble console/suite.js from base.js plus the layered console modules,node/build,51,npm:build:console,.githooks/pre-commit;node/test/,yes,yes,yes
 node/build/docs-reach.mjs,restamp the derived reach and words fields of docs/docs.csv,node/build,347,npm:docs-reach,.githooks/pre-commit;node/build/cache-readers.mjs;node/build/registries-reach.mjs;node/test/,yes,yes,yes
@@ -38,8 +38,8 @@ node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another 
 node/build/sample-workbook.mjs,,node/build,436,npm:sample-workbook,,yes,yes,yes
 node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,265,npm:tests-index,.githooks/pre-commit;node/test/,yes,yes,yes
 node/build/tools-index.mjs,restamp the derived half of this registry,node/build,492,npm:tools-index,.githooks/pre-commit;node/test/,yes,no,yes
-node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,262,npm:ui-instances,,yes,yes,no
-node/build/ui-recipes.mjs,"the recipe for reaching a UI unit headless, shared by ui-shots.mjs and ui-instances.mjs: the two stores' paths, each unit's query and fixtures, its focus, and the call into the render tool that serves it",node/build,346,imported,node/build/component-shots.mjs;node/build/ui-instances.mjs;node/build/ui-shots.mjs,yes,yes,no
+node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,264,npm:ui-instances,,yes,yes,no
+node/build/ui-recipes.mjs,"the recipe for reaching a UI unit headless, shared by ui-shots.mjs and ui-instances.mjs: the two stores' paths, each unit's query and fixtures, its focus, and the call into the render tool that serves it",node/build,372,imported,node/build/component-shots.mjs;node/build/ui-instances.mjs;node/build/ui-shots.mjs;node/test/,yes,yes,yes
 node/build/ui-shots.mjs,"shoot every coded UI unit (data/ui-units/coded.csv) at desktop and phone width and write the JPEG thumbnails and thumbs.csv the Map's UI > Patterns gallery reads, public units here and home's in web-tools-private",node/build,291,npm:ui-shots,,yes,yes,no
 node/build/vendor-docs.mjs,"copies each traveling doc from docs/ into the default skill, where the plugin ships it; --check compares bytes",node/build,52,npm:vendor-docs,.githooks/pre-commit,yes,yes,yes
 node/build/verify-build.mjs,prove a page's dist build renders byte-identical to its live gh.load chain,node/build,85,npm:verify-build,,no,yes,no
