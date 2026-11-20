@@ -11,6 +11,8 @@ var collector = new ActivityCollector();
 var computer = new ComputerReader();
 var repositories = new RepositoryReader();
 var folders = new FolderReader();
+var fileContents = new FileContentReader();
+try { Directory.CreateDirectory(FileRoots.OutputsDirectory); } catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
 using var stereo = new StereoBridgeClient();
 var builder = WebApplication.CreateSlimBuilder(args);
 builder.Logging.ClearProviders();
@@ -33,7 +35,7 @@ app.Use(async (context, next) => {
     context.Response.Headers.CacheControl = "no-store";
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["Referrer-Policy"] = "no-referrer";
-    context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
+    context.Response.Headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'";
     if (!IPAddress.IsLoopback(context.Connection.RemoteIpAddress ?? IPAddress.None) || !validHost || !(local || owner && !desktop)) {
         context.Response.StatusCode = 403;
         await context.Response.WriteAsync("Connect through your private Tailscale address using the owner's account.");
@@ -109,9 +111,22 @@ app.MapPost("/api/v1/repositories/{key}/fetch", (string key) => {
     return Results.Json(new { accepted = status == 202 }, json, statusCode: status);
 });
 app.MapGet("/api/v1/files", async (HttpContext context) => {
-    if (context.Request.Query.Any(p => p.Key != "path" || p.Value.Count != 1)) return Results.BadRequest();
-    var result = await folders.Read(context.Request.Query["path"].ToString(), context.RequestAborted);
+    if (context.Request.Query.Any(p => p.Key is not ("path" or "root") || p.Value.Count != 1)) return Results.BadRequest();
+    var root = context.Request.Query.TryGetValue("root", out var selectedRoot) ? selectedRoot.ToString() : "gh";
+    var result = await folders.Read(root, context.Request.Query["path"].ToString(), context.RequestAborted);
     return result.Value is { } value ? Results.Json(value, json) : Results.StatusCode(result.Status);
+});
+app.MapMethods("/api/v1/files/content", ["GET", "HEAD"], async Task<IResult> (HttpContext context) => {
+    var query = context.Request.Query;
+    if (query.Any(p => p.Key is not ("root" or "path" or "download") || p.Value.Count != 1)
+        || !query.ContainsKey("path") || query.TryGetValue("download", out var download) && download != "1") return Results.BadRequest();
+    var root = query.TryGetValue("root", out var selectedRoot) ? selectedRoot.ToString() : "gh";
+    var result = await fileContents.Open(root, query["path"].ToString(), query.ContainsKey("download"), context.RequestAborted);
+    if (result.Value is not { } value) return Results.StatusCode(result.Status);
+    context.Response.Headers["Content-Security-Policy"] = "default-src 'none'; sandbox allow-downloads; frame-ancestors 'none'; base-uri 'none'; form-action 'none'"
+        + (value.ContentType.StartsWith("image/", StringComparison.Ordinal) ? "; style-src 'unsafe-inline'" : "");
+    context.Response.RegisterForDisposeAsync(value.Stream);
+    return Results.File(value.Stream, value.ContentType, value.DownloadName, enableRangeProcessing: true);
 });
 app.MapPost("/api/v1/devices/stereo/{action}", async (HttpContext context, string action) => {
     var result = await stereo.Execute(action, context.RequestAborted);
