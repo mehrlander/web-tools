@@ -172,6 +172,10 @@ test('pick() from the host goes to a row, and ignores an id the list does not ha
   s.handle.pick('zz');
   assert.deepEqual(s.picks, [['b', 'api']]);
   assert.deepEqual(selected(s.list), ['b']);
+  // The host's own word for the move reaches onPick, so a host can add a
+  // history entry for a link followed and replace it for a browse.
+  s.handle.pick('a', 'follow');
+  assert.deepEqual(s.picks, [['b', 'api'], ['a', 'follow']]);
 });
 
 test('the door is offered only with a deck to open, and opens it', async () => {

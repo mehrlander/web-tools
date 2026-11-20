@@ -15,7 +15,7 @@
 // test can only say focus moved, which is the half that was never in doubt.
 //
 // AND VISIBILITY IS LAYOUT. The sidebar is a fixed overlay below lg and a
-// static column at lg and up, hidden two different ways; `data-find-box`
+// static column at lg and up, hidden two different ways; `data-find-input`
 // precedence is decided by getClientRects. Neither has meaning without a real
 // layout engine.
 //
@@ -69,18 +69,18 @@ page.on('pageerror', e => console.log(`  [pageerror] ${e.message}`));
 // What the keystroke did: where focus went, what the box holds, and whether
 // the sidebar had to be opened to get there.
 const state = () => page.evaluate(() => {
-  const box = document.getElementById('quick-find-box');
+  const box = document.getElementById('quick-find-input');
   const a = document.activeElement;
   return {
     active: a?.id || a?.dataset?.probe ||
-            (a?.hasAttribute?.('data-find-box') ? 'find-box' : null) || a?.tagName || null,
+            (a?.hasAttribute?.('data-find-input') ? 'find-input' : null) || a?.tagName || null,
     box: box?.value ?? null,
     sidebarOpen: window.__shell.sidebarOpen,
     showSidebar: window.__shell.showSidebar,
   };
 });
 const reset = () => page.evaluate(() => {
-  const box = document.getElementById('quick-find-box');
+  const box = document.getElementById('quick-find-input');
   if (box) { box.value = ''; box.dispatchEvent(new Event('input', { bubbles: true })); }
   document.activeElement?.blur?.();
   document.querySelectorAll('[data-probe]').forEach(el => el.remove());
@@ -88,7 +88,7 @@ const reset = () => page.evaluate(() => {
 
 try {
   await page.goto(`${origin}/app/index.html`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.__shell && document.getElementById('quick-find-box'),
+  await page.waitForFunction(() => window.__shell && document.getElementById('quick-find-input'),
                              { timeout: 30000 });
   await page.waitForTimeout(600);
 
@@ -115,9 +115,9 @@ try {
   await page.waitForTimeout(150);
   s = await state();
   ok('the view filter takes the key, not the finder',
-     s.active === 'find-box' && s.box === '', JSON.stringify(s));
+     s.active === 'find-input' && s.box === '', JSON.stringify(s));
   ok('and the character lands in it',
-     (await page.evaluate(() => document.querySelector('[data-find-box]').value)) === 't');
+     (await page.evaluate(() => document.querySelector('[data-find-input]').value)) === 't');
 
   await page.evaluate(() => window.__shell.goLanding());
   await page.waitForTimeout(400);
@@ -127,7 +127,7 @@ try {
   await page.keyboard.press('k');
   await page.waitForTimeout(150);
   s = await state();
-  ok('focus moves to the finder', s.active === 'quick-find-box', JSON.stringify(s));
+  ok('focus moves to the finder', s.active === 'quick-find-input', JSON.stringify(s));
   ok('and the browser carries the character into it', s.box === 'k', JSON.stringify(s));
   await page.keyboard.type('eyboard');
   await page.waitForTimeout(150);
@@ -147,18 +147,18 @@ try {
   ok('the finder is not pulled out from under it', s.active === 'field' && s.box === '',
      JSON.stringify(s));
 
-  console.log('a data-find-box that is not on screen:');
+  console.log('a data-find-input that is not on screen:');
   await reset();
   await page.evaluate(() => {
     const i = document.createElement('input');
-    i.dataset.probe = 'off'; i.setAttribute('data-find-box', '');
+    i.dataset.probe = 'off'; i.setAttribute('data-find-input', '');
     i.style.display = 'none';
     document.body.append(i);
   });
   await page.keyboard.press('w');
   await page.waitForTimeout(150);
   s = await state();
-  ok('is skipped for the finder', s.active === 'quick-find-box' && s.box === 'w',
+  ok('is skipped for the finder', s.active === 'quick-find-input' && s.box === 'w',
      JSON.stringify(s));
 
   console.log('keys that are not a query:');
@@ -167,13 +167,13 @@ try {
     await page.keyboard.press(key === ' ' ? 'Space' : key);
     await page.waitForTimeout(120);
     s = await state();
-    ok(`${why} is left alone`, s.active !== 'quick-find-box' && s.box === '', JSON.stringify(s));
+    ok(`${why} is left alone`, s.active !== 'quick-find-input' && s.box === '', JSON.stringify(s));
   }
   await reset();
   await page.keyboard.press('Control+k');
   await page.waitForTimeout(120);
   s = await state();
-  ok('a modifier combination is left alone', s.active !== 'quick-find-box' && s.box === '',
+  ok('a modifier combination is left alone', s.active !== 'quick-find-input' && s.box === '',
      JSON.stringify(s));
 
   console.log('the sidebar away, so the box has to be revealed first:');
@@ -181,12 +181,12 @@ try {
   await page.evaluate(() => { window.__shell.sidebarOpen = false; });
   await page.waitForTimeout(250);
   ok('it starts hidden', (await page.evaluate(() =>
-       document.getElementById('quick-find-box').getClientRects().length === 0)));
+       document.getElementById('quick-find-input').getClientRects().length === 0)));
   await page.keyboard.press('r');
   await page.waitForTimeout(300);
   s = await state();
   ok('the sidebar opens', s.sidebarOpen === true, JSON.stringify(s));
-  ok('focus lands on the finder', s.active === 'quick-find-box', JSON.stringify(s));
+  ok('focus lands on the finder', s.active === 'quick-find-input', JSON.stringify(s));
   ok('and the character is carried by hand', s.box === 'r', JSON.stringify(s));
   await page.keyboard.type('epo');
   await page.waitForTimeout(150);
@@ -204,7 +204,7 @@ try {
   await page.keyboard.press('m');
   await page.waitForTimeout(150);
   s = await state();
-  ok('the finder stands down behind it', s.active !== 'quick-find-box' && s.box === '',
+  ok('the finder stands down behind it', s.active !== 'quick-find-input' && s.box === '',
      JSON.stringify(s));
 } catch (e) {
   console.log(`  FAIL  probe threw — ${e.message}`);

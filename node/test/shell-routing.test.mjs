@@ -81,6 +81,7 @@ test('the Activity nav stop opens Sessions', () => {
 // absent from here stamps from its key alone.
 const SEED = {
   project: (s) => { s.projectPath = 'projects/budget-drs'; },
+  program: (s) => { s.programName = 'sessions'; },
   state: (s) => { s.stateItem = 'sessions'; },
   search: (s) => { s.searchSeed = { q: 'tracker', mode: 'names' }; },
   app: (s) => { s.appView = { repo: 'mehrlander/home', path: 'links/index.html' }; },
@@ -128,6 +129,8 @@ test('the second key rides along, for the views that carry one', () => {
     ['map', (s) => { s.mapTab = 'showing'; }, 'tab', 'showing'],
     ['branches', (s) => { s.detailSpec = 'mehrlander/web-tools@main'; }, 'detail', 'mehrlander/web-tools@main'],
     ['waiting', (s) => { s.waitingCall = '2708d02c-close-four-tasks'; }, 'call', '2708d02c-close-four-tasks'],
+    ['program', (s) => { s.programName = 'sessions'; }, 'program', 'sessions'],
+    ['program', (s) => { s.programName = 'sessions'; s.programTab = 'measures'; }, 'tab', 'measures'],
   ];
   for (const [view, seed, key, want] of cases) {
     const { shell: s } = makeShell({ browserStore: {
@@ -145,162 +148,261 @@ test('the second key rides along, for the views that carry one', () => {
   }
 });
 
-// ── The shell mode (?shell=), a READING parameter beside the view table ──────
+// ── The Program view, and the Map address it replaced ───────────────────────
 //
-// It says how much of the app is drawn around the view, not which view, so it
-// has no VIEWS row on purpose and is stamped unconditionally beside whatever
-// the table stamped. That places it outside everything above, and the two
-// properties it has to hold are exactly the ones the view table's rows get for
-// free: an address that reopens as itself, and a default that never appears.
+// A program's page was the Map's Programs tab's until 2026-11-18, at
+// ?view=map&tab=programs&program=<name>. It is a view of its own now, and the
+// old address is a link people hold, so it has to open the new view and stamp
+// the new address rather than land on the list.
 
-test('the shell mode round-trips, and only when it is not the default', () => {
-  const store = () => ({ repo: 'mehrlander/home', ref: '', defaultRef: 'main', activeFile: null, path: '' });
-
-  for (const mode of ['nav', 'none']) {
-    const { shell: s } = makeShell({ browserStore: store() });
-    s.view = 'map';
-    s.setShellMode(mode);
-    const qs = s.deepLinkParams(new URLSearchParams()).toString();
-    assert.match(qs, new RegExp('(^|&)shell=' + mode + '($|&)'),
-      `?shell=${mode} was not stamped, so the mode cannot be linked to`);
-
-    const { shell: reopened } = makeShell({ search: '?' + qs, browserStore: { repo: '' } });
-    reopened.readShellMode();
-    assert.equal(reopened.shellMode, mode, `?shell=${mode} did not survive a cold load`);
-    // Reopening must still land on the view: the mode rides beside the view
-    // keys, so a collision would show up here as a lost or hijacked address.
-    assert.equal(landsOn(reopened, reopened.parseUrl()), 'map',
-      `?shell=${mode} disturbed the view its link also names`);
-  }
-
-  // The default stays out, which is what keeps every link written before this
-  // existed byte-identical to one written after it.
-  const { shell: plain } = makeShell({ browserStore: store() });
-  plain.view = 'map';
-  assert.equal(plain.shellMode, 'full', 'the default mode is not full');
-  assert.ok(!plain.deepLinkParams(new URLSearchParams()).has('shell'),
-    'the default mode stamped itself, so it would appear on every address');
+test('?view=program opens a program, and its first tab stays out of the address', () => {
+  const { shell: s } = makeShell({ search: '?view=program&program=testing&tab=changes', browserStore: { repo: '' } });
+  s.syncUrl = () => {};
+  const url = s.parseUrl();
+  assert.equal(url.program, 'testing');
+  s.routeFor(url.view).open.call(s, url);
+  assert.equal(s.view, 'program');
+  assert.equal(s.programName, 'testing');
+  assert.equal(s.programTab, 'changes');
+  let p = s.deepLinkParams(new URLSearchParams());
+  assert.equal(p.get('view'), 'program');
+  assert.equal(p.get('program'), 'testing');
+  assert.equal(p.get('tab'), 'changes');
+  s.goProgramTab('areas');
+  p = s.deepLinkParams(new URLSearchParams());
+  assert.equal(p.has('tab'), false, 'Areas is the first tab, so a bare address means it');
+  s.goProgramTab('bogus');
+  assert.equal(s.programTab, '', 'a tab the view does not draw is ignored');
+  s.goProgram('content', 'nowhere');
+  assert.equal(s.programTab, '', 'an unknown tab from a link opens the first');
+  assert.equal(s.estateCtx, true, 'a program is estate-level, so the sidebar is the estate one');
 });
 
-// ── The default is per view, and an app view opens without the shell ────────
-//
-// A promoted page is one page framed whole, and the reader who addressed it by
-// name asked for the page rather than the app around it. Derived per view
-// rather than latched at boot, which is the part with a failure behind it: a
-// latched default follows the reader OUT of the app view and leaves the estate
-// dashboard with no nav and only the fab as the way back.
+test('a program address with no name lands on the landing, and goProgram with none opens the list', () => {
+  const { shell: s } = makeShell({ search: '?view=program', browserStore: { repo: '' } });
+  s.syncUrl = () => {};
+  const url = s.parseUrl();
+  const r = s.routeFor(url.view);
+  assert.equal(r.when(url), false, 'the row needs a name');
+  s.goProgram('');
+  assert.equal(s.view, 'map');
+  assert.equal(s.mapTab, 'programs');
+});
 
-test('an app view opens with nav chrome and every other route keeps full chrome', () => {
+test("the Map's old program address opens the Program view and stamps the new one", () => {
+  const { shell: s } = makeShell({ search: '?view=map&tab=programs&program=sessions', browserStore: { repo: '' } });
+  s.syncUrl = () => {};
+  const url = s.parseUrl();
+  assert.equal(url.view, 'map');
+  s.routeFor(url.view).open.call(s, url);
+  assert.equal(s.view, 'program', 'the redirect is the map row\'s, through the table');
+  assert.equal(s.programName, 'sessions');
+  const p = s.deepLinkParams(new URLSearchParams('view=map&tab=programs&program=sessions'));
+  assert.equal(p.get('view'), 'program');
+  assert.equal(p.get('program'), 'sessions');
+  assert.equal(p.has('tab'), false, 'the Programs tab key does not ride onto the program');
+  // And the Programs list itself is still the Map's.
+  const { shell: m } = makeShell({ search: '?view=map&tab=programs', browserStore: { repo: '' } });
+  m.syncUrl = () => {};
+  m.routeFor('map').open.call(m, m.parseUrl());
+  assert.equal(m.view, 'map');
+  assert.equal(m.mapTab, 'programs');
+});
+
+// ── ?header= and ?sidebar=, READING parameters beside the view table ────────
+//
+// They say how much of the app is drawn around the view, not which view, so
+// they have no VIEWS row on purpose and are stamped unconditionally beside
+// whatever the table stamped. That places them outside everything above, and
+// the two properties they have to hold are exactly the ones the view table's
+// rows get for free: an address that reopens as itself, and a default that
+// never appears.
+
+const homeStore = () => ({ repo: 'mehrlander/home', ref: '', defaultRef: 'main', activeFile: null, path: '' });
+const bareStore = () => ({ repo: '', ref: '', defaultRef: 'main', activeFile: null, path: '' });
+const opened = (search, store = { repo: '' }) => {
+  const { shell: s } = makeShell({ search, browserStore: store });
+  s.readDisplayParams();
+  return s;
+};
+
+test('header=0 round-trips, and only when it is not the default', () => {
+  const { shell: s } = makeShell({ browserStore: homeStore() });
+  s.syncUrl = () => {};
+  s.view = 'map';
+  s.setHeader(false);
+  const qs = s.deepLinkParams(new URLSearchParams()).toString();
+  assert.match(qs, /(^|&)header=0($|&)/, '?header=0 was not stamped, so the bare view cannot be linked to');
+
+  const reopened = opened('?' + qs);
+  assert.equal(reopened.headerOn, false, '?header=0 did not survive a cold load');
+  // Reopening must still land on the view: the parameter rides beside the
+  // view keys, so a collision would show up here as a lost or hijacked address.
+  assert.equal(landsOn(reopened, reopened.parseUrl()), 'map', '?header=0 disturbed the view its link also names');
+
+  // The default stays out, which keeps every bare link byte-identical.
+  const { shell: plain } = makeShell({ browserStore: homeStore() });
+  plain.view = 'map';
+  assert.equal(plain.headerOn, true, 'the header is not shown by default');
+  const p = plain.deepLinkParams(new URLSearchParams());
+  for (const k of ['header', 'sidebar', 'shell'])
+    assert.ok(!p.has(k), `the default stamped ${k}, so it would appear on every address`);
+});
+
+test('sidebar= round-trips, and only where it differs from the view default', () => {
+  // The harness has no matchMedia, so wideViewport reads true: a non-app view
+  // starts with the sidebar open, an app view with it closed.
+  for (const [view, start] of [['map', '0'], ['app', '1']]) {
+    const { shell: s } = makeShell({ browserStore: bareStore() });
+    s.view = view;
+    if (view === 'app') s.appView = { key: 'me/home:a.html', slug: 'budget-drs', repo: 'me/home', path: 'a.html' };
+    s.sidebarStart = start;
+    const qs = s.deepLinkParams(new URLSearchParams());
+    assert.equal(qs.get('sidebar'), start, `${view}: ?sidebar=${start} differs from the default and was not stamped`);
+    assert.equal(opened('?' + qs.toString()).sidebarStart, start, `${view}: ?sidebar=${start} did not survive a cold load`);
+
+    s.sidebarStart = start === '1' ? '0' : '1';
+    assert.ok(!s.deepLinkParams(new URLSearchParams()).has('sidebar'),
+      `${view}: a sidebar start that agrees with the default was stamped`);
+  }
+});
+
+test('the sidebar starts by view, width and header, and an explicit start outranks them', () => {
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
+  s.syncUrl = () => {};
   for (const v of ['map', 'repos', 'landing', 'search']) {
     s.view = v;
-    assert.equal(s.shellMode, 'full', `?view=${v} must keep the app's own chrome`);
+    assert.equal(s.sidebarStartsOpen, true, `?view=${v} on a wide screen must start with the sidebar out`);
   }
   s.view = 'app';
-  assert.equal(s.shellMode, 'nav', 'an app view defaults to nav chrome for integrated navigation');
-});
-
-test('the shell comes back on leaving the app view, with nothing to clear', () => {
-  const { shell: s } = makeShell({ browserStore: { repo: '' } });
-  s.view = 'app';
-  assert.equal(s.shellMode, 'nav');
+  assert.equal(s.headerOn, true, 'an app view keeps the header for navigation');
+  assert.equal(s.sidebarStartsOpen, false, 'an app view starts with the sidebar closed');
   s.view = 'repos';
-  assert.equal(s.shellMode, 'full',
-    'a latched default would strand the dashboard with no nav');
+  assert.equal(s.sidebarStartsOpen, true, 'a latched default would strand the dashboard with no sidebar');
+  s.setHeader(false);
+  assert.equal(s.sidebarStartsOpen, false, 'hiding the header must put the sidebar away with it');
+  s.sidebarStart = '1';
+  assert.equal(s.sidebarStartsOpen, true, 'an explicit ?sidebar=1 is honored with the header off');
 });
 
-test('the address carries the mode only where it differs from the view default', () => {
-  const store = () => ({ repo: '', ref: '', defaultRef: 'main', activeFile: null, path: '' });
-  const { shell: s } = makeShell({ browserStore: store() });
+test('the address carries the header only where it differs from the default, on an app view too', () => {
+  const { shell: s } = makeShell({ browserStore: bareStore() });
+  s.syncUrl = () => {};
   s.view = 'app';
   s.appView = { key: 'me/home:a.html', slug: 'budget-drs', repo: 'me/home', path: 'a.html' };
-
   assert.equal(s.deepLinkParams(new URLSearchParams()).toString(), 'app=budget-drs',
-    'the bare address already means "nav shell"; stamping it would say it twice');
+    'the bare address already means "header shown, sidebar closed"; stamping it would say it twice');
 
-  // Turning the header OFF or to full is now the departure from the default, so THAT is
-  // what the address records.
-  s.setShellMode('none');
-  const qs = s.deepLinkParams(new URLSearchParams());
-  assert.equal(qs.get('shell'), 'none', 'the app view without chrome is the linkable exception');
-
-  // And back: the address self-heals to the short form rather than keeping a
-  // key that now agrees with the default.
-  s.setShellMode('nav');
-  assert.equal(s.deepLinkParams(new URLSearchParams()).has('shell'), false);
+  s.setHeader(false);
+  assert.equal(s.deepLinkParams(new URLSearchParams()).get('header'), '0',
+    'the app view without its header is the linkable exception');
+  // And back: the address self-heals to the short form.
+  s.setHeader(true);
+  assert.equal(s.deepLinkParams(new URLSearchParams()).toString(), 'app=budget-drs');
 });
 
-test('an explicit choice outranks the view default, on any view', () => {
-  const { shell: s } = makeShell({ search: '?shell=full&app=budget-drs', browserStore: { repo: '' } });
-  s.readShellMode();
-  s.view = 'app';
-  assert.equal(s.shellMode, 'full', 'a reader who asked for the header keeps it');
-});
-
-test('toggling back to the default is not a choice, so it does not follow you out', () => {
-  // Two taps on one app view used to leave `shell=none` latched, and the estate
-  // then opened with no nav and only the fab as the way back. Found in a
-  // browser: every unit agreed with itself and the sequence was still wrong.
+test('toggling the header back is not a choice, and hiding it survives navigation', () => {
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
   s.syncUrl = () => {};
   s.view = 'app';
-
-  s.setShellMode('none');
-  assert.equal(s.shellMode, 'none', 'the header is off, which IS a choice here');
-  s.setShellMode('nav');
-  assert.equal(s._shellChoice, '', 'and turning it back to nav agrees with the default');
-
-  s.view = 'repos';
-  assert.equal(s.shellMode, 'full', 'so the dashboard gets its nav back');
-});
-
-test('a choice that differs from the default still latches, on any view', () => {
-  const { shell: s } = makeShell({ browserStore: { repo: '' } });
-  s.syncUrl = () => {};
-  s.view = 'repos';
-  s.setShellMode('none');
-  assert.equal(s._shellChoice, 'none', 'a bare dashboard is a real request');
-  s.view = 'app';
-  assert.equal(s.shellMode, 'none');
+  s.setHeader(false);
+  assert.equal(s._headerChoice, '0', 'hiding the header IS a choice');
   s.view = 'map';
-  assert.equal(s.shellMode, 'none', 'and it survives navigation, as a reading parameter should');
+  assert.equal(s.headerOn, false, 'and it survives navigation, as a reading parameter should');
+  s.setHeader(true);
+  assert.equal(s._headerChoice, '', 'showing it agrees with the default, so nothing is latched');
+  s.view = 'app';
+  assert.equal(s.headerOn, true);
+});
+
+test('bringing the header back keeps the sidebar start the link asked for', () => {
+  // The case the old three-mode preset needed a remembered return mode for: a
+  // link that asked for the sidebar closed, whose header went off and came
+  // back, must not have the sidebar spring out. The start is its own reading,
+  // so nothing needs remembering.
+  for (const [search, open] of [['?sidebar=0', false], ['', true]]) {
+    const s = opened(search);
+    s.syncUrl = () => {};
+    s.view = 'repos';
+    s.setHeader(false);
+    assert.equal(s.sidebarOpen, false, `${search || 'bare'}: the sidebar outlived the header`);
+    s.setHeader(true);
+    assert.equal(s.sidebarOpen, open, `${search || 'bare'}: the header came back with the wrong sidebar`);
+  }
 });
 
 test('boot re-derives the sidebar after routing, since the watcher is not wired yet', () => {
   // Source-level: init() runs against a browser this harness does not build.
   // The claim is the ORDER. routeFromUrl settles the view before the $watch
-  // below exists, so the boot's own mode change is the one nothing observes.
-  const init = page.match(/await this\.routeFromUrl\(url\);[\s\S]*?this\.\$watch\('shellMode'/);
-  assert.ok(init, 'the boot route and the shellMode watcher were not found in one block');
-  assert.ok(init[0].indexOf('this.sidebarOpen = this.defaultSidebarOpen;') > 0,
+  // below exists, so the boot's own change is the one nothing observes.
+  const init = page.match(/await this\.routeFromUrl\(url\);[\s\S]*?this\.\$watch\('sidebarStartsOpen'/);
+  assert.ok(init, 'the boot route and the sidebarStartsOpen watcher were not found in one block');
+  assert.ok(init[0].indexOf('this.sidebarOpen = this.sidebarStartsOpen;') > 0,
     'nothing re-derives the sidebar between the boot route and the watcher');
 });
 
-test('the sidebar re-derives with the mode, or it outlives the header', () => {
-  // The header hides by class, the sidebar does not: it is `sidebarOpen` that
+test('the sidebar re-derives when its start changes, or it outlives the header', () => {
+  // The header hides by x-show, the sidebar does not: it is `sidebarOpen` that
   // puts it away. Without this the aside stays a column at lg after the header
   // has gone, which is the state nothing else in the app produces.
-  assert.match(page, /this\.\$watch\('shellMode', \(\) => \{\n\s+this\.sidebarOpen = this\.defaultSidebarOpen;/,
-    'a mode change must re-derive the sidebar before anything reads it');
+  assert.match(page, /this\.\$watch\('sidebarStartsOpen', \(\) => \{\n\s+this\.sidebarOpen = this\.sidebarStartsOpen;/,
+    'a change in how the sidebar starts must re-derive it before anything reads it');
 });
 
-test('an unknown shell mode reads as the default rather than blanking the app', () => {
-  // A hand-edited or truncated ?shell= must not hide the header with no way
-  // back: an unrecognized value is not a fourth mode, it is no mode.
-  // Surrounding whitespace is trimmed rather than rejected, so
-  // `shell=%20none` is `none` and is not in this list.
-  for (const bad of ['', 'hidden', 'nav-only', 'FULL', '1']) {
-    const { shell: s } = makeShell({ search: '?shell=' + encodeURIComponent(bad), browserStore: { repo: '' } });
-    s.readShellMode();
-    assert.equal(s.shellMode, 'full', `?shell=${JSON.stringify(bad)} resolved to something other than full`);
+test('an unknown value reads as absent rather than blanking the app', () => {
+  // A hand-edited or truncated link must not hide the header with no way back.
+  // Surrounding whitespace is trimmed rather than rejected, so `header=%200`
+  // is `0` and is not in this list.
+  for (const bad of ['', 'off', 'no', 'false', '00', 'none']) {
+    const s = opened('?header=' + encodeURIComponent(bad) + '&sidebar=' + encodeURIComponent(bad));
+    assert.equal(s.headerOn, true, `?header=${JSON.stringify(bad)} hid the header`);
+    assert.equal(s.sidebarStart, '', `?sidebar=${JSON.stringify(bad)} was taken as a start`);
   }
 });
 
-test('the FAB toggle contract is well formed, and its setter is the mode setter', () => {
+// ── SUNSET(2027-02-01): ?shell= still reads, as an alias ────────────────────
+//
+// Links to the preset sit in PR bodies, artifacts and a phone shortcut's
+// baked-in address (pages/shortcut-log.html), so until the sunset each value
+// opens the screen it used to and the next stamp rewrites it.
+
+test('?shell= opens as the preset it was, and stamps as the new parameters', () => {
+  const cases = [
+    // [shell value, view, header shown, sidebar starts open, stamp]
+    ['full', 'app', true, true, 'sidebar=1'],
+    ['nav', 'map', true, false, 'sidebar=0'],
+    ['none', 'map', false, false, 'header=0'],
+    ['full', 'map', true, true, ''],
+  ];
+  for (const [mode, view, header, side, stamp] of cases) {
+    const s = opened('?shell=' + mode);
+    s.view = view;
+    if (view === 'app') s.appView = { key: 'me/home:a.html', slug: 'budget-drs', repo: 'me/home', path: 'a.html' };
+    assert.equal(s.headerOn, header, `shell=${mode} on ${view}: wrong header`);
+    assert.equal(s.sidebarStartsOpen, side, `shell=${mode} on ${view}: wrong sidebar start`);
+    const p = s.deepLinkParams(new URLSearchParams('shell=' + mode));
+    assert.ok(!p.has('shell'), `shell=${mode}: the alias was stamped back instead of rewritten`);
+    for (const k of ['app', 'view']) p.delete(k);
+    assert.equal(p.toString(), stamp, `shell=${mode} on ${view}: rewritten to the wrong parameters`);
+  }
+});
+
+test('the new parameters outrank the alias where both are present', () => {
+  const s = opened('?shell=none&header=1&sidebar=1');
+  assert.equal(s.headerOn, true);
+  assert.equal(s.sidebarStart, '1');
+  const half = opened('?shell=nav&header=0');
+  assert.equal(half.headerOn, false, 'header=0 was overridden by the alias');
+  assert.equal(half.sidebarStart, '0', 'the alias did not fill the sidebar the new parameters left out');
+  assert.equal(opened('?shell=hidden').headerOn, true, 'an unknown preset value is not a fourth mode');
+});
+
+test('the FAB toggle contract is well formed, and its setter is the header setter', () => {
   // The Render tab renders one on/off control per entry, inline with the width
   // presets. A malformed row paints a dead button, so the shape is checked here
   // rather than left to be seen.
   const { shell: s } = makeShell({ browserStore: { repo: '' } });
+  s.syncUrl = () => {};
   const [t, ...rest] = s.toggles;
   assert.equal(rest.length, 0, 'the app contributes more than one toggle; the doc names one');
   assert.ok(t.key && t.label && t.icon && typeof t.set === 'function',
@@ -314,22 +416,7 @@ test('the FAB toggle contract is well formed, and its setter is the mode setter'
     assert.equal(cur.on, state, 'the toggle re-reads a stale value, so it would light the wrong way');
     assert.ok(cur.title && cur.title !== cur.label, `the ${state ? 'on' : 'off'} state has no tooltip of its own`);
   }
-  assert.equal(s.shellMode, 'none', "the toggle's setter did not move the shell");
-});
-
-test('the header toggle returns to the mode it left, not to full', () => {
-  // The drawer offers one binary over three modes, so coming back is ambiguous
-  // and the shell remembers. Without this, someone who opened a ?shell=nav link
-  // and toggled the header off and on would land on full and have the sidebar
-  // spring out at them.
-  for (const start of ['full', 'nav']) {
-    const { shell: s } = makeShell({ search: '?shell=' + start, browserStore: { repo: '' } });
-    s.readShellMode();
-    s.setHeader(false);
-    assert.equal(s.shellMode, 'none', `from ${start}: the header did not come off`);
-    s.setHeader(true);
-    assert.equal(s.shellMode, start, `from ${start}: the header came back to ${s.shellMode} instead`);
-  }
+  assert.equal(s.headerOn, false, "the toggle's setter did not move the header");
 });
 
 // The repo sidebar's Files row leaves the repo for the central surface, and
