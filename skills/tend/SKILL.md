@@ -170,11 +170,10 @@ has open work when its last reply (its record's `last_message`) closed on ❇️
 Ready to assess or 🟢 Ready to continue, two closing states that
 [`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
 defines. A session idle for less than two hours tends its own work at its
-check-ins. A check-in is a message a cloud session schedules to itself. The
-first comes 55 minutes after the owner's last prompt, and the second about an
-hour after that.
+check-ins. A check-in is a message a cloud session schedules to itself while
+it sits idle.
 [`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)
-sets both.
+sets when each one arrives.
 A message to a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
 ([`docs/environment/container.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md#the-prompt-cache)).
