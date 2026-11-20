@@ -276,11 +276,11 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/alpineComponents/`, a file that loads or mounts a component, `docs/app-routes.csv`, or `data/ui-units/units.csv` | `npm run components-index` | `docs/components.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
+| any markdown | `npm run themes-graph` | `docs/themes.csv` |
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
 | `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `skills/peeves/peeves.md` | `npm run peeves-csv` | `skills/peeves/peeves.csv` |
-| any markdown | `npm run themes-graph` | `docs/themes.csv` |
 | any `.js`, `.mjs`, `.html`, `.py` or markdown file, or a `docs/*.csv` | `npm run comment-blocks` | `data/comments/web-tools.json` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
@@ -294,8 +294,8 @@ time after `docs-readme`. One more stamp settles it.
 
 **Order is part of the contract, and it runs one way: a leg that WRITES into a
 folder precedes the leg that MEASURES it.** `docs-reach` stamps every `docs/`
-file's length into the registry's `words`, so `tests-index`, `tools-index` and
-`registries-reach` all run above it: each writes a file under
+file's length into the registry's `words`, so `tests-index`, `tools-index`,
+`registries-reach` and `themes-graph` all run above it: each writes a file under
 `docs/`, and a stamp taken before that write is stale by exactly that file's own
 delta. Nothing local reports it either, because the hook does not verify what it
 stamps; `docs-registry.test.mjs` catches it in CI, after the push. So a new
