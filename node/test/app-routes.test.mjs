@@ -55,11 +55,11 @@ function viewKeys(src) {
 // deepLinkParams() deletes VIEW_KEYS unconditionally and then lets ONE row
 // stamp, so the address never depends on what the base happened to hold. That
 // promise holds only while the two lists agree. They stopped agreeing for a
-// week: the Sessions row gained `session`, `set`, `lens` and `grain` on
+// week: the Sessions row gained `session`, `set`, `lens` (now `tab`) and `grain` on
 // 2026-09-08 and 09-09, none of them reached VIEW_KEYS, and the four were
 // written but never cleared. They rode onto every later screen, and because
 // each is seeded from location.search at construction, a cold load of one of
-// those addresses armed the Sessions pane with a record and a lens nobody
+// those addresses armed the Sessions pane with a record and a tab nobody
 // asked for.
 //
 // Read out of the source rather than executed, following this file's own
