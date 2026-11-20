@@ -153,21 +153,28 @@ test('adding or removing a property reverts exactly, with or without `items`', (
   }
 });
 
-test('frontmatter renders as fields, a label over a value without quotes, and the word diff marks the value', async () => {
+test('frontmatter renders as one band of fields, each key beside its value without quotes, and the word diff marks the value', async () => {
   const host = window.document.createElement('div');
   window.document.body.append(host);
   const next = FRONT.replace('$94.1M, and DRS spent it.', '$94.1M. DRS spent it all.');
   await mdDiff.render(host, FRONT, next, { group: true });
   assert.equal(host.querySelector('hr'), null, 'no fence renders as a rule');
   assert.equal(host.querySelector('h2'), null, 'no field becomes a setext heading');
-  assert.equal(host.querySelector('h1').textContent, 'The pool');
-  const fields = [...host.querySelectorAll(':scope > [data-md-front]:not(.hidden)')];
+  const bands = host.querySelectorAll(':scope > [data-md-front-band]');
+  assert.equal(bands.length, 1, 'the fields, changed or not, share one band');
+  const band = bands[0];
+  assert.ok(band.classList.contains('bg-base-200') && band.classList.contains('rounded-lg'), 'a gray band with rounded ends');
+  assert.equal(host.querySelector(':scope > [data-md-front]'), null, 'no field stands outside it');
+  assert.equal(band.nextElementSibling.querySelector('h1').textContent, 'The pool', 'the title follows the band');
+  const fields = [...band.querySelectorAll(':scope > [data-md-front]:not(.hidden)')];
   assert.deepEqual(fields.map((f) => f.firstChild.firstChild.textContent), ['title', 'status'], 'the unchanged fields, labelled');
   assert.equal(fields[0].firstChild.lastChild.textContent, 'The pool', 'the value without its quotes');
-  assert.equal(host.querySelectorAll(':scope > [data-md-front].hidden').length, 2, 'the fences draw nothing');
+  assert.match(fields[0].firstChild.className, /\bgrid\b.*grid-cols-\[6rem_minmax\(0,1fr\)\]/, 'the key and its value are one row');
+  assert.equal(band.querySelectorAll(':scope > [data-md-front].hidden').length, 2, 'the fences draw nothing');
   const boxes = host.querySelectorAll('.md-diff-change');
   assert.equal(boxes.length, 1, 'one container, for the summary');
   const box = boxes[0];
+  assert.equal(box.parentElement, band, 'the edit sits on the band');
   const inline = [...box.querySelectorAll('[data-md-front]')].find((f) => f.querySelector('.md-diff-ins'));
   assert.ok(inline, 'the inline reading is drawn as a field');
   const [label, value] = inline.firstChild.children;
@@ -177,6 +184,14 @@ test('frontmatter renders as fields, a label over a value without quotes, and th
   assert.ok(!value.textContent.includes('"'), 'no quote is drawn');
   assert.deepEqual([...value.querySelectorAll('.md-diff-del')].map((d) => d.textContent.trim()), [', and']);
   assert.ok([...value.querySelectorAll('.md-diff-ins')].some((d) => /all/.test(d.textContent)));
+  host.remove();
+});
+
+test('a document without frontmatter draws no band', async () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  await mdDiff.render(host, '# H\n\ntitle: "T"\n\nBody.\n', '# H\n\ntitle: "U"\n\nBody.\n');
+  assert.equal(host.querySelector('[data-md-front-band], [data-md-front]'), null);
   host.remove();
 });
 
