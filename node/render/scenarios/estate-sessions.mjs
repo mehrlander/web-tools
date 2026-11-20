@@ -497,8 +497,7 @@ export default async function (page) {
     st.jotItems = JOTS;
     // The shell gates the header nav and the pane chrome on a token too.
     window.__shell.hasToken = () => true;
-  }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane: process.env.LANE || '' });
-  await page.waitForTimeout(600);
+  }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane: process.env.LANE || '' });  await page.waitForTimeout(600);
 
   // The ROUTE CHIPS on the nested branch tiles, seeded the way activity-fake
   // seeds them for the Branches pane: the join is the same one, and the pane
@@ -531,19 +530,19 @@ export default async function (page) {
   });
   await page.waitForTimeout(300);
 
-  // QUERY=<text> types into the pane's text box, which narrows BOTH row lenses
+  // QUERY=<text> types into the pane's text box, which narrows BOTH row tabs
   // and makes every chip above recount against what it leaves. Typed through
   // the real input rather than set on the component, so the debounce and the
-  // x-model binding are part of what is shot; LENS=table then shows the same
+  // x-model binding are part of what is shot; TAB=table then shows the same
   // query answering in the table, which is the pair worth having in one place.
   if (process.env.QUERY) {
-    if (process.env.LENS) {
-      // Through the component's own setter rather than a click: the lens pills
+    if (process.env.TAB) {
+      // Through the component's own setter rather than a click: the tab pills
       // are one of three tab groups on this pane and the shot is about the box,
       // not about finding the pill.
       await page.evaluate((k) => {
-        window.Alpine.$data(document.querySelector('[x-data^="estate"]')).setLens(k);
-      }, process.env.LENS);
+        window.Alpine.$data(document.querySelector('[x-data^="estate"]')).setSessionTab(k);
+      }, process.env.TAB);
       await page.waitForTimeout(900);
     }
     await page.getByLabel('Filter sessions').fill(process.env.QUERY);

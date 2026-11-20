@@ -1,7 +1,7 @@
-// The Sessions pane's Table lens: the grain control, what each grain counts,
+// The Sessions pane's Table tab: the grain control, what each grain counts,
 // and the columns the reader can reach.
 //
-// The lens exists because the pane had no sort at all: three chip rows over 344
+// The tab exists because the pane had no sort at all: three chip rows over 344
 // session records and 434 branch rows, which is a query problem rather than a
 // scrolling one. What it adds that no chip row can is a GRAIN: sessions,
 // branches, or one row per session-and-branch pair. The pair grain is the
@@ -17,7 +17,7 @@
 // so mountTable is deliberately not exercised.
 //
 // SCOPE IS THE ONLY CHIP THE TABLE OBEYS. Repo and state moved into columns
-// when the lens moved to Tabulator, and their chip rows are hidden under it, so
+// when the tab moved to Tabulator, and their chip rows are hidden under it, so
 // a grain reading them anyway would be a filter with no control on screen.
 
 import test from 'node:test';
@@ -52,11 +52,11 @@ window.__shell = {
   refreshConfigCache() {},
   refreshActivity() {},
   // The address half, as app/index.html implements it: the shell holds the
-  // lens and the grain because the URL is the shell's to own.
-  sessionLens: '',
+  // tab and the grain because the URL is the shell's to own.
+  sessionTab: '',
   sessionGrain: '',
-  goSessionLens(lens, grain){
-    if (lens !== undefined) this.sessionLens = lens || '';
+  goSessionTab(tab, grain){
+    if (tab !== undefined) this.sessionTab = tab || '';
     if (grain !== undefined) this.sessionGrain = grain || '';
   },
 };
@@ -69,7 +69,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/surface.js',
   // The list pane renders these fixture rows too, and it reaches BranchStatus
   // for each row's lifespan. Without it the mount logs an expression error that
-  // has nothing to do with the lens under test.
+  // has nothing to do with the tab under test.
   'lib/kits/branch-status.js',
   'lib/kits/closing-state.js',
   'lib/alpineComponents/estate.js',
@@ -78,16 +78,16 @@ const Alpine = await startAlpine(window, [
 const data = Alpine.$data(window.document.getElementById('es'));
 
 test('Discussion controls follow record grains without changing the selected mode', () => {
-  data.sessionLens = 'table';
+  data.sessionTab = 'table';
   data.sessionGrain = 'branch';
-  assert.equal(data.sessionDiscussionLens, false);
+  assert.equal(data.sessionDiscussionTab, false);
   assert.equal(data.sessionGrain, 'branch');
   data.sessionGrain = 'edge';
-  assert.equal(data.sessionDiscussionLens, true);
+  assert.equal(data.sessionDiscussionTab, true);
   data.sessionGrain = 'session';
-  assert.equal(data.sessionDiscussionLens, true);
-  data.sessionLens = 'list';
-  assert.equal(data.sessionDiscussionLens, true);
+  assert.equal(data.sessionDiscussionTab, true);
+  data.sessionTab = 'list';
+  assert.equal(data.sessionDiscussionTab, true);
 });
 
 // Two sessions, one of them across two repos, so the pair grain is genuinely
@@ -147,7 +147,7 @@ test('the session grain folds one flat row per record, scope-filtered only', () 
   assert.equal(first.state, 'merged');
   assert.ok(first._row, 'the original rides through for the deck the row opens');
 
-  // The repo chip is hidden under this lens, so setting it must not narrow.
+  // The repo chip is hidden under this tab, so setting it must not narrow.
   data.sessionRepoFilter = 'web-tools';
   assert.equal(data.grainRows.length, 2, 'a hidden chip is not a filter');
   data.sessionRepoFilter = '';
@@ -176,7 +176,7 @@ test('the count names its unit, because a pair count read as a session count is 
   data.sessionGrain = 'session';
 });
 
-test('every column carries a filter, which is the reason this lens is a library', () => {
+test('every column carries a filter, which is the reason this tab is a library', () => {
   for (const g of ['session', 'branch', 'edge']) {
     data.sessionGrain = g;
     for (const c of data.tableColumns)
@@ -244,33 +244,33 @@ test('a column set survives a trip through another grain', () => {
   assert.ok(data.tableCols.includes('files'), 'remembered per grain, not reseeded');
 });
 
-test('the lens and the grain are addressable, and their defaults stay out of the address', () => {
-  // The render link for this pane opened it on the List lens twice while the
+test('the tab and the grain are addressable, and their defaults stay out of the address', () => {
+  // The render link for this pane opened it on the List tab twice while the
   // table was the thing under review, so the reply had to end "now tap Table".
-  // Setting the lens must move the shell's copy, which is what the URL is
+  // Setting the tab must move the shell's copy, which is what the URL is
   // stamped from; setting only the component's own leaves it unlinkable while
   // looking, from inside the pane, as though it worked.
   const shell = window.__shell;
-  data.setLens('table');
-  assert.equal(data.sessionLens, 'table');
-  assert.equal(shell.sessionLens, 'table');
+  data.setSessionTab('table');
+  assert.equal(data.sessionTab, 'table');
+  assert.equal(shell.sessionTab, 'table');
   data.setGrain('edge');
   assert.equal(data.sessionGrain, 'edge');
   assert.equal(shell.sessionGrain, 'edge');
-  // A grain change must not disturb the lens, and the reverse.
-  assert.equal(shell.sessionLens, 'table');
-  data.setLens('list');
+  // A grain change must not disturb the tab, and the reverse.
+  assert.equal(shell.sessionTab, 'table');
+  data.setSessionTab('list');
   assert.equal(shell.sessionGrain, 'edge');
-  data.setLens('table');
+  data.setSessionTab('table');
   data.setGrain('session');
 });
 
 // ── The two ends of the late-rows fault ─────────────────────────────────────
 // The pane opened reading `0 of 40 sessions` under the empty-state line while
 // the scope chips beside it counted 40, and filled only when the reader
-// switched grain and switched back. The mount effect tracks the lens, the grain
+// switched grain and switched back. The mount effect tracks the tab, the grain
 // and the scope; mountTable runs inside $nextTick, so nothing it reads is a
-// dependency and the rows are not one. In the app the address supplies the lens
+// dependency and the rows are not one. In the app the address supplies the tab
 // at boot and the caches land a fetch later, so the first mount is regularly
 // against an empty list. Two things have to hold, and they fail independently.
 test('rows landing after the mount reach a built table, and not by rebuilding it', () => {
@@ -353,7 +353,7 @@ test('a repo is a glyph it declares, and the tap that names it is not a navigati
 });
 
 test('a repo\'s tone colours its mark, and the table\'s state colour replaces it', async () => {
-  // The Table lens already spends a glyph's colour on what became of the work
+  // The Table tab already spends a glyph's colour on what became of the work
   // (REPO_STATE_CLASS), so there the state wins and the tone does not show;
   // everywhere else the tone is the repo's own. The hub's drawn mark for the
   // repo is asked for first; this hub has none, so the glyph draws once the

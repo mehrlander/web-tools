@@ -28,8 +28,7 @@ test('Activity filter edits replace one address rather than adding history per k
   for (const op of ['pushState', 'replaceState']) history[op] = () => calls.push(op);
   shell.setSessionSearch({ q: 'two words', discussion: true, scope: 'day', repo: '', state: '' });
   assert.deepEqual(calls, ['replaceState']);
-  assert.equal(shell.deepLinkParams().has('ascope'), false, 'Day is retained as the default');
-});
+  assert.equal(shell.deepLinkParams().has('ascope'), false, 'Day is retained as the default');});
 
 test('Search selection and explicit scope snapshots round-trip, including an empty scope', async () => {
   for (const set of [null, '', 'aaa11111,bbb22222']) {
@@ -222,4 +221,33 @@ test('only the active session slide may change the shared query', async () => {
   assert.deepEqual(restored[0], [rows[0], undefined, { replace: true }]);
   assert.equal(data._openCard.find, 'forward query');
   assert.equal(data._openCard.start, 0);
+});
+
+// The Sessions view's five tabs (List, Table, Repos, Counts, Areas) ride
+// `&tab=`, the key every other view's tabs ride. They rode `&lens=` until
+// 2026-11-20, and links minted before then are in notes, lists and replies,
+// so an old address still opens its tab and leaves carrying the new key.
+test('the Sessions tab rides &tab=, and an address carrying the old &lens= lands on that tab', async () => {
+  for (const search of ['?view=sessions&tab=repos&item=home', '?view=sessions&lens=repos&item=home']) {
+    const { shell } = makeShell({ search });
+    shell.goSessions = () => { shell.view = 'sessions'; };
+    assert.equal(shell.sessionTab, 'repos', 'seeded at construction from ' + search);
+    assert.equal(shell.sessionReposItem, 'home');
+    await shell.routeFromUrl(shell.parseUrl());
+    assert.equal(shell.sessionTab, 'repos', 'opened from ' + search);
+    const p = shell.deepLinkParams(new URLSearchParams(search));
+    assert.equal(p.get('tab'), 'repos');
+    assert.equal(p.get('item'), 'home');
+    assert.equal(p.has('lens'), false, 'the old key is written back as the new one');
+  }
+  // List is the default, so a bare ?view=sessions still means the pane as it opens.
+  const { shell } = makeShell({ search: '?view=sessions&lens=list' });
+  shell.goSessions = () => { shell.view = 'sessions'; };
+  await shell.routeFromUrl(shell.parseUrl());
+  const p = shell.deepLinkParams(new URLSearchParams('?view=sessions&lens=list'));
+  assert.equal(p.has('tab'), false);
+  assert.equal(p.has('lens'), false);
+  // Another view's `tab` names that view's tab, not a Sessions one.
+  assert.equal(makeShell({ search: '?view=map&tab=kits' }).shell.sessionTab, '');
+  assert.equal(makeShell({ search: '?view=map&tab=repos&item=x' }).shell.sessionReposItem, '');
 });

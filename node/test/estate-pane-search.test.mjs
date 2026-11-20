@@ -9,7 +9,7 @@
 //
 //   - the query is the OUTERMOST filter, so the chip counts under it say how
 //     many WOULD be left, which is what makes "Day 0, Week 4" a usable answer;
-//   - one query narrows both row lenses, since the Table lens carried a box of
+//   - one query narrows both row tabs, since the Table tab carried a box of
 //     its own that matched only the visible columns;
 //   - a stub session (named by a branch's commit trailer, carrying no record)
 //     stays findable by that branch name rather than dropping out entirely;
@@ -140,7 +140,7 @@ test('the scope chips recount UNDER the query, so an empty scope says widen', ()
   assert.equal(count('all'), 2, 'the second pass is 40 days old and still findable');
 });
 
-test('one query narrows both row lenses, which is why the table lost its own box', () => {
+test('one query narrows both row tabs, which is why the table lost its own box', () => {
   seedSessions();
   data.activityQuery = 'session search';
   data.sessionGrain = 'session';

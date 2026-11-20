@@ -950,8 +950,8 @@ def address(case, page, sha, slug, view=None, at="", query="", entries=None, pag
         # the app's embeds inherit it (home CLAUDE.md, "Render path").
         # A --query JOINS the view rather than opening a second '?' span, the
         # same way it joins the view on a page above: the framed page reads one query, so
-        # `?view=sessions?lens=table` reaches it as a view named
-        # `sessions?lens=table` and routes nowhere.
+        # `?view=sessions?tab=table` reaches it as a view named
+        # `sessions?tab=table` and routes nowhere.
         q = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
                 f"#gh={slug}@{pin}:{page}{q}{frag}")

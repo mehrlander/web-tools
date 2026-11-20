@@ -425,7 +425,7 @@ test('copySessionPointer writes the block, with this estate\'s store and the pan
 
 test('the pointer draws on a record row, a stub gets none, and nothing links the page', async () => {
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   // One record, and one stub beside it: a branch whose commit trailer names a
@@ -465,7 +465,7 @@ test("the rail's legend hangs on the day, not on the whole card", async () => {
   // fix (html-style mechanics.md, "Title-tips and panel-tips"). What is held here is
   // the attachment point, which did not move.
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.activity = {};
@@ -490,7 +490,7 @@ test("the rail's legend hangs on the day, not on the whole card", async () => {
 
 async function sessionRow(row) {
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.activity = {};
@@ -646,7 +646,7 @@ test('the glyph is a control on the row, and carries no native title beside it',
   // things: the failure the rail's legend already made and the day now carries.
   const row = statesRow([['ready', '🟢 **Ready to continue:** go.', '12:00:00']]);
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.sessionStateFilter = '';
@@ -886,7 +886,7 @@ test('the state counts sit inside the repo filter, so a chip never overcounts', 
 test('a stub drops out under a state filter rather than riding along', async () => {
   // A stub has no record, so it cannot answer the question the filter asks.
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.sessionStateFilter = '';
@@ -931,7 +931,7 @@ test('the histogram keeps the two absences out of the ordering and apart', () =>
     stateRow({ short: 'c1' }),
     { ...stateRow({ short: 'd1' }), v: V - 1 },
   ];
-  const h = data.lensClosingStates;
+  const h = data.countsClosingStates;
   assert.deepEqual(plain(h.bars.map(b => [b.key, b.n])), [['choice', 1], ['merged', 2]],
     'bars are states only, in vocabulary order');
   assert.equal(h.none.n, 1, 'closed in no state');
@@ -944,11 +944,11 @@ test('the histogram keeps the two absences out of the ordering and apart', () =>
 });
 
 test('the histogram reads the whole store, not the scoped list', () => {
-  // The list's chips narrow; this lens is the distribution, so a scope that
+  // The list's chips narrow; this tab is the distribution, so a scope that
   // hides half the records must not silently reshape it.
   data.sessionRows_ = [withState('a1', 'merged'), withState('b1', 'ready')];
   data.sessionScope = 'day';
-  assert.equal(data.lensClosingStates.total, 2);
+  assert.equal(data.countsClosingStates.total, 2);
   data.sessionScope = 'all';
 });
 
@@ -961,7 +961,7 @@ test('a rebuilt row reaches the screen, rather than freezing at first paint', as
   // And a summarizer bump heals rows in place, so a new field landed in the
   // cache and not on screen, which is exactly what ROW_V 10 does.
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.activity = {};
