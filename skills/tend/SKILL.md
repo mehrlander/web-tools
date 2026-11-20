@@ -164,8 +164,12 @@ reading and triggers nothing.
 
 `/tend prod` asks each session with open work to tend its own work. List the
 account's sessions and take each one that is idle, last showed activity
-between 30 minutes and a week ago, and has an open pull request or a blocked
-or review-ready status. A message to a session idle for more than 55 minutes
+between two hours and a week ago, and has an open pull request, a blocked or
+review-ready status, or a last reply (its record's `last_message`) that
+closed on ❇️ or 🟢. A session idle for less than two hours tends its own work
+at its check-ins
+([`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)).
+A message to a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
 ([`docs/environment/container.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md#the-prompt-cache)).
 Leave out a session idle that long whose usage record (`sessions/usage/` in
@@ -208,6 +212,8 @@ report what each session left waiting on the owner.
 A session that receives it works through whichever of these apply, under the
 principles above:
 
+- **Do what the last reply offered,** where it closed on ❇️ or 🟢 and the
+  owner has not written since.
 - **Land what is already approved,** up to a pull request ready to merge:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.

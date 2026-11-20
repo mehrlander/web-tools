@@ -172,9 +172,10 @@ FIRST = "\n".join((
     "\U0001f534), close the session out now: unsubscribe from every pull request this session is "
     "subscribed to, arm no further check-in, and reply with one line saying so. Steps 2 to 4 "
     "then do not apply.",
-    "2. Do work that needs no directional commitment, meaning no choice that is the owner's to "
-    "make. Hand anything longer than two calls to a subagent. Where there is no such work, do "
-    "none.",
+    "2. Tend the session's own work through the list under \"A session that receives it\" in "
+    "the Prod section of the tend skill (skills/tend/SKILL.md in mehrlander/web-tools), making "
+    "no choice that is the owner's to make. Hand anything longer than two calls to a "
+    "subagent. Where there is no such work, do none.",
     "3. Arm the second check-in: call send_later with delay_minutes {delay} and exactly this "
     "message: \u00ab{msg}\u00bb.",
     "4. Reply with exactly this line, with no caption and no closing state: \u00abQuiet check-in "
