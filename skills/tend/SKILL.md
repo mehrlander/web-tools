@@ -216,7 +216,8 @@ A session that receives it works through whichever of these apply, under the
 principles above:
 
 - **Take the step the last reply's closing line names,** where that line is
-  one of the two closing states above and the owner has not written since.
+  ❇️ or 🟢, the closing states named above, and the owner has not written
+  since.
 - **Land what is already approved,** up to a pull request ready to merge:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.
