@@ -36,6 +36,8 @@ public static class WorkerLog
                     : message.Contains("closed:", StringComparison.Ordinal) ? "Returned an errand result" : "Updated an errand";
                 activity = new("errand", headline, at, errand.Groups[1].Value);
             } else if (message == "[*] Nothing to do.") activity = new("idle", "Waiting for work", at);
+            else if (Regex.IsMatch(message, @"^\[-\] Could not update sessions cache on main after [1-9]\d{0,2} attempts\.$"))
+                activity = new("error", "Session cache could not be published", at);
             else if (message.StartsWith("[-]")) activity = new("error", "Worker reported a problem", at);
             else if (scheduled.Success) activity = new("scheduled", "Background job: " + scheduled.Groups[1].Value.Replace('-', ' '), at);
             if (activity is not null) reports.Add(activity);

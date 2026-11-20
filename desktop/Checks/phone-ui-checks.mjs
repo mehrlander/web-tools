@@ -150,8 +150,8 @@ check(new URLSearchParams(w.location.hash.slice(1)).get('session')==='cloud:clou
  'Usage-origin neighbors follow the cache list order and keep a direct Back path to Usage.');
 w.history.replaceState(null,'','#view=now&session=cloud%3Amissing');w.dispatchEvent(new w.PopStateEvent('popstate'));
 check(doc.querySelector('#detail [data-back]').textContent==='← Now','A direct session route without an originating history entry keeps Now as the safe return destination.');
-clearDetail();snapshot.sources.workerState='absent';snapshot.sources.notices=['A source is stale.'];await refresh();
-check(doc.querySelector('#notice').textContent.includes('Gemini errands are waiting. Worker not detected.')&&doc.querySelector('#notice').textContent.includes('A source is stale.'),'Missing-worker and source notices survive the compact layout.');
+clearDetail();snapshot.observedAt=new Date().toISOString();snapshot.sources.workerState='absent';snapshot.sources.notices=['A source is stale.'];await refresh();
+check(doc.querySelector('#notice [data-queue-notice]').textContent.includes('2 Gemini errands waiting')&&doc.querySelector('#notice [data-worker-status]').textContent.includes('Worker offline')&&doc.querySelector('#notice').textContent.includes('A source is stale.'),'Missing-worker notices expose the real Gemini queue count and worker action while retaining other source notices.');
 snapshot.sources.recordsConnected=false;await refresh();check(doc.querySelector('#content').textContent.includes('Waiting · Saved queue'),'A saved errand queue remains explicitly labeled.');
 snapshot.sources.queueAvailable=false;snapshot.items=snapshot.items.filter(i=>!['queued','claimed'].includes(i.state));await refresh();click('[data-assistant=gemini]');
 check(doc.querySelector('#content').textContent.includes('Queue unavailable')&&!doc.querySelector('#content').textContent.includes('Queue clear'),'An unavailable queue is never presented as empty.');click('[data-assistant=gemini]');
@@ -251,5 +251,38 @@ clearDetail();archive.sessions.push({id:'metadata-record',provider:'claude',titl
 w.NowPhone.openSession('cloud:metadata-record');
 check(doc.querySelector('#detail h2').textContent==='Metadata own identity'&&!doc.querySelector('#detail [data-facet=prompt]')&&!doc.querySelector('#detail [data-facet=reply]'),
  'A different metadata record sharing a provider URL cannot inherit the canonical conversation body.');clearDetail();
+clearDetail();snapshot.observedAt=new Date().toISOString();snapshot.items=[item('errand:gemini-one','queued'),item('errand:codex-one','queued','Codex'),{...item('manual','queued'),kind:'session'},item('gemini-accepted','claimed')];snapshot.changes=[];
+snapshot.sources={...snapshot.sources,workerState:'absent',queueAvailable:true,recordsConnected:true,notices:['Saved <a data-evil="yes" href="https://evil.example/">notice</a>'],workerReports:[{kind:'error',headline:'Session cache could not be published',at:earlier(3600)}]};await refresh();
+let queueLink=doc.querySelector('#notice [data-queue-notice]');
+check(queueLink.textContent.includes('1 Gemini errand waiting')&&queueLink.getAttribute('href')==='#view=errands&provider=gemini&tab=waiting'
+ &&doc.querySelector('#notice [data-worker-status]').getAttribute('href')==='#view=now&session=worker%3Agemini'
+ &&!doc.querySelector('#notice [data-evil]')&&doc.querySelector('#notice').textContent.includes('<a data-evil'),
+ 'The warning counts only queued Gemini errands, exposes shareable queue/status routes, and never converts server notices into links.');
+queueLink.focus();snapshot.items.push(item('errand:gemini-two','queued'));await refresh();
+check(doc.activeElement.dataset.queueNotice==='gemini'&&doc.activeElement.textContent.includes('2 Gemini errands waiting'),'A queue-count refresh retains keyboard focus on the notice action.');
+snapshot.sources.workerState='detected';await refresh();
+check(!doc.querySelector('#notice [data-queue-notice]')&&doc.activeElement.id==='view-picker','A detected worker clears the warning and safely returns focus from a removed action.');
+snapshot.sources.workerState='unknown';await refresh();check(!doc.querySelector('#notice [data-queue-notice]'),'Unknown worker presence does not become a false offline warning.');
+snapshot.sources.workerState='absent';snapshot.sources.recordsConnected=false;await refresh();
+check(doc.querySelector('#notice').textContent.includes('Saved queue'),'A cached waiting count retains its saved-queue qualification.');
+snapshot.sources.recordsConnected=true;offline=true;await refresh();
+check(doc.querySelector('#notice').textContent.includes('Saved queue and worker status')&&!doc.querySelector('#notice [data-worker-status]').textContent.includes('Worker offline'),'A failed transport qualifies cached worker and queue observations even when the saved GitHub status was connected.');
+offline=false;snapshot.observedAt=earlier(30);await refresh();
+check(doc.querySelector('#notice').textContent.includes('Saved queue and worker status'),'A stale snapshot is qualified independently of successful transport and recorded GitHub connectivity.');
+snapshot.observedAt=new Date().toISOString();
+snapshot.sources.recordsConnected=true;await refresh();click('[data-assistant=codex]');w.NowViews.scrollTo(222);
+const queueHistory=w.history.length;click('#notice [data-queue-notice]');await flush();
+check(w.NowViews.current()==='errands'&&w.location.hash==='#view=errands&provider=gemini&tab=waiting'&&w.history.length===queueHistory+1&&doc.activeElement.id==='view-picker','The notice opens one history entry for Gemini Waiting and moves focus to visible navigation when the queue controller is absent.');
+const queueBack=new Promise(resolve=>w.addEventListener('popstate',resolve,{once:true}));w.history.back();
+for(let pass=0;pass<5;pass++){for(const[id,task]of [...timers])if(!task.delay){timers.delete(id);task.fn();}await flush();}
+await queueBack;await flush();
+check(w.NowViews.current()==='now'&&doc.querySelector('[data-assistant=codex]').getAttribute('aria-pressed')==='true'&&w.NowViews.scrollPosition()===222,'Back from the queue retains the original Now provider filter and scroll.');
+click('#notice [data-worker-status]');
+check(doc.querySelector('#detail h2').textContent==='Gemini errand worker'&&doc.activeElement===doc.querySelector('#detail h2')&&doc.querySelector('#detail').textContent.includes('separately from interactive Gemini sessions')
+ &&doc.querySelector('#detail').textContent.includes('Last report')&&doc.querySelector('#detail').textContent.includes('Session cache could not be published')
+ &&doc.querySelector('#detail').textContent.indexOf('Waiting')<doc.querySelector('#detail').textContent.indexOf('Recent reports'),
+ 'Worker status distinguishes the errand worker, shows its dated safe report, and places waiting work before report history.');
+clearDetail();snapshot.items=snapshot.items.filter(value=>value.kind!=='errand'||value.provider!=='Gemini'||value.state!=='queued');await refresh();
+check(!doc.querySelector('#notice [data-queue-notice]'),'Manual Gemini sessions and other vendors’ queued errands do not create a Gemini worker warning.');
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();
