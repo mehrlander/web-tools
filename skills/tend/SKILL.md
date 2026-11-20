@@ -169,7 +169,8 @@ pull request, a blocked or review-ready status, or a last reply (its record's
 `last_message`) whose closing line is ❇️ Ready to assess or 🟢 Ready to
 continue; [`docs/CONVERSATION.md`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply)
 defines both. A session idle for less than two hours tends its own work at
-its check-ins
+its check-ins, the messages a cloud session schedules to itself 55 minutes and
+about two hours after the owner's last prompt
 ([`skills/hooks/check-in.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/check-in.py)).
 A message to a session idle for more than 55 minutes
 makes it write its whole context to the prompt cache again
