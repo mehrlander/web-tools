@@ -121,7 +121,7 @@ third code whose `parts` cell is filled. A card grid's parts are a list's: the
 grid is the `list` part and each card an `item`, with the same anatomy. The
 rollout's readers asked for `body` and `links` and for the rules on groups,
 nesting and alternates below. `linked-swiper`, the fourth code with a `parts`
-cell, takes list-detail's.
+cell, takes list-detail's parts.
 
 - **`data-pattern="<code>"`** goes on the element that holds the whole
   arrangement, using a body code from [`codes.csv`](codes.csv).
