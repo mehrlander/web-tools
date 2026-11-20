@@ -457,6 +457,14 @@ def trip_of(line):
     quote, clause = "", " · ".join(rest)
     if q is not None:
         quote = rest[q]
+        # The clause run on after the quote with no separator, as in
+        # `"words." This sentence ...`: the quote ends at the first closing
+        # quote that a new sentence follows.
+        if quote[-1:] not in "\"”'’":
+            end = re.search(r'["”](?=[.;:,]?\s+["“A-Z])', uncoded(quote[1:]))
+            if end:
+                rest = rest[:q] + [quote[:end.end() + 1], quote[end.end() + 1:].lstrip(".;:, ")] + rest[q + 1:]
+                quote = rest[q]
         if len(quote) > 1 and quote[0] in "\"“" and quote[-1] in "\"”" and not re.search(r'["“”]', uncoded(quote[1:-1])):
             quote = quote[1:-1]
         clause = " · ".join(rest[q + 1:])
@@ -621,14 +629,15 @@ def quote_parts(q):
 
 
 def quote_re(s):
-    """A pattern for one quoted string: an ellipsis is a gap, ` / ` a line break,
-    and a link's elided target `(…)` nothing."""
+    """A pattern for one quoted string: an ellipsis is a gap (a whole paragraph
+    quoted by its ends spans one), ` / ` a line break, and a link's elided
+    target `(…)` nothing."""
     s = norm_q(re.sub(r"\(…\)", "", s))
     frags = [f.strip(" :;,") for f in re.split(r"…|\.\.\.", s)]
     frags = [f for f in frags if f]
     if not frags:
         return None
-    return r".{0,400}?".join(r"\s?/?\s?".join(re.escape(b) for b in f.split(" / ")) for f in frags)
+    return r".{0,2000}?".join(r"\s?/?\s?".join(re.escape(b) for b in f.split(" / ")) for f in frags)
 
 
 def quote_in(q, text):
@@ -998,7 +1007,7 @@ def change_lines(run, n, nxt):
     hint = None
     for k, ch in enumerate(changes, 1):
         held = [f"{n}.{j + 1}" for j, t in enumerate(run.get("trips") or [])
-                if t.get("quote") and quote_in(t["quote"], ch["from"])]
+                if t.get("quote") and t.get("answer") != "kept" and quote_in(t["quote"], ch["from"])]
         if not ch.get("answers") and not hint:
             hint = f"{n}.c{k} {','.join(x.split('.')[1] for x in held) or '<trips>'}"
         first = (blocks(ch["to"]) or [""])[0]

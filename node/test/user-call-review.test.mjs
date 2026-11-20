@@ -230,6 +230,15 @@ test('a trip carries the edit it was tagged with, E- or outside as 0; only trips
   assert.equal(fmt.clause, 'Split it.');
   assert.equal(kept.quote, 'mark it with `--kept <n> "<why>"`; once that run is recorded', 'a quote mark inside code keeps the outer ones stripped');
   assert.deepEqual(py('quote_parts', kept.quote), [kept.quote]);
+  const [runOn, two] = pyMany([
+    ['trip_of', ['- P74 · E1 · line 155 · "It also records the changes, and counts reflow." This sentence has a second claim. Split it.']],
+    ['trip_of', ['- P03 · E1 · line 155 · "the peeves critic\'s runs" and "reflow". "Peeves critic" is not defined here.']],
+  ]);
+  assert.deepEqual([runOn.quote, runOn.clause], ['It also records the changes, and counts reflow.', 'This sentence has a second claim. Split it.'],
+    'a clause run on after the quote with no separator is the clause');
+  assert.deepEqual([two.quote, two.clause], ['"the peeves critic\'s runs" and "reflow"', '"Peeves critic" is not defined here.']);
+  assert.equal(py('quote_in', 'Check changes against the principles. … the call is filed.', 'Check changes against the principles. ' + 'x'.repeat(900) + ' the call is filed.'), true,
+    'a paragraph quoted by its two ends is in the text');
 });
 
 test('a rewrap is reflow, counted apart from the changes, and a quote is held to the text', () => {
