@@ -227,12 +227,10 @@ fields say how and why:
   `fetch`, a read of one of your repos with your token.
 - `run` describes what gets run: `script` (`owner/repo@ref:path`), `venue` (a
   [`machines.csv`](machines.csv) key), `method`, `outputReturn`, `outputType`
-  and `outputSigned`. A `laptop-daemon`, `codex-errand` or `claude-errand` run
-  also has `args`, such as the `prompt` it passes on. A `laptop-daemon` run
-  also has `op`, the operation it asks for, such as `ping`. The methods, the
-  machines each allows and how each returns its output are the registry
-  [`run-methods.csv`](run-methods.csv). A `courier-bookmark` run executes on a
-  page the session cannot reach; see [`courier/README.md`](../courier/README.md). A `computer-use` run's
+  and `outputSigned`. The methods, the machines each allows and how each
+  returns its output are the registry [`run-methods.csv`](run-methods.csv). A
+  `courier-bookmark` run executes on a page the session cannot reach; see
+  [`courier/README.md`](../courier/README.md). A `computer-use` run's
   script is a prompt rather than code: the person hands it to a computer-use
   agent on the home laptop, whichever product, pastes the agent's report onto
   the errand, and does the work themselves only when no agent can.
@@ -243,38 +241,27 @@ fields say how and why:
 - `purpose` is `test-script` (the output is evidence that code works) or
   `get-data` (the output is source material that lands and is used).
 
-A read (`action`) names its `repo` and may name a `ref`, `main` by default;
-`fetch` also names `paths`. Any other errand names `dest`, the
-`owner/repo[@ref]:dir` where what arrives is saved. It may name `file`, the
-name it is saved as. A `courier-bookmark` run names the `url` of its page.
-`title` defaults to the note's first line. `createdAt` says when the errand
-was filed.
+A read (`action`) names its `repo`, and may name a `ref` (`main` by default)
+and, for `fetch`, `paths`. Any other errand names `dest`, the
+`owner/repo[@ref]:dir` where what arrives is saved, and may name `file`, the
+name it is saved as; a `courier-bookmark` run also names its page's `url`. An
+errand with no `action` and no `run` asks for material only you have.
+`expect` grades what arrives: `files` (how many, one by default), `names`
+(globs that must each match a file) and `match` (a pattern that must match at
+least `min` times, one by default). A run with `outputSigned: true` wraps its
+output as an `errand-result/1` envelope, {envelope, errand, body, outputType},
+which a paste anywhere on the Stage routes to the errand `errand` names.
 
-An errand with no `action` and no `run` asks for material only you have. `expect`
-grades what arrives. Its `files` sets how many files must arrive, one by
-default. Each glob in `names` must match a file. The pattern `match` must
-match at least `min` times, one by default.
-
-A run with `outputSigned: true` wraps its output as an `errand-result/1`
-envelope, {envelope, errand, body, outputType}. A paste of that envelope
-anywhere on the Stage goes to the errand its `errand` field names.
-
-File `errands/requests/<id>.json`
-on the registry's `background` branch, not main, and hand the user
-`?view=stage&errand=<id>`. Nothing the Stage performs runs until they tap,
-reads included.
-
-The answer lands at `errands/results/<id>.json` on the same
-branch, as {id, action, purpose, closedAt, ok, answered, message, verdict,
-data}. `answered` is false when the person declines the errand. A declined errand's `message` says why.
-`verdict` holds the grade.
-
-The scripts an errand runs stay on main
+File `errands/requests/<id>.json` on the registry's `background` branch, not
+main, and hand the user `?view=stage&errand=<id>`. Nothing the Stage performs
+runs until they tap, reads included. The result lands at
+`errands/results/<id>.json` on the same branch, as {id, action, purpose,
+closedAt, ok, answered, message, verdict, data}: `answered` is false when the
+person declines, with `message` saying why, and `verdict` is the grade. The
+scripts an errand runs stay on main
 ([`errands/prompts/`](https://github.com/mehrlander/web-tools-private/tree/main/errands/prompts),
 [`sites/`](https://github.com/mehrlander/web-tools-private/tree/main/sites)),
-where `run.script` addresses them; web-tools-private's README section
-["Three layers"](https://github.com/mehrlander/web-tools-private/blob/main/README.md#three-layers)
-says why the records moved.
+where `run.script` addresses them.
 
 Four methods need no one at the Stage, because none borrows the Stage's
 token:

@@ -2,11 +2,9 @@
 
 An **envelope** is a JSON document that carries a curated, annotated set of items for a reader to open, rendered by a web-tools page rather than by a bespoke viewer. Files, chats, and diffs stay where they live; the envelope layers selection, arrangement, and commentary over them, travels as one unit, and renders through a shared page. This folder is the family's home: the format contracts, the JSON Schemas that describe them, and this note on how the members relate.
 
-Whether a test validates documents against a schema under `schemas/` is the `validated` column of [`docs/formats.csv`](../formats.csv); the `.md` files hold concepts, conventions, and worked examples.
-
 ## The members
 
-The members are the rows of [`docs/formats.csv`](../formats.csv) whose `envelope` is `yes`. [Membership](#membership) says what admits a format.
+The members are the rows of [`docs/formats.csv`](../formats.csv) whose `envelope` is `yes`; its `validated` column says whether a test checks a format's documents against its schema. [Membership](#membership) says what admits a format.
 
 **Surface** is the general substrate: the schema is deliberately light at the core (`role`, `view`, `context` optional and open) and tightens through named, versioned **profiles**, of which `branch-review/1` is the first (its schema is under [`schemas/profiles/`](schemas/profiles/)).
 
