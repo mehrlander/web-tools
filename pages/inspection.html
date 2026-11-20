@@ -128,8 +128,9 @@
     badge: 'badge badge-xs badge-ghost mr-3 h-4 px-1.5 align-[3px] text-[11px] font-medium tabular-nums text-base-content/70',
     fold: 'flex w-full cursor-pointer items-center gap-1.5 rounded-sm bg-base-200 px-2 py-0.5 text-xs leading-5 text-base-content/60 hover:bg-base-300 hover:text-base-content',
   };
-  // A tab whose output carries a note, in a payload without verdicts.
-  const NOTED = 'bg-warning/40';
+  // A dot under a tab's number marks an output that carries a note, leaving
+  // the tab's fill to its stance or verdict.
+  const NOTED = 'after:absolute after:bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-current';
   // The page's corner button sits over the foot of the output's panel.
   const FAB_ROOM = 'mr-16';
   // A tab under the pointer, or whose passage is.
@@ -172,6 +173,8 @@
     p.tagOf = Object.fromEntries((p.tags || []).map(t => [t.tag, t]));
     // The tags' one width, so every output's text starts at one edge (rule 15).
     p.tagCh = Math.max(0, ...p.runs.flatMap(r => r.outputs.map(o => (p.tagOf[o.tag]?.label || o.tag || '').length)));
+    // Whether any output has flair, which then shares the note's row.
+    p.flairy = p.runs.some(r => r.outputs.some(o => o.flair?.length));
     return p;
   }
 
@@ -246,9 +249,9 @@
   const noted = (run, out) => !!stateOf(keyOf(run, out)).note?.trim();
   let swiper = null;
 
-  // An output's flair: a quiet badge each, after its words, its tip saying
-  // what the label marks.
-  const flairHTML = o => (o.flair || []).map(f => ` <span class="badge badge-sm badge-ghost cursor-pointer gap-1 align-[0.1em] font-normal text-base-content/75" data-title-tip="${esc(f.tip || f.label)}">`
+  // An output's flair: a quiet badge each, leading the note's row, its tip
+  // saying what the label marks.
+  const flairHTML = o => (o.flair || []).map(f => `<span class="badge badge-sm badge-ghost shrink-0 cursor-pointer gap-1 font-normal text-base-content/75" data-title-tip="${esc(f.tip || f.label)}">`
     + `${f.icon ? `<i class="ph ${esc(f.icon)}"></i>` : ''}${esc(f.label)}</span>`).join('');
 
   // A row: the run's title over its meta, its outputs' tabs (the kit draws
@@ -280,18 +283,21 @@
     return ` data-title-tip="${esc(on.map(o => `${name(o)}: ${opening(o.text)}`).join('\n'))}"`;
   }
 
-  // The verdict buttons, where the payload has verdicts, and the note. Under
-  // both panes the controls stand beside the words once there is room.
+  // The output's flair, the verdict buttons where the payload has verdicts,
+  // and the note, on one row; the note drops to its own line when the row
+  // leaves it too little. Under both panes the row stands beside the words
+  // once there is room, as wide for every output (rule 15).
   function controls(r, o, under) {
-    const s = stateOf(keyOf(r.id, o.id));
-    const beside = !under ? '' : judged ? '@3xl:w-[28rem] @3xl:flex-none' : '@3xl:w-80 @3xl:flex-none';
-    return `<div class="flex items-center gap-2 ${under ? FAB_ROOM + ' ' + beside : ''}">
+    const s = stateOf(keyOf(r.id, o.id)), flair = flairHTML(o);
+    const beside = !under ? '' : (judged ? P.flairy ? '@3xl:w-[34rem]' : '@3xl:w-[28rem]' : P.flairy ? '@3xl:w-96' : '@3xl:w-80') + ' @3xl:flex-none';
+    return `<div class="flex flex-wrap items-center gap-2 ${under ? FAB_ROOM + ' ' + beside : ''}">
+      ${flair ? `<span class="flex shrink-0 gap-1">${flair}</span>` : ''}
       ${judged ? `<div class="join shrink-0" role="radiogroup" aria-label="Verdict">${P.verdicts.map(v => {
         const on = s.verdict === v.verdict;
         return `<button type="button" role="radio" aria-checked="${on}" data-verdict="${esc(v.verdict)}" data-title-tip="${esc(v.gloss || v.label)}"
           class="btn btn-sm join-item gap-1 px-2.5 ${on ? tone(v.verdict).btn : 'border-base-300 bg-base-100 font-normal'}">${v.icon ? `<i class="ph ${esc(v.icon)}"></i>` : ''}${esc(v.label || v.verdict)}</button>`;
       }).join('')}</div>` : ''}
-      <input data-note value="${esc(s.note)}" placeholder="Note" aria-label="Note" class="input input-sm min-w-0 flex-1 max-sm:text-base">
+      <input data-note value="${esc(s.note)}" placeholder="Note" aria-label="Note" class="input input-sm min-w-0 flex-1 basis-40 max-sm:text-base">
     </div>`;
   }
 
@@ -325,8 +331,8 @@
   }
 
   // An output: its number, as on its passages and its tab, its tag, its
-  // words and flair, the producer's note from an icon after the words, and
-  // the owner's controls. The words fit, up to a few lines that then scroll,
+  // words, the producer's note from an icon after the words, and its flair
+  // with the owner's controls. The words fit, up to a few lines that then scroll,
   // so the input gives up no more room than an output needs. Under the panes
   // (under) the controls stand beside the words when there is room.
   function outHTML(r, o, big, under) {
@@ -334,7 +340,7 @@
       + `<span class="badge badge-primary badge-sm px-1.5 font-mono font-medium tabular-nums">${r.outputs.indexOf(o) + 1}</span></span>`;
     return `<div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex flex-col gap-2 ${under ? '@3xl:flex-row @3xl:items-start @3xl:gap-4' : ''}">
         <div data-words class="max-h-[4lh] min-w-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] data-more:mask-b-from-75% ${under ? '@3xl:flex-1' : 'max-sm:max-h-[6lh]'}">
-          <p class="font-semibold @lg:flex @lg:items-start @lg:gap-2">${num}${tagHTML(o, big)}<span class="@lg:min-w-0">${esc(o.text)}${flairHTML(o)}${o.note
+          <p class="font-semibold @lg:flex @lg:items-start @lg:gap-2">${num}${tagHTML(o, big)}<span class="@lg:min-w-0">${esc(o.text)}${o.note
             ? ` <i class="ph ph-info cursor-pointer align-[-0.125em] font-normal text-base-content/50" data-title-tip-lead="Producer's note" data-title-tip="${esc(o.note)}"></i>` : ''}</span></p>
         </div>
         ${controls(r, o, under)}
@@ -584,9 +590,15 @@
       root: $('panes'), list, card: $('card'), key: 'run', noun: 'output', subNoun: 'output',
       ids: () => runs().map(r => r.id), sel: () => sel,
       subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut,
+      // A tab: filled in its verdict's tone where the payload has verdicts,
+      // else in its output's stance (hueOf), as its passages are; the open
+      // tab stays primary. A dot under the number marks a note.
       tab: (id, out, j, n) => {
-        const v = stateOf(keyOf(id, out)).verdict, nt = !judged && noted(id, out);
-        return { cls: v ? tone(v).mark : nt ? NOTED : '', aria: `Output ${j + 1} of ${n}` + (v ? ', ' + (P.verdictOf[v]?.label || v) : nt ? ', noted' : '') };
+        const o = outOf(id, out), v = stateOf(keyOf(id, out)).verdict, nt = noted(id, out);
+        return {
+          cls: [judged ? v && tone(v).mark : TONE[hueOf(o)]?.mark, nt && NOTED].filter(Boolean).join(' '),
+          aria: [`Output ${j + 1} of ${n}`, o.tag && (P.tagOf[o.tag]?.label || o.tag), v && (P.verdictOf[v]?.label || v), nt && 'noted'].filter(Boolean).join(', '),
+        };
       },
       // Room for a run's meta beside six tabs, and its count where verdicts
       // are counted (rule 15).
@@ -624,11 +636,11 @@
       setState(run, out, { note: n.value });
       for (const other of document.querySelectorAll(`[data-item="${CSS.escape(item.dataset.item)}"] [data-note]`))
         if (other !== n) other.value = n.value;
-      // Without verdicts a tab marks an output that carries a note, changed
-      // in place as the note is typed.
-      if (!judged) for (const t of list.querySelectorAll(`[data-run="${CSS.escape(run)}"] [data-ls-sub="${CSS.escape(out)}"]`)) {
+      // A tab marks an output that carries a note, changed in place as the
+      // note is typed.
+      for (const t of list.querySelectorAll(`[data-run="${CSS.escape(run)}"] [data-ls-sub="${CSS.escape(out)}"]`)) {
         const on = noted(run, out);
-        t.classList.toggle(NOTED, on);
+        for (const c of NOTED.split(' ')) t.classList.toggle(c, on);
         t.setAttribute('aria-label', t.getAttribute('aria-label').replace(/, noted$/, '') + (on ? ', noted' : ''));
       }
     });
