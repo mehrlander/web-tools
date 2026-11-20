@@ -154,7 +154,7 @@ test('State view GraphQL Activity Discovery inspector state, methods, and layout
   ]);
 
   const sv = Alpine.$data(window.document.getElementById('sv'));
-  assert.ok(sv.template.includes('lg:grid-cols-2'), 'State view template contains responsive 2-column desktop grid');
+  assert.ok(sv.template.includes('@3xl:grid-cols-2'), 'State view template goes to two columns in a pane of 48rem or more (a container query, so the docked deck\'s narrow pane stays one column)');
   assert.ok(sv.template.includes('BranchesDatedSessions'), 'State view template renders BranchesDatedSessions inspector');
   assert.equal(typeof sv.fetchActivityGraphQL, 'function');
   assert.equal(typeof sv.copyGraphQLText, 'function');

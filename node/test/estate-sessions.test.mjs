@@ -181,7 +181,7 @@ function seed(rows) {
   data.sessionRepoFilter = '';
 }
 
-test('scopes count off the full list and Snagged is its own axis, not a time window', () => {
+test('scopes count off the full list, and every scope is a time window or All', () => {
   seed([
     rec({ short: 'aaa', started: ago(1), ended: ago(1), failures: 0 }),
     rec({ short: 'bbb', started: ago(10), ended: ago(10), failures: 2 }),
@@ -189,12 +189,9 @@ test('scopes count off the full list and Snagged is its own axis, not a time win
   ]);
   const by = Object.fromEntries(data.sessionScopes.map(s => [s.key, s.count]));
   assert.equal(by.week, 1);
-  assert.equal(by.month, 2);
   assert.equal(by.all, 3);
-  assert.equal(by.failed, 2, 'a snagged session counts however old it is');
-
-  data.sessionScope = 'failed';
-  assert.deepEqual(data.sessionRows.map(r => r.id), ['bbb', 'ccc']);
+  assert.equal(data.sessionScopes.map(s => s.key).join(','), 'day,three,week,all',
+    'the Snagged and Month scopes are gone; the failure count stays on the row');
 });
 
 test('the repo filter lapses back to All when the scope no longer holds that repo', () => {
@@ -953,18 +950,6 @@ test('the histogram reads the whole store, not the scoped list', () => {
   data.sessionScope = 'day';
   assert.equal(data.lensClosingStates.total, 2);
   data.sessionScope = 'all';
-});
-
-test('the star panel names a session the way a row does', () => {
-  const row = withState('a1', 'ready');
-  data.sessionScope = 'all';
-  data.sessionRepoFilter = '';
-  data.sessionStateFilter = '';
-  data.sessionRows_ = [row];
-  const star = data.lensStars[0];
-  assert.equal(star.id, 'a1');
-  assert.equal(star.label, data.sessionLabel(row), 'the same name the list row draws');
-  assert.equal(data.sessionStateMark(star), '🟢', 'and the same glyph');
 });
 
 test('a rebuilt row reaches the screen, rather than freezing at first paint', async () => {

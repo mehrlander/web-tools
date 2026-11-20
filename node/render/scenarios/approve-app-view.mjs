@@ -8,10 +8,10 @@
 // Two things this exists to show, and the second is why it is a scenario rather
 // than a bare --query address.
 //
-// An app view opens at shell=nav by default (docs/APP.md, "Display options"):
-// the header shows and the sidebar starts closed. So a link handed over to show
-// how the view sits IN the app says shell=full, and one meant to show the page
-// bare says shell=none.
+// An app view opens with the header shown and the sidebar closed by default
+// (docs/APP.md, "Display options"). So a link handed over to show how the view
+// sits IN the app says sidebar=1, and one meant to show the page bare says
+// header=0.
 // That is what a reader reported on 2026-09-16 after being given the bare form.
 //
 // And the estate sidebar reads configs.json through the viewer's token, which a
@@ -61,11 +61,12 @@ export default async function (page) {
   // app" means.
   await page.evaluate(() => {
     window.__shell.goAppView(window.__shell.appViews[0]);
-    // setShellMode, not an assignment: shellMode is a GETTER over _shellChoice
-    // and the view's default, so writing to it is a silent no-op that leaves
-    // the app view at its bare default and looks exactly like the bug this
-    // scenario exists to rule out.
-    window.__shell.setShellMode('full');
+    // sidebarStart, not sidebarOpen: the boot and the view change re-derive
+    // sidebarOpen from sidebarStart, so writing the live state alone is undone
+    // by the next re-derive and looks exactly like the bug this scenario
+    // exists to rule out.
+    window.__shell.sidebarStart = '1';
+    window.__shell.sidebarOpen = true;
   });
   await page.waitForTimeout(6000);
 }

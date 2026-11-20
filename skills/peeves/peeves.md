@@ -338,8 +338,6 @@ A sentence that turns on "so", presenting one cause as forcing one result.
 
 **Look for:** 'checks passed, so there's nothing to act on'; 'the data keys stay, so no markup or coding changes'; 'that is the prose the house style rules out, so it should go'; ', so a reader can stop there'
 
-**Owner:** docs/house-policies.md (h:smug)
-
 **Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
 ### Diluting the owner's message · `P69`
@@ -373,6 +371,14 @@ Long, undifferentiated paragraphs in documents or replies that pack several subj
 **Look for:** one long paragraph covering several subjects (such as architecture, clone reads and build outputs in one block); a reply or README passage that shifts topic without a paragraph break
 
 **Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
+
+### Death by sentence · `P74`
+
+A sentence that won’t end. Find bite size ideas that build into the larger point. If support is needed, add it after the period. Break up complex sentences, remove excessive detail, and scrutinize for clear flow of ideas. Consider moving up a level.
+
+**Look for:** a second complete claim joined on with ", and", ", which", ", so" or ", because"; a clause opening on an -ing verb tacked onto the end; conditions stacked before the main clause; a qualifier added to answer a reviewer's question, as in 'When a view's `data-find-input` element also carries `data-find-submit`, naming a method of the view, the find pill's bar shows a Results button, and Enter or that button passes the text typed in the bar to the method.'; a short sentence that names many things and describes code where the effect would do, as in 'Enter or the Results button calls the named method with the bar's text.'
+
+**Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
 ## Combined entries
 

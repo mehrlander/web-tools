@@ -12,15 +12,16 @@ question, whether a reply that waits on the owner puts a decision to them.
 That question went once CONVERSATION.md gave a call its own closing marker with
 a fixed recommendation clause, which code can check.
 
-THE MARKERS. ⚖️ Choice needed presents a call and carries the clause. 🪧
-Direction needed names an open question and carries none: it exists so a reply
-can say next steps are unclear without putting a decision to the owner, and a
-required recommendation would push it back toward one. 🆚, which ⚖️ replaced
-on 2026-10-20, is checked as a call, for a session on the earlier conventions.
+THE MARKERS. ⚖️ Choice needed presents a call and carries the clause. A
+question the session has not yet assessed closes on ❇️ Ready to assess, which
+carries none. 🪧 Direction needed held that case until 2026-11-19, when
+CONVERSATION.md retired it. 🆚, which ⚖️ replaced on 2026-10-20, is checked as
+a call, for a session on the earlier conventions. A closing state whose whole
+lead is a link opens with `[`, so the check reads past it.
 
 THE TWO CHECKS.
-  Recommendation: the reply's last line starts with ⚖️ or 🆚 and has no
-  "Recommended:" clause.
+  Recommendation: the reply's last line starts with ⚖️ or 🆚, or with a link
+  whose text does, and has no "Recommended:" clause.
   Render link: a commit made since the owner's last message, on the current
   branch of the working directory's checkout or of a checkout one level below
   it, added or changed an .html file, and neither the reply nor any reply
@@ -132,11 +133,11 @@ def main():
             reasons.append(f'Commits since the owner\'s last message changed {", ".join(pages)}, and the reply has '
                            'no render link. Give the render line for them, or a "No render link:" line saying why '
                            'none reaches them.')
-    last = lines[-1].lstrip()
+    last = lines[-1].lstrip().lstrip('[')
     if last.startswith(CALLS) and not RECOMMENDED.search(last.replace('*', '')):
         reasons.append(f'The closing {last[0]} call has no "Recommended:" clause. If the question has been '
                        'assessed, give that line again with `Recommended: <answer>, because <reason>.`; '
-                       'if not, close on 🪧 Direction needed instead, naming the open question.')
+                       'if not, close on ❇️ Ready to assess instead, offering to assess it.')
     if reasons:
         print(json.dumps({'decision': 'block', 'reason': 'Reply check. ' + ' '.join(reasons) +
                           ' Write only that, ending with the closing-state line; do not repeat the rest of the reply.'}))
