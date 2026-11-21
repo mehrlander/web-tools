@@ -1244,7 +1244,7 @@ test('a look step rings, pings on landing and on the way back, and the dock wear
   assert.match(halo.style.border, /3px solid/, 'the ring, thicker than a do step\'s');
   assert.equal(pings.length, 1, 'one ping once it lands');
   const dock = w.document.querySelector('[data-look="dock"]');
-  assert.match(dock.style.border, /2px solid/, 'the dock in the marker\'s yellow');
+  assert.match(dock.getAttribute('style'), /border:\s*var\(--look-dock-edge-w,\s*2px\) solid var\(--look-dock-edge,\s*#facc15\)/, 'the dock in the marker\'s yellow, unless a FAB lends it its edge');
   assert.doesNotMatch(dock.style.cssText, /NaN/, 'and its style survived being assembled');
   const a = w.document.querySelector('[data-at="a"]');
   a.getBoundingClientRect = () => ({ top: 3000, bottom: 3020, left: 0, right: 100, width: 100, height: 20 });
