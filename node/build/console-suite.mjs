@@ -3,8 +3,8 @@
 // one paste. base.js stays the standalone core; each mod is independently
 // paste-able after it; suite.js is the everything artifact.
 //
-// Output is byte-deterministic (no timestamps), so the build-on-commit hook
-// can regenerate and stage it with its sources. Run via `npm run build:console`.
+// Output is byte-deterministic (no timestamps), so the console-suite commit
+// rule can regenerate and stage it with its sources. Run via `npm run build:console`.
 // A mod file on disk that isn't in MODS (or vice versa) fails the build:
 // adding a module means adding it here, which keeps assembly order explicit.
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';

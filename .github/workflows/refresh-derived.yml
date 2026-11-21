@@ -1,9 +1,9 @@
 name: Refresh derived files
 
-# Runs the commit hook's repair pass (`npm run artifacts:refresh`, which is
-# `git hook run pre-commit -- --all`) on main after each push, and commits what
-# moved. A write through GitHub's API, an MCP push, an edit on github.com or a
-# web merge never runs the hook, so it leaves derived files stale.
+# Runs the commit rules' repair pass (`npm run artifacts:refresh`, which is
+# `node node/build/commit-rules.mjs --all`) on main after each push, and commits
+# what moved. A write through GitHub's API, an MCP push, an edit on github.com
+# or a web merge never runs the commit hook, so it leaves generated files stale.
 #
 # It repairs only what a generator can recompute. A change that needs a person
 # stays red in test.yml.
@@ -45,10 +45,8 @@ jobs:
         env:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
 
-      - name: Run the hook's repair pass
-        run: |
-          git config core.hooksPath .githooks
-          npm run artifacts:refresh
+      - name: Run the repair pass
+        run: npm run artifacts:refresh
 
       # --no-verify: the pre-commit hook has just run, and the commit-msg
       # consent gate is for sessions. A rejected push means main moved; the

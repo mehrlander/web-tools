@@ -19,7 +19,7 @@ pre_commit="$(git rev-parse --path-format=absolute --git-path hooks/pre-commit)"
 after="$(git write-tree)" || exit 1
 
 if [ "$before" != "$after" ]; then
-  printf '%s\n' "pre-merge-commit: refreshed derived artifacts in the combined tree" >&2
+  printf '%s\n' "pre-merge-commit: refreshed generated files in the combined tree" >&2
   printf '%s\n' "pre-merge-commit: run git -c core.editor=true merge --continue to create the gated merge commit" >&2
   exit 1
 fi
