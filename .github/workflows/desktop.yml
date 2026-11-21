@@ -22,6 +22,8 @@ jobs:
           dotnet-version: '8.0.x'
       - name: Check activity interpretation and Git isolation
         run: dotnet run --project desktop/Checks/DesktopChecks.csproj
+      - name: Check Windows file locations
+        run: dotnet run --project desktop/MachineChecks/FileRootsChecks.csproj
       - name: Build the Windows app
         run: ./desktop/build.ps1
       - name: Check published provenance and installer preflight
