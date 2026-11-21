@@ -43,7 +43,7 @@ public sealed class ActivityCollector
                     }
                     var active = reader;
                     var watch = Stopwatch.StartNew();
-                    var activity = await active.Read(settings.SeenThrough, synchronize: false);
+                    var activity = active.Cached(settings.SeenThrough);
                     activity = activity with { Errands = activity.Errands.Select(j => j with {
                         HasLocalOutput = Directory.Exists(LaptopSignals.Outbox(j.Id)) }).ToList() };
                     var now = DateTimeOffset.UtcNow;
@@ -82,7 +82,10 @@ public sealed class ActivityCollector
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
             do {
                 var active = Volatile.Read(ref reader);
-                if (active is not null) await active.Synchronize();
+                if (active is not null) {
+                    await active.Bootstrap();
+                    await active.Synchronize();
+                }
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
     }

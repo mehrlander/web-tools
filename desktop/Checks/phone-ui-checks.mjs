@@ -356,6 +356,16 @@ check(doc.activeElement===doc.querySelector('#detail h2'),'Connection-status pol
 snapshot.sources.sync.sessions.errorCode='C:/private/secret';snapshot.sources.sync.sessions.label='<img src=x>';await refresh();
 check(!doc.querySelector('#detail').textContent.includes('C:/private/secret')&&!doc.querySelector('#detail img')&&doc.querySelector('[data-sync-feed=sessions] h3').textContent==='Session history',
  'Unknown feed errors and arbitrary label fields cannot leak diagnostics or overwrite fixed display labels.');
+const postsBeforeStale=syncPosts;
+for(const seconds of [16,36]) {
+  snapshot.observedAt=earlier(seconds);await refresh();
+  const retry=doc.querySelector('[data-sync-retry]');
+  retry.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));await flush();
+  check(retry.disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh laptop observation before retrying.'
+    &&!doc.querySelector('#detail [role=status]').textContent.includes('Reconnect')&&syncPosts===postsBeforeStale,
+    'A connected '+seconds+'-second-old observation waits for fresh data and cannot send a retry POST, even through a synthetic click.');
+}
+snapshot.observedAt=new Date().toISOString();await refresh();
 snapshot.sources.sync.sessions.errorCode='timeout';await refresh();syncHold=true;click('[data-sync-retry]');click('[data-sync-retry]');
 check(syncPosts===1&&lastSyncOptions.method==='POST'&&lastSyncOptions.headers['X-WebTools-Action']==='1'&&!lastSyncOptions.body&&doc.querySelector('[data-sync-retry]').disabled,
  'Retry uses one protected, bodyless same-origin POST and suppresses repeated taps while pending.');
@@ -368,8 +378,12 @@ check(syncPosts===2&&doc.querySelector('#detail [role=status]').textContent.incl
 w.Date.now=()=>clientNow()+40000;snapshot.observedAt=new Date(Date.now()+40000).toISOString();syncStatus=429;await refresh();click('[data-sync-retry]');for(let pass=0;pass<4;pass++)await flush();
 check(syncPosts===3&&doc.querySelector('#detail [role=status]').textContent.includes('wait briefly')&&doc.querySelector('[data-sync-retry]').disabled,
  'Rate-limited retries preserve the server cooldown with clear feedback.');
+w.Date.now=clientNow;snapshot.observedAt=earlier(30);await refresh();
+check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh laptop observation before retrying.',
+  'A stale observation takes priority over feedback from an earlier retry request.');
 w.Date.now=clientNow;snapshot.observedAt=new Date().toISOString();offline=true;await refresh();
-check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('[data-sync-feed=sessions]').textContent.includes('Saved observation'),
+check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('[data-sync-feed=sessions]').textContent.includes('Saved observation')
+  &&doc.querySelector('#detail [role=status]').textContent==='Reconnect to the laptop to request a refresh.',
  'Offline connection status qualifies saved feed observations and disables actions without replaying writes.');
 offline=false;await refresh();clearDetail();doc.querySelector('#notice [data-sync-status=sessions]').focus();
 for(const value of Object.values(snapshot.sources.sync)){value.state='ok';value.errorCode=null;value.succeededAt=new Date().toISOString();}await refresh();

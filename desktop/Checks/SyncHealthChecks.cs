@@ -13,6 +13,9 @@ static class SyncHealthChecks
         public int BackgroundSeconds, BackgroundFetches, BlobReads;
         public TaskCompletionSource<bool>? SummaryRelease;
         public TaskCompletionSource<bool> SummaryStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<bool>? BackgroundRelease, ReadRelease;
+        public TaskCompletionSource<bool> BackgroundStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        public TaskCompletionSource<bool> ReadStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public List<(string Command,int Timeout)> Calls = [];
         public readonly string Path = "sessions/topics/2026/11/2026-11-21-cloud-1.json";
         public readonly DateTimeOffset Published = DateTimeOffset.Parse("2026-11-21T11:59:00Z");
@@ -26,26 +29,39 @@ static class SyncHealthChecks
                 if(args[^1].Contains("/background:")) {
                     BackgroundFetches++;Now=Now.AddSeconds(BackgroundSeconds);
                     if(FailBackground)throw new CommandFailureException(CommandFailureKind.TimedOut,null,45000,45);
+                    if(BackgroundRelease is not null) {
+                        BackgroundStarted.TrySetResult(true);
+                        return BackgroundRelease.Task.ContinueWith(_=>Array.Empty<byte>(),TaskScheduler.Default);
+                    }
                 }
                 return Task.FromResult(Array.Empty<byte>());
             }
             string Value(string sha) => sha switch {
-                "request" => "{\"title\":\"Fixture\",\"run\":{\"method\":\"laptop-daemon\"}}",
+                "request" => JsonSerializer.Serialize(new {title="Fixture",createdAt=Published,run=new{method="laptop-daemon"}}),
+                "claim" => JsonSerializer.Serialize(new {claimedAt=Published,by="fixture"}),
+                "reply" => JsonSerializer.Serialize(new {ok=true,closedAt=Published,data=new{settled=false,reply="Arriving reply"}}),
+                "complete" => JsonSerializer.Serialize(new {ok=true,closedAt=Published,data=new{settled=true,reply="Complete reply"}}),
                 "companion" => CompanionJson??Companion(),
                 _ when sha==Index => SessionJson??JsonSerializer.Serialize(new {generatedAt=Published,rows=new[]{new{id="cloud-1",agent="https://claude.ai/code/session_fixture",ended=Published,title="Fixture"}}}),
                 _ when sha==Rollup => RollupJson??JsonSerializer.Serialize(new {sessions=new Dictionary<string,object>{["cloud-1"]=new{path=Path,source_ended=Published,summary="Saved checkpoint"}}}),
                 _ => throw new IOException()
             };
             string output;
-            if(args[0]=="rev-parse") output=args[^1] switch {
+            if(args[0]=="rev-parse") {
+                if(args[^1]=="refs/remotes/origin/background^{commit}"&&ReadRelease is not null) {
+                    ReadStarted.TrySetResult(true);
+                    return ReadRelease.Task.ContinueWith(_=>Encoding.UTF8.GetBytes("base"),TaskScheduler.Default);
+                }
+                output=args[^1] switch {
                 "refs/remotes/origin/main:state/sessions.json"=>Index,
                 "base:state/session-topics.json"=>Rollup,
                 "base:sessions/topics"=>Tree,
                 _=>"base"
-            };
+                };
+            }
             else if(args[0]=="ls-tree") output=args.Contains("sessions/topics")
                 ? Missing?"":$"100644 blob companion {(Oversized?2097153:Encoding.UTF8.GetByteCount(Value("companion")))}\t{Path}\n"
-                : "100644 blob request\terrands/requests/job.json\n";
+                : "100644 blob request\terrands/requests/job.json\n100644 blob request\terrands/requests/accepted.json\n100644 blob claim\terrands/claims/accepted.json\n100644 blob request\terrands/requests/arriving.json\n100644 blob reply\terrands/results/arriving.json\n100644 blob request\terrands/requests/complete.json\n100644 blob complete\terrands/results/complete.json\n";
             else if(args is ["cat-file","blob",var sha]){
                 BlobReads++;output=Value(sha);
                 if(sha==Rollup&&SummaryRelease is not null) {
@@ -70,12 +86,39 @@ static class SyncHealthChecks
         var directory=System.IO.Path.Combine(System.IO.Path.GetTempPath(),"web-tools-sync-health-"+Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);
         try {
-            var source=new Source();var reader=new ErrandReader(directory,()=>source.Now,source.Run);
+            var source=new Source();
+            var bootstrap=new ErrandReader(directory,()=>source.Now,source.Run);await bootstrap.Bootstrap();
+            var saved=bootstrap.Cached(default);
+            check(saved.Revision is not null&&saved.SyncedAt is null&&!saved.Connected&&saved.Sync?.Errands.SucceededAt is null&&source.BackgroundFetches==0,
+                "Background bootstrap publishes saved refs without claiming remote refresh success.");
+            var reader=new ErrandReader(directory,()=>source.Now,source.Run);
             var snapshot=await reader.Read(default,force:true);
             check(reader.Health is{Errands.State:"ok",Sessions.State:"ok",Summaries.State:"ok"},"Synthetic Git validates three independent feed completions.");
             var reads=source.BlobReads;source.Now=source.Now.AddSeconds(1);await reader.Synchronize(force:true);
             check(source.BlobReads==reads&&reader.Health.Summaries.SucceededAt==source.Now,"Unchanged immutable index, rollup, companion tree and selection advance health without rereading blobs.");
             check(source.Calls.Where(c=>c.Command=="fetch").All(c=>c.Timeout==45)&&source.Calls.Where(c=>c.Command!="fetch").All(c=>c.Timeout==25),"Only remote fetches receive the longer deadline.");
+            var reviewedCalls=source.Calls.Count;
+            var unreviewed=reader.Cached(source.Published.AddSeconds(-1));var reviewed=reader.Cached(source.Published.AddSeconds(1));
+            check(unreviewed.Errands.Where(j=>j.State is "reply" or "complete").All(j=>j.IsNew)
+                &&unreviewed.Errands.Where(j=>j.State is "queued" or "claimed").All(j=>!j.IsNew)&&reviewed.Errands.All(j=>!j.IsNew)&&source.Calls.Count==reviewedCalls,
+                "Cached review projection includes arriving and final results without Git or queued/accepted progress changes.");
+            async Task CheckBlocked(bool fetch) {
+                var before=reader.Cached(default);var success=reader.Health.Errands.SucceededAt;
+                var release=new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                if(fetch)source.BackgroundRelease=release;else source.ReadRelease=release;
+                var syncing=reader.Synchronize(force:true);
+                try {
+                    await (fetch?source.BackgroundStarted:source.ReadStarted).Task.WaitAsync(TimeSpan.FromSeconds(5));
+                    source.Now=source.Now.AddSeconds(2);var calls=source.Calls.Count;
+                    var local=await Task.Run(()=>reader.Cached(default)).WaitAsync(TimeSpan.FromSeconds(1));
+                    var phone=PhoneActivity.Create(new(local,new("unknown","",null),[],[],[],"Fixture",default,new([],[]),0,reader.Cloud,[]),source.Now);
+                    check(local.Revision==before.Revision&&local.Errands.Count==before.Errands.Count&&local.ObservedAt==before.ObservedAt
+                        &&local.SyncedAt==before.SyncedAt&&local.Sync?.Errands.State=="refreshing"&&local.Sync.Errands.SucceededAt==success
+                        &&source.Calls.Count==calls&&phone.ObservedAt==source.Now&&phone.Sources.RecordsSyncedAt==before.SyncedAt,
+                        fetch?"A blocked fetch cannot hold a fresh local observation or invent new source success.":"A blocked Git read gate cannot hold the immutable local cache or change its source timestamps.");
+                }finally{release.TrySetResult(true);await syncing;source.BackgroundRelease=null;source.ReadRelease=null;}
+            }
+            await CheckBlocked(true);await CheckBlocked(false);
             source.Now=source.Now.AddSeconds(5);source.FailBackground=true;source.BackgroundSeconds=45;await reader.Synchronize();
             var attempts=source.BackgroundFetches;var due=reader.Health.Errands.NextAttemptAt;
             await reader.Synchronize();
@@ -103,6 +146,9 @@ static class SyncHealthChecks
             source.SummaryRelease.TrySetResult(true);await paused;source.SummaryRelease=null;
             source.Index+="bad";source.SessionJson="{broken";await reader.Synchronize(force:true);
             check(reader.Health.Sessions.ErrorCode=="invalid-data"&&reader.Cloud.CapturedAt==updatedCapture&&reader.Cloud.Items.Count==1,"A corrupt session index retains published capture time and usable saved sessions.");
+            var queue=reader.Cached(default);
+            check(queue.Connected&&queue.Notice is null&&queue.SyncNotices!.Count>0,
+                "An unrelated history failure stays in structured feed notices without making the healthy dedicated queue incomplete.");
             var before=await reader.Read(default,synchronize:false);Directory.Delete(directory);
             var missing=await reader.Read(default,synchronize:false);
             check(missing.Errands.Count==before.Errands.Count&&missing.Revision==before.Revision&&missing.SyncedAt==before.SyncedAt&&missing.Sync?.Errands.ErrorCode=="repository-unavailable","A missing checkout retains cached queue identity and successful sync metadata.");

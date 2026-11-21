@@ -10,18 +10,22 @@ public sealed class ErrandReader(string repository, Func<DateTimeOffset>? clock 
     Func<string[], byte[]?, int, Task<byte[]>>? executeGit = null)
 {
     private sealed record RemoteState(DateTimeOffset Attempt, DateTimeOffset? SyncedAt, bool Connected, string? Notice, double Milliseconds);
+    private sealed record CachedActivity(DateTimeOffset ReadAt, DateTimeOffset? SyncedAt,
+        string? Revision, List<Errand> Errands, string? RecordNotice);
     private RemoteState remote = new(default, null, false, null, 0);
+    private CachedActivity publishedActivity = new(default, null, null, [], null);
     private readonly SemaphoreSlim syncGate = new(1, 1);
     private readonly SemaphoreSlim readGate = new(1, 1);
     private readonly object healthGate = new();
     private FeedHealth errandsHealth = new(), sessionsHealth = new(), summariesHealth = new();
     private bool synchronizing, retryRequested;
-    private DateTimeOffset manualRetryAfter, seenThrough;
+    private DateTimeOffset manualRetryAfter;
+    private long seenTicks;
+    private int bootstrapped;
     private string? errandsNotice, sessionsNotice, summariesNotice;
     private string? revision;
     private string? recordNotice;
     private List<Errand> cached = [];
-    private DateTimeOffset cachedSeen;
     private string? cloudContentNotice;
     private CloudSnapshot sessionRecords = new([], null, null);
     private string? sessionSha, summarySignature, renderedSignature;
@@ -49,6 +53,33 @@ public sealed class ErrandReader(string repository, Func<DateTimeOffset>? clock 
         JsonException => "invalid-data",
         _ => fetch ? "fetch-failed" : "read-failed"
     };
+
+    private static List<Errand> Project(List<Errand> items, DateTimeOffset seenThrough) => items.Select(item => item with {
+        IsNew = (item.State is "reply" or "complete" or "failed" or "declined") && item.UpdatedAt > seenThrough
+    }).ToList();
+
+    // A local scan never waits for Git, the read gate or a network refresh.
+    // ReadAt and SyncedAt belong to the stored records, not this projection.
+    public ActivitySnapshot Cached(DateTimeOffset seenThrough)
+    {
+        Interlocked.Exchange(ref seenTicks, seenThrough.UtcDateTime.Ticks);
+        var value = Volatile.Read(ref publishedActivity);
+        var health = Health;
+        var notices = SyncNotices;
+        var connected = value.SyncedAt is not null && health.Errands.SucceededAt is not null && health.Errands.ErrorCode is null;
+        var message = string.Join(" ", new[] { errandsNotice, value.RecordNotice }.OfType<string>());
+        return new(value.ReadAt, value.SyncedAt, value.Revision, connected, message.Length == 0 ? null : message, Project(value.Errands, seenThrough)) {
+            Sync = health, SyncNotices = notices, RecordNotice = value.RecordNotice
+        };
+    }
+
+    // Populate saved remote-tracking records once, on the synchronization task.
+    // A bootstrap read does not establish a successful remote refresh.
+    public async Task Bootstrap()
+    {
+        if (Interlocked.Exchange(ref bootstrapped, 1) == 0)
+            await Read(new DateTimeOffset(Interlocked.Read(ref seenTicks), TimeSpan.Zero), synchronize: false, trackHealth: false);
+    }
 
     // The HTTP action requests work; only the existing synchronization loop runs Git.
     public (int Status, int RetryAfterSeconds) RequestRetry()
@@ -117,7 +148,7 @@ public sealed class ErrandReader(string repository, Func<DateTimeOffset>? clock 
                     await Fetch("background");
                     backgroundFresh = true;
                     remote = new(attempted, Now, true, null, watch.Elapsed.TotalMilliseconds);
-                    var read = await Read(seenThrough, synchronize: false, trackHealth: false);
+                    var read = await Read(new DateTimeOffset(Interlocked.Read(ref seenTicks), TimeSpan.Zero), synchronize: false, trackHealth: false);
                     if (!read.Connected) throw new IOException();
                     lock (healthGate) {
                         var error = recordNotice is null ? null : "invalid-data";
@@ -225,7 +256,7 @@ public sealed class ErrandReader(string repository, Func<DateTimeOffset>? clock 
 
     public async Task<ActivitySnapshot> Read(DateTimeOffset seenThrough, bool force = false, bool synchronize = true, bool trackHealth = true)
     {
-        this.seenThrough = seenThrough;
+        Interlocked.Exchange(ref seenTicks, seenThrough.UtcDateTime.Ticks);
         var now = Now;
         if (!Directory.Exists(repository)) {
             const string missing = "The private activity repository was not found. Check the repositories folder in Settings.";
@@ -245,7 +276,7 @@ public sealed class ErrandReader(string repository, Func<DateTimeOffset>? clock 
         var notice = state.Notice;
         try {
             var current = await Git("rev-parse", "--verify", "refs/remotes/origin/background^{commit}");
-            if (current != revision || cachedSeen != seenThrough) {
+            if (current != revision) {
                 var tree = await Git("ls-tree", "-r", current, "--", "errands/requests", "errands/claims", "errands/results", "errands/output", "sessions/activity");
                 var files = new Dictionary<string, string>(StringComparer.Ordinal);
                 var outputs = new HashSet<string>(StringComparer.Ordinal);
@@ -291,10 +322,10 @@ public sealed class ErrandReader(string repository, Func<DateTimeOffset>? clock 
                 cached = jobs.Where(j => j.IsOpen).Concat(jobs.Where(j => !j.IsOpen)
                     .OrderByDescending(j => j.UpdatedAt).ThenBy(j => j.Id, StringComparer.Ordinal).Take(80))
                     .OrderByDescending(j => j.IsOpen).ThenByDescending(j => j.UpdatedAt).ToList();
-                cachedSeen = seenThrough;
                 recordNotice = invalid.Count == 0 ? null : $"{invalid.Count} unreadable activity record(s) were omitted. Open Web Tools to inspect the source records.";
                 revision = current;
             }
+            Volatile.Write(ref publishedActivity, new(Now, state.SyncedAt, revision, cached.ToList(), recordNotice));
         } catch (Exception e) {
             connected = false;
             notice = revision is null ? "Activity records are unavailable. The private repository needs its background branch and GitHub access."
@@ -309,7 +340,7 @@ public sealed class ErrandReader(string repository, Func<DateTimeOffset>? clock 
             readGate.Release();
         }
         var notices = new[] { notice, recordNotice }.Where(n => n is not null);
-        return new(Now, state.SyncedAt, revision, connected, string.Join(" ", notices) is { Length: > 0 } text ? text : null, cached)
+        return new(Now, state.SyncedAt, revision, connected, string.Join(" ", notices) is { Length: > 0 } text ? text : null, Project(cached, seenThrough))
             { Sync = Health, SyncNotices = SyncNotices, RecordNotice = recordNotice };
     }
 
