@@ -88,7 +88,7 @@ window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
-for (const k of ['lib/kits/repo-address.js', 'lib/kits/call-answer.js']) {
+for (const k of ['lib/kits/repo-address.js', 'lib/kits/call-answer.js', 'lib/kits/panel-tip.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
 for (const p of ['lib/vanilla-bundle.js', 'lib/alpine-bundle.js', 'lib/alpineComponents/user-call-form.js']) {
@@ -130,20 +130,32 @@ test('in the deck a documentation call shows neither its question nor a recommen
 
 // The owner judges a documentation call by its edits (2026-11-21), so the
 // brief the session filed waits behind an icon at the end of the document's
-// head, with nothing of it drawn above the edits.
-test("a documentation call's brief is behind an icon in the document's head, a tap opening and closing it", async () => {
+// head, with nothing of it drawn above the edits. It opens as the house
+// panel-tip (html-style rule 10): a tap pins it, with the kit's ✕, and its ↗
+// is the call's file.
+test("a documentation call's brief is a panel-tip behind an icon in the document's head", async () => {
   const shown = (el) => { for (let e = el; e && e !== root(); e = e.parentElement) if (e.style.display === 'none') return false; return true; };
   const text = [...root().querySelectorAll('[data-call-card] p')].filter(shown).map((p) => p.textContent).join(' ');
   assert.doesNotMatch(text, /Tidy the doc\./, 'no paragraph carries it');
   const icon = root().querySelector('[data-doc-head] [data-doc-brief]');
   assert.ok(icon && shown(icon), 'the icon is in the head');
-  const panel = () => window.document.querySelector('[data-doc-brief-panel]');
+  const panel = root().querySelector('[data-doc-brief-panel]');
+  assert.equal(panel.style.display, 'none');
   icon.click();
-  await until(() => panel());
-  assert.match(panel().textContent, /brief\s*Tidy the doc\./);
+  await until(() => panel.style.display !== 'none');
+  assert.match(panel.textContent, /brief\s*↗\s*Tidy the doc\./);
+  assert.equal(panel.querySelector('[data-doc-brief-source]').getAttribute('href'),
+    'https://github.com/me/private/blob/main/user-calls/c0ffee01-doc.json', "the ↗ is the call's file");
+  assert.ok(panel.querySelector('[data-wt-panel-tip-close]'), "pinned, it carries the kit's ✕");
+  assert.equal(icon.getAttribute('aria-expanded'), 'true');
   icon.click();
-  await until(() => !panel());
-  assert.equal(panel(), null, 'a second tap closes it');
+  await until(() => panel.style.display === 'none');
+  assert.equal(panel.style.display, 'none', 'a second tap closes it');
+  icon.click();
+  await until(() => panel.style.display !== 'none');
+  panel.querySelector('[data-wt-panel-tip-close]').click();
+  await until(() => panel.style.display === 'none');
+  assert.equal(data().briefAt, null, 'the ✕ closes it');
 });
 
 test('a documentation call shows no PR readiness, even when the PR has conflicts', async () => {
