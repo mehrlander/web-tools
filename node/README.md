@@ -258,12 +258,11 @@ Every derived artifact in the repo is refreshed one of two ways, split on one
 property: whether its generator is **deterministic**.
 
 **Deterministic artifacts ride in the commit that changes their source.** The
-commit hook, [`.githooks/pre-commit`](../.githooks/pre-commit), runs before
-every `git commit`. As a git hook rather than a Claude Code hook, it runs
-whatever the session's project root is. It regenerates and stages the files that
-the pending changes touch. The hook's source calls each of its steps a leg.
-[`docs/hook-legs.csv`](../docs/hook-legs.csv) lists every leg, including those
-that only warn. The table shows the generators in the order the hook runs them:
+commit-time hook ([`.githooks/pre-commit`](../.githooks/pre-commit), a git hook
+rather than a Claude Code hook, so it fires whatever the session's project root
+is) runs before every `git commit` and regenerates + stages whatever the pending
+changes touch, in this order (the full list, warn-only legs included, is the
+hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-legs.csv)):
 
 | Source dirty | Generator | Staged into the same commit |
 |---|---|---|
@@ -277,11 +276,11 @@ that only warn. The table shows the generators in the order the hook runs them:
 | `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
 | `lib/alpineComponents/`, a file that loads or mounts a component, `docs/app-routes.csv`, or `data/ui-units/units.csv` | `npm run components-index` | `docs/components.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
-| any markdown | `npm run themes-graph` | `docs/themes.csv` |
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
-| `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
+| `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md`, `docs/acronyms.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `skills/peeves/peeves.md` | `npm run peeves-csv` | `skills/peeves/peeves.csv` |
+| any markdown | `npm run themes-graph` | `docs/themes.csv` |
 | any `.js`, `.mjs`, `.html`, `.py` or markdown file, or a `docs/*.csv` | `npm run comment-blocks` | `data/comments/web-tools.json` |
 | `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
 | `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
@@ -289,22 +288,24 @@ that only warn. The table shows the generators in the order the hook runs them:
 
 Most of these files are generated whole. Four are not. `docs/docs.csv`, `docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are hand-edited except for the fields or rows a generator writes. Edit a row freely and leave those fields alone.
 
-`docs-readme` and `docs-reach` depend on each other. `docs-readme` generates
-`docs/README.md` from `docs/docs.csv`. `docs/README.md` is also a row in
-`docs/docs.csv`. The hook runs `docs-reach` a second time, after `docs-readme`,
-to count the new README.
+`docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
+the registry and is also a row in it, so the hook runs `docs-reach` a second
+time after `docs-readme`. One more stamp settles it.
 
-**Where a new generator goes.** `docs-reach` records the word count of every
-file under `docs/` in the `words` column of `docs/docs.csv`. Apart from
-`docs-readme`, place every generator that writes a file under `docs/` before
-`docs-reach` in the hook. A generator placed after `docs-reach` leaves a stale
-count for the file it writes. A generator that only reads can run in any
-position. The hook does not check the counts. A wrong count fails
-`docs-registry.test.mjs` in CI, after the push.
+**Order is part of the contract, and it runs one way: a leg that WRITES into a
+folder precedes the leg that MEASURES it.** `docs-reach` stamps every `docs/`
+file's length into the registry's `words`, so `tests-index`, `tools-index` and
+`registries-reach` all run above it: each writes a file under
+`docs/`, and a stamp taken before that write is stale by exactly that file's own
+delta. Nothing local reports it either, because the hook does not verify what it
+stamps; `docs-registry.test.mjs` catches it in CI, after the push. So a new
+generator that writes under `docs/` goes above leg docs-reach, and one that only
+reads goes wherever it likes.
 
-**Staging.** The hook stages each file through a `stage()` helper. The helper
-reports a path that does not exist. A plain `git add X 2>/dev/null || true` does
-not report it. A missing path can mean that a generator renamed its output.
+**And a leg has to stage the file it actually writes.** Every `git add` in the
+hook goes through a `stage()` helper that reports a path that is not there,
+because `git add X 2>/dev/null || true` cannot tell "nothing to stage" from
+"renamed," and the second is the one worth hearing about.
 
 Every generator is byte-deterministic, so the hook can fire on every commit and
 no-op invisibly when nothing real changed. It's non-blocking: a generator failure
