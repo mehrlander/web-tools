@@ -156,3 +156,17 @@ test('a press aimed from inside the FAB goes to the page instead', async () => {
     assert.deepEqual(seen, ['body'], 'the launcher holding focus does not swallow the key');
   } finally { doc.removeEventListener('keydown', onKey); host.remove(); }
 });
+
+// A raised menu is what the reader came for, so the chevrons do not cover it.
+test('the menu stands over the chevrons and clear of the top one', async () => {
+  const { d, host } = await mountFab();
+  try {
+    const menu = () => [...host.querySelectorAll('[data-fab-wrap] > div')].find(e => e.querySelector('[data-fab-hide]'));
+    d.fabMenu = true; await tick(2);
+    assert.match(menu().className, /\bz-10\b/, 'drawn over the chevrons, which come after it');
+    assert.match(menu().className, /\bmb-2\b/);
+    d.raisePad(); d.fabMenu = true; await tick(2);
+    assert.match(menu().className, /\bmb-12\b/, 'with the pad up it stands above the top chevron');
+    d.lowerPad();
+  } finally { host.remove(); }
+});
