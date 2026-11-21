@@ -11,6 +11,12 @@ A probe keeps its question, what was tried, and what it found. A probe that stan
 
 The folder's README links the term probes to this file and says only what is particular to the folder. Any view of the registry, such as a page that lists the probes or a generated log, belongs to the folder and reads `probes.csv`.
 
+## Sources
+
+A probe that rests on documents from outside the repository cites a [source bundle](source-bundles.md) that holds them, or takes them in as a dated bundle of its own.
+
+When a reader should be able to check each claim against its source's own words, list the claims in a `claims.csv`. Keep each claim's verbatim support in an `anchors.csv`, with the columns the [source-anchoring](../skills/source-anchoring/SKILL.md) skill gives. A check then finds each quote on its page, and the prose states each claim once and names its anchor. budget-drs's [`2026-11-07-gated-nonappropriated`](https://github.com/mehrlander/budget-drs/blob/main/data/design/probes/2026-11-07-gated-nonappropriated/FINDINGS.md) is the worked case, checked by its `build-probes.py`.
+
 ## Registry columns
 
 Required in every row:
@@ -30,6 +36,7 @@ Read when present:
 | `path` | The write-up, relative to the folder: a file, or a file inside a probe's folder. |
 | `standing` | How the probe came out: `worked`, `mixed`, `failed` or `open`. |
 | `tags` | Terms a search might use, separated by `;`. |
+| `bundle` | The source bundle holding the documents the probe cites, as a path. |
 
 A folder may add columns of its own, which the check ignores.
 
