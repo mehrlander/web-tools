@@ -374,7 +374,12 @@ test("a topic's heading opens its panel: its status and what set it, its turns, 
   assert.equal(panel().querySelector('[data-topic-meta]').textContent, 'New work \u00b7 Sessions \u00b7 2 turns: 1\u20132');
   assert.deepEqual([...panel().querySelectorAll('[data-topic-turn]')].map((b) => b.textContent.replace(/\s+/g, ' ').trim()),
     ['1 Alpha begins', '2 The mid call is shaped']);
-  assert.equal(panel().querySelector('[data-topic-first]').textContent.trim(), 'Turn 1');
+  assert.equal(panel().querySelector('[data-topic-first]'), null, 'the first row is the way to the first turn');
+  el('topics').querySelector('[data-call-list]').dispatchEvent(new window.Event('scroll'));
+  await until(() => !s.factTip);
+  assert.equal(s.factTip, null, 'the list scrolling from under its heading closes it');
+  head().click();
+  await until(panel);
   head().click();
   await until(() => !s.factTip);
   assert.equal(s.factTip, null, 'a second tap closes it');
