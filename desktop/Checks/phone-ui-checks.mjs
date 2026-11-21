@@ -8,6 +8,7 @@ const w=dom.window,doc=w.document,now=new Date().toISOString(),earlier=s=>new Da
 Object.defineProperty(w.navigator,'userAgent',{value:'iPhone'});
 w.matchMedia=()=>({matches:true,addEventListener(){},removeEventListener(){}});
 let copied='',pageTop=0,offline=false,denied=false,replyFetches=0,fetches=0,checks=0,lastHeaders;
+let syncPosts=0,syncStatus=202,syncHold=false,syncRelease,lastSyncOptions;
 Object.defineProperty(w.navigator,'clipboard',{value:{writeText:async text=>{copied=text;}}});
 Object.defineProperty(w,'scrollY',{configurable:true,get:()=>pageTop});
 w.scrollTo=(x,y)=>{pageTop=typeof x==='object'?x.top:y;};
@@ -23,7 +24,7 @@ let snapshot={schemaVersion:1,machineName:'Fixture laptop',observedAt:now,source
  {...item('result','complete'),title:'A complete result',url:'javascript:alert(1)'}, {...item('quiet','quiet','Codex'),kind:'session'},
  {...item('declined','declined'),title:'An unanswered request'}, {...item('cloud:unknown','unknown','Claude'),kind:'cloud',title:'A recorded session'}
 ],changes:[{key:'archived',id:'change-one',provider:'Claude',title:'Removed from current feed',state:'working',at:earlier(40),detail:'Historical update',location:'Cloud'},{key:'session:Codex:child',id:'child',provider:'Codex',title:'Delegated child',state:'working',at:now,detail:'Child update',location:'Laptop'}],events:[{id:'event',sessionId:'cloud',provider:'Claude',at:earlier(20),state:'working',detail:'Read the changed files'}],usage:[]};
-w.fetch=async(path,options={})=>{fetches++;lastHeaders=options.headers;if(offline)throw Error('Offline');if(denied)return{ok:false,status:403};if(path.startsWith('/api/v1/results/')){replyFetches++;return{ok:true,json:async()=>({reply:'Result <script>alert(1)</script>'})};}return{ok:true,status:200,headers:{get:()=> 'etag'},json:async()=>structuredClone(snapshot)};};
+w.fetch=async(path,options={})=>{fetches++;lastHeaders=options.headers;if(offline)throw Error('Offline');if(denied)return{ok:false,status:403};if(path==='/api/v1/sync/retry'){syncPosts++;lastSyncOptions=options;if(syncHold)await new Promise(resolve=>{syncRelease=resolve;});return{ok:syncStatus===202,status:syncStatus,json:async()=>({accepted:syncStatus===202,retryAfterSeconds:15})};}if(path.startsWith('/api/v1/results/')){replyFetches++;return{ok:true,json:async()=>({reply:'Result <script>alert(1)</script>'})};}return{ok:true,status:200,headers:{get:()=> 'etag'},json:async()=>structuredClone(snapshot)};};
 for(const path of ['../../lib/kits/claude-mark.js','../../lib/kits/assistant-mark.js','../../lib/kits/panel-tip.js','../shared/phone-info.js','../shared/now-shared.js','../shared/usage-view.js','../shared/recent-usage.js','../../node_modules/marked/lib/marked.umd.js','../../node_modules/dompurify/dist/purify.min.js','../phone/reading.js','../phone/views.js','../phone/phone.js'])w.eval(read(path));
 const css=doc.createElement('style');css.textContent=read('../phone/phone-ui.css');doc.head.append(css);
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
@@ -321,5 +322,85 @@ check(doc.querySelector('[data-daemon-observation]').textContent.includes('Statu
 snapshot.sources.workerState='absent';
 clearDetail();snapshot.items=snapshot.items.filter(value=>value.kind!=='errand'||value.provider!=='Gemini'||value.state!=='queued');await refresh();
 check(!doc.querySelector('#notice [data-queue-notice]'),'Manual Gemini sessions and other vendors’ queued errands do not create a Gemini worker warning.');
+snapshot.observedAt=new Date().toISOString();snapshot.sources.recordsConnected=false;snapshot.sources.workerState='absent';snapshot.items.push(item('fresh-daemon-saved-queue','queued'));await refresh();
+check(doc.querySelector('[data-worker-status]').textContent.includes('Daemon not detected')&&doc.querySelector('#notice').textContent.includes('Saved queue')
+ &&!doc.querySelector('#notice').textContent.includes('Saved queue and daemon status'),
+ 'Failed GitHub sync qualifies the queue without mislabeling a fresh independent daemon observation as saved.');
+click('#notice [data-worker-status]');
+check(doc.querySelector('#detail').textContent.includes('Saved queue')&&!doc.querySelector('[data-daemon-observation]').textContent.includes('Saved observation'),
+ 'Daemon detail separately labels cached queue counts without weakening the fresh local process observation.');clearDetail();
+snapshot.sources.workerState='detected';snapshot.sources.recordsConnected=true;
+const historySuccess=earlier(1200),historyAttempt=earlier(60),historyCapture=earlier(7200);
+const legacySync='Cloud sync unavailable; showing saved session records.';
+snapshot.sources.cloudCapturedAt=historyCapture;snapshot.sources.notices=[legacySync,'1 unreadable activity record was omitted.'];snapshot.sources.syncNotices=[legacySync];
+snapshot.sources.sync={errands:{state:'ok',attemptedAt:earlier(5),succeededAt:earlier(4),errorCode:null},sessions:{state:'error',attemptedAt:historyAttempt,succeededAt:historySuccess,errorCode:'timeout'},summaries:{state:'ok',attemptedAt:earlier(10),succeededAt:earlier(9),errorCode:null}};
+await refresh();
+check(!doc.querySelector('[data-queue-notice]')&&doc.querySelector('[data-sync-status=sessions]').textContent.includes('Session history timed out')
+ &&!doc.querySelector('#notice').textContent.includes(legacySync)&&doc.querySelector('#notice').textContent.includes('1 unreadable activity record'),
+ 'A detected daemon clears the false alarm while structured history failure replaces only its duplicate legacy notice.');
+click('#notice [data-sync-status=sessions]');
+check(w.location.hash==='#view=now&session=status%3Async'&&doc.querySelector('#detail h2').textContent==='Connection status'
+ &&doc.querySelector('[data-sync-feed=errands]').textContent.includes('Up to date')&&doc.querySelector('[data-sync-feed=sessions]').textContent.includes('Delayed'),
+ 'A feed-specific notice opens separate feed health instead of declaring every connection unavailable.');
+const historyTimes=[...doc.querySelectorAll('[data-sync-feed=sessions] time[data-at]')].map(node=>node.dataset.at);
+check(historyTimes.join(',')===[historySuccess,historyAttempt,historyCapture].join(','),
+ 'History last-success, last-attempt and published-capture dates retain their separate meanings.');
+click('#detail [data-worker-status]');
+check(doc.querySelector('#detail h2').textContent==='Gemini errand daemon'&&doc.querySelector('#detail [data-back]').textContent==='← Back',
+ 'A daemon drilldown from Connection status labels its nested history return accurately.');
+const statusBack=new Promise(resolve=>w.addEventListener('popstate',resolve,{once:true}));click('#detail [data-back]');
+for(let pass=0;pass<5;pass++){for(const[id,task]of [...timers])if(!task.delay){timers.delete(id);task.fn();}await flush();}await statusBack;await flush();
+check(doc.querySelector('#detail h2').textContent==='Connection status','Back from daemon detail returns to its originating connection page.');
+doc.querySelector('#detail h2').focus();snapshot.observedAt=new Date().toISOString();await refresh();
+check(doc.activeElement===doc.querySelector('#detail h2'),'Connection-status polling preserves heading focus.');
+snapshot.sources.sync.sessions.errorCode='C:/private/secret';snapshot.sources.sync.sessions.label='<img src=x>';await refresh();
+check(!doc.querySelector('#detail').textContent.includes('C:/private/secret')&&!doc.querySelector('#detail img')&&doc.querySelector('[data-sync-feed=sessions] h3').textContent==='Session history',
+ 'Unknown feed errors and arbitrary label fields cannot leak diagnostics or overwrite fixed display labels.');
+const postsBeforeStale=syncPosts;
+for(const seconds of [16,36]) {
+  snapshot.observedAt=earlier(seconds);await refresh();
+  const retry=doc.querySelector('[data-sync-retry]');
+  retry.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));await flush();
+  check(retry.disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh laptop observation before retrying.'
+    &&!doc.querySelector('#detail [role=status]').textContent.includes('Reconnect')&&syncPosts===postsBeforeStale,
+    'A connected '+seconds+'-second-old observation waits for fresh data and cannot send a retry POST, even through a synthetic click.');
+}
+snapshot.observedAt=new Date().toISOString();await refresh();
+snapshot.sources.sync.sessions.errorCode='timeout';await refresh();syncHold=true;click('[data-sync-retry]');click('[data-sync-retry]');
+check(syncPosts===1&&lastSyncOptions.method==='POST'&&lastSyncOptions.headers['X-WebTools-Action']==='1'&&!lastSyncOptions.body&&doc.querySelector('[data-sync-retry]').disabled,
+ 'Retry uses one protected, bodyless same-origin POST and suppresses repeated taps while pending.');
+syncHold=false;syncRelease();for(let pass=0;pass<4;pass++)await flush();
+check(doc.querySelector('#detail [role=status]').textContent.includes('Refresh requested')&&doc.querySelector('[data-sync-retry]').disabled,
+ 'An accepted retry reports a request rather than claiming completion, and keeps the action on cooldown.');
+const clientNow=w.Date.now;w.Date.now=()=>clientNow()+20000;snapshot.observedAt=new Date(Date.now()+20000).toISOString();syncStatus=409;await refresh();click('[data-sync-retry]');for(let pass=0;pass<4;pass++)await flush();
+check(syncPosts===2&&doc.querySelector('#detail [role=status]').textContent.includes('already in progress'),
+ 'A concurrent automatic refresh returns useful busy feedback without issuing a duplicate job.');
+w.Date.now=()=>clientNow()+40000;snapshot.observedAt=new Date(Date.now()+40000).toISOString();syncStatus=429;await refresh();click('[data-sync-retry]');for(let pass=0;pass<4;pass++)await flush();
+check(syncPosts===3&&doc.querySelector('#detail [role=status]').textContent.includes('wait briefly')&&doc.querySelector('[data-sync-retry]').disabled,
+ 'Rate-limited retries preserve the server cooldown with clear feedback.');
+w.Date.now=clientNow;snapshot.observedAt=earlier(30);await refresh();
+check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh laptop observation before retrying.',
+  'A stale observation takes priority over feedback from an earlier retry request.');
+w.Date.now=clientNow;snapshot.observedAt=new Date().toISOString();offline=true;await refresh();
+check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('[data-sync-feed=sessions]').textContent.includes('Saved observation')
+  &&doc.querySelector('#detail [role=status]').textContent==='Reconnect to the laptop to request a refresh.',
+ 'Offline connection status qualifies saved feed observations and disables actions without replaying writes.');
+offline=false;await refresh();clearDetail();doc.querySelector('#notice [data-sync-status=sessions]').focus();
+for(const value of Object.values(snapshot.sources.sync)){value.state='ok';value.errorCode=null;value.succeededAt=new Date().toISOString();}await refresh();
+check(!doc.querySelector('#notice [data-sync-status]')&&doc.activeElement.id==='view-picker',
+ 'Successful recovery removes only the feed warning and returns focus from its removed action.');
+click('#view-picker');doc.querySelector('#view-menu [data-sync-status]').focus();doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
+check(doc.activeElement.hasAttribute('data-interface-refresh'),'Menu keyboard navigation includes the new Connection status item in its normal order.');
+click('#view-menu [data-sync-status]');
+check(doc.querySelector('#detail h2').textContent==='Connection status'&&doc.querySelector('#view-menu').hidden,
+ 'Connection status remains available from the view menu after warnings clear.');
+clearDetail();w.NowViews.setView('files');click('#view-picker');click('#view-menu [data-sync-status]');
+check(doc.querySelector('#detail [data-back]').textContent==='← Files','A status page opened from Files identifies its actual return view.');
+snapshot.sources.sync.sessions.state='refreshing';snapshot.sources.sync.sessions.errorCode='timeout';await refresh();
+check(doc.querySelector('[data-sync-feed=sessions]').textContent.includes('Refreshing')&&doc.querySelector('[data-sync-retry]').disabled,
+ 'An in-progress retry keeps its prior error context and prevents overlapping requests.');
+const filesBack=new Promise(resolve=>w.addEventListener('popstate',resolve,{once:true}));click('#detail [data-back]');
+for(let pass=0;pass<5;pass++){for(const[id,task]of [...timers])if(!task.delay){timers.delete(id);task.fn();}await flush();}await filesBack;await flush();
+check(w.NowViews.current()==='files'&&doc.activeElement.id==='view-picker','Back from connection detail restores visible navigation focus in the originating Files view.');
 console.log(`${checks} phone interaction checks passed.`);
 dom.window.close();
