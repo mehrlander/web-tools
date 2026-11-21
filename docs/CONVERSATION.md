@@ -14,7 +14,7 @@ substituting the current repo in URL templates.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - ⚖️ **Choice needed:** Competing proposals would go in different directions. Present this state only after a full assessment. Give the question, then `Recommended: <answer>, because <reason>.`
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
-  - 👁️‍🗨️ **Have a look:** The session links a page, a draft or a change for the reader's judgment.
+  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment.
   - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes. Say what the session will do once approval is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** The session's work is complete; the reader can end the session or bring more.
@@ -26,7 +26,7 @@ substituting the current repo in URL templates.
   Use 🟢 for a closing state that needs only confirmation to proceed. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
   The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
-  - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
+  - 👁️‍🗨️ always a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
   - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
   - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
@@ -34,7 +34,7 @@ substituting the current repo in URL templates.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
   `` `11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) [`‹⋯›`](…/app/?view=program&program=sessions) ``
-  The stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816k` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page, `‹⋯›` links the Sessions program page, and `<short>` is the session id's first eight characters. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
+  The stamp is when the hook printed the line, in the owner's time zone. `22` counts the owner's messages, and `<short>` is the session id's first eight characters. `816k` is the context in tokens. `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page. `‹⋯›` links the Sessions program page. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
 
 ## A reply that changed files
 
