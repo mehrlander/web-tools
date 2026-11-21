@@ -21,6 +21,9 @@ public sealed class ActivityCollector
     private string? error;
     public CollectedActivity? Latest => Volatile.Read(ref latest);
     public string? Error => Volatile.Read(ref error);
+    public (int Status, int RetryAfterSeconds) RequestSync() => Volatile.Read(ref reader)?.RequestRetry() ?? (503, 0);
+    // Raised after each completed scan, on the scan's own two-second cadence.
+    public event Action<CollectedActivity>? Observed;
 
     public async Task Run(CancellationToken stop)
     {
@@ -60,8 +63,11 @@ public sealed class ActivityCollector
                     var snapshot = new LaptopSnapshot(activity, daemon, applications, LaptopSignals.Places(root),
                         LaptopSignals.Downloads(), Environment.MachineName, settings.SeenThrough, current,
                         watch.Elapsed.TotalMilliseconds, cloud, events, updates, usage.Latest, sessionLinks.GeminiInstance);
-                    Volatile.Write(ref latest, new(now, snapshot, active.SyncMilliseconds));
+                    var collected = new CollectedActivity(now, snapshot, active.SyncMilliseconds);
+                    Volatile.Write(ref latest, collected);
                     Volatile.Write(ref error, null);
+                    // An observer's failure never marks the scan as failed.
+                    try { Observed?.Invoke(collected); } catch { }
                 } catch { Volatile.Write(ref error, "The latest local activity scan failed. Showing the last observation."); }
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
@@ -76,7 +82,7 @@ public sealed class ActivityCollector
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
             do {
                 var active = Volatile.Read(ref reader);
-                if (active is not null) await active.Synchronize(force: true);
+                if (active is not null) await active.Synchronize();
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
     }
