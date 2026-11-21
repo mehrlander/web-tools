@@ -209,6 +209,9 @@ test('the arrows are left alone when the deck is not docked, or the key belongs 
     doc.body.append(input);
     key('ArrowDown', input);
     input.remove();
+    const fields = [doc.createElement('textarea'), doc.createElement('select'), doc.createElement('div')];
+    fields[2].setAttribute('contenteditable', 'true');
+    for (const f of fields) { doc.body.append(f); key('ArrowDown', f); f.remove(); }
     key('ArrowDown', h.el.querySelector('section') || h.el);
     // A modifier is someone else's shortcut.
     key('ArrowDown', doc.body, { shiftKey: true });

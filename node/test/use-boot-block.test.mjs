@@ -117,3 +117,33 @@ test('entry.js hands gh-api a repo and the fetched ref, before the import, and c
   assert.ok(set >= 0 && imp > set, 'gh-api reads __ghBlobBoot at module scope, so it must be set first');
   assert.match(entry, /if\s*\(!\w+\.ok\)\s*throw/, 'a failed fetch must not be blob-imported');
 });
+
+// The text checks above hold the shape; this runs entry.js's code and holds the
+// value gh-api.js will read: the repo is web-tools itself, the ref the one the
+// selection resolved.
+async function bootWith(search) {
+  const code = readFileSync(path.join(repoRoot, 'lib/entry.js'), 'utf8');
+  const fetched = [];
+  const win = {};
+  const fn = new Function('window', 'location', 'import_', 'fetch', 'URL', 'Blob', 'URLSearchParams',
+    'return (async () => {' + code
+      .replace(/import\.meta\.url/g, "'https://x/lib/entry.js'")
+      .replace(/\bimport\(/g, 'import_(') + '})();');
+  const URL_ = Object.assign(function (...a) { return new URL(...a); }, {
+    createObjectURL: () => 'blob:x', revokeObjectURL: () => {} });
+  await fn(win, { search }, async () => ({}),
+    async u => { fetched.push(u); return { ok: true, text: async () => '' }; },
+    URL_, class { }, URLSearchParams);
+  return { boot: win.__ghBlobBoot, fetched };
+}
+
+test('entry.js stamps the web-tools repo and the ref the selection resolved', async () => {
+  const none = await bootWith('');
+  assert.deepEqual(none.boot, { repo: 'mehrlander/web-tools', ref: 'main' });
+  assert.deepEqual(none.fetched, [], 'main is a native import, with no fetch');
+  const use = await bootWith('?use=Y&refs=mehrlander/web-tools@X:lib/gh-api.js');
+  assert.deepEqual(use.boot, { repo: 'mehrlander/web-tools', ref: 'Y' });
+  assert.deepEqual(use.fetched, ['https://raw.githubusercontent.com/mehrlander/web-tools/X/lib/gh-api.js']);
+  const refs = await bootWith('?refs=mehrlander/web-tools@X&use=Y');
+  assert.equal(refs.boot.ref, 'X');
+});

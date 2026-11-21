@@ -180,6 +180,15 @@ test('the picker panel mounts lazily on first toggle and opens', async () => {
   assert.equal(data.pinPickerOpen, true);
 });
 
+test('a pick closes the picker and fills the draft without saving', () => {
+  assert.equal(data.pinPickerOpen, true);
+  SAVES = [];
+  data.pinPicked({ repo: 'me/home', path: 'a.md' });
+  assert.equal(data.pinPickerOpen, false);
+  assert.equal(data.pinDraft, 'me/home:a.md');
+  assert.equal(SAVES.length, 0);
+});
+
 test('deletePin removes the item and saves with an Unpin message', async () => {
   FILES = { 'lists/pin.json': { items: [
     { id: 'a', target: 'me/home:x/one.md', title: 'One' },

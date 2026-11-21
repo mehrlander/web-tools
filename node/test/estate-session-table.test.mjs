@@ -173,7 +173,20 @@ test('the count names its unit, because a pair count read as a session count is 
   data.sessionGrain = 'branch';
   assert.equal(data.tableCount, '1 branch');
   assert.match(data.GRAINS.map(g => g.units).join(' '), /branches/);
+  // A narrowed table says how many of how many, in the same unit.
+  data.sessionGrain = 'edge';
+  data.tabulator = {};
+  data.tableShown = 1;
+  assert.equal(data.tableCount, '1 of 3 pairs');
+  data.tabulator = null;
+  data.tableShown = 0;
   data.sessionGrain = 'session';
+});
+
+test('reading the column set does not seed the store, because the getter runs during render', () => {
+  data.tableCols_ = null;
+  assert.ok(data.tableCols.length > 0);
+  assert.equal(data.tableCols_, null);
 });
 
 test('every column carries a filter, which is the reason this tab is a library', () => {

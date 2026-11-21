@@ -25,6 +25,17 @@ test('a role follows a move when exactly one dropped and one added path share a 
   assert.equal(byPath.get('skills/hooks/guard.sh').role, 'refuses the thing');
 });
 
+test('a role follows each file of a folder move', () => {
+  const byPath = new Map([
+    ['old/a.sh', { role: 'R-a' }], ['old/b.sh', { role: 'R-b' }],
+    ['new/a.sh', { role: '' }], ['new/b.sh', { role: '' }],
+  ]);
+  const carried = carryMovedRoles(byPath, ['new/a.sh', 'new/b.sh'], ['old/a.sh', 'old/b.sh']);
+  assert.deepEqual(carried, ['old/a.sh -> new/a.sh', 'old/b.sh -> new/b.sh']);
+  assert.equal(byPath.get('new/a.sh').role, 'R-a');
+  assert.equal(byPath.get('new/b.sh').role, 'R-b');
+});
+
 test('a role is not guessed when either side of a move is ambiguous', () => {
   const byPath = new Map([
     ['old/run.sh', { role: 'the old one' }],

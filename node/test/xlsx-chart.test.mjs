@@ -117,6 +117,18 @@ test('date and logarithmic axes have a visible unsupported state', () => {
   }
 });
 
+test('a second value axis, a second chart type and an error value each make a chart unsupported', () => {
+  const valAx = lineXml.match(/<c:valAx>[\s\S]*?<\/c:valAx>/)[0];
+  const axes = xlsxKit.parseChartXml(lineXml.replace(valAx, valAx + valAx));
+  assert.ok(axes.unsupported.includes('Multiple value axes'));
+  assert.equal(svg(axes).documentElement.getAttribute('data-chart-status'), 'unsupported');
+  const lineNode = lineXml.match(/<c:lineChart>[\s\S]*?<\/c:lineChart>/)[0];
+  const combo = xlsxKit.parseChartXml(lineXml.replace(lineNode, lineNode + lineNode.replaceAll('c:lineChart', 'c:barChart')));
+  assert.ok(combo.unsupported.includes('Combination charts'));
+  const err = parts.map(([name, xml]) => [name, name === 'xl/worksheets/sheet2.xml' ? xml.replace(/<c r="B4"[^>]*(?:\/>|>[\s\S]*?<\/c>)/, '<c r="B4" t="e"><v>#N/A</v></c>') : xml]);
+  assert.ok(xlsxKit.analyze(err).xl.charts['xl/charts/chart2.xml'].unsupported.includes('Error values in chart data'));
+});
+
 test('invalid or excessively dense axis intervals terminate with a fallback', () => {
   for (const valueAxis of [{ min: 0, max: 0 }, { min: 0, max: 10, majorUnit: 0 }, { min: 0, max: 10, majorUnit: 0.000001 }]) {
     assert.equal(svg({ ...line, valueAxis }).documentElement.getAttribute('data-chart-status'), 'unsupported');

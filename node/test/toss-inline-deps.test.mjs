@@ -139,3 +139,12 @@ test('a dep that cannot be fetched marks the element instead of failing the rend
   assert.equal(s.getAttribute('data-inline-error'), 'HTTP 404');
   assert.equal(s.getAttribute('src'), './missing.js', 'the original ref is left in place');
 });
+
+test('a non-main ref with no refOf is fetched at that ref, and a module script keeps its type', async () => {
+  const { run, fetched } = build({ 'reductions/explorer/data.js': 'export const A = 1;' });
+  const out = await run('<html><body><script type="module" src="./data.js"></' + 'script></body></html>',
+    { ...ADDR, ref: 'abc123' });
+
+  assert.deepEqual(fetched, ['mehrlander/spend-wa@abc123:reductions/explorer/data.js']);
+  assert.equal(parse(out).querySelector('script').getAttribute('type'), 'module');
+});

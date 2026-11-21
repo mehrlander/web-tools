@@ -32,7 +32,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { repoRoot } from '../repo-root.mjs';
@@ -148,4 +148,24 @@ test('lib, pages, app and the skill demos carry no icon name the installed font 
   const { code, out } = run(['--check']);
   assert.equal(code, 0, out);
   assert.match(out, /blank-icons: none/);
+});
+
+test('with no paths given, the default roots lib, pages, app and the skill demos are all scanned', () => {
+  const dir = mkdtempSync(path.join(tmpdir(), 'blank-icons-roots-'));
+  try {
+    const files = ['lib/a.js', 'pages/a.html', 'app/index.html', 'skills/demo/demo.html'];
+    for (const f of files) {
+      mkdirSync(path.join(dir, path.dirname(f)), { recursive: true });
+      writeFileSync(path.join(dir, f), '<i class="ph ph-faucetx"></i>');
+    }
+    let code = 0, out = '';
+    try {
+      out = execFileSync('python3', [script, '--check', '--repo-root', repoRoot], { cwd: dir, encoding: 'utf8' });
+    } catch (e) { code = e.status; out = (e.stdout || '') + (e.stderr || ''); }
+    assert.equal(code, 1, out);
+    for (const f of files) assert.ok(out.includes(f), `${f} is scanned: ${out}`);
+    assert.match(out, /4 in 4 file\(s\)/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 });

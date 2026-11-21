@@ -61,7 +61,7 @@ test('a comment that names <style> is prose, not a stylesheet', () => {
 });
 
 test('a static style="" counts; an interpolated one is computed geometry and does not', () => {
-  withFile('<div style="width:30%;color:#123456"></div><div style="left:${x}px"></div><div :style="{left: x}"></div>', (f) => {
+  withFile('<div style="width:30%;color:#123456"></div><div style="left:${x}px"></div><div style="width:{w}px;color:red"></div><div :style="{left: x}"></div>', (f) => {
     assert.deepEqual(counts(run([f]).out), { total: 2, block: 0, inline: 2, exempt: 0 });
   });
 });
@@ -126,6 +126,18 @@ test('the baseline ratchet: over fails, new fails, under passes and --write only
     run(['probe.html', '--baseline', base, '--write'], dir);
     assert.equal(readFileSync(base, 'utf8'), 'path,declarations\nelsewhere.html,7\nprobe.html,2\n',
       'a narrowed walk lowers only the rows it walked');
+  });
+});
+
+test('a file the baseline does not list fails --check even at one declaration', () => {
+  withFile('<style>.a{color:red}</style>', (f, dir) => {
+    execFileSync('git', ['init', '-q'], { cwd: dir });
+    execFileSync('git', ['add', '.'], { cwd: dir });
+    const base = path.join(dir, 'base.csv');
+    writeFileSync(base, 'path,declarations\nother.html,1\n');
+    const r = run(['--baseline', base, '--check'], dir);
+    assert.equal(r.code, 1);
+    assert.match(r.out, /probe\.html: 1 hand-written declarations in a file the baseline does not list/);
   });
 });
 

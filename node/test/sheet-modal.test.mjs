@@ -103,6 +103,21 @@ test('flip back to mobile while closed parks the panel offscreen again', async (
   assert.equal(panel().style.transform, 'translateY(100%)');
 });
 
+test('mobile: a breakpoint flip away and back while open keeps the remembered snap', async () => {
+  data.open();
+  await tick();
+  data.snapTo(1);
+  setMedia(true);
+  setMedia(false); // back to a sheet, still shown
+  await tick();
+  assert.equal(data.shown, true);
+  assert.equal(data.snapIdx, 1);
+  assert.equal(panel().style.transform, `translateY(${H * (1 - 0.92)}px)`,
+    're-presented at the remembered snap, not parked and not the first snap');
+  data.close();
+  await tick();
+});
+
 test('Escape closes only while shown', async () => {
   data.open();
   await tick();

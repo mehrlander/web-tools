@@ -159,6 +159,10 @@ test('pasteRoute declines file-carrying clipboards and multi-line content to the
   const fileCd = fakeClipboard('https://claude.ai/code/session_01ABC', { file: true });
   assert.equal(await shell.pasteRoute(fileCd), false);
 
+  // 1b. A file in any position declines, not only the first item
+  const lateFileCd = { ...fakeClipboard('claude/quick-patch-1'), items: [{ kind: 'string' }, { kind: 'file' }] };
+  assert.equal(await shell.pasteRoute(lateFileCd), false);
+
   // 2. Multi-line text declines to Stage
   const multiCd = fakeClipboard('https://claude.ai/code/session_01ABC\nsecond line');
   assert.equal(await shell.pasteRoute(multiCd), false);

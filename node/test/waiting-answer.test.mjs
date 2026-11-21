@@ -39,7 +39,7 @@ const READS = {
                changed_files: 1, additions: 1, deletions: 1 },
   'commits/abc/check-runs': { check_runs: [{ status: 'completed', conclusion: 'success' }] },
   'pulls/7/commits?per_page=100': [{ commit: { committer: { date: '2026-10-06T05:00:00Z' } } }, { commit: { committer: { date: '2026-10-06T07:00:00Z' } } }],
-  'pulls/7/reviews?per_page=100': [],
+  'pulls/7/reviews?per_page=100': [{ submitted_at: '2026-10-01T00:00:00Z', state: 'APPROVED', user: { login: 'old' }, body: '' }],
   'pulls/1': { state: 'open' }, 'pulls/2': { state: 'closed', merged_at: null, closed_at: '2026-10-06T09:00:00Z' },
   'pulls/3': { state: 'closed', merged_at: '2026-10-01T00:00:00Z', closed_at: '2026-10-01T00:00:00Z' },
 };

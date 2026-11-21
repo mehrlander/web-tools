@@ -64,6 +64,16 @@ test('an over-long run is cut into overlapping windows, not dropped', () => {
   assert.ok(windows.some(w => w.includes(needle)), 'a 50-character substring is inside some window');
 });
 
+test('a non-repeating over-long run is searchable across a window boundary and at its tail', () => {
+  // A periodic run hides a wrong step: every window looks alike. Here each
+  // segment differs, so a substring spanning the 120 boundary or sitting in
+  // the final stretch is found only if the windows overlap and reach the end.
+  const long = Array.from({ length: 30 }, (_, i) => 'seg' + String(i).padStart(2, '0') + 'xyz').join('/');
+  const shard = X.buildShard({ aaa: X.tokens('see ' + long + ' end') });
+  assert.deepEqual(set(X.search([shard], long.slice(100, 140))), ['aaa'], 'spans the window boundary');
+  assert.deepEqual(set(X.search([shard], long.slice(-30))), ['aaa'], 'the tail is reachable');
+});
+
 test('a query is normalized the way a run is, or it cannot match at all', () => {
   // No stored term starts with a dot, so `.claude/uploads` typed as-is found 4
   // sessions where a scan found 39. Trimming the joiners off both ends is the

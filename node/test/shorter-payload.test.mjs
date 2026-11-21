@@ -76,6 +76,11 @@ test('an addressed payload takes its title from the path when it carries none', 
     'Real', 'a declared title wins over the filename');
 });
 
+test('CRLF in a bare payload survives verbatim, and an addressed one leaves the proposal empty', () => {
+  assert.equal(read('line one\r\nline two\r\n').original, 'line one\r\nline two\r\n', 'CRLF survives verbatim');
+  assert.equal(read('some prose', { name: 'created/essay.md' }).proposal, '');
+});
+
 test('isReviewable requires both sides to hold something', () => {
   assert.equal(isReviewable({ original: 'a', proposal: 'b' }), true);
   assert.equal(isReviewable({ original: 'a', proposal: '   ' }), false);

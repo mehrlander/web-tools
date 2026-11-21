@@ -307,6 +307,16 @@ test('panel-tip.js reports every branch it takes, refusals included', () => {
   assert.ok(seen.includes('press:close'));
   assert.equal(closed, 1);
 
+  // A scroll inside the panel is not a reason to close it, and says so.
+  pop.firstElementChild.dispatchEvent(new w.Event('scroll', { bubbles: true }));
+  assert.ok(seen.includes('scroll:inside'), 'the inside-scroll refusal is reported');
+  assert.equal(closed, 1);
+
+  // Escape closes it, and says so.
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.ok(seen.includes('key:esc'), 'the Escape close is reported');
+  assert.equal(closed, 2);
+
   // The trace carries them as card:<door>:<verdict>, which is the shape a
   // reader of the overlay is scanning for.
   const tags = w.Probe.trace().map((r) => r.tag);

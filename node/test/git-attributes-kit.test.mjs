@@ -86,3 +86,11 @@ test('brackets, a question mark, and a trailing slash or negative pattern that a
 test('a macro expands when set, and a later line can still override its parts', () => same(
   { '': '[attr]generated linguist-generated -diff\n*.bin binary\n*.bin text\ndist/* generated\n' },
   ['a.bin', 'dist/a.js', 'b.txt']));
+
+test('a macro expands for a bare name but not for name=value', () => same(
+  { '': '[attr]mac -text eol=lf\n*.x mac=1\n*.y mac\n' },
+  ['a.x', 'a.y']));
+
+test('a caret negates a bracket class as an exclamation mark does', () => same(
+  { '': '[^a].q foo\n' },
+  ['a.q', 'b.q']));

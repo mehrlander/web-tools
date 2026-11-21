@@ -126,8 +126,11 @@ for (const d of DOORS) {
   });
 
   test(`${d.what} wears the glyph the kit owns`, () => {
-    assert.ok(src(d).includes(`ph ${entry.icon} text-lg max-sm:text-xl`),
-      `${d.file}'s deck button must carry ${entry.icon}`);
+    // Derived from the element the kit builds, so a size change in the kit
+    // fails here rather than being matched by a stale literal.
+    const glyph = entry({ tone: d.tone, size: d.size }).querySelector('i').className;
+    assert.ok(src(d).includes(glyph),
+      `${d.file}'s deck button must carry the kit's glyph: ${glyph}`);
   });
 
   test(`${d.what} wears the wording the kit owns`, () => {

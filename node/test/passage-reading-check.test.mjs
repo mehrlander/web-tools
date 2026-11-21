@@ -30,3 +30,15 @@ test('a link end that is part of an atom is refused', () => {
   assert.equal(r.status, 1);
   assert.match(r.stderr, /s8 link here: 'Aim for 150' is not an atom's or a mention's quote in s8/);
 });
+
+test('a link end on the far sentence that is part of an atom is refused', () => {
+  const reading = JSON.parse(readFileSync(EXAMPLE, 'utf8'));
+  const link = reading.sentences.find((s) => s.n === 4).links[0];
+  assert.equal(link.there, 'Write for that one decision');
+  link.there = 'Write for that one decis';
+  const file = path.join(mkdtempSync(path.join(tmpdir(), 'passage-reading-')), 'reading.json');
+  writeFileSync(file, JSON.stringify(reading));
+  const r = check(file);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /s4 link there: 'Write for that one decis' is not an atom's or a mention's quote in s3/);
+});

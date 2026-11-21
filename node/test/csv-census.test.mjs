@@ -277,7 +277,8 @@ test('census output rejects traversal, absolute and Windows drive paths before w
   const { box, root } = fixture(t);
   const outside = path.join(box, 'outside.csv');
   writeFileSync(outside, 'sentinel\n');
-  for (const census of ['../outside.csv', outside.replaceAll('\\', '/'), 'C:/outside.csv', 'C:outside.csv']) {
+  for (const census of ['../outside.csv', outside.replaceAll('\\', '/'), 'C:/outside.csv', 'C:outside.csv',
+    '..\\outside.csv', 'data\\csv-census.csv', 'a\nb.csv', 'a\rb.csv']) {
     declare(root, census);
     const r = run(root);
     assert.notEqual(r.status, 0, `accepted ${census}`);
