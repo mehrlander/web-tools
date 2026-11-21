@@ -8,7 +8,8 @@ public record PhoneErrandSnapshot(int SchemaVersion, DateTimeOffset ObservedAt, 
     bool RecordsConnected, DateTimeOffset? SyncedAt, string? Notice, List<PhoneItem> Items);
 public record PhoneSource(bool QueueAvailable, bool RecordsConnected, DateTimeOffset? RecordsSyncedAt,
     string WorkerState, DateTimeOffset? WorkerLogAt, DateTimeOffset? CloudCapturedAt, List<string> Notices,
-    WorkerActivity? WorkerActivity = null, List<WorkerActivity>? WorkerReports = null);
+    WorkerActivity? WorkerActivity = null, List<WorkerActivity>? WorkerReports = null,
+    SyncHealth? Sync = null, List<string>? SyncNotices = null);
 public record PhoneSnapshot(int SchemaVersion, string MachineName, DateTimeOffset ObservedAt,
     double ScanMilliseconds, PhoneSource Sources, List<PhoneItem> Items, List<ActivityEvent> Events,
     List<ActivityChange>? Changes = null, List<ProviderUsage>? Usage = null);
@@ -80,11 +81,14 @@ public static class PhoneActivity
                 RelatedKeys: relatedKeys.Count == 0 ? null : relatedKeys);
         }
         items.AddRange(snapshot.Sessions.Items.Concat(snapshot.Cloud.Items).Select(s => SessionItem(s)));
-        var notices = snapshot.Sessions.Notices.Concat(new[] { snapshot.Activity.Notice, snapshot.Cloud.Notice, error }
+        var activityNotices = snapshot.Activity.Sync is null ? new[] { snapshot.Activity.Notice }.OfType<string>()
+            : (snapshot.Activity.SyncNotices ?? []).Concat(new[] { snapshot.Activity.RecordNotice }.OfType<string>());
+        var notices = snapshot.Sessions.Notices.Concat(activityNotices).Concat(new[] { snapshot.Cloud.Notice, error }
             .OfType<string>()).Distinct().ToList();
         return new(1, snapshot.MachineName, observedAt, snapshot.ScanMilliseconds,
             new(snapshot.Activity.Revision is not null, snapshot.Activity.Connected, snapshot.Activity.SyncedAt,
-                snapshot.Daemon.State, snapshot.Daemon.LastLogAt, snapshot.Cloud.CapturedAt, notices, snapshot.Daemon.Activity, snapshot.Daemon.Reports),
+                snapshot.Daemon.State, snapshot.Daemon.LastLogAt, snapshot.Cloud.CapturedAt, notices, snapshot.Daemon.Activity, snapshot.Daemon.Reports,
+                snapshot.Activity.Sync, snapshot.Activity.SyncNotices),
             items.OrderByDescending(i => i.At).ToList(), snapshot.Events.Take(50).ToList(),
             changes, snapshot.Usage ?? []);
     }

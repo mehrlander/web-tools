@@ -11,10 +11,10 @@
   const file='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0 text-stone-500" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5"/></svg>';
   const arrow='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" class="size-3 shrink-0 text-stone-500" aria-hidden="true"><path d="m6 4 4 4-4 4"/></svg>';
   const workfolders='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0" aria-hidden="true"><path d="M7 3h5l2 2h7v12M3 7h5l2 2h7v12H3Z"/></svg>';
-  const roots={gh:'Repository folders',outputs:'Assistant outputs'};
+  const roots={downloads:'Downloads',gh:'Repository folders',outputs:'Assistant outputs'};
   const imageTypes=new Set(['image/png','image/jpeg','image/gif','image/webp']);
   const textLimit=1024*1024,imageLimit=32*1024*1024;
-  let current=null,rootId='gh',openedFile='',filter='all',query='',listing,snapshot,live=false,active=false,timer,controller,failed=false,denied=false,signature='';
+  let current=null,rootId='downloads',openedFile='',filter='all',query='',listing,snapshot,live=false,active=false,timer,controller,failed=false,denied=false,signature='';
   let contentController,previewUrl='',contentState;
   const cache=new Map();
   const folderStates=new Map();
@@ -231,7 +231,7 @@
     finally{clearTimeout(timeout);if(controller===request){controller=null;if(active&&current===path&&rootId===root){results();timer=setTimeout(poll,failed?15000:10000);}}}
   }
   function render(value,path,isLive,options={}){
-    const nextRoot=options.root||'gh',nextFile=options.file||'';
+    const nextRoot=options.root||'downloads',nextFile=options.file||'';
     snapshot=value;live=isLive;header(Boolean(path)||Boolean(nextFile));
     if(current!==path||rootId!==nextRoot||openedFile!==nextFile||!active){
       stop();active=true;current=path;rootId=nextRoot;openedFile=nextFile;signature='';failed=false;denied=false;
@@ -252,8 +252,8 @@
   function setFilter(value){if(active&&!openedFile&&['all','tracked','untracked','ignored'].includes(value)&&filter!==value){filter=value;results();}}
   document.addEventListener('click',async event=>{
     if(!active||!openedFile||!event.target.closest('[data-file-copy]'))return;
-    const root=rootId,path=openedFile,url=new URL(location.pathname,location.origin),params=new URLSearchParams({view:'files'});
-    if(root!=='gh')params.set('root',root);params.set('file',path);url.hash=params.toString();
+    const root=rootId,path=openedFile,url=new URL(location.pathname,location.origin),params=new URLSearchParams({view:'files',root});
+    params.set('file',path);url.hash=params.toString();
     let message='Link copied';try{await navigator.clipboard.writeText(url.href);}catch{message='Copy unavailable';}
     if(active&&rootId===root&&openedFile===path&&contentState?.state==='ready')el('file-status').textContent=message;
   });
