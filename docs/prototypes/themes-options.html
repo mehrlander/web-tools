@@ -265,7 +265,7 @@
       const label = r.kind !== last ? `<div class="sticky top-0 z-10 flex items-center gap-1.5 bg-base-200 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
           <i class="ph ${r.kind === 'g' ? 'ph-equals' : 'ph-approximate-equals'} text-sm"></i>${(last = r.kind) === 'g' ? 'Identical runs' : 'Similar wording'}</div>` : '';
       const n = r.kind === 'g' ? r.w : '≈' + r.sims[0].matches.length;
-      return label + `<div role="option" tabindex="0" data-row="${esc(r.id)}" aria-selected="${r.id === sel}" data-title-tip-bare data-title-tip="${esc(r.files.join('\n'))}"
+      return label + `<div role="option" tabindex="0" data-row="${esc(r.id)}" aria-selected="${r.id === sel}" data-title-tip="${esc(r.files.join('\n'))}"
           class="flex cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-2 hover:bg-base-200 aria-selected:bg-primary/10">
           <i class="ph ${r.kind === 'g' ? 'ph-equals text-primary' : 'ph-approximate-equals text-base-content/40'} shrink-0"></i>
           <span class="min-w-0 flex-1 truncate text-base">${esc(nameD(r))}</span>
