@@ -12,7 +12,7 @@ has assessed the codes.
 
 | File | Row | Written by |
 | --- | --- | --- |
-| `units.csv` | one unit: an app view, a view's tab, or a page; `as_of` dates the snapshot | `node/ui-units.mjs` (Pass 0) |
+| `units.csv` | one unit: an app view, a view's tab, a page, or an overlay, one object's rendering that opens over a view (budget-drs only so far); `as_of` dates the snapshot | `node/ui-units.mjs` (Pass 0) |
 | `signals.csv` | one source file: kit call counts, kits loaded by name, hand-built signatures | `node/ui-units.mjs` (Pass 1) |
 | [`dimensions.csv`](dimensions.csv) | one dimension the units are coded on: what it holds, its test, whether a unit takes one code or any number, and, for frame and body, the color their slots are outlined in | authored |
 | [`codes.csv`](codes.csv) | one code a unit can be coded with, by axis (the dimension), and the five rings | authored, settled at synthesis |
