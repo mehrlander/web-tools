@@ -42,7 +42,7 @@ if (/(^|[#&])poster=1(&|$)/.test(location.hash)) document.documentElement.setAtt
 document.addEventListener('alpine:init', () => {
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
   const tokenNow = () => window.TOKEN || window.ghAuth?.resolve() || '';
-  const DIR = '../research/category-mapping/';
+  const DIR = 'cat-map/';
   // The committed answers, one pill each.
   const ANSWERS = [['Collections', DIR + 'collections.json'], ['Timing', DIR + 'timing.json']];
 

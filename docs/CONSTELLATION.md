@@ -95,9 +95,10 @@ manager role through `/portable:programs <name>`.
 
 Research keeps a question together with what was tried or gathered, the
 findings, and the material that lets someone inspect them. It lives outside
-`docs/`, usually under `research/` in its repository or project. A small probe
-can stand alone. Continuing work can gain a project without losing the original
-findings or requiring a new name for every method.
+`docs/`, in web-tools-private's `research/` or inside the project it serves,
+since most research reads private material; web-tools holds only the
+conventions. A small probe can stand alone. Continuing work can gain a project
+without losing the original findings or requiring a new name for every method.
 
 The Map's Research view offers two entrances: **[Probes](probes.md)** test our tools,
 workflows, data, or assumptions, often by building something and trying it;

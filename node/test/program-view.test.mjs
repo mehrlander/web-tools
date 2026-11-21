@@ -120,7 +120,7 @@ const csvs = {
   'docs/portable.csv': 'kind,path\nskill,a\nscript,b\nskill,c\ndoc,d\nskill,e\nscript,f\n',
   'docs/showing-mechanisms.csv': 'key,glyph,label\nhosted,diamond,Deployed page\ntoss,disc,Toss\nnone,x,No link\n',
   'docs/harness.csv': 'path,invocation\na.sh,hook:SessionStart\nb.sh,hook:Stop\nc.yml,ci:push\nd.mjs,driver\ne.py,argv\n',
-  'docs/docs.csv': 'path,status\ndocs/envelopes/README.md,living\ndocs/envelopes/approval.md,living\ndocs/envelopes/audit.md,record\ndocs/APP.md,living\n',
+  'docs/docs.csv': 'path,status\ndocs/envelopes/README.md,living\ndocs/envelopes/approval.md,living\ndocs/envelopes/audit.md,\ndocs/APP.md,living\n',
   'pages/pages.csv': 'top,label,thumb,href\n' + Array.from({ length: 5 }, (_, i) => `main,p${i},thumbs/p${i}.png,p${i}.html`).join('\n') + '\n',
   'skills/manifest.csv': 'name,group,description\nbake-page,web,Bakes a page.\ncaveman,prose,Says less.\ndefault,session,The conventions.\n'
     + 'sessions,session,Logs the session.\ntasks,session,Runs the tracker.\n',
@@ -339,6 +339,10 @@ test('Programs reads an area declaration, keeping only panels it can draw', () =
   assert.deepEqual({ ...bd.icons }, { a: 'ph-x' }, 'group icons are glyphs');
   assert.deepEqual({ ...bd.where }, { k: '^a$' }, 'a pattern that does not compile is dropped');
   assert.equal(gal.source, 'research');
+  assert.equal(gal.repo, '', 'a research gallery reads its own repository unless it names another');
+  const [named, bad] = window.Programs.rows([{ repo: hub, config: { programs: [{ name: 'z', areas: [{ name: 'R', panels: [
+    { kind: 'gallery', source: 'research', repo: 'owner/other' }, { kind: 'gallery', source: 'research', repo: '../x' }] }] }] } }])[0].areas[0].panels;
+  assert.deepEqual([named.repo, bad.repo], ['owner/other', ''], 'the repository is owner/repo or nothing');
   assert.deepEqual([...views.views], ['?view=sessions']);
   assert.ok(bd.sig && bd.sig !== gal.sig, 'each panel carries its own signature');
   assert.equal(window.Programs.rows([{ repo: hub, config: { programs: [{ name: 'y' }] } }])[0].areas.length, 0, 'no declaration, no areas');
@@ -1001,6 +1005,7 @@ test("signed out, a program's page reads fewer paths and leaves out the notes", 
     assert.ok(fetched.includes('https://raw.githubusercontent.com/' + hub + '/codex/program-preview/docs/portable.csv'));
     assert.equal(data.regOf(p, 'docs/portable.csv').state, 'ok');
     assert.equal(data.galleryOf(p, { source: 'repos' }).state, 'locked', 'the estate\'s repositories need a token');
+    assert.equal(data.galleryOf(p, { source: 'research', repo: 'owner/unread' }).state, 'locked', 'another repository\'s research needs a token');
   } finally {
     delete window.fetch;
     window.TOKEN = 'fixture-token'; window.__shell._authState = 'auth';
