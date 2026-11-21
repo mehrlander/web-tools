@@ -41,6 +41,8 @@ const data = {
 const snapshot = () => receive({data:{type:'snapshot',data}});
 const click = selector => { const node = doc.querySelector(selector); assert.ok(node, `Missing ${selector}`); node.click(); };
 snapshot();
+click('[data-action=files]');
+check(JSON.stringify(messages.at(-1)) === JSON.stringify({action:'files',id:''}), 'The native Files entry sends a fixed action without a URL or filesystem path.');
 click('[data-launch="errand:result"]');
 check(doc.querySelector('[data-external="errand:result"]')?.href === 'https://mehrlander.github.io/web-tools/app/?repo=mehrlander/web-tools-private&ref=background&view=files&file=errands%2Fresults%2Fresult.json','A desktop errand launcher resolves its saved result URL from the actual errand ID.');
 click('[data-launch="errand:result"]');

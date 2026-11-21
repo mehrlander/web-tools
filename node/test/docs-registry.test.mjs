@@ -24,7 +24,9 @@ const registry = { documents: parseCsv(readFileSync(path.join(repoRoot, 'docs', 
 // their maintenance prose ("per-claim verification dates", "re-probe on a new
 // client") while their status said living, which is the tell that a vocabulary
 // is a value short: the column that cannot say it says it somewhere else.
-const STATUSES = new Set(['living', 'record', 'measured']);
+// `record` left the domain on 2026-11-21: .gitattributes owns it as
+// edit=write-once, and a record's status is blank (gitattributes.test.mjs).
+const STATUSES = new Set(['living', 'measured']);
 // Rows whose maintenance says only that a human wrote it. Not banned, but
 // counted: a bare row means nothing keeps the file true, and the count is the
 // honest measure of how much of the folder is unheld. It stood at 15 of 42
@@ -53,8 +55,8 @@ test('every docs/ file is claimed by exactly one document row, and every row exi
 test('every document row is typed: subject, status, reach, words, maintenance', () => {
   for (const d of registry.documents) {
     assert.ok(d.subject && d.subject.length > 5, d.path + ': subject');
-    assert.ok(STATUSES.has(d.status),
-      d.path + ': status must be one of ' + [...STATUSES] + ', got ' + d.status);
+    assert.ok(!d.status || STATUSES.has(d.status),
+      d.path + ': status must be blank or one of ' + [...STATUSES] + ', got ' + d.status);
     assert.ok(CHANNELS.includes(d.reach),
       d.path + ': reach must be one of ' + CHANNELS + ', got ' + d.reach);
     assert.ok(Number.isInteger(d.words) && d.words >= 0,

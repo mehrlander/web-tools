@@ -6,7 +6,8 @@ Discovery is the owner's research, into their own work and into what others know
 
 | Area | Covers |
 | --- | --- |
-| Probes | investigations that test the owner's tools, workflows, data or assumptions, often by building something and trying it. Each write-up is listed under `research` in its repository's `.web-tools.json` with the kind `probe`, indexed for web-tools in [`research/README.md`](../../research/README.md) and shown in the Map's [Probes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=research) |
+| Probes | investigations that test the owner's tools, workflows, data or assumptions, often by building something and trying it. Each write-up is listed under `research` in its repository's `.web-tools.json` with the kind `probe`, kept in [web-tools-private `research/`](https://github.com/mehrlander/web-tools-private/tree/main/research) unless a project keeps its own, and shown in the Map's [Probes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=research) |
+| Provenance | how content, data and claims tie back to their sources. It covers material taken in from outside as [source bundles](../../docs/source-bundles.md), a probe's [sources](../../docs/probes.md#sources), the [source-anchoring](../../skills/source-anchoring/SKILL.md) skills, the [content registry](../../skills/content-registry/SKILL.md) of what produced each artifact, and [gold sets](../../skills/gold-set/SKILL.md), which test correctness against an independently labeled sample. [Provenance in practice](https://github.com/mehrlander/web-tools-private/blob/main/research/2026-11-20-provenance-in-practice/README.md) surveys current practice |
 | Exploration | information gathered from outside sources, listed with the kind `exploration` and shown in the Map's [Exploration tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=exploration), and the skills that gather it, such as [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md) |
 
 ## Processes
@@ -29,3 +30,4 @@ A proposed change to a governed file goes to [owner-proxy](../../skills/agents/o
 
 - Searching the owner's own files and records: the [Organization](../organization/README.md) program.
 - The checks that guard code and data: the [Testing](../testing/README.md) program.
+- The registry model in [`registries.md`](../../docs/registries.md), including its authored, derived and captured classes: the [Organization](../organization/README.md) program.
