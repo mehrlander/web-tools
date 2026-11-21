@@ -70,7 +70,7 @@ test('with the pad up, the launcher drags inside room for its chevrons, and the 
   } finally { host.remove(); }
 });
 
-test('the menu\'s Place row raises the pad and takes it off again', async () => {
+test('the menu\'s Form row raises the pad and takes it off again', async () => {
   const { d, host } = await mountFab();
   try {
     d.fabMenu = true; await tick(2);

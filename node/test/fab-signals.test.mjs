@@ -25,7 +25,7 @@ const start = fab.indexOf(`'Note the selected text' : 'Web-tools panel'`);
 const end = fab.indexOf(`<!-- The launcher's second gesture`);
 const markup = fab.slice(start, end);
 const live = rows.filter(r => r.status === 'live');
-const CORNER = { 'top-right': /-top-[\d.]+ -right-[\d.]+/, 'bottom-right': /-bottom-[\d.]+ -right-[\d.]+/ };
+const CORNER = { 'top-right': /-top-[\d.]+ -right-[\d.]+/, 'bottom-right': /-bottom-[\d.]+ -right-[\d.]+/, 'top-left': /-top-[\d.]+ -left-[\d.]+/ };
 
 test('the FAB markup is where the gate looks for it', () => {
   assert.ok(start > 0 && end > start, 'the FAB button and the menu after it are both found in fab.js');
@@ -44,7 +44,7 @@ test('a live glyph or badge is drawn where its row says', () => {
     if (!CORNER[r.part]) continue;
     // The badge's own element: the nearest opening tag before its icon that
     // places something in a corner.
-    const tag = markup.slice(0, at).split(/<(?=div|button)/).reverse().find(t => /-right-/.test(t)) || '';
+    const tag = markup.slice(0, at).split(/<(?=div|button)/).reverse().find(t => /-right-|-left-/.test(t)) || '';
     assert.match(tag, CORNER[r.part], `${r.key}: its badge sits in the ${r.part} corner`);
     assert.ok(tag.includes('bg-' + r.tone), `${r.key}: its badge is drawn in ${r.tone}`);
   }
