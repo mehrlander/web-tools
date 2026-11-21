@@ -345,9 +345,8 @@ async function resultsScenario(viewport) {
   check(label + ' a session that worked in a hidden repo stays out, with no control to show it',
     !(await resultIds(page)).includes('a0000008') && !(await page.locator('[data-session-facets]').textContent()).includes('veiled')
     && await page.locator('[data-session-hidden]').count() === 0);
-  await page.goBack();
-  await page.goBack();
-  await page.goBack();
+  // Back walks the two searches, the cleared chip and the scoped answer.
+  for (let i = 0; i < 4; i++) await page.goBack();
   await page.waitForFunction(() => new URLSearchParams(location.search).get('view') === 'sessions');
   check(label + ' Back returns to Activity with its filter', params(page).get('aq') === 'cobalt');
   await context.close();
