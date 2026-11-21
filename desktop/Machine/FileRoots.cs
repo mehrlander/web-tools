@@ -1,3 +1,7 @@
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("FileRootsChecks")]
+
 namespace WebTools.Desktop;
 
 public sealed record FileRoot(string Id, string FullPath);
@@ -6,16 +10,23 @@ public static class FileRoots
 {
     public static string OutputsDirectory => Path.Combine(UserSettings.DataDirectory, "outputs");
 
-    public static bool TryGet(string id, out FileRoot root)
+    public static bool TryGet(string id, out FileRoot root) => TryGet(id, KnownFolders.DownloadsPath, out root);
+
+    internal static bool TryGet(string id, Func<string?> downloadsPath, out FileRoot root)
     {
         root = null!;
         var path = id switch {
             "gh" => UserSettings.Load().RepositoriesRoot,
             "outputs" => OutputsDirectory,
+            "downloads" => downloadsPath(),
             _ => null
         };
         if (string.IsNullOrWhiteSpace(path)) return false;
-        try { root = new(id, Path.GetFullPath(path)); return true; }
+        try {
+            if (id == "downloads" && !Path.IsPathFullyQualified(path)) return false;
+            root = new(id, Path.GetFullPath(path));
+            return true;
+        }
         catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException) { return false; }
     }
 

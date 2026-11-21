@@ -118,12 +118,15 @@ try {
   check(!h.errors.length,'Foreground and controller changes preserve the current page without a forced reload.');
 } finally {h.dom.window.close();}
 
-for(const [hash,view] of [['#view=devices','computer'],['#view=repositories&folder=project%2Fdata&filter=ignored&checkout=1234567890abcdef12345678','files']]) {
+for(const [hash,view] of [['#view=devices','computer'],['#view=repositories&folder=project%2Fdata&filter=ignored&checkout=1234567890abcdef12345678','files'],['#view=repositories&root=','files']]) {
   const alias=await fixture(hash);
   try {
     const params=new URLSearchParams(alias.w.location.hash.slice(1));
     check(alias.w.NowViews.current()===view&&params.get('view')===view,'A legacy view alias lands on its canonical swipe destination.');
-    if(view==='files')check(params.get('folder')==='project/data'&&params.get('filter')==='ignored'&&params.get('checkout')==='1234567890abcdef12345678','Normalizing a repository alias preserves the folder, filter and checkout parameters.');
+    if(view==='files'){
+      check(params.get('root')==='gh','A legacy repository alias without a usable root retains gh.');
+      if(hash.includes('folder='))check(params.get('folder')==='project/data'&&params.get('filter')==='ignored'&&params.get('checkout')==='1234567890abcdef12345678','Normalizing a repository alias preserves its folder, filter and checkout parameters.');
+    }
     check(!alias.errors.length,'Direct legacy routes initialize without document scrolling or script errors.');
   } finally {alias.dom.window.close();}
 }
