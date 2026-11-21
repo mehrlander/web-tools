@@ -169,3 +169,25 @@ test('the launcher travels into the handle and back out, and does not where moti
     } finally { window.matchMedia = mm; }
   } finally { host.remove(); }
 });
+
+// The reader's own Hide holds over an open drawer, where a pad's tuck gives
+// way to it: the handle brings the launcher back with the drawer still open,
+// and a tap on the launcher then closes it.
+test('Hide or a drag into the corner tucks the launcher with the drawer open, and the drawer stays open', async () => {
+  const { d, host } = await mountFab();
+  try {
+    d.open = true; await tick(2);
+    d.onDown(ev('pointerdown', 900, 700));
+    d.onMove(ev('pointermove', 960, 760));
+    d.onUp(ev('pointerup', 960, 760)); await tick(2);
+    assert.equal(d.tuckNow, true, 'the drag tucks it over the open drawer');
+    assert.equal(d.open, true, 'and the drawer stays open');
+    host.querySelector('[data-fab-tab]').click(); await tick(2);
+    assert.equal(d.tuckNow, false, 'the handle brings the launcher back');
+    assert.equal(d.open, true, 'without closing the drawer');
+    assert.ok(['at', 'back'].includes(d.stow), 'and it travels back out, as it does with the drawer shut: ' + d.stow);
+    d.onDown(ev('pointerdown', 900, 700));
+    d.onUp(ev('pointerup', 900, 700)); await tick(2);
+    assert.equal(d.open, false, 'a tap on the launcher then closes it');
+  } finally { host.remove(); }
+});
