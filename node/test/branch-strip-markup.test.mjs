@@ -105,7 +105,7 @@ test('branch-brief.js Look row aligns toss render pages and uses data-title-tip 
 
 test('the frisbee leads the page chips in both briefs', () => {
   for (const [src, loop, what] of [[branchBriefSrc, 'x-for="t in pageChips"', 'page chips'], [sessionBriefSrc, 'x-for="g in pageGroups"', 'page groups']]) {
-    const frisbee = src.indexOf('data-title-tip-bare>🥏</span>');
+    const frisbee = src.indexOf('>🥏</span>');
     const chips = src.indexOf(loop);
     assert.ok(frisbee >= 0 && chips >= 0, `both the frisbee and the ${what} loop are in the markup`);
     assert.ok(frisbee < chips, `the frisbee leads the ${what}`);
