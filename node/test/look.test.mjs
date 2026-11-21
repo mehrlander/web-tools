@@ -1464,3 +1464,30 @@ test('component:<name> prefers the instance with the most of itself in sight', (
   assert.equal(w.Look.find('component:viewer').id, 'here');
   assert.equal(w.Look.find('component:viewer#1').id, 'prev', 'a number still counts in the page’s order');
 });
+
+// Where a FAB is on screen, a walkthrough's dock keeps a slot between its
+// arrows for it and says so on the root; the FAB's drag out of the slot is the
+// way to leave, so the corner ✕ gives way. Without a FAB the ✕ stays.
+test('a walkthrough keeps a slot for the FAB between its arrows, in place of the ✕', async () => {
+  const w = realm('<div x-data="fab()"></div><p id="a">A</p><p id="b">B</p>');
+  w.Look.start([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }], { wait: 0 });
+  await wait(30);
+  const slot = card(w).querySelector('[data-look-fab-slot]');
+  assert.ok(slot, 'the slot is in the dock');
+  const row = [...slot.parentElement.children];
+  const back = row.find(b => b.getAttribute('aria-label') === 'Back');
+  assert.ok(back && row.indexOf(slot) === row.indexOf(back) + 1, 'right after Back');
+  assert.equal(card(w).querySelector('[aria-label="Close"]'), null, 'and no ✕');
+  assert.equal(w.document.documentElement.hasAttribute('data-look-open'), true);
+  w.Look.stop();
+  assert.equal(w.document.documentElement.hasAttribute('data-look-open'), false, 'the end of the walkthrough says so');
+});
+
+test('with no FAB on screen, a walkthrough keeps its ✕ and leaves no slot', async () => {
+  const w = realm('<p id="a">A</p><p id="b">B</p>');
+  w.Look.start([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }], { wait: 0 });
+  await wait(30);
+  assert.equal(card(w).querySelector('[data-look-fab-slot]'), null);
+  assert.ok(card(w).querySelector('[aria-label="Close"]'));
+  assert.equal(w.document.documentElement.hasAttribute('data-look-open'), false);
+});

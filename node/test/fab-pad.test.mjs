@@ -170,3 +170,49 @@ test('the menu stands over the chevrons and clear of the top one', async () => {
     d.lowerPad();
   } finally { host.remove(); }
 });
+
+// A walkthrough's dock keeps a slot for the launcher (kits/look.js); the
+// launcher stands in it, opens the sidebar on a tap as anywhere, and a drag
+// out of it ends the walkthrough and leaves the launcher where it was dropped.
+test('the launcher stands in a walkthrough\'s slot, and a drag out of it ends the walkthrough', async () => {
+  const { d, host } = await mountFab();
+  const root = doc.documentElement;
+  const slot = doc.createElement('div');
+  slot.setAttribute('data-look-fab-slot', '');
+  let at = { left: 120, top: 700 };
+  slot.getBoundingClientRect = () => ({ left: at.left, top: at.top, width: 56, height: 56 });
+  doc.body.append(slot);
+  const was = window.Look;
+  let stopped = 0;
+  window.Look = { stop: () => { stopped++; slot.remove(); root.removeAttribute('data-look-open'); } };
+  const wrap = host.querySelector('[data-fab-wrap]');
+  wrap.getBoundingClientRect = () => d.docked ? { left: d.lookSlot.left, top: d.lookSlot.top } : { left: window.innerWidth - 80 + d.x, top: window.innerHeight - 80 + d.yShown };
+  const frames = (n) => new Promise(r => { let i = 0; const f = () => (++i >= n ? r() : window.requestAnimationFrame(f)); window.requestAnimationFrame(f); });
+  try {
+    d.x = -50; d.y = -60;
+    root.setAttribute('data-look-open', ''); await tick(2); await frames(3);
+    assert.equal(d.docked, true, 'the launcher takes the slot');
+    assert.match(wrap.getAttribute('style'), /left:120px;top:700px/);
+    at = { left: 140, top: 650 }; await frames(3);
+    assert.match(wrap.getAttribute('style'), /left:140px;top:650px/, 'and follows the dock');
+    d.onDown(ev('pointerdown', 168, 678));
+    d.onUp(ev('pointerup', 168, 678)); await tick(2);
+    assert.equal(d.open, true, 'a tap opens the sidebar, as anywhere');
+    assert.equal(d.docked, true, 'and the launcher stays in the slot');
+    d.close(); await tick(2);
+    d.onDown(ev('pointerdown', 168, 678));
+    d.onMove(ev('pointermove', 300, 400));
+    d.onUp(ev('pointerup', 300, 400)); await tick(2);
+    assert.equal(stopped, 1, 'a drag out of the slot ends the walkthrough');
+    assert.equal(d.docked, false);
+    assert.deepEqual([d.x, d.y], [140 + 132 - (window.innerWidth - 80), 650 - 278 - (window.innerHeight - 80)], 'and the launcher stays where it was dropped');
+    // A walkthrough that ends on its own sends the launcher back.
+    doc.body.append(slot); at = { left: 120, top: 700 };
+    d.x = -50; d.y = -60;
+    root.setAttribute('data-look-open', ''); await tick(2); await frames(3);
+    assert.equal(d.docked, true);
+    root.removeAttribute('data-look-open'); await tick(2); await frames(2);
+    assert.equal(d.docked, false);
+    assert.deepEqual([d.x, d.y], [-50, -60], 'back to where it stood before the walkthrough');
+  } finally { window.Look = was; slot.remove(); root.removeAttribute('data-look-open'); host.remove(); }
+});
