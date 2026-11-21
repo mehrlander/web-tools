@@ -136,6 +136,7 @@ test('a formula reaches a sheet however it names it, and a string literal reache
     XlsxMap.refs(`SUM('Q1 / Plan'!A1, Ledger!B2) & "Lookups!A1"`, r, 'Summary').map(x => x.sheet),
     ['Q1 / Plan', 'Ledger']);
   assert.deepEqual(XlsxMap.refs('Summary!A1+1', r, 'Summary'), [], 'a reference to its own sheet is no link');
+  assert.deepEqual(XlsxMap.refs('"LedgerTbl[Amount]"&"TaxRate"', r, 'Summary'), [], 'a table or defined name inside a string reaches nothing');
 });
 
 test('every route from Ledger to Summary counts once per cell, followers included', () => {
