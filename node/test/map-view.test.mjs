@@ -552,7 +552,7 @@ test('the conversation icon family reads its glyphs from CONVERSATION.md, on dem
   const bullets = [...surfDoc.split('\n---\n')[1].matchAll(/^\* \*\*(.+?)\*\*/gm)].map(m => m[1]);
   assert.deepEqual([...data.convRules.map(p => p.lead)], bullets, 'one rule per bullet, in the doc\'s order');
   const rule = (t) => data.convRules.find(p => p.title === t);
-  assert.equal(rule('A rendered view').glyph, '🥏', 'the glyph that ends a lead-in is drawn apart');
+  assert.equal(rule('Open the branch').glyph, '🌿', 'the glyph that ends a lead-in is drawn apart');
   assert.equal(rule('Closing state').glyph, '', 'a lead-in with no glyph has none');
   // Read from the doc, not counted: the family is one member per glyph that
   // ends a lead-in, so a glyph the doc drops (🧭, 2026-11) leaves it too.
