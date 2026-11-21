@@ -192,11 +192,11 @@ test('the launcher stands in a walkthrough\'s slot, and a drag out of it ends th
     d.x = -50; d.y = -60;
     root.setAttribute('data-look-open', ''); await tick(2); await frames(3);
     assert.equal(d.docked, true, 'the launcher takes the slot');
-    assert.match(wrap.getAttribute('style'), /left:114px;top:692px/, 'its glyph centred on the slot');
+    assert.match(wrap.getAttribute('style'), /left:122px;top:700px/, 'its glyph centred on the slot');
     assert.ok(root.style.getPropertyValue('--look-dock-edge'), 'and the dock wears the launcher\'s edge');
     assert.match(host.querySelector('[data-fab-wrap] > [role=button]').className, /!border-transparent/, 'while the launcher shows only its glyph');
     at = { left: 140, top: 650 }; await frames(3);
-    assert.match(wrap.getAttribute('style'), /left:134px;top:642px/, 'and follows the dock');
+    assert.match(wrap.getAttribute('style'), /left:142px;top:650px/, 'and follows the dock');
     d.onDown(ev('pointerdown', 162, 670));
     d.onUp(ev('pointerup', 162, 670)); await tick(2);
     assert.equal(d.open, true, 'a tap opens the sidebar, as anywhere');
@@ -207,7 +207,7 @@ test('the launcher stands in a walkthrough\'s slot, and a drag out of it ends th
     d.onUp(ev('pointerup', 294, 392)); await tick(2);
     assert.equal(stopped, 1, 'a drag out of the slot ends the walkthrough');
     assert.equal(d.docked, false);
-    assert.deepEqual([d.x, d.y], [134 + 132 - (window.innerWidth - 80), 642 - 278 - (window.innerHeight - 80)], 'and the launcher stays where it was dropped');
+    assert.deepEqual([d.x, d.y], [142 - 8 + 132 - (window.innerWidth - 80), 650 - 8 - 278 - (window.innerHeight - 80)], 'and the launcher stays where it was dropped, its glyph where the drag took it');
     assert.equal(root.style.getPropertyValue('--look-dock-edge'), '', 'the dock gives the edge back');
     // A walkthrough that ends on its own sends the launcher back.
     doc.body.append(slot); at = { left: 120, top: 700 };
