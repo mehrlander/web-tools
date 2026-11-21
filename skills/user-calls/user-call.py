@@ -739,8 +739,8 @@ def edit_span(e, dblocks, base_blocks=None):
         a = 0
         while a < min(len(old_lines), len(new_lines)) - 1 and old_lines[a] == new_lines[a]:
             a += 1
-        z = 0
-        while z < min(len(old_lines), len(new_lines)) - 1 - a and old_lines[-1 - z] == new_lines[-1 - z]:
+        z = 0  # at least one new line stays, so an inserted table row or bullet is its own span
+        while z < min(len(old_lines) - a, len(new_lines) - 1 - a) and old_lines[-1 - z] == new_lines[-1 - z]:
             z += 1
         first, last = first + a, max(first + a, last - z)
     return [first, last]
