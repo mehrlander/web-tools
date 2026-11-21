@@ -8,7 +8,7 @@ substituting the current repo in URL templates.
 
 ## Every reply
 
-* **Closing state.** The closing state tells the reader what the session expects next. Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
+* **Closing state.** Tell the reader what the session expects next with exactly one closing state, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
   - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
@@ -30,9 +30,9 @@ substituting the current repo in URL templates.
   - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
   - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
-* **Close in one order.** End every reply with the caption, the render line, then the state, whether or not files changed.
+* **Close in one order.** End every reply with the caption, the [render line](#displaying-content), then the state, whether or not files changed.
 
-* **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news, and add a state only if it changed. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`.
+* **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
   `` [`⌂`](…/app/?view=program&program=sessions)`11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) ``
@@ -80,7 +80,7 @@ substituting the current repo in URL templates.
 
 * **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit, with a few words after it on what the link shows. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address) and a query.
 
-* **A look link 👁️‍🗨️.** A look link opens a page on a guided tour: each step lands on a place, highlights it and says why. Make the fragment with `python/look-link.py` and pass it to `showing` as `--at`, with `--intro "<what changed>"`; what `showing` prints takes the place of the page's 🥏 link (the `look-markers` skill). A 🛵 request to tap a control uses a look link too.
+* **A look link 👁️‍🗨️.** A look link opens a page on a guided tour: each step lands on an element of the page, highlights it and says why. Make the fragment with [`python/look-link.py`](https://github.com/mehrlander/web-tools/blob/main/python/look-link.py), as the [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill describes. Pass it to `showing` as `--at`, with `--intro "<what changed>"`. The link `showing` prints takes the place of the page's 🥏 link. A 🛵 request to tap a control uses a look link too.
 
 * **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
 
