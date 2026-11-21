@@ -53,7 +53,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 |---|---|
 | `npm run setup` | Configure this checkout's committed Git hooks and registry CSV merge driver, install usable development dependencies without a Playwright browser, and finish by checking readiness. Safe to repeat; never regenerates tracked artifacts. `node node/checkout-setup.mjs` is the dependency-free bootstrap when npm itself cannot start; Windows PowerShell can use `npm.cmd run setup` to bypass a broken `.ps1` shim. |
 | `npm run ready` | Read-only checkout diagnosis: effective hook paths, merge-driver configuration and attributes, required runtimes, and npm's installed dependency metadata. Works for ordinary clones and linked worktrees without assuming `.git` is a directory. |
-| `npm run artifacts:refresh` | Run every commit rule whose `repair` is `yes` over the whole tree, in order, staging what each writes (see [The refresh model](#the-refresh-model)). This is repair, separate from setup. If verification names a generated file no rule writes, run the command it names. |
+| `npm run artifacts:refresh` | Run every commit rule whose `repair` is `yes` over the whole tree, in order, staging what each writes (see [The refresh model](#the-refresh-model)). If verification names a generated file no rule writes, run the command it names. |
 | `npm run build`, `generate`, `package`, `check` | Run one kind of commit rule over the whole tree, as `artifacts:refresh` does for every kind. |
 | `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior, a registration smoke test across every kit, and jsdom + real-Alpine component logic tests. Offline; third-party libs come vendored from `node_modules`. |
 | `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; how it rewrites the page is in [`testing.md`](../docs/environment/testing.md). |
@@ -292,9 +292,8 @@ rewrites it, `docs-reach-again` runs `docs-reach` once more. `csv-census`
 measures the staged bytes of every CSV and comes after every rule that writes
 one. A word count written too early fails `docs-registry.test.mjs` in CI.
 
-Every generator is byte-deterministic. The hook can run on every commit and
-changes nothing when nothing real changed. The suite tests determinism
-directly.
+Every generator is byte-deterministic: a commit whose sources did not change
+gets identical generated files back. The suite tests determinism directly.
 
 **Automatic local merge commits use the same rules.** Git does not run
 `pre-commit` for a clean automatic merge. It runs `pre-merge-commit`, which
@@ -318,8 +317,7 @@ the other branch survive.
 GitHub Pages serves `main` as it is, with no deploy build.
 
 [`test.yml`](../.github/workflows/test.yml) runs `npm test` on pull requests
-and on pushes to `main`, except pushes limited to `pages/wsl-sync/data/**`. It
-commits nothing.
+and on pushes to `main`, except pushes limited to `pages/wsl-sync/data/**`.
 
 A write through GitHub's API, MCP or a server-side merge runs no local hooks.
 Root [`CLAUDE.md`](../CLAUDE.md#the-pre-build--the-build-on-commit-hook), under

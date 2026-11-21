@@ -65,7 +65,6 @@ docs/house-policies.md,skills/look-markers/SKILL.md,7,,lib kits look js https gi
 docs/house-policies.md,skills/html-style/SKILL.md,7,,https github com mehrlander web tools blob main docs code layers md;csv https github com mehrlander web tools blob main docs showing;js https github com mehrlander web tools blob main lib kits,10,219
 docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content;webfetch returns a small model's answer rather than the page's markdown,10,219
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,219
-CLAUDE.md,node/README.md,7,,refresh derived yml github workflows refresh derived yml runs npm run artifacts refresh;the rules in docs commit rules csv docs commit rules csv;test yml github workflows test yml runs npm test on,10,219
 skills/doc-craft/SKILL.md,skills/user-calls/SKILL.md,6,,review https github com mehrlander web tools blob main docs envelopes user call md review,10,219
 docs/house-policies.md,skills/report-distiller/SKILL.md,6,,qualified writing md https github com mehrlander web tools blob main docs qualified writing md,10,219
 skills/scour/PRIOR-ART.md,skills/scour/SKILL.md,5,,relevant cluster can sit behind a page that scores low on its own;leads harvested from a business association return more business associations,10,219
@@ -102,3 +101,4 @@ docs/CONVERSATION.md,programs/organization/manager.md,3,,py https github com meh
 desktop/README.md,skills/tend/SKILL.md,3,,readme md https github com mehrlander web tools private blob main;https github com mehrlander web tools private blob background state,10,219
 desktop/README.md,programs/discovery/manager.md,3,,readme md https github com mehrlander web tools private blob main;https github com mehrlander web tools private blob background state,10,219
 README.md,skills/html-style/SKILL.md,3,,https mehrlander github io web tools app view map tab kits;https mehrlander github io web tools pages toss render html,10,219
+CLAUDE.md,node/README.md,3,,the rules in docs commit rules csv docs commit rules csv;test yml github workflows test yml runs npm test on,10,219
