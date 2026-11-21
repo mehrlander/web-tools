@@ -252,7 +252,7 @@
         <button type="button" @click="choose(o.v)" class="flex w-full items-start gap-2.5 px-3 py-2 text-left hover:bg-base-200"
                 :class="v === o.v && 'bg-warning/15'">
           <span class="flex size-6 shrink-0 items-center justify-center rounded-full bg-warning text-sm font-bold text-warning-content" x-text="o.mark"></span>
-          <span class="text-base text-pretty" x-text="o.say.slice(4)"></span>
+          <span class="text-base" x-text="o.say.slice(4)"></span>
         </button>
       </template>
     </div>

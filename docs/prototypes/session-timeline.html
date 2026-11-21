@@ -33,7 +33,7 @@
 
 <main class="px-4 sm:px-7 pt-6 pb-10">
   <div class="text-xs uppercase tracking-widest text-base-content/70 mb-1">Circles in time · one session · the nearest instruction at each moment</div>
-  <h2 class="text-3xl font-semibold tracking-tight text-balance mb-6">What is nearest when a session acts</h2>
+  <h2 class="text-3xl font-semibold tracking-tight mb-6">What is nearest when a session acts</h2>
 
   <!-- The diagram. Lanes are authors; x is minutes since the session began. -->
   <section class="border-y border-base-300 py-4" aria-label="Session timeline">
@@ -116,7 +116,7 @@
       <template x-for="row in nearest" :key="row.author">
         <div class="contents">
           <span class="py-3 border-t border-base-300 font-semibold" x-text="row.author"></span>
-          <span class="py-3 border-t border-base-300 text-pretty" :class="row.closest ? 'text-primary' : ''">
+          <span class="py-3 border-t border-base-300" :class="row.closest ? 'text-primary' : ''">
             <span x-text="row.words"></span>
             <span class="block sm:hidden font-mono text-xs text-base-content/60 mt-1" x-text="clock(row.at) + ' · ' + ago(row.at) + ' · ' + row.tools + ' tool results since'"></span>
             <span class="inline-block mt-1 rounded bg-warning/30 px-1.5 text-sm" x-show="row.flag" x-text="row.flag"></span>

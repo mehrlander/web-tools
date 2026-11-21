@@ -1361,7 +1361,7 @@ window.__audit = {
       const first = el.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`);
       if (u.note && first) {
         const note = document.createElement('div');
-        note.className = 'my-2 rounded-box border-l-4 border-[var(--color-primary)] bg-base-200 px-3 py-2 text-sm leading-6 whitespace-pre-line text-pretty';
+        note.className = 'my-2 rounded-box border-l-4 border-[var(--color-primary)] bg-base-200 px-3 py-2 text-sm leading-6 whitespace-pre-line';
         note.textContent = u.note;
         const block = first.closest('li,p,h1,h2,h3,h4,h5,h6,blockquote,td');
         if (block && /^(LI|TD)$/.test(block.tagName)) block.append(note);
@@ -2248,7 +2248,7 @@ window.__audit = {
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${view !== 'review' && off[k] ? 0.2 : 0.9})`"
                   :class="{ 'opacity-40': view !== 'review' && off[k], 'ring-1 ring-[var(--color-base-content)]': view === 'review' && rKey === k }"
                   :aria-pressed="view === 'review' ? rKey === k : null"
-                  :data-title-tip="view === 'review' ? null : noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
+                  :data-title-tip="view === 'review' ? null : noteText(k)" :data-title-tip-lead="noteTitle(k)"
                   @pointerenter="chipOver(k)" @pointerleave="chipOut()"
                   @click="chipTap(k)">
             <span x-text="k"></span>
@@ -2308,7 +2308,7 @@ window.__audit = {
     <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_fit-content(33%)_auto_minmax(0,1fr)]"
          x-show="view === 'review'" x-cloak
          :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
-      <p class="px-4 pt-2 pb-1.5 text-xs leading-5 text-pretty border-b border-base-300">
+      <p class="px-4 pt-2 pb-1.5 text-xs leading-5 border-b border-base-300">
         <span class="mr-1.5 rounded px-1 font-mono font-medium" :class="rKey === NOTED && 'bg-base-200'"
               :style="rKey === NOTED ? '' : `background:rgba(${HUE[rKey]},.28)`" x-text="rKey === NOTED ? 'Notes' : rKey"></span>
         <span class="opacity-75" x-text="rGloss"></span>

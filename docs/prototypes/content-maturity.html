@@ -29,7 +29,7 @@
 <body class="bg-base-100 text-base-content font-[IBM_Plex_Sans,system-ui,sans-serif]">
 <main x-data="maturity" @keydown.window="key($event)" class="px-4 py-6 flex flex-col gap-6">
   <div class="flex items-center justify-between gap-3">
-    <h1 class="text-2xl font-semibold text-balance">Content maturity</h1>
+    <h1 class="text-2xl font-semibold">Content maturity</h1>
     <div class="join" role="radiogroup" aria-label="Drawn as">
       <button type="button" role="radio" class="btn btn-sm join-item" :class="view === 'stair' ? 'btn-active' : 'btn-ghost'" :aria-checked="view === 'stair'" @click="view = 'stair'"><i class="ph ph-stairs"></i>Staircase</button>
       <button type="button" role="radio" class="btn btn-sm join-item" :class="view === 'pyramid' ? 'btn-active' : 'btn-ghost'" :aria-checked="view === 'pyramid'" @click="view = 'pyramid'"><i class="ph ph-triangle"></i>Pyramid</button>
@@ -42,15 +42,15 @@
   <!-- The selected stage. The figure names it, so this area holds only what
        the figure does not show; the rule in the stage's colour ties the two. -->
   <section class="border-l-4 pl-4 grid gap-6 sm:grid-cols-2" :style="`border-color:${l.color}`" aria-live="polite">
-    <div class="sm:col-span-2 text-lg font-medium text-pretty" x-text="l.kind"></div>
+    <div class="sm:col-span-2 text-lg font-medium" x-text="l.kind"></div>
     <div class="flex flex-col gap-2">
       <div class="text-sm font-medium text-base-content/60"><i class="ph ph-hand-pointing mr-1.5"></i>Affordances</div>
-      <p class="text-lg leading-8 text-pretty" x-text="l.affords"></p>
+      <p class="text-lg leading-8" x-text="l.affords"></p>
     </div>
     <div class="flex flex-col gap-2">
       <div class="text-sm font-medium text-base-content/60"><i class="ph ph-seal-check mr-1.5"></i>Markers of quality</div>
       <ul class="flex flex-col gap-1.5 list-disc pl-5 marker:text-base-content/30 text-lg leading-8">
-        <template x-for="m in l.marks" :key="m"><li class="text-pretty" x-text="m"></li></template>
+        <template x-for="m in l.marks" :key="m"><li x-text="m"></li></template>
       </ul>
       <a :href="l.href" target="_blank" rel="noopener" class="link link-hover text-sm text-base-content/60 mt-1"><span x-text="l.refname"></span> ↗</a>
     </div>
