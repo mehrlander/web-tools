@@ -160,6 +160,28 @@ test('every branch is classified exactly once', () => {
 
 // ── claim reconciliation ────────────────────────────────────────────────────
 
+test('the origin/HEAD symref counts as landed, not as an unrelated branch', () => {
+  const d = mkdtempSync(path.join(tmpdir(), 'inflight-symref-'));
+  try {
+    git(d, 'init', '-q', '-b', 'main');
+    git(d, 'remote', 'add', 'origin', 'https://github.com/acme/widget.git');
+    commit(d, 'README.md', 'base\n');
+    git(d, 'checkout', '-q', '-b', 'merged-b');
+    commit(d, 'src/merged.txt', 'merged work\n');
+    git(d, 'checkout', '-q', 'main');
+    git(d, 'merge', '-q', '--no-ff', '-m', 'merge merged-b', 'merged-b');
+    git(d, 'checkout', '-q', '--orphan', 'orphan-b');
+    git(d, 'rm', '-rqf', '.');
+    commit(d, 'old/thing.txt', 'pre-rewrite\n');
+    git(d, 'checkout', '-q', 'main');
+    for (const b of ['main', 'merged-b', 'orphan-b']) publish(d, b);
+    git(d, 'symbolic-ref', 'refs/remotes/origin/HEAD', 'refs/remotes/origin/main');
+    const r = run(d);
+    assert.equal(r.counts.unrelated, 1, 'only orphan-b is on an unrelated history line');
+    assert.equal(r.counts.landed, 2, 'merged-b and the symref are both fully merged');
+  } finally { rmSync(d, { recursive: true, force: true }); }
+});
+
 test('a claim on a live branch is confirmed live and keeps its next tag', () => {
   withTracker(dir, { t: task({ title: 'Real work', session: 'live-b', next: 'finish the parser' }) });
   const c = run(dir).claims;

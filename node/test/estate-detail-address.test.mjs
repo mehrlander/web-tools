@@ -308,6 +308,15 @@ test('&pane=guide is honoured, since a file address is not the only reason to li
   assert.equal(slideOpts().pane, 'guide');
 });
 
+test('&pane= and &file= together keep both, for files and for guide', async () => {
+  await openAddress('/?view=branches&detail=me/tools@claude/feat-b&pane=files&file=lib/kits/file-deck.js');
+  assert.equal(slideOpts().pane, 'files');
+  assert.equal(slideOpts().file, 'lib/kits/file-deck.js');
+  await openAddress('/?view=branches&detail=me/tools@claude/feat-b&pane=guide&file=pages/branch.html');
+  assert.equal(slideOpts().pane, 'guide');
+  assert.equal(slideOpts().file, 'pages/branch.html');
+});
+
 test('a junk pane is ignored rather than passed through', async () => {
   await openAddress('/?view=branches&detail=me/tools@claude/feat-b&pane=nonsense');
   assert.equal(slideOpts().pane, undefined, 'the component picks its own default');

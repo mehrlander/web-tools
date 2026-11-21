@@ -244,6 +244,29 @@ test('a save through a following client reads its sha at the write branch and wr
   });
 });
 
+test('a save recovering its sha reads the file at the write branch when there is no listing to use', async () => {
+  await withSelection({ 'o/r': 'sel-br' }, {}, async () => {
+    const run = async (path, listing) => {
+      const gh = new GH({ repo: 'o/r' });
+      const gets = [];
+      let failed = false;
+      gh.req = async (p, opts = {}) => {
+        if (opts.method === 'PUT' && !failed) { failed = true; throw Object.assign(new Error('conflict'), { status: 409 }); }
+        if (opts.method === 'PUT') return { content: { sha: 'new' } };
+        gets.push(p);
+        return { content: btoa('x'), sha: 'cur' };
+      };
+      gh.ls = async () => listing;
+      new Function('window', STORE)({ GH });
+      await gh.save(path, { a: 1 }, 'm');
+      return gets.filter(p => p.startsWith('contents/' + path));
+    };
+    assert.deepEqual(await run('top.json', []), ['contents/top.json?ref=main'], 'a top-level file has no directory to list');
+    assert.deepEqual(await run('data/f.json', [{ name: 'other.json', sha: 'x' }]), ['contents/data/f.json?ref=main'],
+      'a listing that does not name the file falls back to reading it at main');
+  });
+});
+
 test('a delete names the branch its sha was read at', async () => {
   const gh = new GH({ repo: 'o/r', ref: 'b' });
   const calls = [];

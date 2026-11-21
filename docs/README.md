@@ -11,7 +11,7 @@ observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
-3 arrive in every session's context, 16 are named by CLAUDE.md,
+2 arrive in every session's context, 16 are named by CLAUDE.md,
 25 by a skill, 43 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
@@ -21,7 +21,6 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`CONSTELLATION.md`](CONSTELLATION.md) — the portable kernel of the what-goes-where doctrine
 - [`MARKETPLACE.md`](MARKETPLACE.md) — the plugin marketplace: how the set is published and subscribed to
 - [`QUALIFIED-WRITING.md`](QUALIFIED-WRITING.md) — the prose rules: qualify noun phrases, introduce before you refer, no em dashes
-- [`DECISION-RIGHTS.md`](DECISION-RIGHTS.md) — the decision rights: what a session decides on its own and what it brings to the owner
 - [`README.md`](README.md) — the docs folder's front door: the generated index of this registry
 - [`TRACKER.md`](TRACKER.md) — the opt-in cross-session project tracker: schema, ids, board
 - [`aims-initiatives.csv`](aims-initiatives.csv) — the five strategic initiatives the estate is pursuing

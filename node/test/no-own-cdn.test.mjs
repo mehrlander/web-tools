@@ -26,7 +26,7 @@ const self = path.relative(repoRoot, fileURLToPath(import.meta.url)).split(path.
 
 const CODE = /\.(m?js|cjs|html|py|sh)$/;
 const EXEMPT = /^(archive|dump|tracker)\//;
-const ROUTES = ['cdn.jsdelivr.net/gh/', 'data.jsdelivr.com', 'purge.jsdelivr.net'];
+const ROUTES = ['jsdelivr.net/gh/', 'data.jsdelivr.com', 'purge.jsdelivr.net'];
 
 const shouldScan = f => CODE.test(f) && !EXEMPT.test(f) && f !== self;
 

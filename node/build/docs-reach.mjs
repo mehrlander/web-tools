@@ -109,13 +109,13 @@ import { repoRoot } from '../repo-root.mjs';
 
 export const CHANNELS = ['injected', 'project', 'skill', 'app', 'orphan'];
 
-// The ones the session-start hook fetches. Declared rather than derived: the
+// The two the session-start hook fetches. Declared rather than derived: the
 // hook that injects them lives in each consuming repo, not in this one.
 // docs/CONVENTIONS.md sat here until 2026-09-11, months after the file was
 // retired, so the list named one document that does not exist and missed one
 // that does. Both of these are what the default skill delivers and what the
 // invoke-default hook instructs a session to load; neither is @-imported any more.
-export const INJECTED = ['docs/CONVERSATION.md', 'docs/QUALIFIED-WRITING.md', 'docs/DECISION-RIGHTS.md'];
+export const INJECTED = ['docs/CONVERSATION.md', 'docs/QUALIFIED-WRITING.md'];
 
 // Documents that are already in a session's context, and so are sources of the
 // `project` channel rather than merely targets of it. The root agent

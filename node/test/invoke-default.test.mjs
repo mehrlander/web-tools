@@ -7,7 +7,7 @@
 // ran at 5% for nineteen days. A directive that fires when the conventions ARE in
 // context spends the reader's attention on nothing and trains them to skip it,
 // which is worse than not having one. So both silence and speech are asserted,
-// against the two real shapes: a repo that @-imports the whole contract, and one that
+// against the two real shapes: a repo that @-imports both halves, and one that
 // names the command in prose and imports nothing. web-tools was the first shape
 // until 2026-09-12 and is the second now, which is the point of the change
 // rather than an accident of it.
@@ -27,11 +27,9 @@ import { repoRoot } from './bootstrap.mjs';
 const HOOK = path.join(repoRoot, 'skills/hooks/invoke-default.sh');
 const SURFACING = readFileSync(path.join(repoRoot, 'docs/CONVERSATION.md'), 'utf8');
 const WRITING = readFileSync(path.join(repoRoot, 'docs/QUALIFIED-WRITING.md'), 'utf8');
-const DECISIONS = readFileSync(path.join(repoRoot, 'docs/DECISION-RIGHTS.md'), 'utf8');
-// The contract is three documents, so a fixture that delivers must carry all three.
-const ALL = { 'CLAUDE.md': '@docs/CONVERSATION.md\n@docs/QUALIFIED-WRITING.md\n@docs/DECISION-RIGHTS.md\n',
-               'docs/CONVERSATION.md': SURFACING, 'docs/QUALIFIED-WRITING.md': WRITING,
-               'docs/DECISION-RIGHTS.md': DECISIONS };
+// The contract is two documents, so a fixture that delivers must carry both.
+const BOTH = { 'CLAUDE.md': '@docs/CONVERSATION.md\n@docs/QUALIFIED-WRITING.md\n',
+               'docs/CONVERSATION.md': SURFACING, 'docs/QUALIFIED-WRITING.md': WRITING };
 
 // One temp root per run, and the fixtures go INSIDE it rather than beside it.
 // The hook scans the project root's siblings on purpose, so a fixture placed
@@ -57,8 +55,8 @@ const run = (root) => execFileSync('bash', [HOOK], {
   encoding: 'utf8', input: '',
 }).trim();
 
-test('a checkout that @-imports every part of the contract silences it', () => {
-  const root = build('imported', { 'web-tools': ALL });
+test('a checkout that @-imports BOTH halves silences it', () => {
+  const root = build('imported', { 'web-tools': BOTH });
   assert.equal(run(root), '', 'the whole contract is in context; the directive must not speak');
 });
 
@@ -94,9 +92,14 @@ test('a checkout that only names the command in prose gets the directive', () =>
 // is delivery, and only delivery puts the text in context.
 test('intent is not delivery: the same file wired both ways differs', () => {
   const intent = build('intent', { r: { 'CLAUDE.md': 'run /web-tools; see portable@web-tools\n' } });
-  const delivery = build('delivery', { r: ALL });
+  const delivery = build('delivery', { r: BOTH });
   assert.notEqual(run(intent), '', 'prose naming the plugin is not delivery');
   assert.equal(run(delivery), '', 'a resolved import is');
+});
+
+test('one delivered checkout silences the session even when an undelivered one sorts first', () => {
+  const root = build('mixed', { a: { 'CLAUDE.md': 'run /web-tools\n' }, z: BOTH });
+  assert.equal(run(root), '', 'the conventions are in context through z, so a must not make the directive speak');
 });
 
 test('an opted-out repo is silent, and the field is the declared one', () => {

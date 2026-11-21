@@ -29,7 +29,7 @@ import { repoRoot } from '../repo-root.mjs';
 // SHIPPED_TOGETHER check in portable-manifest.test.mjs holds that separately.
 // acronyms.md is not a doc the default skill loads; it rides here because
 // skills/hooks/acronym-hint.py reads it from the plugin.
-export const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md', 'DECISION-RIGHTS.md', 'acronyms.md'];
+export const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md', 'acronyms.md'];
 
 const src = (name) => path.join(repoRoot, 'docs', name);
 const dst = (name) => path.join(repoRoot, 'skills', 'default', name);

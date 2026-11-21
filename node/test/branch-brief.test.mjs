@@ -44,6 +44,11 @@ test('state: zero ahead is landed, whatever the branch is called', () => {
   assert.equal(BB.state(compare({ ahead_by: 0 })), 'landed');
 });
 
+test('state: a compare with no ahead count reads as landed', () => {
+  assert.equal(BB.state({ commits: [], files: [] }), 'landed');
+  assert.equal(BB.assemble({ repo: 'a/b', branch: 'x', base: 'main', compare: { commits: [], files: [] } }).state, 'landed');
+});
+
 test('state: no compare at all means no merge base, so unrelated', () => {
   assert.equal(BB.state(null), 'unrelated');
 });

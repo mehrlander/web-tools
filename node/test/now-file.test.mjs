@@ -49,7 +49,7 @@ test('publishing the same filename twice preserves each result', async t => {
 
 test('invalid names and missing sources produce no publication', async t => {
   const { root, state, source } = await fixture(t);
-  for (const name of ['..', '.git', 'a/b.png', 'a\\b.png', 'a:stream', 'end.', 'end ', 'line\n.png', 'line\u0085.png', 'NUL.txt', 'COM1', 'LPT³.bin', 'wild?.png']) {
+  for (const name of ['..', '.git', '.GIT', 'COM\u00b2', 'a/b.png', 'a\\b.png', 'a:stream', 'end.', 'end ', 'line\n.png', 'line\u0085.png', 'NUL.txt', 'COM1', 'LPT³.bin', 'wild?.png']) {
     await assert.rejects(publishFile(source, { state, name }), /filename/);
   }
   await assert.rejects(publishFile(join(root, 'missing.png'), { state }));

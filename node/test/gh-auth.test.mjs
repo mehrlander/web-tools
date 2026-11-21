@@ -12,6 +12,7 @@ const SRC = readFileSync(path.join(repoRoot, 'lib/gh-auth.js'), 'utf8');
 function harness() {
   const { window, problems } = makeWindow();
   let memoClears = 0;
+  let textClears = 0;
   // jsdom locks location and location.reload against every stub, and answers a
   // real call with "Not implemented: navigation to another Document" on the
   // virtual console. That error IS the observation: it fires only when the
@@ -30,10 +31,11 @@ function harness() {
     }
   }
   window.GH = FakeGH;
+  window.TextCollection = { clear() { textClears++; } };
   const events = [];
   window.addEventListener('web-tools:token-changed', event => events.push(event));
   window.eval(SRC);
-  return { window, events, memoClears: () => memoClears, reloads, failWith: f => { fail = f; } };
+  return { window, events, memoClears: () => memoClears, textClears: () => textClears, reloads, failWith: f => { fail = f; } };
 }
 
 test('save updates the shared token, clears request state, and emits no credential', () => {
@@ -79,6 +81,16 @@ test('another tab changing ghToken is a reload boundary', () => {
   assert.equal(h.memoClears(), before + 1, 'and private request state is dropped');
   assert.equal(h.events.at(-1).detail, null, 'the notification still carries no credential');
   assert.equal(h.reloads(), 1, 'the page reloads rather than repainting from the old account');
+});
+
+test('the text proposal cache is dropped at every account boundary', () => {
+  const h = harness();
+  h.window.ghAuth.save('account-a');
+  h.window.ghAuth.clear();
+  assert.equal(h.textClears(), 2);
+  h.window.localStorage.setItem('ghToken', 'account-b');
+  storageEvent(h.window, 'ghToken', 'account-b');
+  assert.equal(h.textClears(), 3);
 });
 
 test('another tab clearing all storage is the same boundary', () => {

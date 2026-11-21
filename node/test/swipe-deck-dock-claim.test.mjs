@@ -143,3 +143,20 @@ test('the width hook passes its stops through to dock-split', () => {
   assert.equal(calls[0].max, max, 'a function stop arrives uncalled, so dock-split reads it on every clamp');
   handle.close();
 });
+
+test('a predicate `when` is re-asked on window resize, in both directions', () => {
+  const window = mount();
+  let ok = true;
+  window.__deckPane = () => {};
+  window.__deckPane.when = () => ok;
+  const handle = window.swipeDeck.open({ count: 2, render: () => {} });
+  const shown = () => paneBtn(handle) && paneBtn(handle).style.display !== 'none';
+  assert.ok(shown(), 'offered while the predicate holds');
+  ok = false;
+  window.dispatchEvent(new window.Event('resize'));
+  assert.equal(paneBtn(handle).style.display, 'none', 'withdrawn once a resize makes it false');
+  ok = true;
+  window.dispatchEvent(new window.Event('resize'));
+  assert.ok(shown(), 'and offered again when it turns true');
+  handle.close();
+});

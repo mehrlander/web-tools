@@ -242,6 +242,16 @@ test('ranking is exact, then prefix, then substring, containers first', () => {
   d.tree = TREE(); d.scope = []; d.setQuery('');
 });
 
+test('a query typed as the displayed name ranks exact, and matching ignores case', () => {
+  file.scope = []; file.setQuery('');
+  file.choose(byName(file, 'me/open'));
+  file.setQuery('README.md');
+  assert.deepEqual(plain_(file.matches().map(n => n.name)), ['README.md']);
+  file.setQuery('Readme');
+  assert.ok(plain_(file.matches().map(n => n.name)).includes('README.md'));
+  file.scope = []; file.setQuery('');
+});
+
 test('move wraps in both directions and survives an empty list', () => {
   file.scope = []; file.setQuery('');
   const n = file.matches().length;

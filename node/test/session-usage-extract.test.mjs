@@ -57,6 +57,17 @@ test('with no owner prompt the totals still agree, kept as the extract\'s unowne
   assert.ok(b.totals.modelled > 0 && b.totals.steps === a.totals.steps);
 });
 
+test('a step exactly at a prompt\'s time belongs to that prompt, and so does a compaction', () => {
+  const rec = fixture('record.json');
+  const step = rec.responses.find((r) => r.at === '2026-11-04T11:00:04.000Z');
+  step.at = '2026-11-04T11:00:00.000Z';
+  const { a } = agree(rec, fixture('extract.json'));
+  assert.deepEqual(a.prompts.map((p) => p.steps), [3, 3, 3, 0]);
+  const x = fixture('extract.json');
+  x.compactions[0].at = '2026-11-04T12:30:00.000Z';
+  assert.equal(U.fromExtract(x).compactions[0].prompt, 3);
+});
+
 test('an extract carries tokens only: its dollars come from the kit\'s one price table', () => {
   const x = fixture('extract.json');
   assert.equal(x.schema, 'usage/1');

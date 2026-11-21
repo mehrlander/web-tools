@@ -82,6 +82,13 @@ test('element capture lets the renderer measure the picked node', async () => {
   assert.match(window.DomShot.filename(node, 'element'), /^shot-test-element-.*\.png$/);
 });
 
+test('element capture renders at the scale the caller asked for, not the device ratio', async () => {
+  const { window, calls } = boot();
+  const r = await window.DomShot.capture(window.document.getElementById('subject'), { mode: 'element', scale: 1 });
+  assert.equal(calls[0].options.scale, 1, 'the fixture runs at devicePixelRatio 3, so 1 can only come from the caller');
+  assert.equal(r.scale, 1);
+});
+
 test('a rendered blob can be downloaded later, after a preview', () => {
   const { window } = boot();
   const clicks = [];

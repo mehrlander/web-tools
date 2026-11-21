@@ -71,7 +71,7 @@ for base in (root, os.path.dirname(root)):
 # headings rather than filenames, so renaming a document does not silently turn
 # delivery off; each is its document's title.
 #
-# ALL ARE REQUIRED, since 2026-09-12. The contract was two documents and this
+# BOTH ARE REQUIRED, since 2026-09-12. The contract is two documents and this
 # tested one of them, so a repo importing the conversation half alone read as fully
 # delivered and never received the instruction for the prose half. Half a contract silently
 # counted as all of it is the same shape as the injection channel delivering 5%
@@ -82,8 +82,7 @@ for base in (root, os.path.dirname(root)):
 # consumer, so the hook adds its instruction there on the same rule as anywhere else rather than
 # by an exception written into the detector.
 MARKERS = {"conversation": re.compile(r"^# Conversation$", re.M),
-           "writing": re.compile(r"^# Qualified writing", re.M),
-           "decisions": re.compile(r"^# Decision rights$", re.M)}
+           "writing": re.compile(r"^# Qualified writing", re.M)}
 IMPORT = re.compile(r"^@(\S+)", re.M)
 
 def reads(path, cap=200_000):
@@ -97,8 +96,8 @@ delivered, needing = None, []
 for repo in cands:
     claude_md = os.path.join(repo, "CLAUDE.md")
     if os.path.isfile(claude_md):
-        # The union across every import, not one file: the parts may arrive
-        # from several documents, and a repo is delivered only when all are in it.
+        # The union across every import, not one file: the two halves may arrive
+        # from two documents, and a repo is delivered only when both are in it.
         seen = set()
         for target in IMPORT.findall(reads(claude_md)):
             resolved = os.path.join(repo, target) if not os.path.isabs(target) else target

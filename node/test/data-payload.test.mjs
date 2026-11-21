@@ -54,6 +54,11 @@ test('an items array of non-item objects stays bare', () => {
   assert.equal(DP.read(raw).kind, 'bare');
 });
 
+test('one item-shaped entry among non-item entries stays bare', () => {
+  const raw = JSON.stringify({ items: [{ name: 'a.csv', content: 'x' }, { sku: 1, qty: 2 }] });
+  assert.equal(DP.read(raw).kind, 'bare');
+});
+
 test('a bare JSON array, a CSV, and plain text all read as bare', () => {
   for (const raw of ['[{"a":1}]', 'a,b\n1,2\n', 'just some words']) {
     assert.equal(DP.read(raw).kind, 'bare', raw);

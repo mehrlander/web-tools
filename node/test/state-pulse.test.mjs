@@ -374,7 +374,7 @@ test('the rail uses data-rail-cursor and no native title attribute', () => {
   const src = readFileSync(path.join(repoRoot, 'lib', 'alpineComponents', 'state-view.js'), 'utf8');
   const rail = src.slice(src.indexOf('const TICKS ='), src.indexOf('// THE CARD for the tick'));
   assert.doesNotMatch(rail, /:title=/, 'the rail must not use native title tooltips');
-  assert.match(rail, /data-rail-cursor\s+data-title-tip-bare/, 'the rail carries a note cursor');
+  assert.match(rail, /<span data-rail-cursor\b/, 'the rail carries a note cursor');
   assert.doesNotMatch(src, /\$\{PEEK\(/, 'the inline card under the rail is removed');
 });
 

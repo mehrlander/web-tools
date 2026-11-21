@@ -21,7 +21,7 @@ test('gh-boot awaits window.__pageBoot before its Alpine fallback', () => {
   assert.ok(guard !== -1, 'the guard exists');
   assert.ok(fallback !== -1, 'the Alpine fallback exists');
   assert.ok(guard < fallback, 'the guard runs before gh-boot can start its own Alpine');
-  assert.match(boot, /try\s*\{\s*if\s*\(window\.__pageBoot\)\s*await window\.__pageBoot;?\s*\}\s*catch/,
+  assert.match(boot, /try\s*\{\s*if\s*\(window\.__pageBoot\)\s*await window\.__pageBoot;?\s*\}\s*catch\s*(\(\s*\w*\s*\))?\s*\{\s*\}/,
     'a failed page chain must not block the FAB mount');
 });
 

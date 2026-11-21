@@ -21,7 +21,7 @@ const record = {
   schema: 13, short: 'ab12cd34', day: '2026-10-01', prompts: [], replies: [],
   repos: [{ name: 'web-tools', branch: 'claude/x' }],
   files: { 'web-tools/lib/a.js': { edit: 3 }, 'web-tools/docs/b.md': { read: 2 }, 'web-tools/lib/c.js': { write: 1 },
-           'scratchpad/notes.txt': { write: 1 } },
+           'scratchpad/notes.txt': { write: 1 }, 'web-tools/lib/z.js': { edit: 1 } },
 };
 const { window, problems } = makeWindow({ html: '<html><body><div id="f" x-data="sessionBrief(window.__f)"></div></body></html>' });
 window.claudeMark = { svg: () => '<svg></svg>' };
@@ -56,14 +56,14 @@ const el = window.document.getElementById('f');
 const d = Alpine.$data(el);
 const until = async (ok) => { for (let i = 0; i < 100 && !ok(); i++) await new Promise((r) => setTimeout(r, 20)); return ok(); };
 const rows = () => [...el.querySelectorAll('[data-file-list] [data-file]')];
-await until(() => d.diffsState === 'read' && rows().length === 4);
+await until(() => d.diffsState === 'read' && rows().length === 5);
 await tick(6);
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
 test('rows group by checkout and branch, an edit leading, and a changed file carries its line counts', () => {
   assert.deepEqual(rows().map((r) => r.getAttribute('data-file')),
-    ['web-tools/lib/a.js', 'web-tools/docs/b.md', 'web-tools/lib/c.js', 'scratchpad/notes.txt']);
+    ['web-tools/lib/a.js', 'web-tools/docs/b.md', 'web-tools/lib/c.js', 'web-tools/lib/z.js', 'scratchpad/notes.txt']);
   const heads = [...el.querySelectorAll('[data-file-list] .sticky')].map((h) => h.textContent);
   assert.equal(heads.length, 2);
   assert.match(heads[0], /^web-tools · /);
@@ -104,4 +104,14 @@ test('the door opens the branch\'s changed files full screen at the file', async
   assert.equal(decks[0].repo, 'me/web-tools');
   assert.deepEqual(JSON.parse(JSON.stringify(decks[0].files.map((f) => f.path))), ['lib/a.js', 'lib/z.js']);
   assert.equal(decks[0].start, 0);
+});
+
+test('the door opens the deck at the picked file, not the first', async () => {
+  d._fileSwiper.pick('web-tools/lib/z.js');
+  await tick(6);
+  decks.length = 0;
+  el.querySelector('[data-file-strip] [data-swipe-cards]').click();
+  await until(() => decks.length);
+  assert.deepEqual(JSON.parse(JSON.stringify(decks[0].files.map((f) => f.path))), ['lib/a.js', 'lib/z.js']);
+  assert.equal(decks[0].start, 1);
 });

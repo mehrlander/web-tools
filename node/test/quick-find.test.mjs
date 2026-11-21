@@ -289,6 +289,14 @@ test('the content and session gates appear on plain queries of three characters 
   assert.ok(data.rows.some(r => r.kind === 'sess-gate'));
 });
 
+test('a plain query that merely ends in digits stays in the plain lane, not the PR lane', () => {
+  data.q = 'abc12';
+  assert.equal(data.sections.some(s => s.id === 'prs'), false);
+  assert.ok(data.rows.some(r => r.kind === 'code-gate'));
+  data.q = 'release 120';
+  assert.equal(data.rows.some(r => r.kind === 'branch' && r.label.startsWith('#120')), false);
+});
+
 test('the contents gate routes to the Search view with the query carried over', () => {
   data.q = 'gzip';
   const gate = data.rows.find(r => r.kind === 'code-gate');

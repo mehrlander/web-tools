@@ -277,7 +277,7 @@ hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-leg
 | `lib/alpineComponents/`, a file that loads or mounts a component, `docs/app-routes.csv`, or `data/ui-units/units.csv` | `npm run components-index` | `docs/components.csv` |
 | `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
 | skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
-| `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md`, `docs/DECISION-RIGHTS.md`, `docs/acronyms.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
+| `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md`, `docs/acronyms.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
 | `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
 | `skills/peeves/peeves.md` | `npm run peeves-csv` | `skills/peeves/peeves.csv` |
 | any markdown | `npm run themes-graph` | `docs/themes.csv` |

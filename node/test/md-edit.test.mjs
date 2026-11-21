@@ -310,6 +310,8 @@ test('no pencil without the opt-in, or at a commit, full or short', () => {
   assert.deepEqual(actsFor({ addr: { ...ADDR, ref: 'a'.repeat(40) }, edit: { full: FULL } }), ['copy']);
   assert.deepEqual(actsFor({ addr: { ...ADDR, ref: '56ef136c92d3' }, edit: { full: FULL } }), ['copy'],
     'a short sha, the form a minted link pins, is a commit too');
+  assert.deepEqual(actsFor({ addr: { ...ADDR, ref: '56ef136' }, edit: { full: FULL } }), ['copy'],
+    'seven characters is the shortest sha RepoAddress pins, and is a commit too');
 });
 
 test('no token still shows the pencil: the editor asks for one', () => {

@@ -74,6 +74,20 @@ test('a duplicated exact disambiguates on prefix/suffix context', () => {
   const idx = A._textIndex(doc.body);
   const at = idx.text.indexOf(back.toString(), idx.text.indexOf('middle'));
   assert.ok(at > -1, 'resolved to the occurrence after the middle text');
+  assert.equal(back.startContainer, p2, 'landed in the second paragraph text');
+  assert.equal(back.startOffset, second, 'landed on the second occurrence, not the first');
+});
+
+test('a duplicated exact is decided by suffix alone or by prefix alone', () => {
+  const host = doc.createElement('div');
+  host.innerHTML = '<p>alpha dup end1. beta dup end2.</p>';
+  doc.body.append(host);
+  const body = host;
+  const bySuffix = A._resolveQuote(body, { exact: 'dup', prefix: '', suffix: ' end2.' });
+  assert.equal(bySuffix.startOffset, 21, 'the suffix alone picks the second dup');
+  const byPrefix = A._resolveQuote(body, { exact: 'dup', prefix: 'beta ', suffix: '' });
+  assert.equal(byPrefix.startOffset, 21, 'the prefix alone picks the second dup');
+  host.remove();
 });
 
 test('css path resolves back to the element; heading trail reads like a citation', () => {

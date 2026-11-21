@@ -28,3 +28,11 @@ test('mark marks each entity once, longest term first, draws nothing, and leaves
   assert.equal(el.querySelector('[data-entity][class]'), null, 'a mark draws nothing: no underline, no question-mark cursor');
   assert.equal(el.querySelector('[data-field="size"]').textContent, 'How big is a topic?', 'the words read the same');
 });
+
+test('an entity with several terms is marked once: the first matching term only', () => {
+  const el = window.document.createElement('div');
+  el.innerHTML = '<p>alpha and beta</p>';
+  T.mark(el, [{ id: 'x', terms: ['alpha', 'beta'] }]);
+  assert.equal(el.querySelectorAll('[data-entity="x"]').length, 1);
+  assert.equal(el.querySelector('[data-entity="x"]').textContent, 'alpha');
+});
