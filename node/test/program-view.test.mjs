@@ -120,7 +120,7 @@ const csvs = {
   'docs/portable.csv': 'kind,path\nskill,a\nscript,b\nskill,c\ndoc,d\nskill,e\nscript,f\n',
   'docs/showing-mechanisms.csv': 'key,glyph,label\nhosted,diamond,Deployed page\ntoss,disc,Toss\nnone,x,No link\n',
   'docs/harness.csv': 'path,invocation\na.sh,hook:SessionStart\nb.sh,hook:Stop\nc.yml,ci:push\nd.mjs,driver\ne.py,argv\n',
-  'docs/docs.csv': 'path,status\ndocs/envelopes/README.md,living\ndocs/envelopes/approval.md,living\ndocs/envelopes/audit.md,record\ndocs/APP.md,living\n',
+  'docs/docs.csv': 'path,status\ndocs/envelopes/README.md,living\ndocs/envelopes/approval.md,living\ndocs/envelopes/audit.md,\ndocs/APP.md,living\n',
   'pages/pages.csv': 'top,label,thumb,href\n' + Array.from({ length: 5 }, (_, i) => `main,p${i},thumbs/p${i}.png,p${i}.html`).join('\n') + '\n',
   'skills/manifest.csv': 'name,group,description\nbake-page,web,Bakes a page.\ncaveman,prose,Says less.\ndefault,session,The conventions.\n'
     + 'sessions,session,Logs the session.\ntasks,session,Runs the tracker.\n',
