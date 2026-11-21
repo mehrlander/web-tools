@@ -27,4 +27,4 @@ A new point belongs inside the text that already covers its subject. Here a one-
 +reply that closed on [❇️ or 🟢](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply).
 ```
 
-The sentence already lists what qualifies a session; the point is one more item on it. Coining "open work" and explaining check-ins served the writer's understanding, not that sentence's reader.
+The sentence already lists what qualifies a session; the point is one more item on it. The longer version adds "open work" and a check-in explanation that this sentence's reader does not need.
