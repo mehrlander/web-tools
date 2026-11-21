@@ -309,7 +309,7 @@
         { "name": "Documents", "icon": "ph-files", "panels": [
           { "kind": "breakdown", "registry": "docs/docs.csv", "by": "reach",
             "icons": { "app": "ph-app-window", "orphan": "ph-link-break", "skill": "ph-sparkle", "project": "ph-folders", "injected": "ph-syringe" } },
-          { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "record": "ph-archive" } }
+          { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "labels": { "": "record" }, "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "": "ph-archive" } }
         ] },
         { "name": "Pages", "icon": "ph-browser", "panels": [
           { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "thumb": "thumb", "href": "href" }
