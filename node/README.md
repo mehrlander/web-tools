@@ -271,7 +271,10 @@ that writes nothing, printed when its command exits nonzero).
 whole tree, and `npm run build`, `generate`, `package` and `check` do the same
 for one kind. Each stages what it writes, as the hook does.
 
-Most generated files are written whole. Four are not. `docs/docs.csv`, `docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are hand-edited except for the fields or rows a generator writes. Edit a row freely and leave those fields alone.
+Most generated files are written whole. Four are not. `docs/docs.csv`,
+`docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are
+hand-edited except for the fields or rows a generator writes. Edit a row freely
+and leave those fields alone.
 
 **A rule that writes a file runs before any rule that measures it.**
 `docs-reach` stamps every `docs/` file's word count into `docs/docs.csv`, so
