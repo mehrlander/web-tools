@@ -26,7 +26,7 @@ Slogans, posturing, emphatic absolutes and sentences that sound profound while s
 
 Claims a reader cannot check, unnamed subjects and pronouns whose referents the reader has to recover.
 
-**Look for:** 'a file here', 'some cases', 'it is complicated'; a sentence that cannot be checked; two replies that disagree silently
+**Look for:** 'a file here', 'some cases', 'it is complicated'; 'thing', 'whatever' or 'something' in place of a noun the sentence could name, as in 'a second thing to look at' or 'whatever view is on screen'; a sentence that cannot be checked; two replies that disagree silently
 
 **Owner:** docs/QUALIFIED-WRITING.md (rules 3 and 4)
 
