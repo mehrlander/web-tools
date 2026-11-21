@@ -323,9 +323,11 @@ test('the list groups the calls under their topics, in the order the session rea
   await s.mountCalls();
   const list = el('topics').querySelector('[data-call-list]');
   assert.deepEqual([...list.querySelectorAll('[data-call-group]')].map((h) => h.textContent),
-    ['\u{1F7E2}Alpha', '\u{1F7E3}Beta', 'Topic not yet assigned']);
+    ['\u{1F7E2}Alpha', '\u{1F7E3}Beta', "After Gemini's reading"]);
   assert.deepEqual([...list.querySelectorAll('[data-call]')].map((r) => r.dataset.call),
     ['a9e0da01-early', 'a9e0da01-mid', 'a9e0da01-beta', 'a9e0da01-late'], 'within a topic, documentation first');
+  assert.deepEqual([...list.querySelectorAll('[data-call-group][aria-current]')].map((h) => h.dataset.callGroup), ['alpha'],
+    "the selected call's heading is marked with it");
 });
 
 test("a card leads with where its call came from, and the topic there opens the Overview at it", async () => {
@@ -354,4 +356,15 @@ test("each topic on the Overview counts its calls, and the count opens the Calls
   await tick(4);
   assert.equal(s.pane, 'calls');
   assert.equal(s.cSel, 'a9e0da01-beta');
+  await until(() => el('topics').querySelector('[data-call-group][aria-current]')?.dataset.callGroup === 'beta');
+  assert.equal(el('topics').querySelector('[data-call-group][aria-current]').dataset.callGroup, 'beta', 'the mark follows the selection');
+});
+
+test('a session whose turns cannot be timed keeps the two kinds apart', () => {
+  const s = data('docs');
+  s.topics = { ...TOPICS }; s.topicsState = 'found';
+  try {
+    assert.equal(s.callsPlaced, false, 'a schema 4 record and a topics file with no turn instants place nothing');
+    assert.deepEqual(Array.from(s.callOrder, (c) => c.id), ['d0c5e001-readme', 'd0c5e001-old']);
+  } finally { s.topics = null; s.topicsState = ''; }
 });
