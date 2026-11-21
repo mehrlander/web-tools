@@ -8,7 +8,7 @@ Hooks come from three places: git hooks in `.githooks/`, which `npm run setup` a
 
 | Hook | Event | File | Purpose | Test |
 |---|---|---|---|---|
-| pre-commit | git `pre-commit` | [`.githooks/pre-commit`](../../.githooks/pre-commit) | regenerates and stages the deterministic derived artifacts the staged changes touch; legs and order in the [refresh model](../../node/README.md#the-refresh-model) | `derived-artifacts.test.mjs` |
+| pre-commit | git `pre-commit` | [`.githooks/pre-commit`](../../.githooks/pre-commit) | runs the rules in [`docs/commit-rules.csv`](../../docs/commit-rules.csv), which regenerate and stage the generated files the staged changes touch; see the [refresh model](../../node/README.md#the-refresh-model) | `derived-artifacts.test.mjs` |
 | pre-merge-commit | git `pre-merge-commit` | [`.githooks/pre-merge-commit`](../../.githooks/pre-merge-commit) | runs the same refresher on an automatic merge; when it changes the index, the merge pauses for `git -c core.editor=true merge --continue` | |
 | commit-msg | git `commit-msg` | [`.githooks/commit-msg`](../../.githooks/commit-msg) | the consent gate and the machine-path gate (engines in `skills/hooks/commit-consent.py` and `machine-paths.py`) | |
 | session-start | `SessionStart`, dispatched | [`.claude/hooks/session-start.sh`](../../.claude/hooks/session-start.sh) | remote sessions only: the dependency half of `node/checkout-setup.mjs` | |
