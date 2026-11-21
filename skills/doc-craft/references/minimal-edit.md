@@ -1,6 +1,8 @@
-# One point, added two ways
+# Wire it in: an example
 
-**The point.** `/tend prod` should also pick up a session whose last reply closed on ❇️ or 🟢.
+A new point belongs inside the text that already covers its subject. Here a one-clause point is added two ways.
+
+**The point to add.** `/tend prod` should also pick up a session whose last reply closed on ❇️ or 🟢.
 
 **What the skill said.** In [`skills/tend/SKILL.md`](../../tend/SKILL.md), Prod takes each session that is idle, last showed activity between 30 minutes and a week ago, "and has an open pull request or a blocked or review-ready status."
 
@@ -25,4 +27,4 @@
 +reply that closed on [❇️ or 🟢](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply).
 ```
 
-The sentence already lists what qualifies a session; the point is one more item on it. The longer version coins a term and explains check-ins. Its reader needed neither.
+The sentence already lists what qualifies a session; the point is one more item on it. Coining "open work" and explaining check-ins served the writer's understanding, not that sentence's reader.
