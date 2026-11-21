@@ -19,7 +19,7 @@ const HOOKS_JSON = JSON.parse(
 const PAGES = 'https://mehrlander.github.io/web-tools/pages/';
 const SESSION = 'f701fa79-e1c0-5997-b6c3-709182f8e137';
 const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
-const OPEN = '[`⌂`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
+const MARK = '[`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
 const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's, of no kind it names
 const MIN = 60_000, HOUR = 60 * MIN;
@@ -102,16 +102,18 @@ function checkout(root, name, { changed = 0, branch = 'claude/work' } = {}) {
 }
 
 // The caption line, with the event and the instruction under it checked, and
-// the program link and stamp that open every line checked and cut off.
+// the stamp that opens every line and the program link that closes it checked
+// and cut off.
 const caption = (out, event = 'UserPromptSubmit') => {
   const d = JSON.parse(out).hookSpecificOutput;
   assert.equal(d.hookEventName, event);
   const [first, second, ...rest] = d.additionalContext.split('\n');
   assert.equal(second, CLOSE);
   assert.deepEqual(rest, []);
-  const head = `${OPEN}\`${STAMP}\` `;
-  assert.ok(first.startsWith(head), `the line opens with the program link joined to the stamp: ${first}`);
-  return first.slice(head.length);
+  const head = `\`${STAMP}\` `, tail = ` ${MARK}`;
+  assert.ok(first.startsWith(head), `the line opens with the stamp: ${first}`);
+  assert.ok(first.endsWith(tail), `the line closes with the program link: ${first}`);
+  return first.slice(head.length, -tail.length);
 };
 
 test('the line: the count as the session link, then the context, the clock, the age and the waiting docs', () => {
@@ -492,7 +494,7 @@ test('anything it was not aimed at passes silently, and it never fails a turn', 
 test('the clock: the owner\'s month/day and 12-hour time, or UTC with a Z', () => {
   const s = scratch();
   try {
-    const at = (iso, i, zone = 'America/Los_Angeles') => /^\[`⌂`\]\([^)]+\)`([^`]+)` /.exec(JSON.parse(s.run([typed('one', ago(5 * MIN))],
+    const at = (iso, i, zone = 'America/Los_Angeles') => /^`([^`]+)` /.exec(JSON.parse(s.run([typed('one', ago(5 * MIN))],
       { session_id: 'clock-' + i }, { SESSION_CAPTION_NOW: String(Date.parse(iso) / 1000), OWNER_TZ: zone }))
       .hookSpecificOutput.additionalContext)[1];
     const cases = [['2026-11-14T18:14:00Z', '11/14 10:14am'], ['2026-11-14T23:07:00Z', '11/14 3:07pm'],
