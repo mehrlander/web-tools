@@ -26,8 +26,9 @@ Qualified writing is clear and precise. No em dashes outside quotations: use col
 ## Accuracy
 
 5. **Scope.** Consider claiming less. Overstatement raises qualms and shifts attention from the argument. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
-6. **Verdicts.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
+6. **Verdicts.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows. When you restate a source, keep its qualifiers, and mark your own inferences and groupings as yours.
    *Not:* The test proves the fix works. *But:* The test passes after the fix.
+   *Not:* The owner decided to drop the tab. *But:* The owner said the tab "might not be needed".
 
 ## Instructions
 
