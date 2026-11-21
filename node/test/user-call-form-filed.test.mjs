@@ -20,13 +20,16 @@ const CALL = { id: 'c0ffee02-doc', session: 'c0ffee02', kind: 'documentation', q
   edits: [{ from: 'One.', to: 'First.', why: 'clearer' }, { from: 'Two.', to: 'Second.', why: 'an order, not a count' }] };
 const ANSWER = { answer: '1 confirmed, 1 discarded', note: '', at: '2026-11-09T19:00:00Z',
   decisions: [{ edit: 1, decision: 'confirmed' }, { edit: 2, decision: 'discarded' }] };
+// An earlier answer, filed before ANSWER, with the opposite decisions.
+const EARLIER = { answer: '1 discarded, 1 confirmed', note: '', at: '2026-11-09T18:00:00Z',
+  decisions: [{ edit: 1, decision: 'discarded' }, { edit: 2, decision: 'confirmed' }] };
 const reads = [];
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; }
   async get(p) {
     reads.push(this.repo + ':' + p);
     if (this.repo === STORE && p === 'user-calls/c0ffee02-doc.json') return { text: JSON.stringify(CALL) };
-    if (this.repo === STORE && p === 'user-calls/c0ffee02-doc.answers.jsonl') return { text: JSON.stringify(ANSWER) + '\n' };
+    if (this.repo === STORE && p === 'user-calls/c0ffee02-doc.answers.jsonl') return { text: JSON.stringify(EARLIER) + '\n' + JSON.stringify(ANSWER) + '\n' };
     throw Object.assign(new Error('404'), { status: 404 });
   }
   async req() { return {}; }
@@ -102,4 +105,9 @@ test('the decisions are the answer\'s, and nothing is offered to decide', () => 
   assert.deepEqual(rows.map((r) => r.querySelector('[data-doc-row-n]').parentElement.textContent.replace(/\s+/g, ' ').trim()), ['1 clearer', '2 an order, not a count']);
   assert.deepEqual(rows.map((r) => r.querySelector('[data-doc-row-n]').className.match(/text-(success|error)/)?.[1]), ['success', 'error'],
     'each row\'s number takes the answer\'s decision');
+});
+
+test('a closed call takes the latest answer\'s decisions, not an earlier one\'s', () => {
+  assert.equal(mark(1).dataset.decision, 'confirmed');
+  assert.equal(mark(2).dataset.decision, 'discarded');
 });

@@ -68,6 +68,35 @@ test('a card asks the page for its value or its records', async () => {
   assert.deepEqual(plain(asked.slice(1)), [{ read: 'ls', key: 'cart' }, { read: 'store', db: 'shop', store: 'items' }]);
 });
 
+test('another site\'s keys never take a web-tools owner label, and same-named stores in two databases stay apart', async () => {
+  window.localStorage.setItem('diffTool.v2', '1');
+  window.localStorage.setItem('visits', '1');
+  await new Promise((res, rej) => {
+    const r = fakeIDB.open('shop2', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('items', { keyPath: 'id' }).put({ id: 9, name: 'desk' });
+    r.onsuccess = () => { r.result.close(); res(); };
+    r.onerror = () => rej(r.error);
+  });
+  try {
+    await data.loadPage();
+    await settle();
+    const owned = data.lsRows.filter(r => r.key === 'diffTool.v2' || r.key === 'visits');
+    assert.equal(owned.length, 2);
+    assert.ok(owned.every(r => r.owner === null), 'a key that looks like web-tools\' own is still the page\'s');
+    const one = await data.itemContent(data.items.find(it => it.id === 'idb:shop/items'));
+    assert.deepEqual(JSON.parse(one.content), [{ id: 7, name: 'lamp' }]);
+    const two = await data.itemContent(data.items.find(it => it.id === 'idb:shop2/items'));
+    assert.deepEqual(JSON.parse(two.content), [{ id: 9, name: 'desk' }]);
+    assert.deepEqual(plain(asked.at(-1)), { read: 'store', db: 'shop2', store: 'items' });
+  } finally {
+    window.localStorage.removeItem('diffTool.v2');
+    window.localStorage.removeItem('visits');
+    await new Promise(res => { const r = fakeIDB.deleteDatabase('shop2'); r.onsuccess = r.onerror = r.onblocked = () => res(); });
+    await data.loadPage();
+    await settle();
+  }
+});
+
 test('with no page on the line the tab says how to get one, and lists nothing', async () => {
   const link = window.__courier;
   delete window.__courier;

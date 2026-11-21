@@ -71,6 +71,7 @@ test('every locator form the skill documents is accepted', () => {
 
 test('what is not a locator, an empty note, and a reply to nothing are refused', () => {
   assert.notEqual(run('add', 'not a locator', 'x', '--author', 'a').status, 0);
+  assert.notEqual(run('add', 'owner/repo:docs/a b.md', 'x', '--author', 'a').status, 0);
   assert.notEqual(run('add', 'owner/repo', '   ', '--author', 'a').status, 0);
   assert.notEqual(run('reply', 'nzzzz', 'x', '--author', 'a').status, 0);
 });

@@ -42,3 +42,12 @@ test('an installed pinned build, another error, or no image browser leaves the l
   assert.equal(imageBrowser({}), null);
   assert.equal(imageBrowser({ PLAYWRIGHT_BROWSERS_PATH: path.join(browsers, 'absent') }), null);
 });
+
+test('another launch error is rethrown without a retry on the image browser', async () => {
+  const calls = [], notes = [];
+  const other = { async launch(o) { calls.push(o); throw new Error('Target page, context or browser has been closed'); } };
+  await assert.rejects(launch({}, { browserType: other, env, log: m => notes.push(m) }), /has been closed/);
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], {});
+  assert.equal(notes.length, 0);
+});
