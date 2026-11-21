@@ -202,5 +202,6 @@ CheckpointChecks.Run(Check);
 CloudTurnChecks.Run(Check);
 TopicThreadChecks.Run(Check);
 UsageChecks.Run(Check);
+await AlertChecks.Run(Check);
 await ClaudeUsageChecks.Run(Check);
 Console.WriteLine($"{passed} checks passed.");
