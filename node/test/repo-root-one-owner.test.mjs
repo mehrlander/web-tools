@@ -11,7 +11,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from '../repo-root.mjs';
 
-const COPY = /^\s*const \w+ = path\.resolve\((?:path\.dirname\(fileURLToPath\(import\.meta\.url\)\)|import\.meta\.dirname), ((?:'[^']*'(?:, )?)+)\);/;
+const DIR = String.raw`(?:path\.dirname\(fileURLToPath\(import\.meta\.url\)\)|import\.meta\.dirname|path\.dirname\(new URL\(import\.meta\.url\)\.pathname\))`;
+const COPY = new RegExp(String.raw`^\s*const \w+ = path\.(?:resolve|join)\(` + DIR + String.raw`, ((?:'[^']*'(?:, )?)+)\);`);
 
 test('only node/repo-root.mjs computes the repo root from its own location', () => {
   const files = execFileSync('git', ['ls-files', 'node/*.mjs', 'node/*.js', 'node/**/*.mjs', 'node/**/*.js'], { cwd: repoRoot, encoding: 'utf8' })

@@ -144,6 +144,13 @@ test('continue: exactly an hour idle is still warm, a millisecond more is not', 
   assert.equal(R.session({ ...extracts[0], context_now: null }, NOW).continue, null, 'no context, no row');
 });
 
+test('compactions: a gap of exactly an hour is priced at the read rate, a millisecond more at the one-hour write rate', () => {
+  const e = extracts.find((x) => x.short === 'aaaa0001');
+  const at = (gap) => R.session({ ...e, compactions: [{ ...e.compactions[0], gap_ms: gap }] }, NOW).compactions[0].summary;
+  close(at(3600000), 0.36, '800k at the read rate plus the summary written out');
+  close(at(3600001), 6.6, '800k at the one-hour write rate plus the summary written out');
+});
+
 test('compactions: an estimated cost, the saving over the calls that followed, and the break-even', () => {
   const c = Object.fromEntries(r.compactions.rows.map((x) => [x.name, x]));
   assert.deepEqual(r.compactions.rows.map((x) => x.name), ['2026-11-02-bbbb0002-20261104T094400Z', '2026-11-02-bbbb0002-20261103T150000Z',

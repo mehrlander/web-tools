@@ -162,6 +162,15 @@ test('newly-learned pages are material, on scan rows and on PRs', () => {
   assert.notEqual(A.hashEntry(scanned), A.hashEntry(two));
 });
 
+// A PR's state is rendered, so a merge is material; its updatedAt moves on every
+// comment and is not.
+test('a branch PR state is material and its updatedAt is not', () => {
+  const pr = s => ({ branchPRs: [{ head: 'x', number: 1, state: s, title: 't', updatedAt: 'u1' }] });
+  assert.notEqual(A.hashEntry(pr('open')), A.hashEntry(pr('merged')));
+  assert.equal(A.hashEntry(pr('open')),
+    A.hashEntry({ branchPRs: [{ ...pr('open').branchPRs[0], updatedAt: 'u2' }] }));
+});
+
 // ── Declared checks in the cache ───────────────────────────────────────────
 // The cache stores each check's FACT, never its verdict. These pin the reason:
 // a verdict is time-derived, so hashing one would restamp and recommit every

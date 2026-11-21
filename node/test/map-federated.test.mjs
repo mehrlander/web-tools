@@ -116,6 +116,23 @@ test('the Growth tab collects every repo that declares a payload, hub included',
     'the path is per repo: two repos keep their payloads in different places');
 });
 
+test('a blank growth declaration is no declaration, and a padded one is trimmed', async () => {
+  const saved = data.estateGrowth;
+  configs.repos['mehrlander/blank'] = { config: { estate: true, growth: '' } };
+  configs.repos['mehrlander/padded'] = { config: { estate: true, growth: ' data/g.json ' } };
+  try {
+    data.estateGrowth = null;
+    await data.loadEstateGrowth();
+    const rows = [...data.estateGrowth];
+    assert.ok(!rows.some(g => g.repo === 'mehrlander/blank'), 'an empty string is not a payload');
+    assert.equal(rows.find(g => g.repo === 'mehrlander/padded').path, 'data/g.json');
+  } finally {
+    delete configs.repos['mehrlander/blank'];
+    delete configs.repos['mehrlander/padded'];
+    data.estateGrowth = saved;
+  }
+});
+
 test('a repo declaring no payload, and one with no manifest at all, contribute nothing', () => {
   const repos = data.estateGrowth.map(g => g.repo);
   assert.ok(!repos.includes('mehrlander/quiet'), 'declaring nothing is the ordinary case');

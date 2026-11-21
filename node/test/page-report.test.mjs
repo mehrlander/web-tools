@@ -72,6 +72,12 @@ test('the same failure is not filed twice inside the quiet window', async () => 
   assert.equal((await mk().auto({ faults: [{ line: 'other' }] })).why, 'no GH');
 });
 
+test('a repeat well inside the quiet window is still dropped', async () => {
+  const { P } = load({ storage: { 'pageReport:seen': JSON.stringify({ '~~boom': Date.now() - 10 * 60000 }) } });
+  P.watch({ quietMinutes: 30 });
+  assert.equal((await P.auto({ faults: [{ line: 'boom' }] })).why, 'already filed');
+});
+
 test('a stale signature stops suppressing once the quiet window has passed', async () => {
   const storage = { 'pageReport:seen': JSON.stringify({ '~~boom': Date.now() - 60 * 60000 }) };
   const { P } = load({ storage });

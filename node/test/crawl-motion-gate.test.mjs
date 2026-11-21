@@ -145,6 +145,7 @@ test('an incomplete fold leaves the store looking moved, which it is', () => {
   // the cache would sit permanently short with every reading on screen saying
   // it was current.
   // The kit decides what complete means; the shell marks only on it.
+  assert.match(sesKit, /const deferred = Math\.max\(0, stale\.length - take\.length\);/);
   assert.match(sesKit, /const complete = !deferred && Object\.keys\(fetched\)\.length === take\.length;/);
   assert.match(shellSrc, /onBuilt: \(\{ complete \}\) => \{[\s\S]{0,200}?if \(complete\) this\._setMarks\(this\._sessionsMarkKey/);
 });

@@ -52,6 +52,15 @@ test('a file is read as JSON: every key but text is a fact, text is the summary'
   }
 });
 
+test('a far-ahead numbered line inside a section is not taken for a later head', () => {
+  const text = NINE.map((n, i) => `${i + 1}. ${n}:\n   - point ${i + 1}`).join('\n\n')
+    .replace('   - point 1', '   - point 1\n9. The user asked for the next step: ship it');
+  const d = parseDoc({ ...FILE, text: 'Summary:\n' + text });
+  assert.deepEqual(d.sections.map((s) => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(d.nine, true);
+  assert.ok(d.sections[0].text.includes('9. The user asked for the next step'));
+});
+
 test('a summary in another shape is drawn whole, and null sizes stay null', () => {
   const d = parseDoc({ ...FILE, context_before: null, context_after: null, text: 'Just a note.\n' });
   assert.equal(d.nine, false);

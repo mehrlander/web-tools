@@ -71,12 +71,13 @@ window.__shell = {
       { path: 'app/view/app.html', title: 'Budget', query: 'route=home', order: 1 },
       { path: 'app/view/app.html', title: 'Spend', query: '?route=spend', order: 2 },
       { path: 'standalone.html', title: 'Standalone', note: 'Its own shell.', fullApp: true, order: 3 },
+      { path: 'mehrlander/budget@dev:x.html', title: 'Dev', order: 4 },
     ] },
     'mehrlander/secret': { pages: [{ path: 'hidden.html', title: 'Hidden' }] },
   },
   estateRepos: [{ repo: 'mehrlander/budget', icon: 'ph-scales', group: 'data', order: 3 }],
   resolveHidden(c) { return new Set((c && c.hidden) || []); },
-  appViewAddress(v) { return 'frame:' + v.repo + ':' + v.path + (v.query ? '?' + v.query : ''); },
+  appViewAddress(v) { return 'frame:' + v.repo + (v.ref ? '@' + v.ref : '') + ':' + v.path + (v.query ? '?' + v.query : ''); },
 };
 
 new window.Function('window', readFileSync(path.join(repoRoot, 'lib/kits/csv.js'), 'utf8'))(window);
@@ -103,7 +104,7 @@ test('every declared page is a row, a route of one page included; hidden repos s
   assert.ok(byTitle('Budget') && byTitle('Spend'));
   assert.notEqual(byTitle('Budget').key, byTitle('Spend').key);
   assert.equal(byTitle('Hidden'), undefined);
-  assert.equal(data.declaredCount, 6);
+  assert.equal(data.declaredCount, 7);
 });
 
 test('the utilities join the hub group, take the gallery identity, and defer to a declaration', () => {
@@ -132,17 +133,27 @@ test('a row previews where the shell would frame it; a full app at its own addre
   assert.equal(own.sourceUrl, 'https://github.com/mehrlander/budget/blob/main/standalone.html');
 });
 
+test('a page pinned to a ref keeps the ref in its preview and its app link; with no shell address it falls back to the toss page', () => {
+  const dev = byTitle('Dev');
+  assert.equal(dev.previewUrl, 'frame:mehrlander/budget@dev:x.html');
+  assert.equal(dev.appHref, '?app=mehrlander/budget@dev:x.html');
+  const shell = window.__shell, fn = shell.appViewAddress;
+  delete shell.appViewAddress;
+  try { assert.equal(data.previewUrl('o/r', 'dev', 'p.html', ''), '../pages/toss-render.html#gh=o/r@dev:p.html'); }
+  finally { shell.appViewAddress = fn; }
+});
+
 test('groups follow the sidebar order; the filter and the selection move together', () => {
   // No group sorts before 'data'; within a group, order, then the name.
   assert.deepEqual([...data.groups.map(g => g.repo)],
     ['mehrlander/web-tools', 'other/repo', 'mehrlander/budget']);
   data.pageRepo = 'mehrlander/budget';
-  assert.deepEqual([...data.flat.map(r => r.title)], ['Budget', 'Spend', 'Standalone']);
+  assert.deepEqual([...data.flat.map(r => r.title)], ['Budget', 'Spend', 'Standalone', 'Dev']);
   data.sel = byTitle('Budget').key;
   data.step(1);
   assert.equal(data.current.title, 'Spend');
   data.step(5);
-  assert.equal(data.current.title, 'Standalone');
+  assert.equal(data.current.title, 'Dev');
   data.pageRepo = '';
   data.q = 'side-by';
   assert.deepEqual([...data.flat.map(r => r.title)], ['Diff']);
@@ -154,6 +165,6 @@ test('the scan lists undeclared pages and skips folders that are not pages', asy
   assert.deepEqual({ ...data.undeclared }, { 'mehrlander/budget': ['old/scratch.html'] });
   assert.equal(data.undeclaredTotal, 1);
   const g = data.groups.find(x => x.repo === 'mehrlander/budget');
-  assert.equal(g.declared, 3);
+  assert.equal(g.declared, 4);
   assert.equal(g.rows.at(-1).undeclared, true);
 });

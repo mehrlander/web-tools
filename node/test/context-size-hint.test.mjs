@@ -61,6 +61,14 @@ test('the first crossing speaks once, with the size rounded to the thousand', ()
   } finally { s.done(); }
 });
 
+test('a size exactly at the threshold speaks, since band 0 starts there', () => {
+  const s = scratch();
+  try {
+    assert.match(context(s.run([prompt, reply(400_000)])), /about 400,000 tokens/);
+    assert.match(context(s.run([reply(100_000)], { CONTEXT_HINT_TOKENS: '100000' }, 'sess-2')), /about 100,000/);
+  } finally { s.done(); }
+});
+
 test('falling below the threshold resets it, so the next crossing speaks again', () => {
   const s = scratch();
   try {

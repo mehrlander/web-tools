@@ -84,6 +84,14 @@ test('a scope is either the repo telling its own story, or pointing at where it 
     'https://github.com/me/x/blob/HEAD/docs/SCOPE.md');
 });
 
+test('a scope is a file only when the whole string is the path, and padding is trimmed', () => {
+  assert.equal(data.scopeIsFile('See the notes in docs/SCOPE.md'), false);
+  assert.equal(data.scopeText({ scope: 'See the notes in docs/SCOPE.md' }), 'See the notes in docs/SCOPE.md');
+  assert.equal(data.scopeFile({ scope: 'See the notes in docs/SCOPE.md' }), '');
+  assert.equal(data.scopeIsFile(' docs/SCOPE.md '), true);
+  assert.equal(data.scopeFile({ scope: ' docs/SCOPE.md ' }), 'docs/SCOPE.md');
+});
+
 test('the grade comes out of the cache, with no reads of its own', () => {
   const a = data.adopt({ repo: 'me/aligned' });
   assert.ok(a, 'no row for a graded repo');

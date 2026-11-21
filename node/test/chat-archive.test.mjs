@@ -125,6 +125,23 @@ test('rows sort by corpus size, so the busiest provider leads', () => {
   assert.deepEqual(b.rows.map(r => r.key), ['chatgpt', 'claude', 'gemini']);
 });
 
+test('the busiest provider cannot mask a lagging one, and a gap equal to the longest is not yet due', () => {
+  const now = new Date('2026-08-10T00:00:00Z');
+  const b = A.banner({ providers: {
+    Big: { frontier: '2026-08-01', chats: 9000, snapshots: ['2026-07-01', '2026-08-01'] },
+    Small: { frontier: '2026-07-01', chats: 10, snapshots: ['2026-06-20', '2026-07-01'] },
+  } }, now);
+  assert.equal(b.rows[0].key, 'big');
+  assert.equal(b.rows[0].due, false);
+  assert.equal(b.rows[1].due, true);
+  assert.equal(b.due, true);
+  const edge = A.banner({ providers: { Claude: { frontier: '2026-07-06', chats: 1,
+    snapshots: ['2026-05-14', '2026-06-01', '2026-07-06'] } } }, now).rows[0];
+  assert.equal(edge.behind, 35);
+  assert.equal(edge.cadence.longest, 35);
+  assert.equal(edge.due, false, 'due means longer than ever, not as long as ever');
+});
+
 test('due compares each provider against its OWN longest gap', () => {
   // At 34 days Claude is inside its observed 35-day gap: due says nothing yet.
   const early = A.banner(FRONTIER, new Date('2026-08-09T00:00:00Z'));
