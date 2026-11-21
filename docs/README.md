@@ -5,8 +5,8 @@
 Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
 live in [the Web Tools app's Map → Docs → Inventory](https://mehrlander.github.io/web-tools/app/?view=map&tab=docs).
-A **record** preserves a moment and is
-never rewritten: a later dated sentence corrects it; a **measured** doc carries dated
+A **record** (`edit=write-once` in `.gitattributes`) preserves a moment and is
+not edited once on main: a note corrects it; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
