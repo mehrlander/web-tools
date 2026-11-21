@@ -4,7 +4,8 @@
 // independent placement"). A framed slide in the app's Sessions pane read no
 // calls at all before this; the tab is how it shows them.
 //
-// Driven over a fake GH holding one session with two calls, one answered. The
+// Driven over a fake GH holding one session with two calls, one answered, and
+// a second with two documentation calls, one closed. The
 // tab comes first, and an open call is answered on its card (owner, 2026-10-19:
 // "give the ability to approve on these"), in a box whose send takes the
 // recommendation when left empty and sends the words as the adjustment.
@@ -28,6 +29,13 @@ const CALLS = {
   'user-calls/c0ffee01-two.json': { id: 'c0ffee01-two', session: 'c0ffee01', kind: 'decision', question: 'Two steps?',
     recommend: 'Yes, switch', confidence: 'lean', why: 'closer on average', created: '2026-10-15T11:30:00Z' },
 };
+// A second session's documentation calls: one waiting, one closed.
+CALLS['user-calls/d0c5e001-readme.json'] = { id: 'd0c5e001-readme', session: 'd0c5e001', kind: 'documentation', name: 'Readme Links',
+  question: 'Apply 2 edits to the widget README?', brief: 'Two links.', file: 'me/widget@claude/x:docs/guide/README.md',
+  pr: 'me/widget#7', created: '2026-10-15T11:00:00Z', edits: [{ from: 'a', to: 'b' }, { from: 'c', to: 'd' }] };
+CALLS['user-calls/d0c5e001-old.json'] = { id: 'd0c5e001-old', session: 'd0c5e001', kind: 'documentation', status: 'closed',
+  question: 'Apply 1 edit to NOTES.md?', file: 'me/widget@claude/x:NOTES.md', created: '2026-10-15T10:00:00Z',
+  edits: [{ from: 'e', to: 'f' }], closed: { answer: 'Superseded' } };
 const ANSWERS = { 'user-calls/c0ffee01-two.answers.jsonl': '{"answer":"Take","at":"2026-10-16T00:00:00Z"}\n' };
 const listed = [];
 class FakeGH {
@@ -51,7 +59,8 @@ class FakeGH {
 
 const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
   <div id="slide" x-data="sessionBrief(window.__slide)"></div>
-  <div id="none" x-data="sessionBrief(window.__none)"></div></body></html>` });
+  <div id="none" x-data="sessionBrief(window.__none)"></div>
+  <div id="docs" x-data="sessionBrief(window.__docs)"></div></body></html>` });
 window.GH = FakeGH;
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
@@ -61,8 +70,9 @@ window.sessionRender = { describe: (r) => ({ title: r.short, subtitle: '' }), tu
 window.sessionExport = { index: () => ({ el: window.document.createElement('div') }) };
 window.chatRender = { block: () => window.document.createElement('pre') };
 const decks = [];
-// The deck renders its first slide, so the form it mounts says what it was asked.
-const forms = [];
+// The deck renders its first slide, so the form it mounts says what it was asked;
+// a form mounted as a card in the Calls tab's strip is kept apart, whole.
+const forms = [], cardForms = [];
 // The real strip and list kits, since the tab is a list over a strip of cards
 // (kits/linked-swiper.js on swipeDeck.core); only the full-screen deck is a
 // stand-in, recording where it opened.
@@ -85,11 +95,12 @@ window.UserCallForm = { prOf: (ref) => (ref ? { slug: 'me/widget', n: 7 } : null
 // Waiting card's session link asks; and one whose session filed nothing.
 window.__slide = { id: 'c0ffee01', repo: STORE, framed: true, record, pane: 'calls' };
 window.__none = { id: 'feed0002', repo: STORE, framed: true, record: { ...record, short: 'feed0002' }, pane: 'calls' };
+window.__docs = { id: 'd0c5e001', repo: STORE, framed: true, record: { ...record, short: 'd0c5e001' }, pane: 'calls' };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
-Alpine.data('userCallForm', (o) => ({ init() { forms.push(o.call.id); } }));
+Alpine.data('userCallForm', (o) => ({ init() { if (this.$el.closest('[data-call-strip]')) cardForms.push(o); else forms.push(o.call.id); } }));
 // repo-address.js is booted by every page; the component's GitHub links are
 // built by window.RepoAddress.github.
 for (const k of ['lib/kits/repo-address.js', 'lib/kits/closing-state.js', 'lib/kits/repo-sessions-cache.js']) {
@@ -104,6 +115,7 @@ const data = (id) => Alpine.$data(el(id));
 const until = async (ok) => { for (let i = 0; i < 60 && !ok(); i++) await tick(2); return ok(); };
 await until(() => data('slide').calls.length === 2 && !data('none').callsLoading);
 await until(() => el('slide').querySelectorAll('[data-session-call]').length === 2);
+await until(() => data('docs').calls.length === 2 && cardForms.length);
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
@@ -238,4 +250,40 @@ test('words in the box send it as the adjustment, and changing them disarms the 
 test('an address asking for Calls on a session with none lands on the overview', () => {
   assert.equal(data('slide').pane, 'calls');
   assert.equal(data('none').pane, 'overview');
+});
+
+// A documentation call's row names its document and counts its edits in a
+// pill, and its card is the call form, where the edits are read and answered
+// (owner, 2026-11-21). A row says its state only when the call no longer waits.
+test('a documentation row is its repo, its path and a pill counting the edits', () => {
+  const rows = [...el('docs').querySelectorAll('[data-call-list] [data-call]')];
+  assert.deepEqual(rows.map((r) => r.getAttribute('data-call')), ['d0c5e001-readme', 'd0c5e001-old']);
+  const [open, closed] = rows;
+  assert.match(open.textContent, /^\s*widget\s*docs\/guide\/README\.md\s*2\s*$/, 'no question, and no Open');
+  assert.doesNotMatch(open.textContent, /Apply|edits to/);
+  const pill = open.querySelector('[data-call-count]');
+  assert.equal(pill.textContent, '2');
+  assert.equal(pill.dataset.titleTip, '2 edits');
+  assert.equal(open.querySelector('[data-call-state]'), null, 'a waiting call is the row at full strength');
+  assert.match(closed.textContent, /widget\s*NOTES\.md\s*Closed\s*1/, "the state comes before the pill, which keeps the row's end");
+  assert.equal(closed.querySelector('[data-call-state]').textContent, 'Closed');
+  // A row with no document keeps its question, and says Open nowhere.
+  const other = el('slide').querySelector('[data-call-list] [data-call="c0ffee01-size"]');
+  assert.match(other.textContent, /Split topics\?/);
+  assert.doesNotMatch(other.textContent, /Open/);
+  assert.match(el('slide').querySelector('[data-call-list] [data-call="c0ffee01-two"] [data-call-state]').textContent, /Answered/);
+});
+
+test("a documentation call's card is the call form, hosted, and an answer from it moves the row", async () => {
+  const strip = el('docs').querySelector('[data-call-strip]');
+  assert.equal(strip.querySelector('[data-session-call]'), null, 'not the decision card');
+  const o = cardForms.find((f) => f.call.id === 'd0c5e001-readme');
+  assert.ok(o, 'the selected call is mounted as a form');
+  assert.deepEqual([o.repo, o.ref, o.path], [STORE, 'main', 'user-calls/d0c5e001-readme.json']);
+  assert.equal(typeof o.onHead, 'function', 'hosted, so the form leaves the name to the card head');
+  assert.match(strip.querySelector('[data-ls="head"]').textContent, /Readme Links/);
+  assert.equal(data('docs').openCallCount, 1);
+  o.onAnswer({ answer: '2 confirmed', at: '2026-10-16T00:00:00Z' });
+  await until(() => data('docs').openCallCount === 0);
+  assert.equal(el('docs').querySelector('[data-call="d0c5e001-readme"] [data-call-state]')?.textContent, 'Answered');
 });

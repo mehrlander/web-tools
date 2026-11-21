@@ -406,3 +406,25 @@ test('the answer line is the one Dictate and the Docs tab write, with the kept e
   await until(() => data().done);
   assert.equal(data().done, line.answer, 'the form reads as answered');
 });
+
+// The session page's Calls tab mounts a form inside its own scope, where
+// Alpine writes a field no scope declares to the outermost one. Two forms
+// there, each holding its own document, are held to their own fields, and
+// the scope around them keeps its own.
+test('forms mounted inside another scope keep their fields to themselves', async () => {
+  const outer = window.document.createElement('div');
+  outer.setAttribute('x-data', "{ _notes: 'the host\\'s' }");
+  outer.innerHTML = '<div data-n="1" x-data="userCallForm(window.__form)"></div><div data-n="2" x-data="userCallForm(window.__form)"></div>';
+  window.document.body.append(outer);
+  Alpine.initTree(outer);
+  const form = (n) => outer.querySelector(`[data-n="${n}"]`);
+  await until(() => [1, 2].every((n) => Alpine.$data(form(n)).doc.ready && form(n).querySelectorAll('[data-md-diff-change]').length === 4));
+  const host = Alpine.$data(outer);
+  assert.equal(host._notes, "the host's", "a form's notes are not the host's");
+  for (const k of ['_root', '_seam', '_viewsRead', '_jumpTill'])
+    assert.equal(Object.prototype.hasOwnProperty.call(Alpine.closestDataStack(outer)[0], k), false, k + ' is not written on the host');
+  assert.equal(Alpine.$data(form(1))._root, form(1));
+  assert.equal(Alpine.$data(form(2))._root, form(2), 'each form finds its own document');
+  Alpine.destroyTree(outer);
+  outer.remove();
+});
