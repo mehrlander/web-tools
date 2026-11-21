@@ -185,9 +185,9 @@ try {
   doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'End',bubbles:true}));
   check(doc.activeElement===button,'End reaches Refresh as the last keyboard menu item.');
   button.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));
-  const previous=doc.activeElement.dataset.view;
+  const previous=doc.activeElement.hasAttribute('data-sync-status');
   doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
-  check(previous==='files'&&doc.activeElement===button,'Arrow keys include Refresh alongside the view choices.');
+  check(previous&&doc.activeElement===button,'Arrow keys include Connection status and Refresh alongside the view choices.');
   const updates=explicitRefresh.updates();button.click();await flush();await flush();
   check(explicitRefresh.updates()>updates&&doc.getElementById('view-menu').hidden&&doc.activeElement.id==='view-picker'&&explicitRefresh.errors.some(error=>/navigation/i.test(error.message)),'An explicit Refresh closes the menu, restores picker focus, checks the worker, and requests a reload; foreground checks alone never reload.');
 } finally {explicitRefresh.dom.window.close();}

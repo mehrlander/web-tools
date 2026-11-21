@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using WebTools.Desktop;
 
+if (await AlertCommands.Run(args) is { } alertExit) { Environment.ExitCode = alertExit; return; }
 var port = int.TryParse(Environment.GetEnvironmentVariable("WEBTOOLS_COMPANION_PORT"), out var configuredPort) ? configuredPort : CompanionAccess.Port;
 using var instance = new Mutex(true, "Local\\WebTools.Companion." + port, out var first);
 if (!first) return;
@@ -19,6 +20,11 @@ builder.Logging.ClearProviders();
 builder.WebHost.ConfigureKestrel(server => server.Listen(IPAddress.Loopback, port));
 var app = builder.Build();
 var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+// Alerts ride the collector's scans; the daemon reading inside each snapshot is refreshed every ten seconds.
+var alerts = new AlertMonitor(UserSettings.DataDirectory, new GmailAlertSender(), AlertLog.Write);
+var alertPhoneUrl = CompanionAccess.Load().PhoneUrl;
+collector.Observed += activity => _ = alerts.Observe(
+    AlertObservation.From(activity.Snapshot, activity.ObservedAt, alertPhoneUrl), app.Lifetime.ApplicationStopping);
 
 app.Use(async (context, next) => {
     var request = context.Request;
@@ -44,7 +50,8 @@ app.Use(async (context, next) => {
     var mediaAction = request.Method == "POST" && request.Path.StartsWithSegments("/api/v1/devices/stereo");
     var repositoryAction = request.Method == "POST" && request.Path.StartsWithSegments("/api/v1/repositories")
         && request.Path.Value!.EndsWith("/fetch", StringComparison.Ordinal);
-    if (request.Method is not ("GET" or "HEAD") && !mediaAction && !repositoryAction) {
+    var syncAction = request.Method == "POST" && request.Path == "/api/v1/sync/retry";
+    if (request.Method is not ("GET" or "HEAD") && !mediaAction && !repositoryAction && !syncAction) {
         context.Response.StatusCode = 405;
         context.Response.Headers.Allow = "GET, HEAD";
         return;
@@ -57,7 +64,7 @@ app.Use(async (context, next) => {
     }
     // Browser controls need a same-origin POST and a custom header. Cross-site
     // forms cannot supply that header, and no preflight/CORS access is offered.
-    if ((mediaAction || repositoryAction) && (request.Headers["X-WebTools-Action"] != "1" || !local && request.Headers.Origin.Count != 1
+    if ((mediaAction || repositoryAction || syncAction) && (request.Headers["X-WebTools-Action"] != "1" || !local && request.Headers.Origin.Count != 1
         || request.Headers["Sec-Fetch-Site"] == "cross-site" || request.QueryString.HasValue
         || request.ContentLength is > 0 || request.Headers.TransferEncoding.Count > 0)) {
         context.Response.StatusCode = 403;
@@ -109,6 +116,11 @@ app.MapGet("/api/v1/repositories", (HttpContext context) => {
 app.MapPost("/api/v1/repositories/{key}/fetch", (string key) => {
     var status = repositories.RequestFetch(key);
     return Results.Json(new { accepted = status == 202 }, json, statusCode: status);
+});
+app.MapPost("/api/v1/sync/retry", (HttpContext context) => {
+    var result = collector.RequestSync();
+    if (result.RetryAfterSeconds > 0) context.Response.Headers.RetryAfter = result.RetryAfterSeconds.ToString();
+    return Results.Json(new { accepted = result.Status == 202, retryAfterSeconds = result.RetryAfterSeconds }, json, statusCode: result.Status);
 });
 app.MapGet("/api/v1/files", async (HttpContext context) => {
     if (context.Request.Query.Any(p => p.Key is not ("path" or "root") || p.Value.Count != 1)) return Results.BadRequest();
