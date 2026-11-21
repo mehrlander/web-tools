@@ -266,10 +266,10 @@ pending change runs its command and, when the command succeeds, stages its
 outputs. A failed command or a missing output prints a warning, and the commit
 proceeds. A rule's `kind` is `build` (a bundle), `generate` (a catalog,
 registry or index), `package` (a copy a plugin ships) or `check` (a warning
-that writes nothing, printed when its command exits nonzero). `npm run build`,
-`generate`, `package` and `check` run one kind over the whole tree, and
-`npm run artifacts:refresh` runs every rule whose `repair` is `yes`. Each stages
-what it writes, as the hook does.
+that writes nothing, printed when its command exits nonzero).
+`npm run artifacts:refresh` runs every rule whose `repair` is `yes` over the
+whole tree, and `npm run build`, `generate`, `package` and `check` do the same
+for one kind. Each stages what it writes, as the hook does.
 
 Most generated files are written whole. Four are not. `docs/docs.csv`, `docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are hand-edited except for the fields or rows a generator writes. Edit a row freely and leave those fields alone.
 
