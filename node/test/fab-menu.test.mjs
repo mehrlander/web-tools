@@ -1021,3 +1021,39 @@ test('web-tools:open-drawer opens the drawer on the tab it names', async () => {
   await tick(2);
   assert.equal(d.activeTab, 'text');
 });
+
+// A page's declared walkthroughs (kits/look.js reads them from
+// #look-walkthroughs) are offered from the menu, and a row starts one there.
+test('the menu offers the walkthroughs a page declares, and a row starts one', async () => {
+  const decl = doc.createElement('script');
+  decl.type = 'application/json';
+  decl.id = 'look-walkthroughs';
+  decl.textContent = JSON.stringify({ tour: [{ say: 'Welcome' }, { at: 'main', say: 'The page' }], empty: [] });
+  doc.body.append(decl);
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="pages/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const d = Alpine.$data(host.firstElementChild);
+  const was = window.Look;
+  let started = null;
+  window.Look = { linkTo() {}, start: (steps) => { started = steps; } };
+  try {
+    d.openFabMenu(); await tick(3);
+    assert.equal(JSON.stringify(d.pageWalks), '["tour"]', 'a declared walkthrough with steps, and not an empty one');
+    const rows = host.querySelectorAll('[data-fab-walk]');
+    assert.equal(rows.length, 1);
+    assert.match(rows[0].textContent, /Walkthrough/);
+    rows[0].click(); await tick(3);
+    assert.equal(d.fabMenu, false, 'the row closes the menu');
+    assert.equal(JSON.stringify(started), JSON.stringify([{ say: 'Welcome' }, { at: 'main', say: 'The page' }]), 'and starts that walkthrough');
+    decl.remove();
+    // The menu's closing transition runs out first: a reopen inside it has
+    // Alpine reject a promise it catches a tick late.
+    await new Promise(r => window.setTimeout(r, 200));
+    d.openFabMenu(); await tick(3);
+    assert.equal(host.querySelectorAll('[data-fab-walk]').length, 0, 'a page that declares none shows no row');
+    d.fabMenu = false;
+  } finally { window.Look = was; decl.remove(); host.remove(); }
+});

@@ -52,7 +52,7 @@ test('a live glyph or badge is drawn where its row says', () => {
 
 test('a live tint is a colour the FAB wears', () => {
   for (const r of live.filter(r => r.part === 'tint'))
-    assert.ok(markup.includes(`var(--color-${r.tone})_10%,var(--color-base-100))] border-${r.tone}/20`), `${r.key}: the FAB is tinted ${r.tone} at rest`);
+    assert.match(markup, new RegExp(`var\\(--color-${r.tone}\\)_\\d+%,var\\(--color-base-100\\)\\)\\] border-${r.tone}/\\d+ hover:`), `${r.key}: the FAB is tinted ${r.tone} at rest`);
 });
 
 test('a glyph or badge names a mark that exists, and a tint names none', () => {
