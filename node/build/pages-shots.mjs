@@ -3,6 +3,9 @@
 //
 //   node node/build/pages-shots.mjs            -> shoots every page
 //   node node/build/pages-shots.mjs <page ...> -> shoots only the named pages
+//   node node/build/pages-shots.mjs --stale    -> shoots nothing; names each page
+//        with a pending change whose thumbnail has none, and exits 1 if any
+//        (the thumbnails check in docs/commit-rules.csv)
 //
 // Each thumbnail is the page rendered headlessly by node/render/screenshot.mjs
 // (Chromium, with CDN/own-code requests resolved to the local tree), captured at a
@@ -14,6 +17,7 @@
 // Re-run when a page is added or its look changes; then `npm run pages-index`.
 
 import { readdir, mkdir, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -67,7 +71,32 @@ async function walk(baseDir, dir = baseDir) {
   return out;
 }
 
+// Pages with a pending change whose thumbnail has none. Thumbnails are slow and
+// not byte-deterministic, so no commit rule shoots them; this names what the
+// once-a-session refresh should shoot.
+function stale() {
+  const status = (...specs) =>
+    spawnSync('git', ['status', '--porcelain', '--', ...specs], { cwd: repoRoot, encoding: 'utf8' }).stdout || '';
+  const lines = [];
+  for (const entry of status(...SOURCES.map(s => s.dir + '/*.html')).split('\n').filter(Boolean)) {
+    const file = entry.slice(3).replace(/.* -> /, '');
+    const s = SOURCES.find(s => file.startsWith(s.dir + '/'));
+    const f = file.slice(s.dir.length + 1);
+    const v = path.posix.basename(f) === 'index.html' || f.startsWith('thumbs/') ? null : s.pick ? s.pick(f) : f;
+    if (!v || !existsSync(path.join(repoRoot, file))) continue;
+    const rel = s.virt ? `${s.virt}/${v}` : v;
+    const thumb = `pages/thumbs/${rel.replace(/\.html$/, '.png')}`;
+    if (!status(thumb).trim()) lines.push(`${file} changed but ${thumb} did not; refresh it at wrap-up: npm run pages-shots -- ${rel}`);
+  }
+  return lines;
+}
+
 // Run only as a script, so the suite can import selectPages without a browser.
+if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]) && process.argv.includes('--stale')) {
+  const lines = stale();
+  for (const l of lines) console.log(l);
+  process.exit(lines.length ? 1 : 0);
+}
 if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1])) {
   // Collect { rel (virtual thumb key), src (file to shoot) } across every source.
   let pages = [];

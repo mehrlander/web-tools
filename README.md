@@ -265,15 +265,11 @@ Use `npm run ready` for the same checks without writing anything, then run
 without the repository's expected browser can install Playwright's Chromium
 when they actually need `npm run shot`.
 
-Local commits refresh deterministic artifacts through the configured hooks.
-When a clean local merge changes derived output, the hook stages the combined
-refresh and asks for `git -c core.editor=true merge --continue`, which creates
-the merge commit through the ordinary marker and consent gates.
-For a tree written or merged through the GitHub API, MCP, or another server-side
-path, fetch that exact tree into a ready checkout, run
-`npm run artifacts:refresh` and `npm test`, run any additional generator the
-test names, then commit and push the repair. Server-side writes cannot execute
-a local checkout's hooks.
+Local commits refresh generated files through the configured hooks. A write
+through the GitHub API, MCP or another server-side path runs no local hooks.
+[CLAUDE.md](CLAUDE.md#the-pre-build--the-build-on-commit-hook), under
+"Verification stays independent", says how to repair the tree it leaves and
+how to finish a local merge that regenerated files.
 
 ## Where to start
 

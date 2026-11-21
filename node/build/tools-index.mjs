@@ -38,7 +38,9 @@
 //   callers     what runs the file, semicolon-joined (added 2026-10-20): a
 //               harness file that imports it, runs it by path (python3,
 //               node, bash), runs its npm script, or finds it through the
-//               hooks' plugin_script; node/test/ when the suite imports it;
+//               hooks' plugin_script; node/build/commit-rules.mjs when a
+//               commit rule's command runs it; node/test/ when the suite
+//               imports it;
 //               and a tracked .md that gives the command to run it, which
 //               stands for a reader following that document. A file named
 //               only in prose or a comment has no caller: a mention is not a
@@ -161,64 +163,6 @@ function workflowEvents(src) {
   return events.join('+') || 'unknown';
 }
 
-// ── The commit hook's steps: docs/hook-legs.csv ────────────────────────────
-//
-// The harness registry has one row for .githooks/pre-commit, and that row is
-// the least informative in it: the file is nineteen steps, each watching some
-// paths and regenerating some files, and which step keeps which file true is
-// the question a reader of the Harness tab is actually asking. Since
-// refresh-derived.yml (2026-10-07) runs the same steps on main after a write
-// that skipped the hook, the list also says what main is repaired against.
-//
-// Read off the hook's own structure rather than authored: each step opens with
-// a `# --- leg <name>: <gloss> ---` header, guards on `changed <paths>`, runs
-// an `npm run` script or a python3 script, and passes what it wrote to
-// `stage`. A step with nothing to stage only warns. A step guarded by
-// `refresh_all = 0` is skipped by `npm run artifacts:refresh`, the repair
-// pass, which is the one fact about a step that the header never states.
-export const HOOK_LEG_COLS = ['order', 'leg', 'gloss', 'watches', 'runs', 'stages', 'mode', 'in_repair'];
-const HOOK = '.githooks/pre-commit';
-
-export function deriveHookLegs(src) {
-  const lines = src.split('\n');
-  const legs = [];
-  let cur = null;
-  const add = (list, xs) => { for (const x of xs) if (x && !list.includes(x)) list.push(x); };
-  for (const line of lines) {
-    const head = line.match(/^# --- leg ([\w-]+):\s*(.*?)\s*-*\s*$/);
-    if (head) {
-      cur = { leg: head[1], gloss: head[2].trim(), watches: [], runs: [], stages: [], skipRepair: false };
-      legs.push(cur);
-      continue;
-    }
-    if (!cur || /^\s*#/.test(line)) continue;
-    // Two guard shapes: the `changed` helper, and (pages-catalogs) a
-    // `git status --porcelain -- <paths>` it filters further itself.
-    const guard = line.match(/\bchanged\s+(.+?);\s*then\b/) || line.match(/git status --porcelain -- (.+?)\s*\|/);
-    // A shell variable (`"$thumb"`, the thumbnail check) is a computed path,
-    // not a watched one.
-    if (guard) add(cur.watches, guard[1].split(/\s+/).map(s => s.replace(/^['"]|['"]$/g, '')).filter(s => !s.startsWith('$')));
-    // A command named inside a warning (`refresh at wrap-up: npm run
-    // pages-shots`) is advice to the reader, not a step the hook runs.
-    if (/^\s*echo\b/.test(line)) continue;
-    add(cur.runs, [...line.matchAll(/\bnpm run ([\w:-]+)/g)].map(m => 'npm run ' + m[1]));
-    add(cur.runs, [...line.matchAll(/\bpython3 ([\w./-]+\.py)/g)].map(m => m[1]));
-    const st = line.match(/^\s*stage\s+(.+?)\s*$/);
-    if (st) add(cur.stages, st[1].split(/\s+/));
-    if (/\$refresh_all"?\s*=\s*0/.test(line)) cur.skipRepair = true;
-  }
-  return legs.map((l, i) => ({
-    order: String(i + 1),
-    leg: l.leg,
-    gloss: l.gloss,
-    watches: l.watches.join(';'),
-    runs: l.runs.join(';'),
-    stages: l.stages.join(';'),
-    mode: l.stages.length ? 'regenerates' : 'warns',
-    in_repair: l.skipRepair ? 'no' : 'yes',
-  }));
-}
-
 // ── Callers: what runs each file ────────────────────────────────────────────
 //
 // Comments and docstrings are stripped first, because the file that most
@@ -232,6 +176,9 @@ function codeOf(rel, src) {
   if (/\.(sh|ya?ml)$/.test(rel) || rel.startsWith('.githooks/')) return stripSh(src);
   return stripJs(src);
 }
+// The commit rules' commands, which the file that runs them calls.
+const COMMIT_RUNNER = 'node/build/commit-rules.mjs';
+const ruleCommands = (repoRoot) => parseCsv(read(repoRoot, 'docs/commit-rules.csv')).map(r => r.command);
 // A command that runs a file by path, as code or a document writes it.
 const RUN = /\b(?:python3?|node|bash|sh)\s+(?:-\S+\s+)*["']?\.?\/?((?:[\w.$\{\}-]+\/)*([\w.-]+\.(?:py|mjs|js|cjs|sh)))\b/g;
 
@@ -293,6 +240,14 @@ export function deriveCallers(repoRoot, subjects, files, npm) {
     }
     for (const m of code.matchAll(/plugin_script\s+(hooks\/[\w.-]+)/g)) add('skills/' + m[1], from);
   }
+  // A commit rule's command is a call the rule runner makes.
+  for (const command of ruleCommands(repoRoot)) {
+    for (const m of command.matchAll(RUN)) byRun(COMMIT_RUNNER, m[1], m[2]);
+    for (const m of command.matchAll(/npm run ([\w:.-]+)/g)) {
+      const t = byScript.get(m[1]);
+      if (t) add(t, COMMIT_RUNNER);
+    }
+  }
   // A package.json script that runs another through npm run.
   const scripts = JSON.parse(read(repoRoot, 'package.json')).scripts || {};
   for (const [name, cmd] of Object.entries(scripts)) {
@@ -337,9 +292,11 @@ export function deriveTools(repoRoot) {
   // mentions a command-line tool, so it counts only where deriveCallers
   // found code that runs the file.
   const srcs = new Map(subjects.map(rel => [rel, read(repoRoot, rel)]));
+  const commands = ruleCommands(repoRoot).join('\n');
   const invoked = new Set();
   for (const rel of subjects) {
     const base = path.posix.basename(rel);
+    if (commands.includes(base)) { invoked.add(base); continue; }
     for (const [other, osrc] of srcs) {
       if (other !== rel && osrc.includes(base)) { invoked.add(base); break; }
     }
@@ -453,34 +410,22 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
   registry.tools = rows;
 
   const bytes = writeCsv(registry.tools, HARNESS_COLS);
-  // The hook's steps ride the same generator, the same hook leg and the same
-  // --check, so the derived-artifacts gate already holding harness.csv holds
-  // this file too.
-  const legsFile = path.join(repoRoot, 'docs', 'hook-legs.csv');
-  const legs = deriveHookLegs(read(repoRoot, HOOK));
-  const legBytes = writeCsv(legs, HOOK_LEG_COLS);
   if (checkOnly) {
-    const stale = [];
-    for (const [f, want] of [[file, bytes], [legsFile, legBytes]]) {
-      let current = null;
-      try { current = readFileSync(f, 'utf8'); } catch { /* absent counts as stale */ }
-      if (current !== want) stale.push(path.relative(repoRoot, f));
-    }
-    if (stale.length) {
-      console.error(stale.join(' and ') + (stale.length > 1 ? ' are' : ' is') + ' behind its sources; run: npm run tools-index');
+    let current = null;
+    try { current = readFileSync(file, 'utf8'); } catch { /* absent counts as stale */ }
+    if (current !== bytes) {
+      console.error('docs/harness.csv is behind its sources; run: npm run tools-index');
       process.exit(1);
     }
     process.exit(0);
   }
   writeFileSync(file, bytes);
-  writeFileSync(legsFile, legBytes);
 
   const layers = {};
   for (const t of rows) layers[t.layer] = (layers[t.layer] || 0) + 1;
   const named = rows.filter(t => t.named === 'yes').length;
   const tested = rows.filter(t => t.tested === 'yes').length;
   const blank = rows.filter(t => !t.role).length;
-  console.log(`tools-index: ${legs.length} hook steps in docs/hook-legs.csv`);
   console.log(`tools-index: ${rows.length} files (` +
               Object.entries(layers).map(([l, n]) => `${n} ${l}`).join(', ') + `); ` +
               `${named} named, ${tested} tested`);

@@ -4,8 +4,8 @@ Read [CLAUDE.md](CLAUDE.md) first for repository workflows and conventions.
 
 ## Before a pull request
 
-1. Once per checkout: `npm run setup`. It wires the commit hook and the CSV merge driver, so the derived artifacts (`dist/`, the registry CSVs, the word counts) refresh in the same commit as their sources. `npm run ready` checks without writing.
-2. Before opening a PR: `npm run preflight`. It runs setup, refreshes every derived artifact, and runs the suite. A red check on GitHub names the command that repairs it.
+1. Once per checkout: `npm run setup`. It wires the commit hook and the CSV merge driver. Generated files then refresh in the same commit as their sources. `npm run ready` checks without writing.
+2. Before opening a PR: `npm run preflight`. It runs setup, refreshes every generated file, and runs the suite. A red check on GitHub names the command that repairs it.
 3. A red check is not mergeable, whichever assistant opened the PR.
 4. Commit only what the repository runs or reads. A session's own working files stay in its scratch folder ([docs/code-layers.md](docs/code-layers.md#outside-lib)). The commit hook refuses a line that names a path into one machine's user folder.
 

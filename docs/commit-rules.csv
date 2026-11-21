@@ -1,0 +1,26 @@
+order,rule,kind,sources,command,outputs,repair,description
+1,pre-build,build,lib/,npm run build:lib,dist/web-tools.js,yes,"the pre-build: all of lib/ in one self-booting file"
+2,dictate-build,build,lib/;pages/dictate.html,npm run build:dictate,dist/dictate.js,yes,the dictation page's own build
+3,app-build,build,lib/;app/index.html,npm run build:app,dist/app.js,yes,"the app's pre-build: only what app/index.html reaches"
+4,console-suite,build,console/base.js;console/mods/,npm run build:console,console/suite.js,yes,"the console base and its mods, as one paste"
+5,pages-catalogs,generate,pages/*.html;lib/kits/demos/*.html;skills/*/demo.html,npm run pages-index,pages/README.md;pages/index.html;pages/pages.csv,yes,the three page catalogs
+6,tests-registry,generate,node/test;package.json;node/build/tests-index.mjs,npm run tests-index,docs/tests.csv;docs/tests-authored.csv,yes,the test registry's computed columns
+7,harness-census,generate,node;python;.claude;skills/hooks;.githooks;.github/workflows;package.json;node/build/tools-index.mjs;docs/commit-rules.csv;docs/harness.csv;*.md,npm run tools-index,docs/harness.csv,yes,the harness registry's computed columns
+8,kits-registry,generate,lib;pages;app;node/test;node/build/kits-index.mjs;docs/kits.csv,npm run kits-index,docs/kits.csv,yes,the kits registry
+9,components-registry,generate,lib;pages;app;node/test;docs/app-routes.csv;data/ui-units/units.csv;node/build/components-index.mjs;docs/components.csv,npm run components-index,docs/components.csv,yes,the components registry
+10,renders-in,generate,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,yes,the registries' renders_in column
+11,themes-graph,generate,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,yes,the graph of claims repeated across documents
+12,docs-reach,generate,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,yes,the documentation registry's reach and words columns
+13,plugin-copies,package,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;docs/acronyms.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md;skills/default/acronyms.md,yes,the default skill's copies of the documents it delivers
+14,policy-skills,package,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,yes,"the h plugin's skills, one per house policy"
+15,peeves-csv,package,skills/peeves/peeves.md;node/build/peeves-csv.mjs,npm run peeves-csv,skills/peeves/peeves.csv,yes,the peeves list as CSV
+16,comment-blocks,generate,*.js;*.mjs;*.html;*.py;*.md;docs/*.csv,npm run comment-blocks,data/comments/web-tools.json,yes,every comment block in the code and the documents it names
+17,docs-readme,generate,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme,docs/README.md,yes,the docs index
+18,docs-reach-again,generate,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-reach,docs/docs.csv,yes,"docs/README.md's word count, after docs-readme rewrites it"
+19,tracker-board,generate,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,yes,the tracker board
+20,csv-census,generate,*.csv;.web-tools.json;python/csv-census.py,python3 python/csv-census.py,data/csv-census.csv,yes,"the census of tracked CSVs, measured from the staged bytes"
+21,thumbnails,check,pages/*.html;lib/kits/demos/*.html;skills/*/demo.html,node node/build/pages-shots.mjs --stale,,yes,a changed page whose thumbnail did not change
+22,reading-columns,check,,python3 skills/hooks/reading-column.py --check lib pages app,,yes,a class that narrows text to a reading column
+23,sunset-markers,check,,python3 python/sunset-scan.py --strict,,yes,a SUNSET marker whose date has passed
+24,anchors,check,,python3 python/annotate/anchors.py --staged --strict,,no,a note or standoff that points into text this commit changes
+25,vendored,check,,python3 python/vendored-copies.py --staged,,no,a staged edit to a copy whose source is in another repository
