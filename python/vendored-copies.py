@@ -3,9 +3,9 @@
 
 data/vendored-copies.txt lists them, one path per line; web-tools-private's
 vendored.py writes it from its registry. An edit to a copy here is overwritten
-the next time the copy is refreshed from its source, so the commit hook runs
-this and names each staged copy. It never blocks: the refresh itself is a
-commit that stages copies.
+the next time the copy is refreshed from its source, so the commit rules run
+this as a check. It names each staged copy and exits 1 when it names one; the
+check only warns, since the refresh itself is a commit that stages copies.
 
     python3 python/vendored-copies.py --staged
 """
@@ -29,10 +29,11 @@ def main(argv):
         sys.exit(__doc__.strip().splitlines()[-1].strip())
     staged = subprocess.run(["git", "-C", str(ROOT), "diff", "--cached", "--name-only"],
                             capture_output=True, text=True).stdout.split("\n")
-    for path in sorted(copies() & set(staged)):
+    named = sorted(copies() & set(staged))
+    for path in named:
         print(f"{path} is a vendored copy: edit its source, or the next refresh "
               "overwrites this (fine if this commit is that refresh)")
-    return 0
+    return 1 if named else 0
 
 
 if __name__ == "__main__":
