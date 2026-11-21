@@ -103,10 +103,10 @@ for (const f of b.files) console.log('  ' + f.path + '  (' + f.data.length + ' b
   <div class="px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
     <header class="mb-8">
-      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight text-balance">
+      <h1 class="text-[clamp(1.7rem,4vw,2.4rem)] leading-none font-bold tracking-tight">
         Page plus its data. <span class="opacity-50">One zip, right layout.</span>
       </h1>
-      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70 text-pretty">
+      <p class="mt-3 text-[0.95rem] leading-relaxed opacity-70">
         <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">window.exporter</code>
         emits a page and the data it <code class="font-mono text-[0.8em]">read()</code>s as one archive:
         HTML at the root, each read value frozen to its local form beside it, so unzip-and-open
@@ -122,7 +122,7 @@ for (const f of b.files) console.log('  ' + f.path + '  (' + f.data.length + ' b
     <footer class="mt-4 pt-6 border-t border-base-300 lg:grid lg:grid-cols-[minmax(0,19rem)_minmax(0,1fr)] lg:gap-6">
       <div class="min-w-0">
       <p class="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-2">Colophon</p>
-      <div class="text-[0.9rem] leading-relaxed opacity-60 space-y-2 text-pretty">
+      <div class="text-[0.9rem] leading-relaxed opacity-60 space-y-2">
         <p>Driven by <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">demo.mount(…)</code> from <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">vanilla-demo.js</code>. The <code class="font-mono text-[0.85em] bg-base-200 text-base-content/80 border border-base-300 rounded px-1">parent</code> kind runs from the Run click so the download gets a genuine user gesture. The page-and-data integration this kit was built for lives in <a href="../../../pages/demos/cross-repo-read-demo.html" class="link link-hover">cross-repo-read-demo.html</a>.</p>
       </div>
       </div>
