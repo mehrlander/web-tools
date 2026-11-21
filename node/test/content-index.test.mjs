@@ -103,3 +103,32 @@ test('the manifest names shards by path and carries no terms', async () => {
   const man = CI.buildManifest(null, { 'o/r': e }, ['o/r'], 't');
   assert.deepEqual(man.repos['o/r'], { sha: 'c1', docs: 1, pending: 0, shards: ['state/content-index/o.r.0.json'] });
 });
+
+test('a shard the manifest stops naming is an orphan, and only shard files are', async () => {
+  const big = {};
+  for (let i = 0; i < CI.BUCKET_DOCS + 5; i++) big[`d/${i}.md`] = `w${i}`;
+  const two = await CI.crawlRepo('o/big', docEntry(big), { makeGH: fakeRepo(big).makeGH, read: store(null), fetchCap: Infinity });
+  const other = await CI.crawlRepo('o/r', docEntry({ 'a.md': 'x' }), { makeGH: fakeRepo({ 'a.md': 'x' }).makeGH, read: store(null) });
+  const man = CI.buildManifest(null, { 'o/big': two, 'o/r': other }, ['o/big', 'o/r'], 't');
+  const small = { 'd/1.md': 'w1' };
+  const one = await CI.crawlRepo('o/big', docEntry(small, 'c2'), { makeGH: fakeRepo(small).makeGH, prev: man.repos['o/big'], read: store(two) });
+  const next = CI.buildManifest(man, { 'o/big': one }, ['o/big', 'o/r'], 't2');
+  const listed = [...two.shards, ...other.shards].map(s => s.path).concat(['state/content-index/README.md', 'state/other.json']);
+  assert.deepEqual(CI.orphanShards(man, listed), [], 'every file is named before the repo shrinks');
+  assert.deepEqual(CI.orphanShards(next, listed), ['state/content-index/o.big.1.json'], 'the shard a smaller repo stopped writing');
+  const left = CI.buildManifest(next, {}, ['o/big'], 't3');
+  assert.deepEqual(CI.orphanShards(left, listed), ['state/content-index/o.big.1.json', 'state/content-index/o.r.0.json'],
+    'and the shards of a repo that left the index');
+});
+
+test('a manifest that names no repo prunes nothing', () => {
+  const listed = ['state/content-index/o.r.0.json'];
+  assert.deepEqual(CI.orphanShards(null, listed), []);
+  assert.deepEqual(CI.orphanShards({ repos: {} }, listed), []);
+});
+
+test('the crawl deletes orphans after it writes the manifest that stopped naming them', () => {
+  const src = readFileSync(path.join(root, 'node/activity-crawl.mjs'), 'utf8');
+  const manifest = src.indexOf('reg.save(CI.MANIFEST'), orphans = src.indexOf('CI.orphanShards('), del = src.indexOf('reg.del(');
+  assert.ok(manifest > 0 && orphans > 0 && del > manifest, 'orphanShards decides, and the deletes follow the manifest save');
+});

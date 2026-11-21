@@ -217,7 +217,7 @@ test('a time scope counts last activity, not the opening turn', () => {
 
 // The standing "N of M branches placed" label is retired: it explained the
 // machinery of the join to a reader who came to see what they had been working
-// on. The sentence survives in the Counts lens, where the histograms it
+// on. The sentence survives in the Counts tab, where the histograms it
 // annotates are the join, so what is held here is the sentence's arithmetic.
 test('the join note states what it could not place', () => {
   set([branch('a', { sessions: [SESS('AAA')] }), branch('b')],

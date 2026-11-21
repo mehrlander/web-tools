@@ -4,7 +4,7 @@ csv-census,columns,computed,python/csv-census.py,value,column,yes,,,value,number
 csv-census,bytes,computed,python/csv-census.py,value,column,yes,,,value,physical byte length of the indexed CSV blob
 csv-census,headers,computed,python/csv-census.py,value,column,yes,,,value,JSON array of parsed header strings preserving blanks and duplicates
 docs,subject,recorded,,none,column,yes,,,value,"what the document is about, one line"
-docs,status,recorded,,none,column,yes,living;record;measured,,label,"whether the document is kept true, preserved as written, or derived from measurement"
+docs,status,recorded,,none,column,yes,living;measured,,label,whether the document is kept true or derived from measurement
 docs,reach,computed,node/build/docs-reach.mjs,value,column,yes,injected;project;skill;app;orphan,,label,"who can get to the document: injected at session start, reachable from project instructions, a skill, the app, or nothing"
 docs,words,computed,node/build/docs-reach.mjs,value,column,yes,,,value,"the document's size, and its share of the folder"
 docs,maintenance,recorded,,counted,column,yes,,,value,who keeps the document true; a bare row is counted by the registry rather than hidden

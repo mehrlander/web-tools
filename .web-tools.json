@@ -91,53 +91,7 @@
       "label": "checks reading"
     }
   ],
-  "research": [
-    {
-      "path": "research/quality-control-lineage/README.md",
-      "label": "Statistical quality control: two proposed probes of the preference flagger",
-      "kind": "probe"
-    },
-    {
-      "path": "research/2026-11-16-tooltip-sources/README.md",
-      "label": "Where tooltip text comes from, and what git says about who wrote it",
-      "kind": "probe"
-    },
-    {
-      "path": "research/2026-10-29-policy-candidates/README.md",
-      "label": "Policy candidates: which survey rules become house policies",
-      "kind": "probe"
-    },
-    {
-      "path": "research/2026-10-27-peeves-review.md",
-      "label": "Peeve names and consolidation proposal",
-      "kind": "probe"
-    },
-    {
-      "path": "research/DOC_CRAFT_STUDY.md",
-      "label": "Documentation problems and drafting proposals",
-      "kind": "probe"
-    },
-    {
-      "path": "research/minimal-progressive-structure/README.md",
-      "label": "Minimal progressive structure: a theory of page structure, tested on agents",
-      "kind": "probe"
-    },
-    {
-      "path": "research/2026-10-25-fan-out-review.md",
-      "label": "Fan-out review of the Web Tools app, 2026-10-25",
-      "kind": "probe"
-    },
-    {
-      "path": "research/code-jobs/README.md",
-      "label": "Finding one job done in several places",
-      "kind": "probe"
-    },
-    {
-      "path": "research/category-mapping/README.md",
-      "label": "Category mapping: which word fits a collection, and which fits work by when it acts",
-      "kind": "exploration"
-    }
-  ],
+  "research": [],
   "programs": [
     {
       "name": "sessions",
@@ -355,7 +309,7 @@
         { "name": "Documents", "icon": "ph-files", "panels": [
           { "kind": "breakdown", "registry": "docs/docs.csv", "by": "reach",
             "icons": { "app": "ph-app-window", "orphan": "ph-link-break", "skill": "ph-sparkle", "project": "ph-folders", "injected": "ph-syringe" } },
-          { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "record": "ph-archive" } }
+          { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "labels": { "": "record" }, "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "": "ph-archive" } }
         ] },
         { "name": "Pages", "icon": "ph-browser", "panels": [
           { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "thumb": "thumb", "href": "href" }
@@ -371,7 +325,16 @@
       "governs": [
         "research/",
         "skills/scour/",
-        "skills/wayback/"
+        "skills/wayback/",
+        "skills/source-anchoring/",
+        "skills/source-anchored-writing/",
+        "skills/source-anchored-xlsx/",
+        "skills/content-registry/",
+        "skills/gold-set/",
+        "docs/source-bundles.md",
+        "docs/probes.md",
+        "python/source-bundles.py",
+        "python/probes.py"
       ],
       "reviewers": [
         "portable:owner-proxy",
@@ -382,8 +345,8 @@
         "?view=map&tab=research"
       ],
       "areas": [
-        { "name": "Probes", "panels": [{ "kind": "gallery", "source": "research", "where": { "kind": "^probe$" }, "limit": 8 }] },
-        { "name": "Exploration", "panels": [{ "kind": "gallery", "source": "research", "where": { "kind": "^exploration$" }, "limit": 8 }] }
+        { "name": "Probes", "panels": [{ "kind": "gallery", "source": "research", "repo": "mehrlander/web-tools-private", "where": { "kind": "^probe$" }, "limit": 8 }] },
+        { "name": "Exploration", "panels": [{ "kind": "gallery", "source": "research", "repo": "mehrlander/web-tools-private", "where": { "kind": "^exploration$" }, "limit": 8 }] }
       ]
     }
   ]

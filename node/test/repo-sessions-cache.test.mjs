@@ -143,6 +143,32 @@ test('summarize carries `attached`, and an older record gets [] not a guess', ()
   assert.deepEqual(S.summarize(record(), 'x').attached, []);
 });
 
+// A session another Claude session started with the create_session tool. The
+// record says so on its first prompt's line, and the row carries one flag for
+// it, present only where true, so a row that lacks the key (every row built
+// before ROW_V 26) reads as a session nobody launched rather than breaking.
+test('summarize marks a session another session launched, from its first prompt only', () => {
+  const prompt = (clientPlatform, text = 'an ask') =>
+    ({ at: '2026-11-08T00:45:32.603Z', text, line: { clientPlatform } });
+  const seeded = S.summarize(record({ prompts: [prompt('claude_code_mcp_seed', 'You are reader A')] }), 'x');
+  assert.equal(seeded.launched, true);
+
+  for (const [why, over] of [
+    ['an owner session from the phone', { prompts: [prompt('ios')] }],
+    ['an owner session from the web', { prompts: [prompt('web_claude_ai')] }],
+    ['a record whose first prompt carries no line', { prompts: [{ at: 'x', text: 'an ask' }] }],
+    ['a record with no prompts', { prompts: [] }],
+    ['a record from before prompts were kept', {}],
+    // The opening turn is what says who started the session; a later turn
+    // arriving from the tool is a session writing into one the owner began.
+    ['a launch client on a later turn', { prompts: [prompt('ios'), prompt('claude_code_mcp_seed')] }],
+  ]) assert.equal('launched' in S.summarize(record(over), 'x'), false, why);
+
+  // The flag survives the fold that strips the prose from a stored row.
+  assert.equal(S.leanRow(seeded).launched, true);
+  assert.ok(S.ROW_V >= 26, 'a new field reaches the stored rows only through a version bump');
+});
+
 test('summarize carries each repo position against main, keeping null apart from absent', () => {
   // Record schema 13. The recorder writes null where git could not answer (a
   // shallow clone past the fork point, most often) and leaves the keys out of

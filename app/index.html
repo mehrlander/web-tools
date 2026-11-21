@@ -2636,6 +2636,12 @@ const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k,
 // lists kit's slug. To-do is where a bare ?view=lists lands.
 const LISTS_HOME = 'to-do';
 const LISTS_TAB = /^[a-z0-9][a-z0-9-]{0,80}$/;
+// The Sessions view's tab off an address. Its key is `tab`, as every view's
+// sub-address is; until 2026-11-20 it was `lens`, which an older address
+// still carries, so that is read when `tab` is absent and the next stamp
+// writes it back as `tab`. Only on ?view=sessions, since another view's
+// `tab` names that view's tab.
+const sessionTabOf = p => p.get('view') === 'sessions' ? p.get('tab') || p.get('lens') || '' : '';
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -6707,15 +6713,18 @@ function app(){ return {
       } },
     { key: 'sessions',
       open(u = {}){
-        // The lens, its grain and the Repos lens's repo are read back here, so
+        // The tab, its grain and the Repos tab's repo are read back here, so
         // Back and Forward restore them as they restore the record and list.
-        this.sessionLens = u.lens || '';
+        // `lens` is the tab's key before 2026-11-20 (sessionTabOf).
+        const tab = u.tab || u.lens || '';
+        this.sessionTab = tab;
         this.sessionGrain = u.grain || '';
-        this.sessionReposItem = u.lens === 'repos' ? (u.item || '') : '';
+        this.sessionReposItem = tab === 'repos' ? (u.item || '') : '';
         this.sessionSpec = u.session || '';
         this.sessionFind = this.sessionSpec ? String(u.find || '').trim() : '';
         this.sessionSearchSeed = { q: u.aq || '', discussion: u.discussion === '1',
-          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '' };
+          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '',
+          launched: u.alaunched || '' };
         document.dispatchEvent(new CustomEvent('web-tools:session-search-seed', { detail: this.sessionSearchSeed }));
         this.goSessions();
         if (this._restoring) document.dispatchEvent(new CustomEvent('web-tools:restore-session', {
@@ -6738,6 +6747,9 @@ function app(){ return {
         if (search?.scope && search.scope !== 'day') p.set('ascope', search.scope);
         if (search?.repo) p.set('arepo', search.repo);
         if (search?.state && search.state !== 'all') p.set('astate', search.state);
+        // The launched filter: `only` the sessions another session started, or
+        // `hide` them. Showing every session is the default and stays silent.
+        if (search?.launched) p.set('alaunched', search.launched);
         // The LIST, which is the pane's scope rather than one open record, so it
         // outlives the deck: closing a swiper drops `session=` and leaves the
         // reader on the list they arrived with, not on whatever the default
@@ -6750,10 +6762,10 @@ function app(){ return {
         if (this.sessionTopicSpec) p.set('topic', this.sessionTopicSpec);
         // The default of each is silent, so the shortest address that means
         // "the Sessions pane as it opens" is still ?view=sessions alone.
-        if (this.sessionLens && this.sessionLens !== 'list') p.set('lens', this.sessionLens);
+        if (this.sessionTab && this.sessionTab !== 'list') p.set('tab', this.sessionTab);
         if (this.sessionGrain && this.sessionGrain !== 'session') p.set('grain', this.sessionGrain);
-        // The repo open in the Repos lens (lib/alpineComponents/session-repos.js).
-        if (this.sessionLens === 'repos' && this.sessionReposItem) p.set('item', this.sessionReposItem);
+        // The repo open in the Repos tab (lib/alpineComponents/session-repos.js).
+        if (this.sessionTab === 'repos' && this.sessionReposItem) p.set('item', this.sessionReposItem);
       } },
     { key: 'writes',   open(){ this.goWrites(); } },
     { key: 'chats',    open(){ this.goChats(); } },
@@ -6935,21 +6947,23 @@ function app(){ return {
   // `file` and `path` are the retired Files view's keys, kept in the delete
   // list so a stale one is cleared rather than carried into a screen that does
   // not mean it; nothing stamps them now. `ref` is deleted here and re-stamped
-  // above, being repo-scoped rather than any view's.
+  // above, being repo-scoped rather than any view's. `lens` is the same case:
+  // the Sessions tab's key until 2026-11-20, read on arrival (sessionTabOf)
+  // and cleared here, so the address leaves with `tab` in its place.
   // `on` is here to be DELETED and never written: it is the query fallback for
   // the subject's own params (appViewUrl), and the fragment is where they
   // belong, so an address arriving with ?on= leaves with '#'. That is the
   // self-heal, and it is why the key is in this list rather than a stamp.
   //
   // THE SESSIONS ROW'S FOUR ARRIVED LATE AND WERE MISSING FOR A WEEK.
-  // `session` and `list` (`set` until 2026-10-11) name the record and the scope; `lens` and `grain` are
+  // `session` and `list` (`set` until 2026-10-11) name the record and the scope; `lens` (`tab` from 2026-11-20) and `grain` are
   // how it is read. All four are stamped (PR #636 and #641, 2026-09-08 and
   // 09-09) and none was listed here, so they were written and never cleared:
   // leaving Sessions with a record open put `&session=…&set=…&lens=…&grain=…`
   // on the Map, on the Atlas, and on every address copied afterwards. The
   // second harm is worse than the untidiness, because these four are seeded
   // from `location.search` at construction: a cold load of one of those
-  // polluted addresses arms the Sessions pane with a record and a lens the
+  // polluted addresses arms the Sessions pane with a record and a tab the
   // reader never asked for, which appears the next time they open it.
   //
   // The rule this list states is not "list what looks stale". It is that a key
@@ -6959,7 +6973,7 @@ function app(){ return {
   VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'itemtab', 'call', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'skind', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
-              'aq', 'discussion', 'ascope', 'arepo', 'astate',
+              'aq', 'discussion', 'ascope', 'arepo', 'astate', 'alaunched',
               'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h', 'program', 'area',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
@@ -7004,6 +7018,7 @@ function app(){ return {
              sextra: p.get('sextra') || '',
              aq: p.get('aq') || '', discussion: p.get('discussion') || '',
              ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
+             alaunched: p.get('alaunched') || '',
              session: p.get('session') || '', find: p.get('find') || '',
              lens: p.get('lens') || '', grain: p.get('grain') || '',
              next: p.get('next') || '',
@@ -7073,19 +7088,19 @@ function app(){ return {
   // shared one, because the two decks hold different objects and a link that
   // said `detail=` for either would have to be disambiguated by the ?view= it
   // rides with, which is a rule nobody reading the address could apply.
-  // The Sessions pane's lens and, inside the table lens, its grain. Held here
+  // The Sessions pane's tab and, inside the Table tab, its grain. Held here
   // for the reason mapTab is: the URL is the shell's to own, and a view whose
   // state it does not carry cannot be linked. That was not academic. The render
-  // link handed over for this pane opened it on the List lens twice while the
+  // link handed over for this pane opened it on the List tab twice while the
   // thing under review was the table, so the reply had to end "now tap Table".
   //
   // Defaults stay OUT of the address (see the stamp below), so a plain
   // ?view=sessions link keeps meaning what it has always meant.
-  sessionLens: new URLSearchParams(location.search).get('lens') || '',
+  sessionTab: sessionTabOf(new URLSearchParams(location.search)),
   sessionGrain: new URLSearchParams(location.search).get('grain') || '',
-  sessionReposItem: (p => p.get('lens') === 'repos' ? p.get('item') || '' : '')(new URLSearchParams(location.search)),
-  // The Repos lens picked a repo. Browsing (a list tap, a swipe, a step)
-  // updates the address in place, so Back leaves the lens in one step;
+  sessionReposItem: (p => sessionTabOf(p) === 'repos' ? p.get('item') || '' : '')(new URLSearchParams(location.search)),
+  // The Repos tab picked a repo. Browsing (a list tap, a swipe, a step)
+  // updates the address in place, so Back leaves the tab in one step;
   // following a link (a companion tapped in the orbit) adds an entry, so Back
   // returns to the repo the reader followed it from. All repos is the
   // default and stays out of the address.
@@ -7098,8 +7113,9 @@ function app(){ return {
     this._restoring = restoring || !push;
     try { this.syncUrl(); } finally { this._restoring = restoring; }
   },
-  goSessionLens(lens, grain){
-    if (lens !== undefined) this.sessionLens = lens || '';
+  goSessionTab(tab, grain){
+    if (tab !== undefined) this.sessionTab = tab || '';
+
     if (grain !== undefined) this.sessionGrain = grain || '';
     this.syncUrl();
   },
@@ -7108,8 +7124,10 @@ function app(){ return {
   sessionSearchSeed: (() => {
     const p = new URLSearchParams(location.search);
     return { q: p.get('aq') || '', discussion: p.get('discussion') === '1',
-      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '' };
+      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '',
+      launched: p.get('alaunched') || '' };
   })(),
+
   setSessionSearch(seed){
     this.sessionSearchSeed = seed;
     const restoring = this._restoring;
@@ -7458,7 +7476,7 @@ function app(){ return {
   // classes are the shell's markup, not the component's.
   // Compactions fills too, for the same reason: its list and its strip each
   // scroll inside themselves (html-style rule 11).
-  get listsFill(){ return this.view === 'lists' || this.view === 'compactions' || (this.view === 'sessions' && this.sessionLens === 'repos'); },
+  get listsFill(){ return this.view === 'lists' || this.view === 'compactions' || (this.view === 'sessions' && this.sessionTab === 'repos'); },
   // App views are estate-level (peers of Repos/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".

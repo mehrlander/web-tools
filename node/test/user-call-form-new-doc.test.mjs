@@ -99,6 +99,26 @@ test('a new document is drawn whole, with no changes and no view to switch to', 
   assert.equal(root().querySelector('[data-doc-list]').style.display, 'none', 'and there is no list of edits');
 });
 
+test('a new document carries a copy icon at the end of its head row, which copies the file whole', async () => {
+  const btn = root().querySelector('[data-doc-head] [data-doc-copy]');
+  assert.ok(btn, 'the button sits in the row with the New pill');
+  await until(() => btn.style.display !== 'none');
+  assert.notEqual(btn.style.display, 'none', 'and shows once the document is read');
+  assert.ok(btn.classList.contains('ml-auto'), 'at the right end of the row');
+  assert.equal(btn.textContent.trim(), '', 'an icon, with no word on it');
+  assert.equal(btn.getAttribute('aria-label'), 'Copy the document', 'named for a screen reader');
+  const icon = btn.querySelector('i');
+  assert.ok(icon.classList.contains('ph-copy'));
+  const copied = [];
+  window.io = { copy: async (t) => { copied.push(t); return true; } };
+  btn.click();
+  await until(() => copied.length);
+  assert.deepEqual(copied, [DOC], 'the text as the branch holds it');
+  await until(() => icon.classList.contains('ph-check'));
+  assert.ok(icon.classList.contains('ph-check'), 'the icon turns to a check once the copy worked');
+  delete window.io;
+});
+
 test('a documentation slide fills the deck: no ground padding and no card border', () => {
   const ground = root().querySelector('[data-call-ground]'), card = root().querySelector('[data-call-card]');
   assert.ok(!ground.classList.contains('p-3'));

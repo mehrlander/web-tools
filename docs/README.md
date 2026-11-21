@@ -5,14 +5,14 @@
 Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
 live in [the Web Tools app's Map → Docs → Inventory](https://mehrlander.github.io/web-tools/app/?view=map&tab=docs).
-A **record** preserves a moment and is
-never rewritten: a later dated sentence corrects it; a **measured** doc carries dated
+A **record** (`edit=write-once` in `.gitattributes`) preserves a moment and is
+not edited once on main: a note corrects it; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 16 are named by CLAUDE.md,
-24 by a skill, 43 by a page or component. The remaining 46 are
+25 by a skill, 43 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -100,7 +100,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`credentials.csv`](credentials.csv) — the credentials writers commit with, one row each: its kind, the venue that holds it and whose name its commits carry
 - [`machines.csv`](machines.csv) — the machines work runs on, one row per machine: what each is and what work there reaches
 - [`machines.md`](machines.md) *(measured)* — dated observations about the machines docs/machines.csv lists: what each product needs to keep running, and where unattended work fits
-- [`acronyms.md`](acronyms.md) *(orphan)* — coined acronyms for asks a session may hear (SPUR, FAIR) and for an order of explaining a term (CDE), kept mostly for fun
+- [`acronyms.md`](acronyms.md) — coined acronyms for asks a session may hear (SPUR, TOUR) and for an order of explaining a term (CDE), kept mostly for fun
 - [`formats.csv`](formats.csv) *(orphan)* — the JSON formats web-tools defines or renders: each one's contract, schema, id key, producer and envelope membership
 
 ## docs/envelopes/
@@ -162,7 +162,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`content-maturity-ideas.json`](prototypes/content-maturity-ideas.json) *(record, orphan)* — the idea board for a diagram of content maturity: eight ways to draw four levels from Markdown notes to a view in the app, and the staircase selected with three grafts
 - [`md-edit-ideas.json`](prototypes/md-edit-ideas.json) *(record, orphan)* — the idea board for the Markdown section editor: eight concepts drawn over the Intake section of docs/stage.md, and the selection the two built editors came from
-- [`session-repos-ideas.json`](prototypes/session-repos-ideas.json) *(record, orphan)* — the idea board for the Sessions pane's Repos lens: eight ways to draw which repos one repo is worked alongside and how heavily, and the selection the lens builds
+- [`session-repos-ideas.json`](prototypes/session-repos-ideas.json) *(record, orphan)* — the idea board for the Sessions view's Repos tab: eight ways to draw which repos one repo is worked alongside and how heavily
 - [`harness-map-ideas.json`](prototypes/harness-map-ideas.json) *(record, orphan)* — the idea board for the harness picture: eight ways to draw how writers, the credentials they commit with and the machines they run on reach GitHub, and the selection docs/prototypes/harness-map.html builds
 - [`forms-tab-ideas.json`](prototypes/forms-tab-ideas.json) *(record, orphan)* — the idea board for the Map's Forms tab: eight ways to show the estate's forms with the pages that carry each, and the selection the tab builds
 - [`code-comments-ideas.json`](prototypes/code-comments-ideas.json) *(record, orphan)* — the idea board for a view of the estate's code comments and docstrings: eight ways to show where comment text sits, how much there is beside the Markdown, and what it cites, and the selection a Docs sub-tab would build
