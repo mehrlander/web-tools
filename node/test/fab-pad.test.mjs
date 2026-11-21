@@ -1,7 +1,7 @@
-// fab-pad.test.mjs — the FAB's arrow pad: the launcher turned into four arrow
-// keys, raised by the menu's Pad or a drag into the bottom-left corner, whose
-// presses reach the page in view as keydown and keyup, and whose centre turns
-// it back into the launcher.
+// fab-pad.test.mjs — the FAB's arrow pad: four chevrons round the launcher,
+// raised by the menu's Place row or a drag into the bottom-left corner, whose
+// presses reach the page in view as keydown and keyup, and which a tap on the
+// launcher takes off. Also where the launcher stands while Peek's panel is up.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,8 +24,10 @@ async function mountFab() {
 const ev = (type, x, y) => ({ type, button: 0, pointerId: 1, clientX: x, clientY: y, currentTarget: { setPointerCapture() {} } });
 const wait = (ms) => new Promise(r => window.setTimeout(r, ms));
 
-test('a drag into the bottom-left corner turns the launcher into the pad there, and its centre turns it back', async () => {
+test('a drag into the bottom-left corner puts the arrow pad round the launcher there, and a tap takes it off', async () => {
   const { d, host } = await mountFab();
+  const wrap = host.querySelector('[data-fab-wrap]');
+  const W = window.innerWidth;
   try {
     d.x = -100; d.y = -200;
     d.onDown(ev('pointerdown', 950, 500));
@@ -36,35 +38,75 @@ test('a drag into the bottom-left corner turns the launcher into the pad there, 
     assert.equal(d.tuckAim, false);
     d.onUp(ev('pointerup', 10, 800)); await tick(2);
     assert.equal(d.padOn, true);
-    assert.equal(d.padSide, 'left', 'in the corner it was dragged to');
     assert.equal(d.tuckNow, false, 'which is not a tuck');
     assert.equal(d.open, false, 'and the drawer does not open behind it');
-    assert.deepEqual([d.x, d.y], [-100, -200], 'the launcher keeps the place the drag began');
-    assert.match(host.querySelector('[data-fab-wrap]').className, /\bhidden\b/, 'the launcher is gone while the pad is up');
-    const pad = host.querySelector('[data-fab-pad]');
+    assert.deepEqual([d.x, d.y], [-(W - 80) + 46, 24 - 46], 'the launcher stays in that corner, in far enough for its chevrons');
+    assert.doesNotMatch(wrap.className, /(^|\s)hidden(\s|$)/, 'the launcher is still the launcher');
+    const pad = wrap.querySelector('[data-fab-pad]');
+    assert.ok(pad, 'the chevrons ride inside the launcher, so a drag carries them');
     assert.deepEqual([...pad.querySelectorAll('[data-pad-key]')].map(b => b.dataset.padKey).sort(),
-      ['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'], 'four arrows');
-    assert.match(pad.className, /left-6/);
-    pad.querySelector('[data-fab-pad-home]').dispatchEvent(new window.Event('pointerup', { bubbles: true })); await tick(2);
-    assert.equal(d.padOn, false, 'the centre turns it back');
-    assert.doesNotMatch(host.querySelector('[data-fab-wrap]').className, /\bhidden\b/);
+      ['ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowUp'], 'four of them');
+    d.onDown(ev('pointerdown', 100, 700));
+    d.onUp(ev('pointerup', 100, 700)); await tick(2);
+    assert.equal(d.padOn, false, 'a tap on the launcher takes the pad off');
+    assert.equal(d.open, false, 'rather than opening the drawer');
+    assert.deepEqual([d.x, d.y], [-(W - 80) + 46, 24 - 46], 'where it stands');
   } finally { host.remove(); }
 });
 
-test('the menu\'s Pad raises the pad in the corner on the launcher\'s side', async () => {
+test('with the pad up, the launcher drags inside room for its chevrons, and the corners do nothing', async () => {
+  const { d, host } = await mountFab();
+  try {
+    d.raisePad();
+    assert.deepEqual([d.x, d.y], [-22, -22], 'raised at rest, it slides in to make room');
+    d.onDown(ev('pointerdown', 900, 700));
+    d.onMove(ev('pointermove', 1100, 900));
+    assert.deepEqual([d.x, d.y], [-22, -22], 'the drag stops short of the edges');
+    assert.equal(d.tuckAim, false, 'and the corner is not aimed');
+    d.onUp(ev('pointerup', 1100, 900)); await tick(2);
+    assert.equal(d.tuckNow, false);
+    assert.equal(d.padOn, true, 'a drag is not a tap');
+    d.lowerPad();
+  } finally { host.remove(); }
+});
+
+test('the menu\'s Place row raises the pad and takes it off again', async () => {
   const { d, host } = await mountFab();
   try {
     d.fabMenu = true; await tick(2);
-    host.querySelector('[data-fab-pad-row]').click(); await tick(2);
-    assert.equal(d.fabMenu, false, 'the row closes the menu');
+    const btn = host.querySelector('[data-fab-pad-row]');
+    assert.equal(btn.getAttribute('aria-label'), 'Arrow pad');
+    btn.click(); await tick(2);
+    assert.equal(d.fabMenu, false, 'the button closes the menu');
     assert.equal(d.padOn, true);
-    assert.equal(d.padSide, 'right', 'the launcher at rest is on the right');
-    d.lowerPad();
-    d.x = -(window.innerWidth - 200);
-    d.raisePad();
-    assert.equal(d.padSide, 'left', 'a launcher dragged left raises it on the left');
-    d.lowerPad();
+    assert.equal(btn.getAttribute('aria-pressed'), 'true', 'and shows itself pressed');
+    btn.click(); await tick(2);
+    assert.equal(d.padOn, false, 'pressed again, it takes the pad off');
   } finally { host.remove(); }
+});
+
+// Peek docks a panel along the bottom or the top of the page; along the
+// bottom, the launcher stands on its top edge rather than over its corner.
+test('the launcher stands on Peek\'s panel while it is docked at the bottom', async () => {
+  const { d, host } = await mountFab();
+  const root = doc.documentElement;
+  const panel = doc.createElement('div');
+  panel.setAttribute('data-peek-panel', '');
+  panel.getBoundingClientRect = () => ({ top: 500, height: 300, width: 390, bottom: 800 });
+  doc.body.append(panel);
+  const wait2 = () => new Promise(r => window.setTimeout(r, 20));
+  try {
+    root.setAttribute('data-peek-open', 'bottom'); await wait2(); await tick(2);
+    assert.equal(d.peekLift, 312, 'the panel\'s height and a gap');
+    assert.match(host.querySelector('[data-fab-wrap]').getAttribute('style'), /translate\(0px,-288px\)/, 'a launcher at home rises to the panel\'s edge');
+    d.y = -400; await tick(2);
+    assert.match(host.querySelector('[data-fab-wrap]').getAttribute('style'), /translate\(0px,-400px\)/, 'one already above it stays put');
+    d.y = 0;
+    root.setAttribute('data-peek-open', 'top'); await wait2(); await tick(2);
+    assert.equal(d.peekLift, 0, 'docked at the top, the launcher keeps its place');
+    root.removeAttribute('data-peek-open'); await wait2(); await tick(2);
+    assert.equal(d.peekLift, 0);
+  } finally { host.remove(); panel.remove(); root.removeAttribute('data-peek-open'); }
 });
 
 // A key made by script has no default, so what it can do is what the page's

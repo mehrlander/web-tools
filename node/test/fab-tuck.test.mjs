@@ -67,7 +67,7 @@ test('the menu\'s Hide tucks the launcher into the corner on any page, until the
     d.fabMenu = true; await tick(2);
     const row = host.querySelector('[data-fab-hide]');
     assert.ok(row, 'the menu offers Hide');
-    assert.match(row.textContent, /Hide/);
+    assert.equal(row.getAttribute('aria-label'), 'Hide', 'an icon button on the Place row, named for what it does');
     row.click(); await tick(2);
     assert.equal(d.fabMenu, false, 'the row closes the menu');
     assert.equal(d.tuckNow, true, 'and tucks the launcher with no pad on the page');
