@@ -15,6 +15,8 @@ is one, since it opens over whichever view is on screen. Only budget-drs
 declares overlays so far, in its `data/design/overlays.csv`, each with the view
 or tab it opens over. An overlay is coded for what it shows, not for its host,
 so the Map's Forms tab groups it by the object type its `form` code names.
+An overlay is presented as a takeover (html-style rule 4) or a panel-tip (rule
+10), and its `body` and `phone` codes record which.
 A tab whose data, not its reader, chooses between arrangements (the Project
 Overview) is one unit per arrangement, and a route that only lands on a tab
 (`lands` in `docs/app-routes.csv`) is an address of that tab's unit.
