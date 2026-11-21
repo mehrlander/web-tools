@@ -249,90 +249,84 @@ view time.
 ## The refresh model
 
 Run `npm run setup` once in a new clone or linked worktree. It stores a
-relative `.githooks` path, so Git resolves the hooks from the checkout it is
-operating on, and registers the `derived-csv` merge driver named by
-`.gitattributes`. `npm run ready` reads the effective hook path and driver
-config and writes nothing.
+relative `.githooks` path, which Git resolves in whichever checkout it is
+working on, and registers the `derived-csv` merge driver that `.gitattributes`
+names. `npm run ready` reads the hook path and driver config and writes
+nothing.
 
-A generated file is refreshed one of two ways, by whether its generator is
-deterministic.
+Generated files are refreshed in three places:
 
-**Deterministic generated files ride in the commit that changes their source.**
+- the commit hook, below, commits each deterministic generated file with the
+  change to its source;
+- [`refresh-derived.yml`](../.github/workflows/refresh-derived.yml) runs
+  `npm run artifacts:refresh` on `main` after each push, for writes that ran no
+  hook;
+- page thumbnails (`pages/thumbs/*.png`) are slow and not byte-deterministic,
+  and are refreshed once per session, as root `CLAUDE.md` says under
+  "Per-session refresh: thumbnails".
+
+**Deterministic generated files are committed with their source.**
 [`.githooks/pre-commit`](../.githooks/pre-commit) runs
 [`build/commit-rules.mjs`](build/commit-rules.mjs) over the rules in
 [`docs/commit-rules.csv`](../docs/commit-rules.csv). A rule is a Make rule:
 sources, a command, outputs. In file order, each rule whose sources have a
 pending change runs its command and, when the command succeeds, stages its
 outputs. A failed command or a missing output prints a warning, and the commit
-proceeds. A rule's `kind` is `build` (a bundle), `generate` (a catalog,
-registry or index), `package` (a copy a plugin ships) or `check` (a warning
-that writes nothing, printed when its command exits nonzero).
-`npm run artifacts:refresh` runs every rule whose `repair` is `yes` over the
-whole tree, and `npm run build`, `generate`, `package` and `check` do the same
-for one kind. Each stages what it writes, as the hook does.
+proceeds. A rule's `kind` is `build` (a built script under `dist/` or
+`console/`), `generate` (a catalog, registry or index), `package` (a copy a
+plugin ships) or `check` (a warning that writes nothing, printed when its
+command exits nonzero).
 
-Most generated files are written whole. Four are not. `docs/docs.csv`,
-`docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are
-hand-edited except for the fields or rows a generator writes. Edit a row freely
-and leave those fields alone.
+Most generated files are written whole. Four are not:
+[`docs/docs.csv`](../docs/docs.csv), [`docs/harness.csv`](../docs/harness.csv),
+[`docs/registries.csv`](../docs/registries.csv) and
+[`docs/tests-authored.csv`](../docs/tests-authored.csv) are hand-edited except
+for the fields or rows a generator writes. Edit a row freely and leave those
+fields alone.
 
 **A rule that writes a file runs before any rule that measures it.**
-`docs-reach` stamps every `docs/` file's word count into `docs/docs.csv`, so
-each rule that writes under `docs/` comes before it. `docs/README.md` is
-generated from that registry and is also a row in it, so `docs-restamp` runs
-`docs-reach` again after `docs-readme`. `csv-census` measures the staged bytes
-of every CSV, so it comes after every rule that writes one. Nothing local
-reports a stamp taken too early; `docs-registry.test.mjs` catches it in CI.
+`docs-reach` writes the word count of every `docs/` file into `docs/docs.csv`.
+Each rule that writes under `docs/` comes before it. `docs/README.md` is
+generated from `docs/docs.csv` and is also a row in it. After `docs-readme`
+rewrites it, `docs-reach-again` runs `docs-reach` once more. `csv-census`
+measures the staged bytes of every CSV and comes after every rule that writes
+one. A word count written too early fails `docs-registry.test.mjs` in CI.
 
-Every generator is byte-deterministic, so the hook can run on every commit and
-changes nothing when nothing real changed. The suite asserts determinism
-directly rather than inferring it from one passing run, since a
-nondeterministic generator makes a byte-comparison test flaky rather than
-false.
+Every generator is byte-deterministic. The hook can run on every commit and
+changes nothing when nothing real changed. The suite tests determinism
+directly.
 
-**Automatic local merge commits use the same rules.** Git does not invoke
-`pre-commit` for a clean automatic merge; it invokes `pre-merge-commit`, which
-runs the effective `pre-commit` once the combined index exists and compares the
-index tree before and after. Git has already cached the merge tree by then, so
-if the rules changed the index, the hook stops the commit, leaves the merge and
-its refreshed index in progress, and prints one next step:
-`git -c core.editor=true merge --continue`. That continuation is an ordinary
-commit, so `pre-commit` runs again and `commit-msg` keeps the consent gate. If
-nothing changed, the merge finishes in one command. A conflicted merge never
-reaches `pre-merge-commit`; its continuation uses `pre-commit`. Fast-forwards
-create no merge commit, and `--no-verify` remains the deliberate bypass.
+**Automatic local merge commits use the same rules.** Git does not run
+`pre-commit` for a clean automatic merge. It runs `pre-merge-commit`, which
+runs `pre-commit` on the merged index and compares the index before and after.
+Git has already recorded the merge tree by then. When the rules changed a
+file, the hook stops the commit and leaves the merge in progress, with the
+regenerated files staged. It prints the next step:
+`git -c core.editor=true merge --continue`. That command makes an ordinary
+commit, which runs `pre-commit` again and then the
+[`commit-msg`](../.githooks/commit-msg) checks. When no file changed, the merge
+finishes in one command. A conflicted merge does not reach `pre-merge-commit`;
+its continuation is an ordinary commit. A fast-forward creates no merge commit,
+and `--no-verify` skips every hook.
 
-The registry CSV merge driver and the commit rules divide the job. The driver
-unions rows, merges authored cells strictly three-way, and leaves computed
-cells at the current side's value. The rules then run over the combined tree
-and restamp those computed cells. Neither takes one CSV side wholesale, so
-authored rows from the other branch survive.
+The registry CSV merge driver and the commit rules divide the work. The driver
+unions rows, merges authored cells three-way, and keeps the current side's
+value in computed cells. The rules then run over the merged tree and rewrite
+those computed cells. Neither takes one side of a CSV whole. Authored rows from
+the other branch survive.
 
-**Thumbnails (`pages/thumbs/*.png`) refresh once per session, before a merge.**
-Screenshots are slow and not byte-deterministic, so no rule takes them. The
-`thumbnails` check names each changed page whose thumbnail did not change;
-shoot those before a merge with `npm run pages-shots -- <changed pages…>` (root
-`CLAUDE.md`, "Per-session refresh: thumbnails"). Until then,
-`pages/index.html` shows the "no screenshot" placeholder for a missing
-thumbnail.
+GitHub Pages serves `main` as it is, with no deploy build.
 
-GitHub Pages serves `main` as-is, with no deploy build.
-`.github/workflows/test.yml` runs `npm test` on pull requests and on pushes to
-`main`, except pushes limited to `pages/wsl-sync/data/**`, and commits nothing.
-GitHub's API, MCP writes, the web merge button and other server-side merges
-cannot run a local checkout's hooks; on `main`,
-`.github/workflows/refresh-derived.yml` runs `npm run artifacts:refresh` after
-each push and commits what moved. Before a server merge, merge the current base
-into the branch in a ready local checkout, run `npm test`, and push the
-refreshed branch, following a printed `git -c core.editor=true merge --continue`
-when the combined tree needed restamping. If a remote write left a tree that
-workflow did not repair (a branch, or a test still red after it ran), check out
-that tree locally, run `npm run artifacts:refresh` and then `npm test`, run any
-further generator the test names, and commit and push the repair.
+[`test.yml`](../.github/workflows/test.yml) runs `npm test` on pull requests
+and on pushes to `main`, except pushes limited to `pages/wsl-sync/data/**`. It
+commits nothing.
 
-Committed generated files are the truth, which is what lets a branch be
-previewed before merge via `?use=<sha>`. Authored docs (`docs/environment/`,
-this file) are never generated.
+A write through GitHub's API, MCP or a server-side merge runs no local hooks.
+Root [`CLAUDE.md`](../CLAUDE.md#the-pre-build--the-build-on-commit-hook), under
+"Verification stays independent", says how to repair the tree it leaves.
+
+A branch can be previewed before merge with `?use=<sha>` because its generated
+files are committed.
 
 ## Extending
 

@@ -16,7 +16,7 @@ order,rule,kind,sources,command,outputs,repair,description
 15,peeves-csv,package,skills/peeves/peeves.md;node/build/peeves-csv.mjs,npm run peeves-csv,skills/peeves/peeves.csv,yes,the peeves list as CSV
 16,comment-blocks,generate,*.js;*.mjs;*.html;*.py;*.md;docs/*.csv,npm run comment-blocks,data/comments/web-tools.json,yes,every comment block in the code and the documents it names
 17,docs-readme,generate,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-readme,docs/README.md,yes,the docs index
-18,docs-restamp,generate,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-reach,docs/docs.csv,yes,"docs/README.md's word count, after docs-readme rewrites it"
+18,docs-reach-again,generate,docs/docs.csv;node/build/docs-readme.mjs,npm run docs-reach,docs/docs.csv,yes,"docs/README.md's word count, after docs-readme rewrites it"
 19,tracker-board,generate,tracker/tasks/,npm run tracker-board,tracker/board.md;tracker/board.csv;tracker/board-tags.csv,yes,the tracker board
 20,csv-census,generate,*.csv;.web-tools.json;python/csv-census.py,python3 python/csv-census.py,data/csv-census.csv,yes,"the census of tracked CSVs, measured from the staged bytes"
 21,thumbnails,check,pages/*.html;lib/kits/demos/*.html;skills/*/demo.html,node node/build/pages-shots.mjs --stale,,yes,a changed page whose thumbnail did not change
