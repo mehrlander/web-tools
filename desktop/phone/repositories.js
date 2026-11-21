@@ -22,7 +22,7 @@
   const valid=value=>value?.schemaVersion===1&&Number.isFinite(Date.parse(value.observedAt))&&Array.isArray(value.repositories)&&value.repositories.length<=256
     &&Array.isArray(value.refreshing)&&value.repositories.every(r=>/^[a-f0-9]{24}$/.test(r.key)&&typeof r.name==='string'&&Array.isArray(r.checkouts)&&r.checkouts.length<=256
       &&r.checkouts.every(c=>/^[a-f0-9]{24}$/.test(c.key)&&typeof c.name==='string'&&typeof c.branch==='string'&&c.tracked&&window.NowLocalFiles.valid(c.localFiles,c.key)));
-  let data,active=false,connected=false,pending=false,timer,staleTimer,etag='',failed=false,denied=false,sending='',message='',selected='',selectedRoot='gh',selectedFile='',popup=null;
+  let data,active=false,connected=false,pending=false,timer,staleTimer,etag='',failed=false,denied=false,sending='',message='',selected='',selectedRoot='downloads',selectedFile='',popup=null;
   const positions=new Map();
   const routeKey=()=>selectedRoot+'\0'+(selectedFile?'file:'+selectedFile:'folder:'+selected);
   const fresh=()=>connected&&navigator.onLine!==false&&data&&Date.now()-Date.parse(data.observedAt)<45000;
@@ -134,7 +134,9 @@
   function route(enter=false){
     if(!active)return;
     const params=new URLSearchParams(location.hash.slice(1));if(!['files','repositories'].includes(params.get('view')))return;
-    const root=params.get('root')||'gh',file=params.get('file')||'',key=params.get('checkout');
+    // Existing folder, file and checkout links predate named roots and mean gh.
+    const legacy=params.get('view')==='repositories'||['folder','file','checkout','filter'].some(key=>params.has(key));
+    const root=params.get('root')||(legacy?'gh':'downloads'),file=params.get('file')||'',key=params.get('checkout');
     const next=file?file.split('/').slice(0,-1).join('/'):params.get('folder')??(root==='gh'?checkoutFor(key)?.name:null)??'';
     if(next!==selected||root!==selectedRoot||file!==selectedFile){if(!enter)positions.set(routeKey(),scrollPosition());selected=next;selectedRoot=root;selectedFile=file;popup=null;window.TitleTip?.close();render();restoreScroll(positions.get(routeKey())||0);}
     else {render();if(enter)restoreScroll(positions.get(routeKey())||0);}
@@ -142,7 +144,7 @@
     window.NowViews?.refreshContext?.();
   }
   function folderRoute(path,root=selectedRoot,filter='all'){
-    const params=new URLSearchParams({view:'files'});if(root!=='gh')params.set('root',root);if(path)params.set('folder',path);if(filter!=='all')params.set('filter',filter);
+    const params=new URLSearchParams({view:'files',root});if(path)params.set('folder',path);if(filter!=='all')params.set('filter',filter);
     return '#'+params;
   }
   function openFolder(path,filter='all',root=selectedRoot){
@@ -151,7 +153,7 @@
     history.pushState({localFiles:true},'',hash);route();
   }
   function openFile(path){
-    const params=new URLSearchParams({view:'files'});if(selectedRoot!=='gh')params.set('root',selectedRoot);params.set('file',path);
+    const params=new URLSearchParams({view:'files',root:selectedRoot});params.set('file',path);
     history.pushState({localFiles:true,filesBack:location.hash},'','#'+params);route();
   }
   function back(){
@@ -189,7 +191,7 @@
     items[event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus({preventScroll:true});
   });
   document.addEventListener('change',event=>{
-    if(active&&event.target.matches('[data-file-root]')&&['gh','outputs'].includes(event.target.value))openFolder('','all',event.target.value);
+    if(active&&event.target.matches('[data-file-root]')&&['downloads','gh','outputs'].includes(event.target.value))openFolder('','all',event.target.value);
   });
   document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden)poll();});
   window.addEventListener('popstate',()=>route());window.addEventListener('hashchange',()=>route());

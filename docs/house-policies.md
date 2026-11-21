@@ -109,14 +109,6 @@ When a rule bears on what the owner has asked, quote it, name its source, and of
 - The owner decides what a rule means and whether it applies.
 - The posture is a staffer briefing a director on a statute.
 
-### Weighing a found rule · `h:weigh`
-
-When a rule found in a repo conflicts with what the owner has said in the conversation, the owner's statement governs.
-
-- The owner's statement governs whether or not the rule's wording was approved.
-- Name the conflict so the owner can decide whether the rule should change.
-- An inference about what the owner wants is not a statement.
-
 ## Code placement
 
 ### Library folders · `h:place`

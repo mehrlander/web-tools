@@ -325,7 +325,16 @@
       "governs": [
         "research/",
         "skills/scour/",
-        "skills/wayback/"
+        "skills/wayback/",
+        "skills/source-anchoring/",
+        "skills/source-anchored-writing/",
+        "skills/source-anchored-xlsx/",
+        "skills/content-registry/",
+        "skills/gold-set/",
+        "docs/source-bundles.md",
+        "docs/probes.md",
+        "python/source-bundles.py",
+        "python/probes.py"
       ],
       "reviewers": [
         "portable:owner-proxy",
