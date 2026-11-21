@@ -225,6 +225,9 @@ test('the repo cut separates a crawl from browsing, and still adds up', () => {
   // Four repos at one call each is the crawl's signature, and no endpoint
   // grouping shows it: all four are the same `contents` shape.
   assert.equal(rows.filter(r => r.named && r.calls === 1 && !r.writes).length, 4);
+  const g = T.repoGroups([{ url: 'https://api.github.com/repos/o/r/contents/a.js', status: 200, wire: null }])[0];
+  assert.equal(g.unknown, 1, 'a call with no length is counted as unknown in its repo, not absorbed');
+  assert.equal(g.wire, 0);
   // The unattributable bucket sorts last, since it is a caveat not a finding.
   assert.equal(rows[rows.length - 1].named, false);
   assert.equal(rows[rows.length - 1].calls, 1);

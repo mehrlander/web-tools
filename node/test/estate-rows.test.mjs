@@ -91,6 +91,15 @@ test('groupSections: a section per group, groups and members ordered by each rep
   ]);
 });
 
+test('groupSections: a group ranks by its lowest member order, not its highest', async () => {
+  await loadWith({
+    'me/a1': { estate: true, group: 'A', order: 1 },
+    'me/a9': { estate: true, group: 'A', order: 9 },
+    'me/b5': { estate: true, group: 'B', order: 5 },
+  });
+  assert.deepEqual(sections(), [['A', ['me/a1', 'me/a9']], ['B', ['me/b5']]]);
+});
+
 test('estate:false opts a repo out entirely', async () => {
   await loadWith(CONFIG_MAP);
   assert.ok(!data.entries.some(e => e.repo === 'me/skip'));

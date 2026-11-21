@@ -31,6 +31,7 @@ test('the kind reads the browser and the platform, and says when it is a home-sc
   assert.equal(B.kind(B.detect({ userAgent: UA.iphoneChrome, maxTouchPoints: 5 }, no)), 'iPhone Chrome', 'CriOS is Chrome, though it names Safari too');
   assert.equal(B.kind(B.detect({ userAgent: UA.ipadAsMac, maxTouchPoints: 5 }, no)), 'iPad Safari', 'a Mac with a touch screen is an iPad');
   assert.equal(B.kind(B.detect({ userAgent: UA.ipadAsMac, maxTouchPoints: 0 }, no)), 'Mac Safari');
+  assert.equal(B.kind(B.detect({ userAgent: UA.ipadAsMac, maxTouchPoints: 1 }, no)), 'Mac Safari', 'one touch point is not an iPad');
   assert.equal(B.kind(B.detect({ userAgent: UA.macChrome, maxTouchPoints: 0 }, no)), 'Mac Chrome');
   assert.equal(B.kind(B.detect({ userAgent: UA.windowsEdge, maxTouchPoints: 0 }, no)), 'Windows Edge');
   assert.equal(B.kind(B.detect({ userAgent: UA.iphoneSafari, maxTouchPoints: 5, standalone: true }, no)), 'iPhone Safari, home screen');

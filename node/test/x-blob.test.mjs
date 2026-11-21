@@ -92,6 +92,24 @@ test('a live address moves both halves together', async () => {
   assert.equal(a.getAttribute('data-peek'), 'me/r@main:docs/two.md', 'and so did the peek');
 });
 
+test('a live address that goes empty or unparseable clears both halves', async () => {
+  // The transition, not the static case: a row that loses its path must not
+  // keep the previous file's href or its peek address.
+  const host = window.document.getElementById('m');
+  for (const [expr, next] of [[`p ? 'me/r@main:' + p : ''`, ''], [`p`, 'not-an-address']]) {
+    const first = expr === 'p' ? 'me/r@main:docs/one.md' : 'docs/one.md';
+    host.innerHTML = `<div x-data='{ "p": "${first}" }'><a x-blob="${expr}">mark</a></div>`;
+    Alpine.initTree(host);
+    await tick(2);
+    const a = host.querySelector('a');
+    assert.ok(a.getAttribute('href'), 'precondition: a link was offered');
+    Alpine.$data(host.firstElementChild).p = next;
+    await tick(2);
+    assert.equal(a.getAttribute('href'), null, expr);
+    assert.equal(a.getAttribute('data-peek'), null, expr);
+  }
+});
+
 test('the Map view spells its exact-file marks this way', () => {
   // A ceiling, not a count: the hand-written pair is what the directive
   // replaces, and a new one appearing in this file means the convention was

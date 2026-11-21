@@ -42,6 +42,13 @@ test('a rule further down the file is a rule, not a fence', () => {
   assert.equal(R.stripFrontmatter(md), md);
 });
 
+test('a body with two rules further down is not read as a fence pair', () => {
+  // Only a fence that OPENS the file counts; an unanchored match would close
+  // the pair between the two mid-file rules and swallow what lies before it.
+  const md = '# T\n\ntext\n\n---\n\nmid\n\n---\n\nend\n';
+  assert.equal(R.stripFrontmatter(md), md);
+});
+
 test('a document with no frontmatter is returned unchanged', () => {
   for (const md of ['# Title\n', '', 'plain text', '--- not a fence\n']) {
     assert.equal(R.stripFrontmatter(md), md);

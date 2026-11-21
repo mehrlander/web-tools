@@ -122,6 +122,14 @@ test('a sum of two-decimal money comes back with two decimals', () => {
   assert.equal(res.tree.value, 0.6);
 });
 
+test('the decimals of a measure are the widest any row carries, not the last', () => {
+  const wb = bench([{ k: 'a', v: '1.255' }, { k: 'a', v: '2.5' }]);
+  wb.pvScan();
+  assert.equal(wb.pvDec.v, 3);
+  wb.pvDims = ['k']; wb.pvMeasure = 'v'; wb.pvAgg = 'sum';
+  assert.equal(wb.pvTree(Object.values(wb.tabs[0].rows)).tree.value, 3.755);
+});
+
 test('avg, min and max are reported as non-partitions', () => {
   for (const agg of ['avg', 'min', 'max']) {
     const wb = bench(ROWS);

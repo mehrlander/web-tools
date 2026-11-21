@@ -90,6 +90,15 @@ test('wrong type is rejected', async () => {
   assert.equal(data.statusKind, 'error');
 });
 
+test('an accepted extension mid-name is not a match', async () => {
+  assert.equal(data.matchesAccept(fakeFile('evil.json.exe', [1])), false);
+  last = null;
+  await data.emitFile(fakeFile('evil.json.exe', [1]));
+  await tick();
+  assert.equal(last, null);
+  assert.equal(data.statusKind, 'error');
+});
+
 test('take() honors multiple=false (first file only)', async () => {
   const seen = [];
   window.document.getElementById('host').addEventListener('drop-file', e => seen.push(e.detail.name));

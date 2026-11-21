@@ -28,6 +28,8 @@ const CALLS = {
     size: 'S', confidence: 'firm', pr: 'me/widget#7', created: '2026-10-15T11:00:00Z' },
   'user-calls/c0ffee01-two.json': { id: 'c0ffee01-two', session: 'c0ffee01', kind: 'decision', question: 'Two steps?',
     recommend: 'Yes, switch', confidence: 'lean', why: 'closer on average', created: '2026-10-15T11:30:00Z' },
+  'user-calls/c0ffee02-x.json': { id: 'c0ffee02-x', session: 'c0ffee02', kind: 'decision', question: 'Foreign?',
+    recommend: 'No', created: '2026-10-15T12:00:00Z' },
 };
 // A second session's documentation calls: one waiting, one closed.
 CALLS['user-calls/d0c5e001-readme.json'] = { id: 'd0c5e001-readme', session: 'd0c5e001', kind: 'documentation', name: 'Readme Links',
@@ -143,6 +145,7 @@ await until(() => data('topics').calls.length === 5);
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
 test('a framed slide reads its session\'s calls, and only its own', () => {
+  // c0ffee02-x shares the session's prefix but not its id, and is not listed.
   assert.deepEqual(Array.from(data('slide').calls, (c) => c.id), ['c0ffee01-size', 'c0ffee01-two']);
   assert.ok(listed.includes(STORE), 'the store\'s user-calls/ is listed');
 });
@@ -169,6 +172,16 @@ test('the Calls tab shows with a count, tinted while a call waits', async () => 
   assert.equal(data('slide').openCallCount, 1, 'one is answered');
   assert.match(tab.querySelector('span').className, /bg-warning\/30/);
   assert.equal(el('none').querySelector('[data-session-calls-tab]').style.display, 'none', 'no calls, no tab');
+});
+
+test('a closed, unanswered call does not wait: the open count and the tab tint ignore it', async () => {
+  const s = data('slide'), keep = s.calls;
+  s.calls = [...keep, { id: 'c0ffee01-shut', session: 'c0ffee01', kind: 'decision', question: 'Closed?', recommend: 'No', status: 'closed' }];
+  try {
+    await tick(2);
+    assert.equal(s.openCallCount, 1);
+    assert.match(el('slide').querySelector('[data-session-calls-tab] span').className, /bg-warning\/30/);
+  } finally { s.calls = keep; await tick(2); }
 });
 
 test('size and cautions ride the name\'s line, each with its tip', () => {

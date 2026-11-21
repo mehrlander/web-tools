@@ -45,6 +45,11 @@ test('a value that is not valid percent-escaping is used verbatim, not thrown on
   assert.deepEqual(readFragment('#gh=o/r:100%.html'), ['gh', 'o/r:100%.html']);
 });
 
+test('whitespace that decodes at either end of the value is kept', () => {
+  assert.deepEqual(readFragment('#gh=o/r:p.html?q=a%20'), ['gh', 'o/r:p.html?q=a ']);
+  assert.deepEqual(readFragment('#gh=%20o/r:p.html'), ['gh', ' o/r:p.html']);
+});
+
 test("'+' is left alone: the params shim decodes it where it means a space", () => {
   assert.deepEqual(readFragment('#gh=o/r:a+b.html'), ['gh', 'o/r:a+b.html']);
 });

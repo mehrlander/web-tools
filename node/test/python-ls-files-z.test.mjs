@@ -23,7 +23,7 @@ test('every python ls-files call passes -z', () => {
   const offenders = [];
   for (const f of new Set(files)) {
     readFileSync(path.join(repoRoot, f), 'utf8').split('\n').forEach((line, i) => {
-      if (/["']ls-files["']/.test(line) && !/["']-z["']/.test(line)) offenders.push(`${f}:${i + 1}`);
+      if (/["']ls-files["'](?![^)]*["']-z["'])/.test(line)) offenders.push(`${f}:${i + 1}`);
     });
   }
   assert.deepEqual(offenders, [], 'these list files without -z; a non-ASCII path comes back quoted and escaped');

@@ -35,6 +35,7 @@ const APP = `<script>
       funding: { label: "Funding" },
       search: { label: "Search" },
       pensions: { label: "Pensions", embed:{ repo:"mehrlander/home", path:"projects/pl/display/explorer.html", ref:"main" } },
+      spend: { label: "Spend", embed:{ repo:"mehrlander/spend-wa", path:"pages/spend.html", ref:"main" } },
     };
     const RENDER = { funding: renderFunding, search: renderSearch };
 </script>
@@ -56,7 +57,7 @@ test('the budget-drs app is read from its own repo and its rows stay in home', (
       'app/view/views/rows.js': 'function fundingRows() { return []; }\n',
       'app/view/views/search.js': 'function renderSearch(el) { el.innerHTML = ""; }\n',
       'app/atlas/atlas.html': '<main></main>\n',
-      'data/design/views.csv': 'view,title,kind\nfunding,Funding,main\nsearch,Search,main\npensions,Pensions,frame\n',
+      'data/design/views.csv': 'view,title,kind\nfunding,Funding,main\nsearch,Search,main\npensions,Pensions,frame\nspend,Spend,frame\n',
       'data/design/view-tabs.csv': 'view,tab,control\nfunding,Requests,tab\nfunding,Notes,tab\nfunding,mode,switch\n',
     });
     const publicUnits = readFileSync(path.join(repoRoot, 'data/ui-units/units.csv'), 'utf8');
@@ -75,6 +76,7 @@ test('the budget-drs app is read from its own repo and its rows stay in home', (
       'budget-drs:view/search',
       'home:app/index.html',
       'home:projects/pl/display/explorer.html',
+      'spend-wa:pages/spend.html',
     ]);
     const tab = units.get('budget-drs:view/funding/Requests');
     assert.equal(tab.repo, 'budget-drs');
@@ -85,6 +87,9 @@ test('the budget-drs app is read from its own repo and its rows stay in home', (
     const framed = units.get('home:projects/pl/display/explorer.html');
     assert.equal(framed.app_ring, '2');
     assert.equal(framed.at, homeAt, 'a page the app frames from home stays home\'s');
+    const away = units.get('spend-wa:pages/spend.html');
+    assert.equal(away.app_ring, '2', 'a page framed from a repo outside home\'s store is still the app\'s');
+    assert.equal(away.reachable, 'not checked out');
     assert.equal(units.get('budget-drs:app/view/app.html').app_ring, '1');
     assert.equal(units.get('budget-drs:app/atlas/atlas.html').app_ring, '3');
 

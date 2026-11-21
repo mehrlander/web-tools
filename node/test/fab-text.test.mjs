@@ -257,6 +257,43 @@ test('the app gate reads words per run, which is the signal that separates', asy
     'a zero chrome share must not be readable as evidence either way');
 });
 
+test('the app banner and the House rules block both switch at six words per run', async () => {
+  // The template's literal is the gate the 'app gate' test measures against.
+  assert.equal(SRC.match(/textStats\.perRun < 6/g)?.length, 2, 'banner and withheld line gate at six');
+  assert.equal(SRC.match(/textStats\.perRun >= 6/g)?.length, 1, 'House rules gate at six');
+  // A fresh drawer per read: the gates are read once the pane first renders.
+  const render = async (html) => {
+    const host = doc.createElement('div');
+    host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="pages/shorter.html"></div>';
+    doc.body.appendChild(host);
+    Alpine.initTree(host);
+    await tick(3);
+    const d = Alpine.$data(host.firstElementChild);
+    d.open = true; d.activeTab = 'text';
+    d.textStats = d._textRead(docWith(html));
+    await tick(8);
+    const divs = [...host.querySelectorAll('div')];
+    const shown = (e) => e.style.display !== 'none';
+    return {
+      perRun: d.textStats.perRun,
+      banner: [...host.querySelectorAll('span')].some((e) => e.textContent.includes('reads as an app')),
+      rules: shown(divs.find((e) => e.getAttribute('x-show') === 'textStats.perRun >= 6')),
+      withheld: shown(divs.find((e) => e.getAttribute('x-show') === 'textStats.perRun < 6')),
+    };
+  };
+
+  // Four words a run: an app (under six) that is still well clear of zero.
+  const app = await render('<div>' + Array.from({ length: 30 }, (_, i) => `<span>open the row ${i}</span>`).join('') + '</div>');
+  assert.ok(app.perRun >= 3 && app.perRun < 6, `fixture is app-shaped: ${app.perRun}`);
+  assert.deepEqual([app.banner, app.rules, app.withheld], [true, false, true],
+    'under six: the banner, the withheld line, and no House rules');
+
+  const prose = await render(PROSE);
+  assert.ok(prose.perRun >= 6);
+  assert.deepEqual([prose.banner, prose.rules, prose.withheld], [false, true, false],
+    'six or more: no banner, the House rules, and no withheld line');
+});
+
 test('the prose checks ignore what is not prose', async () => {
   const d = await mountFab();
 

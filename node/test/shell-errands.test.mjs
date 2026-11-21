@@ -10,7 +10,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
-import { makeShell } from './shell.mjs';
+import { makeShell, shellScript } from './shell.mjs';
 
 const html = readFileSync(path.join(repoRoot, 'app/index.html'), 'utf8');
 
@@ -18,6 +18,11 @@ test('the shell has no errand loop, and fulfils nothing', () => {
   const { shell } = makeShell({ win: {} });
   assert.equal(shell.processMailbox, undefined, 'no boot-time fulfilment');
   assert.doesNotMatch(html, /\.fulfill\(/, 'nothing in the shell answers a request');
+});
+
+test('the shell never names the errands kit or a fulfil call, however it is spelled', () => {
+  assert.doesNotMatch(shellScript(html), /Errands/, 'the inline shell does not touch window.Errands');
+  assert.doesNotMatch(html, /fulfil/, 'no fulfil/fulfill in any call syntax');
 });
 
 test('the errands kit is loaded, and carries its own reads', () => {

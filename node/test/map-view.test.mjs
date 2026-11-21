@@ -1668,6 +1668,10 @@ test('the shell stamps ?tab= for every tab but the default', () => {
   shell.goMapTab('docs');
   assert.match(stamped.at(-1), /view=map&tab=docs|tab=docs/);
 
+  shell.goMapTab('bogus');
+  assert.equal(shell.mapTab, 'docs', 'a tab tap naming an unknown tab is refused');
+  assert.doesNotMatch(stamped.at(-1), /tab=bogus/);
+
   // The nav button calls goMap() with nothing and must KEEP the open tab;
   // only a route call (which always passes url.tab) is authoritative.
   shell.goMap();

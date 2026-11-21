@@ -20,6 +20,7 @@ const seed = [
   { id: 'n4', at: '2026-09-04T00:00:00Z', author: 'me', about: 'note:n1', text: 'a reply' },
   { id: 'n5', at: '2026-09-05T00:00:00Z', author: 'me', about: 'me/tools@feat/ab', text: 'another branch' },
   { id: 'n6', at: '2026-09-06T00:00:00Z', author: 'me', about: 'me/tools#9', text: 'another PR' },
+  { id: 'n7', at: '2026-09-07T00:00:00Z', author: 'me', about: 'me/tools#444', text: 'on the closed PR' },
 ];
 let FILE = { text: seed.map(n => JSON.stringify(n) + '\n').join(''), sha: 's0' };
 
@@ -41,7 +42,7 @@ class FakeGH {
       return { content: { sha: FILE.sha } };
     }
     if (/^git\/trees\//.test(p)) return { truncated: false, tree: [] };
-    return /head=me%3Afeat%2Fa|head=me:feat\/a/.test(p) ? [{ number: 443, title: 'A', state: 'open', body: 'a' }] : [];
+    return /head=me%3Afeat%2Fa|head=me:feat\/a/.test(p) ? [{ number: 443, title: 'A', state: 'open', body: 'a' }, { number: 444, title: 'B', state: 'closed', body: 'b' }] : [];
   }
   async get(p) {
     if (this.repo === REG && p === NOTES) return { ...FILE };
@@ -81,11 +82,11 @@ test('without a token there is no Notes section', async () => {
   assert.equal(window.document.querySelector('[data-notes-section]'), null);
 });
 
-test('the branch, its files and its PR show, with the reply under its note; neighbours do not', async () => {
+test('the branch, its files and each of its PRs show, with the reply under its note; neighbours do not', async () => {
   window.TOKEN = 'tkn';
   window.BranchBrief.forget();
   const d = await mount();
-  assert.equal(d.noteRows.map(n => n.id + n.depth).join(' '), 'n30 n20 n10 n41');
+  assert.equal(d.noteRows.map(n => n.id + n.depth).join(' '), 'n70 n30 n20 n10 n41');
   assert.ok(window.document.querySelector('[data-notes-section]'));
 });
 

@@ -61,6 +61,9 @@ test('every kit that copies delegates to io.copy and fetches it at load time', (
     assert.match(src, /ghRef\.load\('kits\/io\.js'\)/, name + ' fetches io.js at load time');
     assert.doesNotMatch(src, /ghRef\.load\('kits\/io\.js'\)[\s\S]{0,80}await/,
       name + ' does not await io.js inside a handler');
+    assert.doesNotMatch(src, /await\s+ghRef\.load\('kits\/io\.js'\)/, name + ' never awaits the io.js fetch');
+    assert.ok(src.indexOf("ghRef.load('kits/io.js')") < src.indexOf('const copyText'),
+      name + ' fetches io.js before copyText is defined, not inside it');
   }
 });
 

@@ -21,6 +21,8 @@ test('the largest whole unit, rounded down', () => {
   assert.equal(GH.ago(before(40 * 3600)), '1d ago', 'forty hours is one whole day');
   assert.equal(GH.ago(before(3 * 86400)), '3d ago');
   assert.equal(GH.ago(before(70 * 86400)), '2mo ago');
+  assert.equal(GH.ago(before(30 * 86400)), '1mo ago', 'a month is thirty days');
+  assert.equal(GH.ago(before(61 * 86400)), '2mo ago');
   assert.equal(GH.ago(before(400 * 86400)), '1y ago');
 });
 

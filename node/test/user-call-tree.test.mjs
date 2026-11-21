@@ -19,6 +19,7 @@ const TREE = { goal: { text: 'Ship the widget' }, decisions: [
     { id: 'other', call: 'c0ffee03-other', state: 'open', text: 'Paint it blue?' },
     { id: 'plain', state: 'closed', text: 'Paint it red', not: 'red' },
     { id: 'lost', call: 'c0ffee03-lost', state: 'open', text: 'Paint it green?' },
+    { id: 'lostclosed', call: 'c0ffee03-lostclosed', state: 'closed', text: 'Paint it gold?' },
   ] },
 ] };
 const CALL = { id: OWN, session: 'c0ffee03', kind: 'decision', status: 'open', question: 'Ship it this week?',
@@ -89,4 +90,5 @@ test("another call's decision is drawn by that call's state, read beside this ca
 test("a decision with no call, or whose call cannot be read, keeps the tree's state", () => {
   assert.equal(closed('plain'), true);
   assert.equal(closed('lost'), false);
+  assert.equal(closed('lostclosed'), true, "an unreadable call's closed tree state stands too");
 });

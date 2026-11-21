@@ -94,6 +94,8 @@ test('a reply sits under its note, and the about field filters by prefix', async
   assert.equal(data.noteFor('na')[0].rows.map(n => n.id + n.depth).join(' '), 'na0 nb1', "the reply is in its note's card");
   data.noteAbout = 'o/r';
   assert.equal(data.noteList.map(n => n.id).join(' '), 'na');
+  data.noteAbout = 'repo';
+  assert.equal(data.noteList.length, 0, 'the filter matches a prefix, not a substring');
 });
 
 test('adding a note appends one line signed by the login, addressed by the about field', async () => {

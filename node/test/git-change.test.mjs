@@ -280,6 +280,12 @@ test('parseTree: rejects illegal path names and directory traversal', () => {
     ...shaBytes,
   ]);
   assert.throws(() => GitChange.parseTree(dotDotEntry), /Illegal filename in tree entry/);
+
+  const backslashEntry = new Uint8Array([
+    ...new TextEncoder().encode('100644 ..\\..\\evil.txt\0'),
+    ...shaBytes,
+  ]);
+  assert.throws(() => GitChange.parseTree(backslashEntry), /Illegal filename in tree entry/);
 });
 
 test('inspectChange: rejects mismatch between commit tree and expected_tree', async () => {
@@ -309,6 +315,13 @@ test('inspectChange: rejects mismatch between commit tree and expected_tree', as
     };
 
     await assert.rejects(() => GitChange.inspectChange(envelope, { fetchBaseBlob }), /Tree SHA mismatch/);
+
+    // Near miss: same 8-char prefix as the real tree, differs from char 9 on.
+    const nearMiss = headTreeSha.slice(0, 8) + (headTreeSha[8] === '0' ? '1' : '0') + '0'.repeat(31);
+    await assert.rejects(
+      () => GitChange.inspectChange({ ...envelope, expected_tree: nearMiss }, { fetchBaseBlob }),
+      /Tree SHA mismatch/,
+    );
   } finally {
     fixture.cleanup();
   }

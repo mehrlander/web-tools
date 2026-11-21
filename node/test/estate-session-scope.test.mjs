@@ -145,6 +145,14 @@ test('a repo attached but never entered still shows, and says which it is', () =
   assert.match(data.sessionRepoNote(rows[0]), /attached, but never the working directory/);
 });
 
+test('a checkout the shell worked in stays when attached omits it', () => {
+  const rows = plain(data.sessionRepoRows({
+    repos: [{ name: 'web-tools', branch: 'claude/x', lines: 3 }], attached: ['home'], branches: ['claude/x'],
+  }));
+  assert.deepEqual(rows.map((r) => r.name), ['home', 'web-tools']);
+  assert.equal(rows[1].idle, false);
+});
+
 test('an empty attached means the record cannot say, not that nothing was attached', () => {
   // Every record written before schema 8, permanently: they are never
   // revisited, so `repos` is the only answer they will ever have and the strip

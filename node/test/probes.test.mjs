@@ -51,6 +51,7 @@ test('each broken rule is named with its row', t => {
     '2026-01-02-tie,2026-01-03,Tie,2026-01-02-tie.md,Does it tie?,Yes.,won,',
     '2026-01-02-tie,2026-01-02,,missing.md,Again?,No.,,',
     'Bad_Id,2026-1-5,Bad,,Q?,A.,,',
+    'blank-cells,2026-01-09,Blank,,,,,',
   ]));
   assert.equal(r.status, 1);
   for (const want of [
@@ -62,6 +63,8 @@ test('each broken rule is named with its row', t => {
     /probes\.csv:3: path missing\.md names nothing in the folder/,
     /probes\.csv:4: Bad_Id is not lowercase letters, digits and hyphens/,
     /probes\.csv:4: date 2026-1-5 is not YYYY-MM-DD/,
+    /probes\.csv:5: question is empty/,
+    /probes\.csv:5: summary is empty/,
     /2026-01-05-model is a dated probe that no row's path names/,
   ]) assert.match(r.stdout, want);
 });
