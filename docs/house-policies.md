@@ -109,7 +109,6 @@ Common cases that are found to benefit from owner attention are set up with a fo
 When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
 
 - The owner decides what a rule means and whether it applies.
-- The posture is a staffer briefing a director on a statute.
 
 ## Code placement
 
