@@ -90,3 +90,16 @@ test('innerClass adds to the width classes rather than replacing them', () => {
   assert.match(inner.className, /\bmin-w-0\b/);
   assert.match(inner.className, /\bspace-y-4\b/, 'the caller\'s own classes must survive');
 });
+
+test('a non-scrolling slide keeps min-w-0 on its inner, with or without innerClass', () => {
+  // slideScroll:false drops the vertical scroll, and the width guarantee must
+  // survive that branch (powershell-outpost-view passes both options).
+  const window = mount();
+  for (const o of [{ slideScroll: false }, { slideScroll: false, innerClass: 'w-full max-w-6xl mx-auto' }]) {
+    const deck = window.swipeDeck.core(2, () => {}, o);
+    const section = deck.track.querySelector('section');
+    assert.match(section.firstElementChild.className, /\bmin-w-0\b/);
+    assert.match(section.className, /\bw-full\b/);
+    assert.match(section.className, /\bshrink-0\b/);
+  }
+});

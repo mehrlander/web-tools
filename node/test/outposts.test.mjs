@@ -155,6 +155,16 @@ test('the comparison covers the whole folder, not only SKILL.md', () => {
   });
 });
 
+test('a file only on the account makes the upload differ, and the row says so', () => {
+  withFixture((dir, put) => {
+    account(put);
+    put('synced/beta/SKILL.md', 'beta, edited since\n');
+    put('synced/alpha/references/extra.md', 'only uploaded\n');
+    const table = run(dir, [], decl(BASE));
+    assert.match(table, /alpha\s+upload\s+upload differs from the plugin's copy\s+\[1 only on the account\]/);
+  });
+});
+
 test('--write records one row per skill with its state, and --zip packs the plugin copy under its folder name', () => {
   withFixture((dir, put) => {
     account(put);

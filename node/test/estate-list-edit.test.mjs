@@ -285,6 +285,25 @@ test('clearing a pin note or group DELETES the key, matching the jot kind rule',
   assert.equal(item.title, 'A', 'the required field is untouched');
 });
 
+test('changing only the pin group is a change, in both directions', async () => {
+  await seedPins([{ id: 'p1', target: 'me/tools:docs/a.md', title: 'A', group: 'docs',
+                    created_at: '2026-09-01T10:00:00Z' }]);
+  let it = data.pinItems[0];
+  data.startPinEdit(it);
+  data.editGroup = '';
+  await data.commitPinEdit(it);
+  assert.equal('group' in saved('lists/pin.json').items[0], false);
+
+  SAVES.length = 0;
+  await seedPins([{ id: 'p1', target: 'me/tools:docs/a.md', title: 'A',
+                    created_at: '2026-09-01T10:00:00Z' }]);
+  it = data.pinItems[0];
+  data.startPinEdit(it);
+  data.editGroup = 'docs';
+  await data.commitPinEdit(it);
+  assert.equal(saved('lists/pin.json').items[0].group, 'docs');
+});
+
 test('an empty pin title cancels rather than falling back to the raw address', async () => {
   await seedPins([{ id: 'p1', target: 'me/tools:docs/a.md', title: 'A readable title',
                     created_at: '2026-09-01T10:00:00Z' }]);

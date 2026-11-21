@@ -28,6 +28,10 @@ const ROOTS = [
     text: 'A branch whose content landed',
     finding: { kind: 'superseded', subjects: ['acme/widget@claude/landed'], why: 'w', evidence: ['e'],
                witnesses: [{ ref: 'acme/widget@main:docs/kept.md', sha: '1111111' }] } },
+  { id: 'nf', at: '2026-10-01T03:00:00Z', author: 'claude/tend', about: 'acme/widget#9',
+    text: 'A pull request recorded closed',
+    finding: { kind: 'superseded', subjects: ['acme/widget#9'], why: 'w', evidence: ['e'],
+               witnesses: [{ ref: 'acme/widget#9', state: 'closed' }] } },
 ];
 
 let store = ROOTS.map(n => JSON.stringify(n)).join('\n') + '\n';
@@ -51,6 +55,7 @@ class StubGH {
       // The pinned object was bbbbbbb; the folder now lists cafef00d for it.
       '/repos/acme/docs/contents/docs/environment?ref=main': [{ name: 'capabilities.md', type: 'file', sha: 'cafef00d1234' }, { name: 'testing.md', type: 'file', sha: '9999999' }],
       '/repos/acme/docs/commits?sha=main&path=docs%2Fenvironment%2Fcapabilities.md&per_page=1': [{ sha: 'cafef00d1234', commit: { message: 'capabilities: new proxy fact' } }],
+      '/repos/acme/widget/pulls/9': { state: 'open', merged_at: null },
       '/repos/acme/widget/pulls/735': { state: 'open', merged_at: null, updated_at: '2026-09-19T00:00:00Z' },
       // main no longer contains the commit (a rewrite): the settled finding's ground moved.
       '/repos/acme/widget/compare/106f31c...main': { status: 'diverged', ahead_by: 3, behind_by: 1 },
@@ -76,7 +81,7 @@ const ids = (fs) => plain(fs.map(f => f.id));
 
 test('Attention holds outstanding work and changed settled findings; Settled holds the rest', () => {
   assert.equal(data.attention[0].id, 'nb', 'a decision waiting in a user call leads, by kind');
-  assert.deepEqual(ids(data.attention).sort(), ['na', 'nb', 'nc', 'nd']);
+  assert.deepEqual(ids(data.attention).sort(), ['na', 'nb', 'nc', 'nd', 'nf']);
   assert.deepEqual(ids(data.settled), ['ne']);
   assert.doesNotMatch(el.textContent, /Your call/, 'the view asks nothing itself');
   const call = [...el.querySelectorAll('a')].find(a => a.textContent.includes('user call close-735'));
@@ -101,6 +106,12 @@ test('a file changed before the finding was recorded reads as changed, through i
   assert.ok(asked.includes('/repos/acme/docs/contents/docs/environment?ref=main'), 'read through the parent listing');
   assert.ok(!asked.some(p => p.includes('since=')), 'a pinned witness is never read as commits since a date');
   assert.match(el.textContent, /Changed since assessed/);
+});
+
+test('a pull request recorded closed that is open now reads as changed, now open', () => {
+  const [f] = data.attention.filter(x => x.id === 'nf');
+  assert.ok(f, 'the finding is in attention');
+  assert.deepEqual(plain(data.changed(f)), [{ ref: 'acme/widget#9', verdict: 'changed', detail: 'now open' }]);
 });
 
 test('a settled finding whose ground moved comes back, saying so; a holding one stays settled', () => {

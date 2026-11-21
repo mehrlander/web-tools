@@ -63,6 +63,8 @@ test('the page reads its own query without the renderer\'s keys, and the default
   assert.equal(q.get('use'), 'br', 'use answers the Web Tools ref the page boots');
   assert.equal(w.eval('new URLSearchParams(location.search).toString()'), 'refs=mehrlander%2Fhome%40h&view=map');
   assert.equal(w.eval("new URLSearchParams('a=1').get('use')"), null, 'another params object is left alone');
+  assert.deepEqual(JSON.parse(w.eval("JSON.stringify(new URLSearchParams(location.search).getAll('gh'))")), []);
+  assert.deepEqual(JSON.parse(w.eval("JSON.stringify([...new URLSearchParams(location.search).keys()])")), ['refs', 'view']);
   assert.equal(w.eval('window.__fabHosted'), undefined, 'no shell on screen: the page mounts its own FAB');
   assert.equal(w.eval('window.__tossTop.repo'), 'mehrlander/web-tools');
   w.close();

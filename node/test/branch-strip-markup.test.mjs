@@ -103,6 +103,11 @@ test('branch-brief.js Look row aligns toss render pages and uses data-title-tip 
   );
 });
 
+test('the frisbee leads the page chips in both briefs', () => {
+  assert.ok(branchBriefSrc.indexOf('data-title-tip-bare>🥏</span>') < branchBriefSrc.indexOf('x-for="t in pageChips"'), 'the frisbee leads the page chips');
+  assert.ok(sessionBriefSrc.indexOf('data-title-tip-bare>🥏</span>') < sessionBriefSrc.indexOf('x-for="g in pageGroups"'), 'the frisbee leads the page groups');
+});
+
 test('session-brief.js page strip aligns toss render pages with leading frisbee icon and data-title-tip', () => {
   assert.ok(
     sessionBriefSrc.includes('data-title-tip="Pages this session changed, rendered via toss"') &&

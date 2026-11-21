@@ -100,6 +100,18 @@ test('make prints the plainest fragment and exits 1 on an anchor the page lacks'
   assert.match(r.stderr, /matches only a bound prefix/, 'a prefix match passes, and says how weakly');
   r = py('make', FIXTURE, '--walkthrough', 'absent');
   assert.equal(r.status, 1);
+  r = py('make', FIXTURE, '--show', 'row-');
+  assert.equal(r.status, 1, 'a bare bound prefix is not an anchor');
+  assert.match(r.stderr, /'row-' is not an anchor/);
+});
+
+test('a page that sets data-at from script leaves a name unchecked rather than failing it', () => {
+  const scripted = page('scripted.html', `<button data-at="known">x</button>
+<script>el.setAttribute('data-at', 'later')</script>`);
+  assert.equal(JSON.parse(py('anchors', scripted, '--json').stdout).scripted, true);
+  const r = py('make', scripted, '--show', 'later');
+  assert.equal(r.status, 0, r.stderr);
+  assert.match(r.stderr, /unchecked here/);
 });
 
 test('make puts an intro first, alone or ahead of a place, and checks only the anchors', () => {

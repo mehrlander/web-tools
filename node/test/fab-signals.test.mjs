@@ -55,6 +55,18 @@ test('a live tint is a colour the FAB wears', () => {
     assert.ok(markup.includes(`var(--color-${r.tone})_10%,var(--color-base-100))] border-${r.tone}/20`), `${r.key}: the FAB is tinted ${r.tone} at rest`);
 });
 
+test('the glyph and the selection ring follow the tint', () => {
+  const at = markup.indexOf('<i class="text-2xl');
+  const glyph = markup.slice(at, markup.indexOf('</i>', at));
+  assert.ok(at > 0, 'the glyph element is found');
+  for (const r of live.filter(r => r.part === 'glyph' && r.tone !== 'tint'))
+    assert.ok(glyph.includes(`'text-${r.tone}`), `${r.key}: the glyph is drawn in ${r.tone}`);
+  for (const r of live.filter(r => r.part === 'tint')) {
+    assert.ok(glyph.includes(`'text-${r.tone}`), `${r.key}: the glyph follows the ${r.tone} tint`);
+    assert.ok(markup.includes(`ring-[var(--color-${r.tone})]`), `${r.key}: the selection ring follows the ${r.tone} tint`);
+  }
+});
+
 test('a glyph or badge names a mark that exists, and a tint names none', () => {
   for (const r of rows) {
     if (r.part === 'tint') { assert.equal(r.icon, '', `${r.key}: a tint has no mark`); continue; }

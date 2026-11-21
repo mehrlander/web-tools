@@ -313,6 +313,20 @@ test('nothing records until every staged edit is decided, and a decision stays m
   assert.equal(mark(1).dataset.decision, 'open', 'a second tap lets it go');
 });
 
+test('one edit still open with no notes keeps Record disabled and sends nothing', async () => {
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
+  const before = puts.length;
+  assert.equal(send().disabled, true, 'one undecided edit blocks the record');
+  assert.match(send().textContent, /1 to decide/);
+  await data().sendDoc();
+  assert.equal(puts.length, before, 'sendDoc writes nothing while an edit is open');
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
+});
+
 test('Old and New draw the whole file as it stands and as proposed; Changes keeps its decisions', async () => {
   act(1, 'Keep');
   await tick(2);
