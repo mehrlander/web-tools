@@ -231,6 +231,8 @@ test('a trip carries the edit it was tagged with, E- or outside as 0; only trips
   const headed = py('parse_report', 'Trips, most costly first:\n\n- P06 · E1 · line 19 · "the others" · Name them.\n\nClear: P01\n\nVerdict: FAIL');
   assert.deepEqual([headed.verdict, headed.trips.map((t) => t.peeve)], ['fail', ['P06']],
     'the Trips heading the critic copies from its definition, "Trips, most costly first:", heads the section');
+  const dot = py('parse_report', '**Trips**\n\n\u2022 P05 \u00b7 E1 \u00b7 line 3 \u00b7 "a quote" \u00b7 Vague.\n\n**Clear**: P01\n\nVERDICT: FAIL');
+  assert.deepEqual([dot.verdict, dot.trips.map((t) => t.peeve)], ['fail', ['P05']], 'a trip line opening with the bullet character is a trip');
   // From the first real use (the critic-review docs, 2026-11-20): a trip
   // quoting the trip format, whose separators sit in a code span.
   const [fmt, kept] = pyMany([

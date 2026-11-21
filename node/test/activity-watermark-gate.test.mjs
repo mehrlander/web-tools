@@ -199,3 +199,11 @@ test('a rejected deep scan stays partial instead of publishing an empty scan', a
     console.warn = oldWarn;
   }
 });
+
+test('a moved pull-request mark is not quiet even when the push mark matches', () => {
+  const make = new Function('force', 'prev', 'marks', 'metaByName', 'prAt', gateSrc + '; return quiet;');
+  const args = (pr) => [false, { repos: { r: {} } }, { r: { pushedAt: 'P1', prAt: 'OLD' } },
+    new Map([['r', { pushed_at: 'P1' }]]), { r: pr }];
+  assert.equal(make(...args('NEW'))('r'), false);
+  assert.equal(make(...args('OLD'))('r'), true);
+});

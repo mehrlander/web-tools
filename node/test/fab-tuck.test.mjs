@@ -92,3 +92,16 @@ test('a pad that came up before the launcher still tucks it', async () => {
     window.dispatchEvent(new window.CustomEvent('mark-pad', { detail: { shown: false } }));
   }
 });
+
+test('a pad the toss-rendered subject put up before the launcher mounted still tucks it', async () => {
+  const frameDoc = new window.DOMParser().parseFromString('<!doctype html><body><div data-mark-pad></div></body>', 'text/html');
+  window.__tossFrame = { contentDocument: frameDoc };
+  const { d, host } = await mountFab();
+  try {
+    await new Promise(r => window.setTimeout(r, 5)); await tick(2);
+    assert.equal(d.tuckNow, true, 'the pad is in the subject frame, not the top document');
+  } finally {
+    host.remove(); delete window.__tossFrame;
+    window.dispatchEvent(new window.CustomEvent('mark-pad', { detail: { shown: false } }));
+  }
+});

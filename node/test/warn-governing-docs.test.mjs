@@ -51,6 +51,10 @@ test('declared research stays silent: the file itself, or a file in a declared f
   assert.equal(edit(files, 'docs/probes/run.md').status, 0);
 });
 
+test('a folder sharing only a declared folder\'s name as a prefix is not research', () => {
+  assert.equal(edit({ ...files, 'docs/probes2/run.md': 'x' }, 'docs/probes2/run.md').status, 2);
+});
+
 test('without a manifest, or with one that does not parse, the warning is unchanged', () => {
   assert.equal(edit({ 'docs/lab/findings.md': 'x' }, 'docs/lab/findings.md').status, 2);
   assert.equal(edit({ '.web-tools.json': '{not json', 'docs/lab/findings.md': 'x' }, 'docs/lab/findings.md').status, 2);

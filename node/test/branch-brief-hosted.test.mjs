@@ -294,13 +294,18 @@ test('the registry is read once per ref, not once per mount', async () => {
 
 test('framed: the head holds its place and the pane takes the scroll', async () => {
   window.BranchBrief.forget();
-  await mount('feat/a');
+  const d = await mount('feat/a');
   const root = window.document.querySelector('#m > div > div');
-  assert.ok(root.className.includes('h-full'), 'the view fills what the host gave it');
+  assert.equal(d.framed, true, 'the host said it supplies the identity chrome');
+  assert.equal(root.querySelector('span[x-show="!framed"]').style.display, 'none',
+    'the repo name is the host\'s to show, so this view hides it');
+  // Class TOKENS, not substrings: the unframed layout carries roomy:h-full,
+  // roomy:min-h-0 and roomy:flex-1, which a substring match would also accept.
+  assert.ok(root.classList.contains('h-full'), 'the view fills what the host gave it');
   assert.ok(root.firstElementChild.className.includes('shrink-0'), 'the head holds its place');
-  assert.ok(root.lastElementChild.className.includes('min-h-0'),
+  assert.ok(root.lastElementChild.classList.contains('min-h-0'),
     'without which a flex child refuses to shrink and scrolls the document again');
-  assert.ok(root.lastElementChild.className.includes('flex-1'), 'the container takes the remaining height');
+  assert.ok(root.lastElementChild.classList.contains('flex-1'), 'the container takes the remaining height');
   for (const [sel, name] of [['[data-guide-section]', 'the guide'], ['[data-swipe-section]', 'the swiper']]) {
     const el = root.querySelector(sel);
     assert.match(el.getAttribute(':class') || '', /basis-1\/2/, name + ' takes half');
