@@ -14,11 +14,11 @@ Instructions growing through rationale, duplicated claims, correction notes and 
 
 **Area:** writing · **Detector:** reader · **Sessions:** 100 · **Status:** active
 
-### Dramatic prose · `P04`
+### Chat style · `P04`
 
-Slogans, posturing, emphatic absolutes and sentences that sound profound while saying little.
+Phrasing for effect, especially the informal voice of online writing. Write in the register of the [exemplars](https://github.com/mehrlander/home/tree/main/projects/text/exemplars), such as the statement of facts in Roberts's opinion in *Riley v. California*.
 
-**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
+**Look for:** a maxim or truism, such as 'Hold inferences loosely, and keep their hedges when you retell them'; a one-line closing punch; a metaphor where a literal word exists; 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work'; 'deliberately' or 'never' used for emphasis; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 35 · **Status:** active
 
