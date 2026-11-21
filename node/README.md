@@ -248,11 +248,11 @@ view time.
 
 ## The refresh model
 
-Run `npm run setup` once in a new clone or linked worktree. It stores a
-relative `.githooks` path, which Git resolves in whichever checkout it is
-working on, and registers the `derived-csv` merge driver that `.gitattributes`
-names. `npm run ready` reads the hook path and driver config and writes
-nothing.
+Run `npm run setup` once in a new clone or linked worktree. It stores a relative
+`.githooks` path, which Git resolves in whichever checkout it is working on, and
+registers the `derived-csv` merge driver that
+[`.gitattributes`](../.gitattributes) names. `npm run ready` reads the hook path
+and driver config and writes nothing.
 
 Generated files are refreshed in three places:
 
@@ -284,13 +284,14 @@ Most generated files are written whole. Four are not:
 for the fields or rows a generator writes. Edit a row freely and leave those
 fields alone.
 
-**A rule that writes a file runs before any rule that measures it.**
-`docs-reach` writes the word count of every `docs/` file into `docs/docs.csv`.
-Each rule that writes under `docs/` comes before it. `docs/README.md` is
-generated from `docs/docs.csv` and is also a row in it. After `docs-readme`
-rewrites it, `docs-reach-again` runs `docs-reach` once more. `csv-census`
-measures the staged bytes of every CSV and comes after every rule that writes
-one. A word count written too early fails `docs-registry.test.mjs` in CI.
+**A rule that writes a file runs before any rule that measures it.** `docs-reach`
+writes the word count of every `docs/` file into `docs/docs.csv`. Each rule that
+writes under `docs/` comes before it. `docs/README.md` is generated from
+`docs/docs.csv` and is also a row in it. After `docs-readme` rewrites it,
+`docs-reach-again` runs `docs-reach` once more. `csv-census` measures the staged
+bytes of every CSV and comes after every rule that writes one. A word count
+written too early fails [`docs-registry.test.mjs`](test/docs-registry.test.mjs) in
+CI.
 
 Every generator is byte-deterministic: a commit whose sources did not change
 gets identical generated files back. The suite tests determinism directly.
