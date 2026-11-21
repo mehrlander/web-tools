@@ -21,6 +21,7 @@ public sealed class ActivityCollector
     private string? error;
     public CollectedActivity? Latest => Volatile.Read(ref latest);
     public string? Error => Volatile.Read(ref error);
+    public (int Status, int RetryAfterSeconds) RequestSync() => Volatile.Read(ref reader)?.RequestRetry() ?? (503, 0);
     // Raised after each completed scan, on the scan's own two-second cadence.
     public event Action<CollectedActivity>? Observed;
 
@@ -81,7 +82,7 @@ public sealed class ActivityCollector
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
             do {
                 var active = Volatile.Read(ref reader);
-                if (active is not null) await active.Synchronize(force: true);
+                if (active is not null) await active.Synchronize();
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
     }
