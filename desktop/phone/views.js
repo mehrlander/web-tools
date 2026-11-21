@@ -4,7 +4,7 @@
   const names = {now:'Now',usage:'Usage',errands:'Errands',computer:'Computer',files:'Files'};
   const ids = Object.keys(names), positions = Object.fromEntries(ids.map(id => [id,0]));
   const track = el('view-track'), panels = new Map(ids.map(id => [id,el('panel-' + id)]));
-  const interfaceVersion = '26.11';
+  const interfaceVersion = '26.12';
   let current = 'now', deck, registration, updateJob, refreshing = false;
   let startupAligned = false, startupFrame = 0, startupStyles, startupSizes;
   let filesRoute = '#view=files', selectedContext = null;
@@ -55,6 +55,7 @@
     const params = new URLSearchParams(location.hash.slice(1)), requested = params.get('view');
     const next = canonical(requested);
     if (requested === 'devices' || requested === 'repositories') {
+      if(requested==='repositories'&&!params.get('root'))params.set('root','gh');
       params.set('view',next);
       history.replaceState(history.state,'','#' + params);
     }
