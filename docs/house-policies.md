@@ -100,7 +100,7 @@ Careful use of closing state markers helps involve the owner efficiently, and es
 
 Common cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.
 
-**Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
+**Backed by:** [DECISION-RIGHTS.md](https://github.com/mehrlander/web-tools/blob/main/docs/DECISION-RIGHTS.md), what a session decides and what it brings to the owner; [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
 
 ### Speaking about rules · `h:defer`
 

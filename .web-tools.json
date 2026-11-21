@@ -102,6 +102,7 @@
       "formerly": ["programs/surfacing"],
       "governs": [
         "docs/CONVERSATION.md",
+        "docs/DECISION-RIGHTS.md",
         "skills/claude-markdown/",
         "skills/look-markers/",
         "skills/hooks/reply-check.py",

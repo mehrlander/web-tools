@@ -2,10 +2,10 @@
 """UserPromptSubmit: say when the default skill files changed since the session
 last read them, so it reviews them before it answers.
 
-THE FILES. skills/default/ holds SKILL.md and two of the documents it tells the
-session to read, CONVERSATION.md and QUALIFIED-WRITING.md (copies of docs/,
-rewritten by the commit hook); the third, doc-craft/SKILL.md, sits beside the
-folder. A session takes them in once, at start or after a compaction, and keeps
+THE FILES. skills/default/ holds SKILL.md and three of the documents it tells
+the session to read, CONVERSATION.md, QUALIFIED-WRITING.md and
+DECISION-RIGHTS.md (copies of docs/, rewritten by the commit hook); the fourth,
+doc-craft/SKILL.md, sits beside the folder. A session takes them in once, at start or after a compaction, and keeps
 that copy for the rest of its life.
 
 THE GAP. The plugin moves to main at every start and resume (refresh-plugin.sh),
