@@ -198,9 +198,18 @@ test('the launcher stands in a walkthrough\'s slot, and a drag out of it ends th
     at = { left: 140, top: 650 }; await frames(3);
     assert.match(wrap.getAttribute('style'), /left:142px;top:650px/, 'and follows the dock');
     d.onDown(ev('pointerdown', 162, 670));
+    assert.equal(d.docked, true, 'a press alone leaves the launcher in the slot');
     d.onUp(ev('pointerup', 162, 670)); await tick(2);
     assert.equal(d.open, true, 'a tap opens the sidebar, as anywhere');
     assert.equal(d.docked, true, 'and the launcher stays in the slot');
+    d.close(); await tick(2);
+    d.onDown(ev('pointerdown', 162, 670));
+    await new Promise(r => window.setTimeout(r, d.LONG_PRESS + 50));
+    assert.equal(d.fabMenu, true, 'a long press raises the menu');
+    assert.equal(d.docked, true, 'with the launcher still in the dock, drawn over it');
+    d.onUp(ev('pointercancel', 162, 670)); await tick(2);
+    assert.equal(d.docked, true, 'and a cancelled release leaves it there');
+    d.fabMenu = false; await tick(2);
     d.close(); await tick(2);
     d.onDown(ev('pointerdown', 162, 670));
     d.onMove(ev('pointermove', 294, 392));
