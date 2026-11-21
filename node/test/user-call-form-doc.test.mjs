@@ -123,9 +123,22 @@ test('a deck header names the document, not the kind of call', () => {
   assert.equal(heads.at(-1).action, null, 'no record circle in the header: the Record row under the document records');
 });
 
-test('in the deck a documentation call shows its brief, not its question or a recommendation', () => {
+test('in the deck a documentation call shows neither its question nor a recommendation', () => {
   assert.equal(root().querySelector('[data-call-question]').style.display, 'none', 'the deck header names the document');
   assert.equal(root().querySelector('[data-call-recommend]').style.display, 'none');
+});
+
+// The owner judges a documentation call by its edits (2026-11-21), so the
+// brief the session filed waits behind an icon at the end of the document's
+// head, with nothing of it drawn above the edits.
+test("a documentation call's brief is behind an icon in the document's head", () => {
+  const shown = (el) => { for (let e = el; e && e !== root(); e = e.parentElement) if (e.style.display === 'none') return false; return true; };
+  const text = [...root().querySelectorAll('[data-call-card] p')].filter(shown).map((p) => p.textContent).join(' ');
+  assert.doesNotMatch(text, /Tidy the doc\./, 'no paragraph carries it');
+  const icon = root().querySelector('[data-doc-head] [data-doc-brief]');
+  assert.ok(icon && shown(icon), 'the icon is in the head');
+  assert.equal(icon.dataset.titleTip, 'Tidy the doc.');
+  assert.equal(icon.getAttribute('tabindex'), '0', 'a tap or a key reaches it');
 });
 
 test('a documentation call shows no PR readiness, even when the PR has conflicts', async () => {

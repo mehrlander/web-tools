@@ -36,6 +36,15 @@ CALLS['user-calls/d0c5e001-readme.json'] = { id: 'd0c5e001-readme', session: 'd0
 CALLS['user-calls/d0c5e001-old.json'] = { id: 'd0c5e001-old', session: 'd0c5e001', kind: 'documentation', status: 'closed',
   question: 'Apply 1 edit to NOTES.md?', file: 'me/widget@claude/x:NOTES.md', created: '2026-10-15T10:00:00Z',
   edits: [{ from: 'e', to: 'f' }], closed: { answer: 'Superseded' } };
+// A third session that Gemini has read: two topics over three turns, and
+// four calls, the last filed after the record ends.
+const AT = (h) => '2026-10-20T' + h + ':00Z';
+for (const [slug, kind, created] of [['early', 'documentation', AT('10:05')], ['mid', 'decision', AT('11:10')],
+                                     ['beta', 'documentation', AT('12:02')], ['late', 'documentation', AT('13:00')]]) {
+  CALLS['user-calls/a9e0da01-' + slug + '.json'] = { id: 'a9e0da01-' + slug, session: 'a9e0da01', kind, created,
+    question: slug + '?', brief: 'The brief.', recommend: 'Yes', name: slug,
+    ...(kind === 'documentation' ? { file: 'me/widget@claude/x:' + slug + '.md', edits: [{ from: 'a', to: 'b' }] } : {}) };
+}
 const ANSWERS = { 'user-calls/c0ffee01-two.answers.jsonl': '{"answer":"Take","at":"2026-10-16T00:00:00Z"}\n' };
 const listed = [];
 class FakeGH {
@@ -60,7 +69,8 @@ class FakeGH {
 const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
   <div id="slide" x-data="sessionBrief(window.__slide)"></div>
   <div id="none" x-data="sessionBrief(window.__none)"></div>
-  <div id="docs" x-data="sessionBrief(window.__docs)"></div></body></html>` });
+  <div id="docs" x-data="sessionBrief(window.__docs)"></div>
+  <div id="topics" x-data="sessionBrief(window.__topics)"></div></body></html>` });
 window.GH = FakeGH;
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
@@ -80,6 +90,7 @@ for (const k of ['lib/vanilla-bundle.js', 'lib/kits/swipe-deck.js', 'lib/kits/li
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
 window.Element.prototype.scrollTo = function () {};
+window.Element.prototype.scrollIntoView = function () {};
 window.swipeDeck.top = () => null;
 window.swipeDeck.open = (o) => {
   decks.push({ count: o.count, start: o.start, title: o.title });
@@ -96,6 +107,12 @@ window.UserCallForm = { prOf: (ref) => (ref ? { slug: 'me/widget', n: 7 } : null
 window.__slide = { id: 'c0ffee01', repo: STORE, framed: true, record, pane: 'calls' };
 window.__none = { id: 'feed0002', repo: STORE, framed: true, record: { ...record, short: 'feed0002' }, pane: 'calls' };
 window.__docs = { id: 'd0c5e001', repo: STORE, framed: true, record: { ...record, short: 'd0c5e001' }, pane: 'calls' };
+window.__topics = { id: 'a9e0da01', repo: STORE, framed: true, pane: 'calls',
+  record: { ...record, schema: 8, short: 'a9e0da01', day: '2026-10-20', started: AT('10:00'), ended: AT('12:30'),
+            prompts: [{ at: AT('10:00'), text: 'one' }, { at: AT('11:00'), text: 'two' }, { at: AT('12:00'), text: 'three' }] } };
+const TOPICS = { topics: ['Alpha', 'Beta'], topic_status: [],
+  agenda: [{ topic: 'Alpha', turns: [0, 1], at: AT('10:00'), state: { glyph: '🟢', name: 'Ready', line: '' } },
+           { topic: 'Beta', turns: [2, 2], at: AT('12:00'), state: { glyph: '🟣', name: 'Done', line: '' } }] };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
@@ -116,6 +133,7 @@ const until = async (ok) => { for (let i = 0; i < 60 && !ok(); i++) await tick(2
 await until(() => data('slide').calls.length === 2 && !data('none').callsLoading);
 await until(() => el('slide').querySelectorAll('[data-session-call]').length === 2);
 await until(() => data('docs').calls.length === 2 && cardForms.length);
+await until(() => data('topics').calls.length === 4);
 
 test('mounting is quiet', () => assert.deepEqual(problems, []));
 
@@ -286,4 +304,54 @@ test("a documentation call's card is the call form, hosted, and an answer from i
   o.onAnswer({ answer: '2 confirmed', at: '2026-10-16T00:00:00Z' });
   await until(() => data('docs').openCallCount === 0);
   assert.equal(el('docs').querySelector('[data-call="d0c5e001-readme"] [data-call-state]')?.textContent, 'Answered');
+});
+
+// THE TOPICS (owner, 2026-11-21): a call is placed by the turn it was filed in
+// and the topic Gemini's agenda gives that turn, never by words the session
+// wrote; the list groups by topic, a card says where its call came from, and
+// the Overview's topics lead to their calls and back.
+test("a call's origin is its filing turn and that turn's topic, and a call past the record has neither", async () => {
+  const s = data('topics');
+  s.topics = TOPICS; s.topicsState = 'found';
+  await tick(2);
+  const o = (slug) => { const x = s.callOrigin(s.callById('a9e0da01-' + slug)); return [x.turn, x.topic]; };
+  assert.deepEqual([o('early'), o('mid'), o('beta'), o('late')], [[0, 'Alpha'], [1, 'Alpha'], [2, 'Beta'], [-1, '']]);
+});
+
+test('the list groups the calls under their topics, in the order the session reached them', async () => {
+  const s = data('topics');
+  await s.mountCalls();
+  const list = el('topics').querySelector('[data-call-list]');
+  assert.deepEqual([...list.querySelectorAll('[data-call-group]')].map((h) => h.textContent),
+    ['\u{1F7E2}Alpha', '\u{1F7E3}Beta', 'Topic not yet assigned']);
+  assert.deepEqual([...list.querySelectorAll('[data-call]')].map((r) => r.dataset.call),
+    ['a9e0da01-early', 'a9e0da01-mid', 'a9e0da01-beta', 'a9e0da01-late'], 'within a topic, documentation first');
+});
+
+test("a card leads with where its call came from, and the topic there opens the Overview at it", async () => {
+  const s = data('topics');
+  s._callSwiper.pick('a9e0da01-mid');
+  const find = () => [...el('topics').querySelectorAll('[data-call-strip] [data-call-origin]')]
+    .find((x) => /mid\?/.test(x.parentElement.textContent) && /turn 2/.test(x.textContent));
+  await until(find);
+  const line = find();
+  assert.ok(line, 'the origin line names the turn');
+  assert.match(line.textContent, /Alpha[\s\S]*turn 2 · Oct 20/);
+  line.querySelector('[data-call-topic-link]').click();
+  await tick(2);
+  assert.equal(s.pane, 'overview');
+  assert.equal(s.topicLit, 'alpha');
+  assert.match(el('topics').querySelector('[data-topic="alpha"]').className, /bg-primary\/10/, 'the topic is lit on the Overview');
+});
+
+test("each topic on the Overview counts its calls, and the count opens the Calls tab at the topic's first", async () => {
+  const s = data('topics');
+  const pill = (k) => el('topics').querySelector('[data-topic="' + k + '"] [data-topic-calls]');
+  assert.equal(pill('alpha').textContent.trim(), '2');
+  assert.equal(pill('alpha').dataset.titleTip, '2 calls waiting on you, of 2 filed in this topic');
+  assert.equal(pill('beta').dataset.titleTip, '1 call waiting on you, of 1 filed in this topic');
+  pill('beta').click();
+  await tick(4);
+  assert.equal(s.pane, 'calls');
+  assert.equal(s.cSel, 'a9e0da01-beta');
 });
