@@ -94,7 +94,10 @@ test('the env var wins over a manifest, and a store still silences both', () => 
 test('the search is root, children and siblings, like the Stop hook', () => {
   // Root IS a checkout; the pointer sits on a sibling.
   const root = build('sibling', { home: { 'CLAUDE.md': '# home\n' }, other: POINTER });
-  assert.notEqual(run(path.join(root, 'home')), '', 'a sibling manifest is read');
+  assert.match(run(path.join(root, 'home')), /owner\/store/, 'a sibling manifest is read');
+  // Root IS a checkout; the store is a sibling.
+  const sib = build('sib', { home: { '.web-tools.json': '{}' }, wtp: STORE });
+  assert.equal(run(path.join(sib, 'home')), '', 'a sibling store is found');
   // Root above the checkouts; the store is a child.
   const above = build('above', { home: POINTER, 'web-tools-private': STORE });
   assert.equal(run(above), '', 'a child store is found');

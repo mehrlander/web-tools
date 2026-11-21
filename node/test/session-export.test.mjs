@@ -70,6 +70,16 @@ const REC = {
   ],
 };
 
+test('a prose-only excerpt does not claim bodies were left out', () => {
+  const m = model(REC);
+  assert.doesNotMatch(markdown(REC, [0, 1], { model: m }), /Tool result bodies are omitted/, 'a prose-only excerpt has no bodies to leave out');
+});
+
+test('an excerpt names its cards in ascending order', () => {
+  const m = model(REC);
+  assert.match(markdown(REC, [m.cardStart[0], m.cardStart[2]], { model: m }), /from 2 of 3 cards \(1, 3\)\./);
+});
+
 test('the index is the cards flattened, and the two agree turn for turn', () => {
   const m = model(REC);
   assert.equal(m.flat.length, m.cardOf.length);

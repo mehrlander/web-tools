@@ -45,8 +45,8 @@
 <body class="min-h-dvh bg-base-200 text-base-content">
 <main x-data="reception()" x-init="init()" class="flex w-full flex-col gap-3 p-4">
   <header class="flex flex-col gap-1">
-    <h1 class="text-xl font-semibold text-balance" x-text="spec.label || 'Reception'"></h1>
-    <p x-show="spec.note" class="text-pretty opacity-70" x-text="spec.note"></p>
+    <h1 class="text-xl font-semibold" x-text="spec.label || 'Reception'"></h1>
+    <p x-show="spec.note" class="opacity-70" x-text="spec.note"></p>
     <p x-show="err" class="text-error" x-text="err"></p>
   </header>
 

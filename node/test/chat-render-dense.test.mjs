@@ -363,3 +363,10 @@ test('the more-chip is exported, so a second surface draws the same mark', () =>
   assert.equal(cr.moreChip(9, false, 'Read the rest of this line').getAttribute('data-title-tip'),
     'Read the rest of this line');
 });
+
+test('a dense turn ending in a fence still gets the standalone "more characters" line', () => {
+  // textEdge finds no prose to carry the inline chip when the last block is a
+  // fence, so the count falls back to its own line rather than vanishing.
+  const el = dense({ role: 'assistant', md: 'before.\n\n```js\nx\n```', dropped: 5 });
+  assert.ok(el.textContent.endsWith('5 more characters'));
+});

@@ -28,7 +28,7 @@ const ALLOWED = new Map([
   ['pages/probe-snap.html', 'a probe of snap scrolling itself'],
 ]);
 
-const DIVIDES = /scrollLeft\s*\/(?![/*])/;
+const DIVIDES = /scrollLeft\s*(?:\/(?![/*])|\*\s*\(?\s*1\s*\/)/;
 const NEAREST = /getBoundingClientRect\(\)\.left\s*-\s*x0\b/;
 const HOLD = /\b_?aimT\b/;
 
@@ -47,8 +47,9 @@ test('the gate catches the shapes the copies took, and not a write or a zoom', (
     'd.js': 'if (el) el.scrollLeft = 0;',
     'e.js': 'const x = (pane.scrollLeft + to.x) / scale();',
     'f.js': 'strip.scrollLeft += a.left - b.left - 8;',
+    'g.js': 'return Math.round(el.scrollLeft * (1 / el.clientWidth));',
   };
-  assert.deepEqual(offendersIn(Object.keys(lines), (f) => lines[f]), ['a.js:1', 'b.js:1', 'c.js:1']);
+  assert.deepEqual(offendersIn(Object.keys(lines), (f) => lines[f]), ['a.js:1', 'b.js:1', 'c.js:1', 'g.js:1']);
 });
 
 test('each exception still holds what excuses it', () => {

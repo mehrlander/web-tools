@@ -66,8 +66,8 @@ function repo({ seed = () => {}, branch = () => {}, main = () => {} } = {}) {
 // Verdicts as { path: verdict }, read off what the script prints. The summary
 // line is parsed too, since a path that reaches no line at all would otherwise
 // look identical to one classified `landed`.
-function triage(dir) {
-  const out = execFileSync('python3', [SCRIPT, dir, 'work', '--base', 'main'],
+function triage(dir, branch = 'work', base = 'main') {
+  const out = execFileSync('python3', [SCRIPT, dir, branch, '--base', base],
                            { encoding: 'utf8' });
   const rows = {};
   for (const line of out.split('\n')) {
@@ -161,4 +161,23 @@ test('main holding the path with other bytes is DIFFERS, not missing at all', ()
     assert.equal(rows['shared.txt'], undefined);
     assert.match(triage(dir).out, /1 differs/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('a shallow clone reads `unknown`, never `stranded`', () => {
+  // The failure that cost real work: a truncated history cannot show a
+  // deletion older than its horizon, so "missing" must not become "lost".
+  const dir = repo({ branch: (b) => b.write('new.bat', 'echo hi\n') });
+  const shallow = mkdtempSync(join(tmpdir(), 'stranded-triage-shallow-'));
+  try {
+    execFileSync('git', ['clone', '-q', '--depth', '2', '--no-single-branch',
+                         'file://' + dir, shallow]);
+    const { rows, out } = triage(shallow, 'origin/work', 'origin/main');
+    assert.equal(rows['new.bat'].verdict, 'unknown');
+    assert.equal(rows['new.bat'].note, 'history truncated');
+    assert.ok(!Object.values(rows).some((r) => r.verdict === 'stranded'));
+    assert.match(out, /shallow clone: .*fetch --unshallow/);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(shallow, { recursive: true, force: true });
+  }
 });

@@ -255,6 +255,7 @@ test('the pane reads at the running ref, so a preview is not pinned to main', as
   assert.equal(manifestRef, 'claude/branch');
   assert.equal(gotRef, 'claude/branch');
   assert.equal(view.viewsError, '');
+  assert.equal(view.viewTouches['lib/alpineComponents/map.js']?.sha, 'aaaaaaa1');
   window.history.replaceState(null, '', '?');
   assert.equal(view.viewsRef, 'main');
 });

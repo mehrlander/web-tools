@@ -77,6 +77,11 @@ test('a walk cut ALPHABETICALLY is named by repo, since it voids the other two',
   assert.match(data.branchReachNote, /cut alphabetically, not by date/);
 });
 
+test('a name-cut repo alone still raises the flag that gates the Not covered line', () => {
+  data.activity = { 'acme/widget': repo({ pending: 0, beyondHorizon: 0, listCapped: true, listOrdered: false }) };
+  assert.equal(data.branchReach.any, true);
+});
+
 test('a cache written before the fields existed claims nothing either way', () => {
   // listOrdered null is "we do not know", which must not read as "cut by name".
   data.activity = { 'acme/widget': repo({ listCapped: true, listOrdered: null }) };

@@ -11,7 +11,7 @@
 // text encoders used three different routes to UTF-8, one of them the
 // deprecated escape/unescape pair.
 //
-// The gate counts calls to `btoa(` and `atob(`. A file below may hold exactly
+// The gate counts calls to `btoa(` and `atob(`, whitespace before the paren allowed. A file below may hold exactly
 // the number its entry says, so a new copy in an exempt file still fails.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -44,7 +44,7 @@ const ALLOWED = {
   'popups/render-engine-editor.html': { n: 1, why: 'loads no lib' },
 };
 
-const calls = (f) => (readFileSync(join(repoRoot, f), 'utf8').match(/\b(?:btoa|atob)\(/g) || []).length;
+const calls = (f) => (readFileSync(join(repoRoot, f), 'utf8').match(/\b(?:btoa|atob)\s*\(/g) || []).length;
 
 test('only gh-api.js encodes and decodes base64', () => {
   const files = execFileSync('git', ['ls-files', 'lib', 'pages', 'app', 'popups'], { cwd: repoRoot, encoding: 'utf8' })

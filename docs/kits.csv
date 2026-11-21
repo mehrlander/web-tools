@@ -12,7 +12,7 @@ lib/kits/chat-archive.js,chatArchive,"the chat archive as a venue of activity, r
 lib/kits/chat-render.js,chatRender,"chat transcript renderer: markdown in, readable conversation out, with fenced code blocks promoted to live artifacts.",1201,no,no,9,yes
 lib/kits/claude-mark.js,claudeMark,"the Claude logomark, from one path.",62,yes,no,5,yes
 lib/kits/closing-state.js,ClosingState,"the conventions' CLOSING STATE, as one vocabulary.",146,no,no,5,yes
-lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,162,no,no,10,yes
+lib/kits/cm6-merge.js,cm6Merge,framework-free CodeMirror 6 *diff* factory: read-only side-by-side and unified merge views over two versions of a text.,183,no,no,10,yes
 lib/kits/cm6.js,cm6,framework-free CodeMirror 6 editor factory.,236,no,yes,20,yes
 lib/kits/code-doc.js,codeDoc,"SOURCE CODE AS A DECLARED RENDER: the second kind, and the one that says what the contract is actually for.",92,no,no,2,yes
 lib/kits/comment-view.js,commentView,"a code file read through its comments: each docstring and comment block laid out as prose in file order, with the code between them folded to one-line bars.",453,no,no,2,yes
@@ -53,13 +53,13 @@ lib/kits/lists.js,Lists,"the registry's lists/ folder, read and written as one k
 lib/kits/local-work.js,LocalWork,"Observations establish file presence and Git relationships, never a backup.",28,no,no,1,yes
 lib/kits/look.js,Look,"look markers: a link that lands on a place in a page, says why, and can ring the control to tap.",2067,no,yes,10,yes
 lib/kits/mark-pad.js,MarkPad,"a pair of arrows that step through the marks of the document in view, as a keyboard's arrow keys step through a list, with the mark in view counted inside a…",162,no,no,2,yes
-lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,2094,no,yes,20,yes
-lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1017,no,no,17,yes
+lib/kits/md-diff.js,mdDiff,a markdown change read as the DOCUMENT rather than as its source.,2202,no,yes,20,yes
+lib/kits/md-doc.js,mdDoc,a markdown document rendered as something you can read and take pieces OUT of.,1070,no,no,19,yes
 lib/kits/md-edit-studio.js,mdEditVariants,"the section editor as a studio: the source and a live reading of the change on one full screen, with no mode to switch.",611,no,no,1,no
 lib/kits/md-edit-tabs.js,mdEditVariants,"Wikipedia's source editor for one markdown section: Write, Preview and Changes over one text box, in place on a wide screen and the whole screen on a phone.",557,no,no,2,no
 lib/kits/md-edit.js,mdEdit,"edit one section of a markdown file where it is rendered, and save it back to the repository it came from.",985,no,no,5,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",277,no,no,2,yes
-lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1171,no,no,6,yes
+lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1173,no,no,6,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",715,no,yes,8,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
@@ -103,7 +103,7 @@ lib/kits/session-usage.js,SessionUsage,a session record as what each prompt cost
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",221,no,no,1,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
 lib/kits/shorter-payload.js,ShorterPayload,Reading a shorter toss.,76,no,no,1,yes
-lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,740,yes,yes,12,yes
+lib/kits/source-peek.js,SourcePeek,the hover card behind an exact-file GitHub jump-over.,740,yes,yes,13,yes
 lib/kits/src-doc.js,srcDoc,"A RENDERED VIEW OF A SOURCE FILE SAYS SO, AND SAYS WHICH FILE.",118,no,no,8,yes
 lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,5,yes
@@ -116,7 +116,7 @@ lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) an
 lib/kits/term-marks.js,TermMarks,a glossary's terms marked where a text first names them (window.TermMarks).,39,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",599,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
-lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",514,no,yes,37,yes
+lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",497,no,yes,37,yes
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,186,no,no,5,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",693,yes,no,6,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes

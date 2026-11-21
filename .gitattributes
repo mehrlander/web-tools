@@ -46,7 +46,8 @@ docs/aims-reading.csv merge=derived-csv
 # Tracker tasks: in place until done, then written once.
 tracker/tasks/*.md                    edit=by-status
 
-# The documents docs/docs.csv marks `record`.
+# Records: documents preserved as written. These lines are what make each a
+# record; docs/docs.csv leaves its status blank rather than say so again.
 docs/github/mcp-server-routing.md     edit=write-once
 docs/showing-consolidation.md         edit=write-once
 docs/prototypes/content-maturity-ideas.json edit=write-once
@@ -85,4 +86,8 @@ tracker/board.csv                     edit=regenerated linguist-generated
 tracker/board-tags.csv                edit=regenerated linguist-generated
 skills/default/CONVERSATION.md        edit=regenerated linguist-generated
 skills/default/QUALIFIED-WRITING.md   edit=regenerated linguist-generated
+skills/default/acronyms.md           edit=regenerated linguist-generated
+skills/peeves/peeves.csv             edit=regenerated linguist-generated
+docs/components.csv                  edit=regenerated linguist-generated
+data/comments/web-tools.json         edit=regenerated linguist-generated
 plugins/h/skills/**                   edit=regenerated linguist-generated

@@ -18,7 +18,7 @@ const { window } = makeWindow({
   html: `<!doctype html><html><body>
     <span id="a" data-title-tip="Fetched from the repo when opened.">EXTERNAL</span>
     <table><tbody><tr>
-      <td id="b" data-title-tip-bare data-title-tip="First line.&#10;&#10;Second line.">5,000</td>
+      <td id="b" data-title-tip="First line.&#10;&#10;Second line.">5,000</td>
       <td id="c" data-title-tip-look="excel" data-title-tip-lead="slm4303:"
           data-title-tip="input the hours anticipated">5,000</td>
     </tr></tbody></table>
@@ -129,12 +129,10 @@ test('a trigger wider than its tip centres the tip on the pointer, and a narrow 
   }
 });
 
-test('an empty title-tip advertises nothing: no underline, no tab stop', () => {
+test('an empty title-tip advertises nothing: no tab stop', () => {
   // A bound title-tip whose expression resolves to '' still carries the attribute.
-  // Drawing the affordance over it promises a title-tip that does not exist, and a
-  // tab stop on it is a stop that announces nothing. 54 of these were live on
+  // A tab stop on it is a stop that announces nothing. 54 of these were live on
   // the Map's Docs tab when this was measured.
-  assert.match(TitleTip.CSS, /\[data-title-tip\]:not\(\[data-title-tip=""\]\)\{[^}]*text-decoration:underline dotted/s);
   const el = window.document.createElement('span');
   el.setAttribute('data-title-tip', '');
   window.document.body.append(el);
@@ -143,11 +141,9 @@ test('an empty title-tip advertises nothing: no underline, no tab stop', () => {
   el.remove();
 });
 
-test('an element with nothing to underline opts out of the affordance', () => {
-  // A table cell is the case: a spreadsheet render draws no underline anywhere
-  // and the dotted rule would land on most of its numeric cells.
-  assert.match(TitleTip.CSS, /\[data-title-tip\]:not\(\[data-title-tip=""\]\)\{[^}]*text-decoration:underline dotted/s);
-  assert.match(TitleTip.CSS, /\[data-title-tip\]\[data-title-tip-bare\]\{text-decoration:none\}/);
+test('nothing marks a title-tip at rest', () => {
+  // No dotted underline: the owner does not want one.
+  assert.doesNotMatch(TitleTip.CSS, /text-decoration:underline/);
 });
 
 test('a lead line is its own bold row above the title-tip, and never markup', () => {

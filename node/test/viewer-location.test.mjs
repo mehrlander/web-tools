@@ -27,7 +27,10 @@ test('a file at the root of a branch has no folder to name', () => {
 });
 
 test('a local file, and a host that did not ask, get no line', () => {
-  assert.equal(show('asks', 'paste.md', { local: true }).locationLine, '');
+  const store = Alpine.store('browser');
+  store.repo = 'mehrlander/home';
+  try { assert.equal(show('asks', 'paste.md', { local: true }).locationLine, '', 'local wins even with a repo set'); }
+  finally { store.repo = ''; }
   assert.equal(show('bare', 'app/a.md', { repo: 'mehrlander/home', ref: 'main' }).locationLine, '');
 });
 

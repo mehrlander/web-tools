@@ -8,6 +8,8 @@ import { makeWindow, startAlpine, tick, withBase64 } from './bootstrap.mjs';
 const { window } = makeWindow({ html: `<!doctype html><html><body>
   <article><p id="p1">The quick brown fox jumps over the lazy dog.</p>
   <textarea id="ta">typed words here</textarea></article>
+  <div data-annotate-ui><p id="cp">card text inside the annotator</p></div>
+  <div id="ce" contenteditable="true"></div>
 </body></html>` });
 const doc = window.document;
 // The trio rides along so noteSelection() finds window.Annotate without a
@@ -104,6 +106,24 @@ test('a selection inside a field the reader is typing in is not offered', async 
   await settle();
   assert.equal(d.selOffer, null);
   ta.blur();
+});
+
+test('a selection inside the annotator\'s own card is not offered', async () => {
+  select(doc.getElementById('cp').firstChild, 0, 9);
+  await settle();
+  assert.equal(d.selOffer, null);
+});
+
+test('a selection while a contenteditable region has the focus is not offered', async () => {
+  const ce = doc.getElementById('ce');
+  // jsdom does not implement isContentEditable.
+  Object.defineProperty(ce, 'isContentEditable', { get: () => true });
+  ce.focus();
+  assert.equal(doc.activeElement, ce);
+  select(doc.getElementById('p1').firstChild, 4, 19);
+  await settle();
+  assert.equal(d.selOffer, null);
+  ce.blur();
 });
 
 test('the launcher lights with the annotator on as well', async () => {

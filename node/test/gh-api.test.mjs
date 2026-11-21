@@ -10,7 +10,7 @@ const { default: GH } = await import('../../lib/gh-api.js');
 // A fake commit history: commit i (newest first) touches the given files.
 // Dates descend with i so per-file dates are distinguishable.
 const makeGh = (filesPerCommit, opts = {}) => {
-  const gh = new GH({ repo: 'o/r' });
+  const gh = new GH({ repo: 'o/r', ...(opts.ref && { ref: opts.ref }) });
   const calls = { list: 0, details: [], maxInFlight: 0 };
   let inFlight = 0;
   gh.req = async (full) => {
@@ -341,4 +341,10 @@ test('reads every detail from the repo it started on, though the client is repoi
   const { gh, calls } = makeGh([['a'], ['b']], { switchTo: 'o/other' });
   await gh.recentFiles(2);
   assert.ok(calls.paths.every(p => p.startsWith('/repos/o/r/')), calls.paths.join(' '));
+});
+
+test('lists the commits of the client\'s ref, not the default branch', async () => {
+  const { gh, calls } = makeGh([['a'], ['b'], ['c']], { ref: 'dev' });
+  await gh.recentFiles(3);
+  assert.equal(calls.paths[0], '/repos/o/r/commits?sha=dev&per_page=6');
 });

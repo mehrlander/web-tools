@@ -36,6 +36,7 @@ test('a link is its label, and the URL is not spoken', () => {
 
 test('a bare URL goes, wherever it sits', () => {
   assert.equal(R.speechText('Open https://example.com/a/b?c=d now.'), 'Open now.');
+  assert.equal(R.speechText('Old http://example.com/a and www.example.com/b here.'), 'Old and here.');
 });
 
 test('a fenced block is dropped whole, and an unclosed one takes the tail', () => {

@@ -217,6 +217,20 @@ test('an undo puts back the one item, and keeps what landed since', async () => 
   assert.deepEqual(FILES['lists/to-do.json'].items.map(i => i.id), ['t1', 't2', 't3']);
 });
 
+test('an undo puts a deleted item back at its old position, middle or alone', async () => {
+  const t = id => ({ id, text: id, done: false });
+  FILES = { 'lists/to-do.json': { items: [t('t1'), t('t2'), t('t3')] } };
+  await data.loadTodos(reg());
+  await data.deleteTodo(data.todoItems[1]);
+  await data.takeUndo();
+  assert.deepEqual(FILES['lists/to-do.json'].items.map(i => i.id), ['t1', 't2', 't3']);
+  FILES = { 'lists/to-do.json': { items: [t('t1')] } };
+  await data.loadTodos(reg());
+  await data.deleteTodo(data.todoItems[0]);
+  await data.takeUndo();
+  assert.deepEqual(FILES['lists/to-do.json'].items.map(i => i.id), ['t1']);
+});
+
 // The three files took their lists' names on 2026-10-19 (todo, jots and pins
 // before). kits/lists.js reads the old file until the new one exists.
 // gh-store keeps the sha a successful write returns on the GH instance, and

@@ -104,6 +104,23 @@ test('a run of lines reads as a range', () => {
   assert.equal(window.codeDoc.sourceRef(r), 'lib/kits/peek.js:3-5');
 });
 
+// Lines are counted against the DECLARED source, never the rendered text: a box
+// whose text has drifted from the declaration still answers from the source,
+// clamped to its last line.
+test('lines are counted against the declared source, not the rendered text', () => {
+  const box = mount();
+  box.textContent = 'a\nb\nc\nd';
+  window.codeDoc.declare(box, { source: 'a\nb', addr: { path: 'x.js' } });
+  assert.equal(window.codeDoc.sourceRef(rangeIn(box, 6)), 'x.js:2',
+    'offset 6 is on line 4 of the text, past the end of the two-line source');
+});
+
+test('a range ending at the end of a line reads that line, not the next', () => {
+  const box = mount();
+  const r = rangeIn(box, SRC.indexOf('function'), SRC.indexOf('a + 1;') + 6);
+  assert.equal(window.codeDoc.sourceRef(r), 'lib/kits/peek.js:3-4');
+});
+
 // A DOM Range CANNOT run backwards: setEnd before the start collapses it, and
 // a backwards drag reaches script through Selection, which hands out a
 // normalized range. So the ordering guard in lineSpan is unreachable from the

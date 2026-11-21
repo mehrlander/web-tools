@@ -118,12 +118,15 @@ try {
   check(!h.errors.length,'Foreground and controller changes preserve the current page without a forced reload.');
 } finally {h.dom.window.close();}
 
-for(const [hash,view] of [['#view=devices','computer'],['#view=repositories&folder=project%2Fdata&filter=ignored&checkout=1234567890abcdef12345678','files']]) {
+for(const [hash,view] of [['#view=devices','computer'],['#view=repositories&folder=project%2Fdata&filter=ignored&checkout=1234567890abcdef12345678','files'],['#view=repositories&root=','files']]) {
   const alias=await fixture(hash);
   try {
     const params=new URLSearchParams(alias.w.location.hash.slice(1));
     check(alias.w.NowViews.current()===view&&params.get('view')===view,'A legacy view alias lands on its canonical swipe destination.');
-    if(view==='files')check(params.get('folder')==='project/data'&&params.get('filter')==='ignored'&&params.get('checkout')==='1234567890abcdef12345678','Normalizing a repository alias preserves the folder, filter and checkout parameters.');
+    if(view==='files'){
+      check(params.get('root')==='gh','A legacy repository alias without a usable root retains gh.');
+      if(hash.includes('folder='))check(params.get('folder')==='project/data'&&params.get('filter')==='ignored'&&params.get('checkout')==='1234567890abcdef12345678','Normalizing a repository alias preserves its folder, filter and checkout parameters.');
+    }
     check(!alias.errors.length,'Direct legacy routes initialize without document scrolling or script errors.');
   } finally {alias.dom.window.close();}
 }
@@ -185,9 +188,9 @@ try {
   doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'End',bubbles:true}));
   check(doc.activeElement===button,'End reaches Refresh as the last keyboard menu item.');
   button.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowUp',bubbles:true}));
-  const previous=doc.activeElement.dataset.view;
+  const previous=doc.activeElement.hasAttribute('data-sync-status');
   doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowDown',bubbles:true}));
-  check(previous==='files'&&doc.activeElement===button,'Arrow keys include Refresh alongside the view choices.');
+  check(previous&&doc.activeElement===button,'Arrow keys include Connection status and Refresh alongside the view choices.');
   const updates=explicitRefresh.updates();button.click();await flush();await flush();
   check(explicitRefresh.updates()>updates&&doc.getElementById('view-menu').hidden&&doc.activeElement.id==='view-picker'&&explicitRefresh.errors.some(error=>/navigation/i.test(error.message)),'An explicit Refresh closes the menu, restores picker focus, checks the worker, and requests a reload; foreground checks alone never reload.');
 } finally {explicitRefresh.dom.window.close();}

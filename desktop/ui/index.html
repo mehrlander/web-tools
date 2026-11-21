@@ -16,8 +16,8 @@
 <body class="m-0 bg-stone-50 font-sans text-stone-800 [&_button]:cursor-pointer [&_button:disabled]:cursor-default [&_button:disabled]:opacity-40 [&_button:focus-visible]:outline-2 [&_button:focus-visible]:outline-emerald-700 [&_button:focus-visible]:outline-offset-2">
   <main class="grid h-dvh grid-rows-[auto_auto_auto_minmax(0,1fr)] gap-3 p-5">
     <header class="flex items-center justify-between gap-4">
-      <div class="flex items-baseline gap-4"><h1 class="text-balance text-xl font-semibold">Now</h1><span id="machine" class="text-xs text-stone-500">THIS COMPUTER</span><span id="session-count" class="text-sm text-stone-600"></span></div>
-      <button data-action="activity" class="text-sm text-emerald-800 hover:underline">Activity in Web Tools ↗</button>
+      <div class="flex items-baseline gap-4"><h1 class="text-xl font-semibold">Now</h1><span id="machine" class="text-xs text-stone-500">THIS COMPUTER</span><span id="session-count" class="text-sm text-stone-600"></span></div>
+      <div class="flex items-center gap-4"><button data-action="files" aria-label="Open Files in private Now" class="text-sm text-emerald-800 hover:underline">Files ↗</button><button data-action="activity" class="text-sm text-emerald-800 hover:underline">Activity in Web Tools ↗</button></div>
     </header>
     <div id="notice" role="status"></div>
     <section id="assistants" class="grid grid-cols-3 gap-3" aria-label="Assistant activity"></section>

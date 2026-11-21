@@ -18,7 +18,8 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
-const SHAPE = /@\(\[.{0,30}:\(/;
+const BUILT = /https:\/\/github\.com\/[^'"`\s]*(?:['"`]\s*\+|\$\{)|\+\s*['"`]https:\/\/github\.com\/|['"`]https:\/\/github\.com\/?['"`]\s*,/;
+const SHAPE = /@\((?!\?)[^\n]{0,30}:\(/;
 
 // The files that keep a reader of their own, each for a reason a shared module
 // cannot answer.
@@ -75,7 +76,6 @@ test('nor does anything build a github.com URL by hand', () => {
   const URL_OK = new Set([...Object.keys(ALLOWED), 'pages/guides/code-layers.html']);
   const files = execFileSync('git', ['ls-files', 'lib', 'pages', 'app'], { cwd: repoRoot, encoding: 'utf8' })
     .split('\n').filter((f) => /\.(js|html)$/.test(f) && !SKIP.test(f) && !URL_OK.has(f) && !f.startsWith('lib/ops/'));
-  const BUILT = /https:\/\/github\.com\/[^'"`\s]*(?:['"`]\s*\+|\$\{)|\+\s*['"`]https:\/\/github\.com\//;
   const offenders = [];
   for (const f of files) {
     readFileSync(path.join(repoRoot, f), 'utf8').split('\n').forEach((line, i) => {
@@ -92,9 +92,16 @@ test('the detector still sees the shape it was written for', () => {
     String.raw`/^([\w.-]+\/[\w.-]+)(?:@([\w./-]+))?:(.+)$/`,
     String.raw`/^([^/@:\s]+\/[^@:\s]+)@([^:\s]+):(\S+)$/`,
     String.raw`/^([\w.-]+\/[\w.-]+)(?:@([^\s:]+))?(?::([^\s#]+)(?:#(\S+))?)?$/`,
+    String.raw`/^([\w.-]+\/[\w.-]+)(?:@(\S+))?:(.+)$/`,
   ]) assert.match(copy, SHAPE, copy);
   // And the allowed boot readers are still where the allowance says.
   for (const f of Object.keys(ALLOWED)) {
     assert.match(readFileSync(path.join(repoRoot, f), 'utf8'), SHAPE, `${f} no longer needs its allowance`);
   }
+});
+
+test('the URL detector sees a github.com literal joined as an array element', () => {
+  // `['https://github.com', repo, 'blob', ref, p].join('/')` builds the URL
+  // with no `+` or `${` beside the literal, so the first two alternatives miss it.
+  assert.match(`['https://github.com', repo, 'blob', ref, p].join('/')`, BUILT);
 });

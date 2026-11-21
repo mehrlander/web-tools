@@ -35,6 +35,10 @@ test('a hard break is kept, and the lines after it may still join', () => {
   assert.equal(text('a\nb  \nc'), 'a b  \nc', 'a joined line keeps its own trailing hard break');
 });
 
+test('paren-delimited ordered list items stay apart', () => {
+  assert.equal(text('1) a\n2) b'), '1) a\n2) b');
+});
+
 test('fenced and indented code are left exactly', () => {
   const fenced = 'para\n\n```js\nconst a = 1;\nconst b = 2;\n```\nafter\nthis';
   assert.equal(text(fenced), 'para\n\n```js\nconst a = 1;\nconst b = 2;\n```\nafter this');

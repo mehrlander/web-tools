@@ -126,3 +126,14 @@ test('a number and a function that agree behave identically', () => {
   assert.equal(byNumber.state.pct, byFunction.state.pct);
   assert.deepEqual(byNumber.aria(), byFunction.aria());
 });
+
+test('refresh re-clamps the reported value to a bound that has moved', () => {
+  const stops = { lo: 30 };
+  const { state, split, key, aria } = mount({ min: () => stops.lo, max: () => 70 });
+  assert.equal(aria().now, '50');
+  stops.lo = 60;
+  split.refresh();
+  assert.deepEqual(aria(), { now: '60', min: '60', max: '70' });
+  key('ArrowLeft');                   // from: end, so ArrowLeft grows by the step
+  assert.equal(state.pct, 62, 'the step starts from the clamped value, not the stale 50');
+});

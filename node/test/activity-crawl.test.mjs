@@ -73,6 +73,17 @@ test('the kit defaults match the constants the shell documents and passes', () =
   });
 });
 
+test('the shell passes each crawl cap its own constant', () => {
+  const body = shellSrc.match(/caps: \{([^}]*)\}/);
+  assert.ok(body, 'the shell passes a caps object to the crawl');
+  const want = { recentCommits: 'ACTIVITY_RECENT_COMMITS', prReach: 'ACTIVITY_PR_REACH',
+                 scanCap: 'ACTIVITY_SCAN_CAP', scanKeep: 'ACTIVITY_SCAN_KEEP',
+                 errorRetry: 'ACTIVITY_ERROR_RETRY' };
+  for (const [key, constName] of Object.entries(want)) {
+    assert.match(body[1], new RegExp(`\\b${key}: this\\.${constName},`), `${key} passes ${constName}`);
+  }
+});
+
 // ── The scan gate, now shared ──────────────────────────────────────────────
 
 test('a stamp with no rows behind it is not a scan', () => {

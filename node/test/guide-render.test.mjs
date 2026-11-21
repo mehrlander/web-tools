@@ -106,6 +106,8 @@ test('a slashed branch splits on the known ref, not on the first slash', () => {
 test('the longest matching ref wins, so a prefix branch cannot steal the split', () => {
   const refs = ['claude/x', 'claude/x-2'];
   assert.deepEqual(G.splitBlobRef('claude/x-2/lib/a.js', refs), { ref: 'claude/x-2', path: 'lib/a.js' });
+  // a ref that is a slash-prefix of another: the shorter listed first must still lose
+  assert.deepEqual(G.splitBlobRef('claude/x/2/lib/a.js', ['claude/x', 'claude/x/2']), { ref: 'claude/x/2', path: 'lib/a.js' });
 });
 
 // ── routing a file to what can show it ──────────────────────────────────────

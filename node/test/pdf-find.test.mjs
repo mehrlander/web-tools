@@ -33,6 +33,12 @@ const item = (str, x1, base, w, opts = {}) => {
   };
 };
 
+test('a line rectangle is as tall as its tallest item', () => {
+  const r = pdf.find.search([item('ab', 0, 680, 20, { h: 20 }), item('cd', 20, 680, 20)], 'ab cd');
+  assert.equal(r.hits[0].rects.length, 1);
+  assert.equal(r.hits[0].rects[0].h, 20, 'a line rectangle is as tall as its tallest item');
+});
+
 test('a single word is found with a page and a covering rectangle', () => {
   const r = pdf.find.search([item('Retirement', 100, 680, 90)], 'Retirement');
   assert.equal(r.count, 1);
