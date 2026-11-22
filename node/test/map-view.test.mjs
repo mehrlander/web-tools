@@ -75,7 +75,7 @@ const ctxLinksCsv = readFileSync(path.join(repoRoot, 'docs', 'context-links.csv'
 const ctxHooksJson = readFileSync(path.join(repoRoot, 'skills', 'hooks', 'hooks.json'), 'utf8');
 const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
 // The Events view's three files, read from the working tree like the rest.
-const automationFiles = Object.fromEntries(['docs/harness.csv', 'docs/hook-legs.csv', 'docs/hook-events.csv']
+const automationFiles = Object.fromEntries(['docs/harness.csv', 'docs/commit-rules.csv', 'docs/hook-events.csv']
   .map(p => [p, readFileSync(path.join(repoRoot, p), 'utf8')]));
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
@@ -1597,8 +1597,8 @@ test('Events lays out every kind of event in the order a change meets them, with
     assert.deepEqual([...git.events.map(e => e.event)].slice(0, 2), ['pre-commit', 'commit-msg'], 'git events in the order a commit meets them');
     const preCommit = git.events[0].hooks[0];
     assert.equal(preCommit.name, '.githooks/pre-commit', 'a git file is named by its path, not by its event again');
-    assert.equal(preCommit.steps.length, automationFiles['docs/hook-legs.csv'].split('\n').slice(1).filter(Boolean).length,
-      'the commit hook lists every step, open');
+    assert.equal(preCommit.rules.length, automationFiles['docs/commit-rules.csv'].split('\n').slice(1).filter(Boolean).length,
+      'the commit hook lists every rule, open');
     const ci = kinds.find(k => k.key === 'ci');
     const push = ci.events.find(e => e.event === 'push');
     assert.ok(push.hooks.some(h => h.path === '.github/workflows/test.yml'), 'a workflow sits under each event in its on: block');
@@ -1621,7 +1621,7 @@ test('Events lays out every kind of event in the order a change meets them, with
     assert.ok(commitMsg.runs.some(r => r.path === 'skills/hooks/commit-consent.py'), 'an event lists what its file runs');
     await tick(2);
     assert.equal(host.querySelectorAll('[data-event-kind]').length, 4);
-    assert.ok(host.querySelector('[data-event-kind="git"] [data-hook-legs]'), 'the steps are drawn under pre-commit');
+    assert.ok(host.querySelector('[data-event-kind="git"] [data-hook-rules]'), 'the rules are drawn under pre-commit');
     state.pickTrigger(state.automationTriggers.find(t => t.k === 'hand'));
     assert.equal(state.mapTab, 'harness');
     assert.ok(state.harnessDirFiles.length, 'a file trigger lands on a folder holding its files');

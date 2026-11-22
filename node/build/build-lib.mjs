@@ -18,7 +18,7 @@
 //
 // Deterministic by construction (sorted cache + sorted boot, no date stamp), so
 // the committed dist/web-tools.js only changes when lib/ actually changes. The
-// commit-time hook (.claude/hooks/build-on-commit.sh) keeps it in sync.
+// pre-build rule in docs/commit-rules.csv keeps it in sync.
 
 import { readFileSync, readdirSync, mkdirSync, writeFileSync, statSync } from 'node:fs';
 import path from 'node:path';
