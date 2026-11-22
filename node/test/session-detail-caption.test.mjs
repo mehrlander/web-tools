@@ -20,6 +20,7 @@ const PAGES = 'https://mehrlander.github.io/web-tools/pages/';
 const SESSION = 'f701fa79-e1c0-5997-b6c3-709182f8e137';
 const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
 const MARK = '[`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
+const SEP = ' \u00a0 ';  // between every two parts
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
 const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's, of no kind it names
 const MIN = 60_000, HOUR = 60 * MIN;
@@ -101,19 +102,22 @@ function checkout(root, name, { changed = 0, branch = 'claude/work' } = {}) {
   return { repo, git, commit };
 }
 
-// The caption line, with the event and the instruction under it checked, and
-// the stamp that opens every line and the program link that closes it checked
-// and cut off.
+// The caption line, with the event and the instruction under it checked, the
+// stamp that opens every line and the program link that closes it checked and
+// cut off, and the parts between them joined by SEP, returned joined by single
+// spaces.
 const caption = (out, event = 'UserPromptSubmit') => {
   const d = JSON.parse(out).hookSpecificOutput;
   assert.equal(d.hookEventName, event);
   const [first, second, ...rest] = d.additionalContext.split('\n');
   assert.equal(second, CLOSE);
   assert.deepEqual(rest, []);
-  const head = `\`${STAMP}\` `, tail = ` ${MARK}`;
-  assert.ok(first.startsWith(head), `the line opens with the stamp: ${first}`);
-  assert.ok(first.endsWith(tail), `the line closes with the program link: ${first}`);
-  return first.slice(head.length, -tail.length);
+  const parts = first.split(SEP);
+  assert.equal(parts[0], `\`${STAMP}\``, `the line opens with the stamp: ${first}`);
+  assert.equal(parts.at(-1), MARK, `the line closes with the program link: ${first}`);
+  const between = parts.slice(1, -1);
+  for (const part of between) assert.equal(part, part.trim(), `parts are joined by SEP alone: ${first}`);
+  return between.join(' ');
 };
 
 test('the line: the count as the session link, then the context, the clock, the age and the waiting docs', () => {
