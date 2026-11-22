@@ -16,8 +16,8 @@
 # actually commits: the commit aborts, the prompt lands on stderr, nothing was
 # created, the staged files are untouched, and the retry carries the trailer.
 #
-# --no-verify bypasses, as it does for the size guard and the derived-artifact
-# rebuild beside it. These are guardrails, not security controls.
+# --no-verify bypasses, as it does for the size guard and the commit rules
+# beside it. These are guardrails, not security controls.
 set -u
 
 # Match pre-commit's Git-for-Windows bootstrap before trying cygpath or the

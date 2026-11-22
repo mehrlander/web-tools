@@ -47,6 +47,13 @@ test('each edit gets its standing in the text, and only the staged go in', () =>
   assert.match(text, /A third\./);
 });
 
+test('two edits that touch end to end both stage, neither is an overlap', () => {
+  const { A } = load();
+  assert.deepEqual(
+    A.stage('A first paragraph.\n\nB', [{ from: 'A first paragraph.', to: 'X' }, { from: '\n\nB', to: 'Y' }]),
+    { text: 'XY', status: ['staged', 'staged'] });
+});
+
 test('two edits over the same words: the later one in the file is staged, the other overlaps', () => {
   const { A } = load();
   const { status } = A.stage(BASE, [{ from: 'first paragraph.', to: 'x' }, { from: 'A first', to: 'y' }]);

@@ -165,6 +165,22 @@ test('an open list is one extra history entry, and ✕ still unwinds the whole s
 });
 
 
+test('✕ with a list open spends the deck entry and the list entry in one history.go(-2)', async () => {
+  const h = open();
+  await tick();
+  markOf(h).dispatchEvent(new window.MouseEvent('click'));
+  await tick();
+  const calls = [];
+  const go = window.history.go;
+  window.history.go = (n) => { calls.push(n); return go.call(window.history, n); };
+  h.close();
+  await tick(3);
+  window.history.go = go;
+  assert.deepEqual(calls, [-2], 'both entries cleared at once, or the list\'s entry is left behind');
+  assert.equal(overlays(), 0);
+});
+
+
 // ── Naming nothing, and grouping ────────────────────────────────────────────
 //
 // Two halves of the same question: what a deck offers when its slides have no

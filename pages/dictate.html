@@ -3584,8 +3584,8 @@
           // opened the note panel below also opened the tip above, over the
           // previous line, saying what the panel already showed (owner's
           // screenshot, 2026-10-02). The aria-label carries it for a reader.
-          if (hoverTip) { b.dataset.titleTipBare = ''; b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block'; }
-          else { delete b.dataset.titleTip; delete b.dataset.titleTipBare; }
+          if (hoverTip) { b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block'; }
+          else { delete b.dataset.titleTip; }
         }
       },
       // ── Confirm, then Apply ───────────────────────────────────────────
@@ -3763,7 +3763,7 @@
             a.textContent = c ? 'confirmed ✓' : 'confirm';
             // A title-tip, not a `title`: this is what the word does, and a
             // phone would never have shown it.
-            a.removeAttribute('title'); a.dataset.titleTipBare = '';
+            a.removeAttribute('title');
             a.dataset.titleTip = c ? 'Confirmed for Apply. Tap to take it back; editing the change also takes it back.'
                                    : 'Accept this change (can undo).';
           }
@@ -4791,7 +4791,7 @@
       <!-- The armed capital has nothing on screen to show yet: the word it
            applies to has not been said. So it wears the ring red the pins and
            the target wear, which is this page's one word for "live". -->
-      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error" data-title-tip-bare
+      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error"
          data-title-tip="The next word you say will be capitalised (tap Shift again to cancel)"></i>
     </div>
 
@@ -5197,7 +5197,7 @@
              answer is recorded with the commit. -->
         <button x-show="confirmedCount" x-cloak @click="call ? openAnswer() : applyConfirmed()" :disabled="applying" data-apply
                 class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
-                data-title-tip-bare :data-title-tip="call ? 'Answer the call: commit the confirmed edits, or copy the decisions out.'
+                :data-title-tip="call ? 'Answer the call: commit the confirmed edits, or copy the decisions out.'
                   : 'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit.'">
           <i class="ph ph-check-circle"></i>
           <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
@@ -5478,7 +5478,7 @@
         <span class="font-medium">Answer the call</span>
         <div class="grow"></div>
         <button @click="answerPreview = !answerPreview" class="btn btn-ghost btn-sm btn-square" :class="answerPreview && 'btn-active'"
-                aria-label="Show the answer as JSON" data-title-tip-bare data-title-tip="Show the answer as JSON">
+                aria-label="Show the answer as JSON" data-title-tip="Show the answer as JSON">
           <i class="ph ph-brackets-curly text-lg"></i></button>
         <button @click="answerOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
       </div>
@@ -5516,7 +5516,7 @@
            class="max-h-56 overflow-auto rounded-lg bg-base-200 p-2 font-mono text-[11px] leading-snug whitespace-pre-wrap break-all"></pre>
       <div class="flex gap-2">
         <button @click="copyDecisions()" data-answer-copy class="btn btn-sm grow gap-1.5"
-                data-title-tip-bare data-title-tip="The decisions and the confirmed patch as JSON on the clipboard. Nothing is committed.">
+                data-title-tip="The decisions and the confirmed patch as JSON on the clipboard. Nothing is committed.">
           <i class="ph ph-copy"></i>Copy</button>
         <button @click="answerCall()" :disabled="answering || (answerTo === 'branch' && confirmedCount && !answerBranch.trim())" data-answer-send
                 class="btn btn-sm btn-primary grow gap-1.5">
@@ -5575,11 +5575,11 @@
         <div class="grow"></div>
         <!-- The record's two readings, and a look at exactly what goes. -->
         <div x-show="file && sendWhat === 'record'" class="join shrink-0">
-          <button @click="recordAs = 'md'" class="join-item btn btn-xs" :class="recordAs === 'md' ? 'btn-active' : 'btn-ghost'" data-title-tip-bare data-title-tip="Markdown, for a chat or a session">MD</button>
-          <button @click="recordAs = 'json'" class="join-item btn btn-xs" :class="recordAs === 'json' ? 'btn-active' : 'btn-ghost'" data-title-tip-bare data-title-tip="JSON, the dictate/1 record">JSON</button>
+          <button @click="recordAs = 'md'" class="join-item btn btn-xs" :class="recordAs === 'md' ? 'btn-active' : 'btn-ghost'" data-title-tip="Markdown, for a chat or a session">MD</button>
+          <button @click="recordAs = 'json'" class="join-item btn btn-xs" :class="recordAs === 'json' ? 'btn-active' : 'btn-ghost'" data-title-tip="JSON, the dictate/1 record">JSON</button>
         </div>
         <button x-show="file" @click="sendPreview = !sendPreview" class="btn btn-ghost btn-sm btn-square" :class="sendPreview && 'btn-active'"
-                data-send-preview-toggle aria-label="Show what goes" data-title-tip-bare data-title-tip="Show what goes">
+                data-send-preview-toggle aria-label="Show what goes" data-title-tip="Show what goes">
           <i class="ph ph-eye text-lg"></i>
         </button>
         <button @click="sendOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>

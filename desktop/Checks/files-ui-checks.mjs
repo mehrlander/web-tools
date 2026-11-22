@@ -4,7 +4,7 @@ import {JSDOM} from 'jsdom';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const dom=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window,doc=w.document,timers=new Map(),requests=[];
-let id=0,top=0,offline=false,denied=false,checks=0,hold;
+let id=0,top=0,offline=false,denied=false,checks=0,hold,holdRoot;
 const at=new Date().toISOString(),key='a'.repeat(24),comp={branch:'work',state:'behind',ahead:0,behind:6};
 const checkout={key,name:'project',branch:'work',changed:0,untracked:0,conflicts:0,tracked:comp,main:{...comp,branch:'main',behind:61}};
 checkout.localFiles={key,name:'project',state:'ready',observedAt:at,partial:false,notice:null,entries:[
@@ -30,7 +30,7 @@ w.matchMedia=()=>({matches:false});w.eval(read('../../lib/kits/title-tip.js'));
 w.fetch=async(path,options={})=>{
  requests.push({path,...options});if(offline)throw new Error();
  const isFiles=path.startsWith('/api/v1/files'),url=new URL(path,w.location),folder=isFiles?url.searchParams.get('path'):null;
- if(isFiles&&hold)await hold;
+ if(isFiles&&hold&&(!holdRoot||(url.searchParams.get('root')||'gh')===holdRoot))await hold;
  return {ok:!denied,status:denied?403:200,headers:{get:()=>''},json:async()=>structuredClone(isFiles?(url.searchParams.get('root')==='downloads'?downloads:folders).get(folder):snapshot)};
 };
 w.eval(read('../phone/local-files.js'));w.eval(read('../phone/repositories.js'));w.eval(read('../../lib/kits/swipe-deck.js'));w.eval(read('../phone/views.js'));
@@ -39,13 +39,17 @@ const setTop=value=>w.NowViews.scrollTo(value,w.NowViews.current());
 const flush=async()=>{await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));};
 const check=(condition,message)=>{assert.ok(condition,message);checks++;};
 const click=selector=>{assert.ok(doc.querySelector(selector),selector);doc.querySelector(selector).click();};
+const selectedRoot=()=>doc.querySelector('[data-file-root][aria-selected="true"]')?.dataset.fileRoot;
 const poll=async()=>{w.dispatchEvent(new w.Event('online'));await flush();};
 click('[data-view=files]');await flush();setTop(220);
-check(w.location.hash==='#view=files'&&doc.querySelector('[data-file-root]').value==='downloads'&&doc.querySelector('[data-file="existing.png"]'),'Bare Files opens the existing files in Downloads.');
+check(w.location.hash==='#view=files'&&selectedRoot()==='downloads'&&doc.querySelector('[data-file="existing.png"]'),'Bare Files opens the existing files in Downloads.');
+check(doc.querySelectorAll('[role=tablist][aria-label="File locations"] [role=tab]').length===3&&!doc.querySelector('select[data-file-root]')
+  &&doc.getElementById('file-location-panel')?.getAttribute('aria-labelledby')===doc.querySelector('[data-file-root="downloads"]').id,
+  'The three sibling file locations use tabs with a correctly labelled shared panel rather than a dropdown.');
 check(doc.querySelector('#local-breadcrumb').textContent==='Downloads'&&!doc.querySelector('[data-repository],[data-fetch]'),'Downloads uses the existing plain explorer without repository controls.');
 click('[data-folder="photos"]');await flush();
 check(new URLSearchParams(w.location.hash.slice(1)).get('root')==='downloads'&&doc.querySelector('[data-file="photos/holiday.png"]'),'Downloads folder navigation retains its root.');
-const location=doc.querySelector('[data-file-root]');location.value='gh';location.dispatchEvent(new w.Event('change',{bubbles:true}));await flush();
+setTop(72);click('[data-file-root="gh"]');await flush();
 click('[data-folder=""]');await flush();
 check(w.location.hash==='#view=files&root=gh'&&doc.querySelector('#view-title').textContent==='Files','Repository folders use an explicit root within the shared Files view.');
 check(doc.querySelector('#local-breadcrumb').textContent==='repos'&&doc.querySelector('[data-folder=project]')&&doc.querySelector('[data-folder=ordinary]'),'The root shows actual sibling folders, including non-Git folders, under its real root name.');
@@ -63,6 +67,14 @@ check(destination.searchParams.get('ref')==='main'&&destination.searchParams.get
 checkout.branch='work';checkout.tracked=comp;await poll();
 click('[data-file-filter=ignored]');check(doc.querySelector('#local-results').textContent.includes('cache')&&!doc.querySelector('#local-results').textContent.includes('README'),'Ignored filtering selects the immediate ignored entries.');
 check(doc.querySelector('[data-folder="project/src/deep-cache"]')&&doc.querySelector('#local-results').textContent.includes('3 files · 5 KB'),'Ignored filtering retains nested inventory entries and measured folder metadata.');
+setTop(110);click('[data-file-root="downloads"]');await flush();
+check(selectedRoot()==='downloads'&&new URLSearchParams(w.location.hash.slice(1)).get('folder')==='photos'&&position()===72,
+  'A sibling tab restores the Downloads subfolder and its independent reading position.');
+click('[data-file-root="gh"]');await flush();
+check(selectedRoot()==='gh'&&new URLSearchParams(w.location.hash.slice(1)).get('folder')==='project'
+  &&new URLSearchParams(w.location.hash.slice(1)).get('filter')==='ignored'&&doc.querySelector('[data-file-filter=ignored]').getAttribute('aria-pressed')==='true'
+  &&position()===110&&doc.querySelector('[data-folder="project/src/deep-cache"]')&&!doc.querySelector('[data-file="project/README.md"]'),
+  'Repositories restores its own folder, Git filter, listing and reading position independently of Downloads.');
 click('[data-folder="project/cache"]');await flush();
 check(doc.querySelector('#local-breadcrumb').textContent==='repos/project/cache'&&doc.querySelector('#local-results').textContent.includes('x.txt'),'Ignored directories can be browsed normally.');
 destination=new URL(doc.getElementById('web-tools-link').href);
@@ -123,6 +135,12 @@ rootSearch.value='';rootSearch.dispatchEvent(new w.Event('input',{bubbles:true})
 check(group().hidden,'Clearing search restores the collapsed root.');
 click('[data-workfolders=other]');check(!doc.getElementById('workfolders-other').hidden&&doc.querySelector('[data-folder=ordinary]'),'Other files remain available through their own group.');
 
+let release;hold=new Promise(resolve=>release=resolve);holdRoot='gh';
+click('[data-folder=project]');await flush();click('[data-file-root="downloads"]');await flush();release();hold=undefined;holdRoot=undefined;await flush();
+check(selectedRoot()==='downloads'&&doc.querySelector('[data-file="photos/holiday.png"]')&&!doc.querySelector('[data-folder="project/cache"]')
+  &&requests.some(request=>String(request.path).startsWith('/api/v1/files')&&new URL(request.path,w.location).searchParams.get('root')!=='downloads'&&request.signal?.aborted),
+  'A delayed repository folder response cannot replace the selected Downloads tab or its entries.');
+click('[data-file-root="gh"]');await flush();click('[data-folder=""]');await flush();
 offline=true;await poll();check(doc.querySelector('#local-observed').textContent.includes('Saved')&&doc.querySelector('[data-folder=project]'),'A lost connection labels and retains the observed folder listing.');
 const reloaded=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/#view=files&root=gh',runScripts:'outside-only',pretendToBeVisual:true}),saved=reloaded.window;
 saved.localStorage.setItem('web-tools-repositories-snapshot',w.localStorage.getItem('web-tools-repositories-snapshot'));

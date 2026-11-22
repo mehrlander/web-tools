@@ -277,7 +277,8 @@ test('census output rejects traversal, absolute and Windows drive paths before w
   const { box, root } = fixture(t);
   const outside = path.join(box, 'outside.csv');
   writeFileSync(outside, 'sentinel\n');
-  for (const census of ['../outside.csv', outside.replaceAll('\\', '/'), 'C:/outside.csv', 'C:outside.csv']) {
+  for (const census of ['../outside.csv', outside.replaceAll('\\', '/'), 'C:/outside.csv', 'C:outside.csv',
+    '..\\outside.csv', 'data\\csv-census.csv', 'a\nb.csv', 'a\rb.csv']) {
     declare(root, census);
     const r = run(root);
     assert.notEqual(r.status, 0, `accepted ${census}`);
@@ -321,9 +322,12 @@ test('census output rejects a file symlink even when its target is inside the ch
 test('the full refresh hook repairs and stages a census in a clean checkout', t => {
   const { box, root } = fixture(t);
   mkdirSync(path.join(root, 'python'));
-  mkdirSync(path.join(root, '.githooks'));
   copyFileSync(script, path.join(root, 'python/csv-census.py'));
-  copyFileSync(path.join(repoRoot, '.githooks/pre-commit'), path.join(root, '.githooks/pre-commit'));
+  for (const f of ['.githooks/pre-commit', 'docs/commit-rules.csv', 'node/build/commit-rules.mjs',
+    'node/build/registries-load.mjs', 'node/build/kit-shim.mjs', 'node/repo-root.mjs', 'lib/kits/csv.js']) {
+    mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
+    copyFileSync(path.join(repoRoot, f), path.join(root, f));
+  }
   generate(root);
   writeFileSync(path.join(root, output), 'path,rows,columns,bytes,headers\n');
   git(root, 'add', '.');
@@ -331,8 +335,8 @@ test('the full refresh hook repairs and stages a census in a clean checkout', t 
     '-c', 'commit.gpgsign=false', 'commit', '-qm', 'stale census fixture');
   assert.equal(git(root, 'status', '--porcelain'), '');
 
-  // Other generator legs belong to their own tests; this fixture exercises
-  // the actual full hook and census script with those npm commands as no-ops.
+  // Other rules belong to their own tests; this fixture exercises the actual
+  // full hook and census script with those npm commands as no-ops.
   const bin = path.join(box, 'bin');
   mkdirSync(bin);
   const pythonExe = execFileSync(python, ['-c', 'import sys; print(sys.executable)'], { encoding: 'utf8' })

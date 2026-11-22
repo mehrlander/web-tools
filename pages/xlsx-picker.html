@@ -75,7 +75,7 @@
            @dragover.prevent="dragging = true" @dragleave="dragging = false" @drop.prevent="drop($event)">
       <div class="flex flex-col items-center gap-2 opacity-60">
         <i class="ph ph-file-xls text-5xl"></i>
-        <span class="text-balance">Drop an .xlsx or .xlsm here</span>
+        <span>Drop an .xlsx or .xlsm here</span>
       </div>
       <input type="file" accept=".xlsx,.xlsm" class="hidden" @change="pick($event)">
     </label>
@@ -85,7 +85,7 @@
     </div>
 
     <div x-show="error" class="alert alert-error">
-      <i class="ph ph-warning-circle"></i><span x-text="error" class="text-pretty"></span>
+      <i class="ph ph-warning-circle"></i><span x-text="error"></span>
     </div>
 
     <div x-show="plan" class="grid gap-4 grid-cols-1 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] items-start">
@@ -143,7 +143,7 @@
           </ul>
           <template x-for="why in refused" :key="why">
             <p class="text-xs text-warning flex items-start gap-1.5 px-1">
-              <i class="ph ph-prohibit-inset mt-0.5 shrink-0"></i><span x-text="why" class="text-pretty"></span>
+              <i class="ph ph-prohibit-inset mt-0.5 shrink-0"></i><span x-text="why"></span>
             </p>
           </template>
         </div>
@@ -165,7 +165,7 @@
       <section class="min-w-0 flex flex-col gap-3">
 
         <div x-show="!result" class="rounded-box border border-dashed border-base-300 p-6 grid place-items-center opacity-50">
-          <span class="text-balance" x-text="canBuild ? 'Rebuild to see what survived' : 'Keep at least one sheet'"></span>
+          <span x-text="canBuild ? 'Rebuild to see what survived' : 'Keep at least one sheet'"></span>
         </div>
 
         <template x-if="result">
@@ -186,7 +186,7 @@
               <template x-for="p in problems" :key="p.message">
                 <li class="text-error text-xs flex gap-1.5">
                   <span class="font-mono opacity-70 shrink-0" x-text="p.kind"></span>
-                  <span x-text="p.message" class="text-pretty"></span>
+                  <span x-text="p.message"></span>
                 </li>
               </template>
             </ul>
@@ -224,13 +224,13 @@
               <div class="rounded-box bg-base-100 p-3 flex flex-col gap-1">
                 <span class="font-medium" x-text="`${cellLoss.missing} cells not re-emitted`"></span>
                 <ul class="text-xs opacity-70 flex flex-col gap-0.5">
-                  <li x-show="cellLoss.stubs" class="text-pretty"
+                  <li x-show="cellLoss.stubs"
                       x-text="`${cellLoss.stubs} empty with a style that is the package default in every field`"></li>
-                  <li x-show="cellLoss.mergeSlaves" class="text-pretty"
+                  <li x-show="cellLoss.mergeSlaves"
                       x-text="`${cellLoss.mergeSlaves} holding text inside a merged range but not at its top-left, which Excel does not display`"></li>
-                  <li x-show="cellLoss.valued" class="text-warning text-pretty"
+                  <li x-show="cellLoss.valued" class="text-warning"
                       x-text="`${cellLoss.valued} that held a value or a formula`"></li>
-                  <li x-show="cellLoss.styled" class="text-warning text-pretty"
+                  <li x-show="cellLoss.styled" class="text-warning"
                       x-text="`${cellLoss.styled} that carried a format`"></li>
                 </ul>
                 <ul class="font-mono text-xs opacity-60 flex flex-col gap-0.5">
@@ -247,7 +247,7 @@
                     <li class="flex gap-1.5">
                       <i class="ph shrink-0" :class="e.ok ? 'ph-check text-success' : 'ph-minus text-base-content/40'"></i>
                       <span class="font-mono opacity-70 shrink-0" x-text="e.stage"></span>
-                      <span x-text="e.msg" class="text-pretty"></span>
+                      <span x-text="e.msg"></span>
                     </li>
                   </template>
                 </ul>

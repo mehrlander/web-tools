@@ -81,6 +81,20 @@ test('a go() in flight holds the readings until the strip lands', () => {
   assert.deepEqual(slid, [4], 'once landed, a swipe reads again');
 });
 
+test('go(0) is a hold like any other: the cards passed on the way back do not read', () => {
+  const s = laidOut(5, { smooth: true }), slid = [], arrived = [];
+  const d = sd.strip({ el: () => s, onSlide: (i) => slid.push(i), onArrive: (i) => arrived.push(i) });
+  s.scrollLeft = 3 * (W + GAP); d.read();
+  slid.length = 0;
+  d.go(0);
+  s.scrollLeft = 2 * (W + GAP); d.read();
+  s.scrollLeft = 1 * (W + GAP); d.read();
+  assert.deepEqual(slid, [], 'a drive to the first card holds the readings');
+  assert.equal(d.at, 0);
+  s.scrollLeft = 0; d.read();
+  assert.deepEqual(arrived, [0]);
+});
+
 test('a hold that never lands lets go after 900ms', async () => {
   const s = laidOut(5, { smooth: true }), arrived = [];
   const d = sd.strip({ el: () => s, onArrive: (i) => arrived.push(i) });

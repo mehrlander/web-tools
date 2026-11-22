@@ -11,7 +11,8 @@
   const file='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0 text-stone-500" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5"/></svg>';
   const arrow='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" class="size-3 shrink-0 text-stone-500" aria-hidden="true"><path d="m6 4 4 4-4 4"/></svg>';
   const workfolders='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0" aria-hidden="true"><path d="M7 3h5l2 2h7v12M3 7h5l2 2h7v12H3Z"/></svg>';
-  const roots={downloads:'Downloads',gh:'Repository folders',outputs:'Assistant outputs'};
+  const roots={downloads:'Downloads',gh:'Repositories',outputs:'Assistant outputs'};
+  const rootLabels={downloads:'Downloads',gh:'Repositories',outputs:'Outputs'};
   const imageTypes=new Set(['image/png','image/jpeg','image/gif','image/webp']);
   const textLimit=1024*1024,imageLimit=32*1024*1024;
   let current=null,rootId='downloads',openedFile='',filter='all',query='',listing,snapshot,live=false,active=false,timer,controller,failed=false,denied=false,signature='';
@@ -19,7 +20,8 @@
   const cache=new Map();
   const folderStates=new Map();
   const cacheKey=(root,path)=>root+'\0'+path;
-  const rootPicker=()=>`<select data-file-root aria-label="File location" class="min-h-9 min-w-0 rounded-md border border-stone-200 bg-white px-2 text-sm text-stone-700">${Object.entries(roots).map(([id,label])=>`<option value="${id}" ${rootId===id?'selected':''}>${label}</option>`).join('')}</select>`;
+  const rootTabs=()=>`<div class="sticky top-0 z-10 bg-stone-100 px-3 py-2"><div role="tablist" aria-label="File locations" class="grid grid-cols-3 gap-0.5 rounded-lg bg-stone-200 p-0.5">${Object.entries(rootLabels).map(([id,label])=>`<button id="file-location-${id}" data-file-root="${id}" role="tab" aria-label="${roots[id]}" aria-selected="${rootId===id}" aria-controls="file-location-panel" tabindex="${rootId===id?0:-1}" class="min-h-9 min-w-0 rounded-md px-1 text-[13px] font-medium leading-5 whitespace-nowrap focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-sky-700 ${rootId===id?'bg-white text-stone-900 shadow-sm':'text-stone-600 hover:text-stone-900'}">${label}</button>`).join('')}</div></div>`;
+  const panelStart=()=>`<section id="file-location-panel" role="tabpanel" aria-labelledby="file-location-${escape(rootId)}">`;
   function contentUrl(download=false){
     const params=new URLSearchParams({root:rootId,path:openedFile});if(download)params.set('download','1');
     return '/api/v1/files/content?'+params;
@@ -33,6 +35,7 @@
   }
   function clearPrivate(){
     cache.clear();folderStates.clear();listing=undefined;
+    window.NowRepositories?.clearLocations?.();
     localStorage.removeItem('web-tools-files-snapshot');localStorage.removeItem('web-tools-files-root');
   }
   function renderContent(){
@@ -47,14 +50,17 @@
     disposePreview();
     if(state.image){
       previewUrl=URL.createObjectURL(new Blob([state.image],{type:state.mime}));
-      const image=document.createElement('img');image.src=previewUrl;image.alt=openedFile.split('/').at(-1);
+      const image=document.createElement('img');image.alt=openedFile.split('/').at(-1);
       image.className='block h-auto max-w-full';
+      image.onload=()=>{if(image.isConnected)window.NowRepositories?.fileLayout?.(true);};
       image.onerror=()=>{if(image.isConnected)el('file-status').textContent='Image unavailable';};
+      image.src=previewUrl;
       el('file-preview').append(image);
     }else if(state.text!==undefined){
       const text=document.createElement('pre');text.className='m-0 whitespace-pre-wrap break-words p-3 text-base leading-7';
       text.textContent=state.text;el('file-preview').append(text);
     }
+    if(!state.image)window.NowRepositories?.fileLayout?.(true);
   }
   async function previewBytes(response,limit,signal){
     const reader=response.body?.getReader();if(!reader)throw new Error('Streaming unavailable');
@@ -73,6 +79,7 @@
   }
   async function readContent(){
     if(!active||!openedFile||contentController)return;
+    window.NowRepositories?.fileLayout?.();
     const request=new AbortController(),path=openedFile,root=rootId;
     contentController=request;disposePreview();contentState={state:'loading'};renderContent();
     const timeout=setTimeout(()=>request.abort(),15000);
@@ -97,7 +104,7 @@
         }else await response.body?.cancel();
       }
       if(!currentRequest())return;
-      denied=false;contentState=state;renderContent();
+      denied=false;window.NowRepositories?.rememberLocation?.(true);contentState=state;renderContent();
     }catch(error){
       if(!currentRequest())return;
       disposePreview();
@@ -108,7 +115,7 @@
   }
   function contentShell(){
     const parts=openedFile.split('/'),name=parts.pop();
-    el('repositories').innerHTML=`<div class="border-b border-stone-200 bg-white px-3 pb-2"><div class="flex items-center justify-between gap-2">${rootPicker()}</div><nav aria-label="Folder path" class="flex flex-wrap items-center gap-x-1.5 text-xs"><button data-folder="" class="min-h-9 font-medium text-emerald-800">${escape(roots[rootId]||rootId)}</button>${parts.map((part,i)=>`<span aria-hidden="true" class="text-stone-400">/</span><button data-folder="${escape(parts.slice(0,i+1).join('/'))}" class="min-h-9 break-all text-left text-emerald-800">${escape(part)}</button>`).join('')}</nav><h2 class="break-all text-base font-semibold">${escape(name)}</h2><p id="file-meta" class="mt-1 text-xs text-stone-500"></p><div id="file-actions" hidden class="mt-2 flex flex-wrap items-center gap-4 text-sm text-emerald-800"><a id="file-open" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-9 items-center">Open ↗</a><a id="file-download" class="inline-flex min-h-9 items-center">Download</a><button data-file-copy class="min-h-9">Copy link</button></div><p id="file-status" role="status" class="min-h-5 text-xs text-stone-500"></p></div><div id="file-preview" class="min-w-0 overflow-x-auto"></div>`;
+    el('repositories').innerHTML=`${rootTabs()}${panelStart()}<div class="border-b border-stone-200 bg-white px-3 pb-2"><nav aria-label="Folder path" class="flex flex-wrap items-center gap-x-1.5 text-xs"><button data-folder="" class="min-h-9 font-medium text-emerald-800">${escape(roots[rootId]||rootId)}</button>${parts.map((part,i)=>`<span aria-hidden="true" class="text-stone-400">/</span><button data-folder="${escape(parts.slice(0,i+1).join('/'))}" class="min-h-9 break-all text-left text-emerald-800">${escape(part)}</button>`).join('')}</nav><h2 class="break-all text-base font-semibold">${escape(name)}</h2><p id="file-meta" class="mt-1 text-xs text-stone-500"></p><div id="file-actions" hidden class="mt-2 flex flex-wrap items-center gap-4 text-sm text-emerald-800"><a id="file-open" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-9 items-center">Open ↗</a><a id="file-download" class="inline-flex min-h-9 items-center">Download</a><button data-file-copy class="min-h-9">Copy link</button></div><p id="file-status" role="status" class="min-h-5 text-xs text-stone-500"></p></div><div id="file-preview" class="min-w-0 overflow-x-auto"></div></section>`;
     document.title=name+' | Files | Web Tools';renderContent();readContent();
   }
   const expanded=new Set(),searchCollapsed=new Set();
@@ -134,7 +141,7 @@
   function branchLine(checkout,hint=''){
     if(!checkout)return '';
     const name=checkout.branch==='(detached)'?checkout.branchStatus?.state==='snapshot'?(checkout.main?.branch||'Default branch')+' snapshot':'Detached commit':checkout.branch||'Branch unavailable';
-    return `<div class="flex min-w-0 items-center gap-x-2 pl-6 pr-3 text-xs leading-5 text-stone-600"><span class="flex min-w-0 flex-1 items-start gap-1">${window.NowRepositories.branchControl(checkout)}<span data-file-branch="${checkout.key}" tabindex="0" data-title-tip="${escape(hint?hint+' · '+name:name)}" data-title-tip-bare class="min-w-0 truncate">${hint?`<span class="text-stone-500">${escape(hint)} · </span>`:''}${escape(name)}</span></span>${window.NowRepositories.comparison(checkout.tracked,checkout.key+':files')}</div>`;
+    return `<div class="flex min-w-0 items-center gap-x-2 pl-6 pr-3 text-xs leading-5 text-stone-600"><span class="flex min-w-0 flex-1 items-start gap-1">${window.NowRepositories.branchControl(checkout)}<span data-file-branch="${checkout.key}" tabindex="0" data-title-tip="${escape(hint?hint+' · '+name:name)}" class="min-w-0 truncate">${hint?`<span class="text-stone-500">${escape(hint)} · </span>`:''}${escape(name)}</span></span>${window.NowRepositories.comparison(checkout.tracked,checkout.key+':files')}</div>`;
   }
   const isMain=checkout=>Boolean(checkout&&checkout.branch!=='(detached)'&&(checkout.branch===checkout.main?.branch||!checkout.main?.branch&&checkout.branchStatus?.state==='main'));
   function rootGroups(items){
@@ -152,7 +159,7 @@
   const isExpanded=key=>expanded.has(key)||Boolean(query)&&!searchCollapsed.has(key);
   function groupControl(key,count,name){
     const open=isExpanded(key),tip=count+' other work '+(count===1?'folder':'folders');
-    return `<button data-workfolders="${key}" data-focus="${key}:workfolders" aria-expanded="${open}" aria-controls="workfolders-${key}" aria-label="${open?'Hide':'Show'} ${tip} for ${escape(name)}" data-title-tip="${tip}" data-title-tip-bare class="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-md px-1.5 text-[11px] tabular-nums ${open?'bg-sky-50 text-sky-800':'text-stone-500'}">${workfolders}<span>${count}</span></button>`;
+    return `<button data-workfolders="${key}" data-focus="${key}:workfolders" aria-expanded="${open}" aria-controls="workfolders-${key}" aria-label="${open?'Hide':'Show'} ${tip} for ${escape(name)}" data-title-tip="${tip}" class="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-md px-1.5 text-[11px] tabular-nums ${open?'bg-sky-50 text-sky-800':'text-stone-500'}">${workfolders}<span>${count}</span></button>`;
   }
   function entryRow(e,checkout,inventory,{label=e.name,control='',repo=false}={}){
     const path=(current?current+'/':'')+e.name,main=repo&&isMain(checkout);
@@ -224,7 +231,7 @@
       if(!response.ok)throw new Error();
       const value=await response.json();if(!validListing(value,path))throw new Error();
       if(!active||current!==path||rootId!==root||controller!==request)return;
-      listing=value;denied=false;failed=false;
+      listing=value;denied=false;failed=false;window.NowRepositories?.rememberLocation?.(true);
       if(cache.size>=24)cache.delete(cache.keys().next().value);cache.set(cacheKey(root,path),value);
       try{if(root==='gh'){localStorage.setItem('web-tools-files-snapshot',JSON.stringify(value));if(!path)localStorage.setItem('web-tools-files-root',JSON.stringify(value));}}catch{}
     }catch{if(active&&current===path&&rootId===root&&controller===request)failed=true;}
@@ -238,7 +245,7 @@
       if(openedFile){contentShell();return;}
       const saved=folderStates.get(cacheKey(rootId,path));filter=saved?.filter||'all';query=saved?.query||'';
       listing=cache.get(cacheKey(rootId,path));
-      el('repositories').innerHTML=`<div class="border-b border-stone-200 bg-white px-3 pb-2"><div class="pb-1">${rootPicker()}</div><div class="flex min-w-0 items-start"><nav id="local-breadcrumb" aria-label="Folder path" class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-xs [&>button]:inline-flex [&>button]:items-center [&>button]:gap-1.5"></nav><div id="folder-actions" class="-mr-3 shrink-0"></div></div><div id="local-context"></div><div class="flex items-center gap-2"><input data-local-search aria-label="Find in this folder" type="search" placeholder="Find in this folder" class="h-8 min-w-0 flex-1 rounded-md border border-stone-200 bg-stone-50 px-2 text-base"><span id="local-observed" class="shrink-0 text-[10px] text-stone-500"></span></div><div id="file-filters" hidden class="mt-1.5 flex rounded-lg bg-stone-200 p-0.5" role="group" aria-label="Git file status">${['all','tracked','untracked','ignored'].map(k=>`<button data-file-filter="${k}" aria-pressed="${k===filter}" class="min-h-7 flex-1 rounded-md px-1.5 text-xs">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div><p id="local-notice" class="empty:hidden pt-1 text-[11px] text-amber-800"></p></div><div id="local-results"></div>`;
+      el('repositories').innerHTML=`${rootTabs()}${panelStart()}<div class="border-b border-stone-200 bg-white px-3 pb-2"><div class="flex min-w-0 items-start"><nav id="local-breadcrumb" aria-label="Folder path" class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-xs [&>button]:inline-flex [&>button]:items-center [&>button]:gap-1.5"></nav><div id="folder-actions" class="-mr-3 shrink-0"></div></div><div id="local-context"></div><div class="flex items-center gap-2"><input data-local-search aria-label="Find in this folder" type="search" placeholder="Find in this folder" class="h-8 min-w-0 flex-1 rounded-md border border-stone-200 bg-stone-50 px-2 text-base"><span id="local-observed" class="shrink-0 text-[10px] text-stone-500"></span></div><div id="file-filters" hidden class="mt-1.5 flex rounded-lg bg-stone-200 p-0.5" role="group" aria-label="Git file status">${['all','tracked','untracked','ignored'].map(k=>`<button data-file-filter="${k}" aria-pressed="${k===filter}" class="min-h-7 flex-1 rounded-md px-1.5 text-xs">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div><p id="local-notice" class="empty:hidden pt-1 text-[11px] text-amber-800"></p></div><div id="local-results"></div></section>`;
       el('repositories').querySelector('[data-local-search]').value=query;
       results();poll();
     }else if(openedFile){document.title=openedFile.split('/').at(-1)+' | Files | Web Tools';}
@@ -265,6 +272,13 @@
     results();
   });
   document.addEventListener('input',event=>{if(active&&event.target.matches('[data-local-search]')){query=event.target.value;searchCollapsed.clear();results();}});
+  document.addEventListener('keydown',event=>{
+    if(!active||!event.target.closest('[data-file-root]')||!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+    event.preventDefault();
+    const tabs=[...el('repositories').querySelectorAll('[data-file-root]')],index=tabs.indexOf(event.target.closest('[data-file-root]'));
+    const next=event.key==='Home'?0:event.key==='End'?tabs.length-1:(index+(event.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length;
+    tabs.forEach((tab,n)=>tab.tabIndex=n===next?0:-1);tabs[next]?.focus({preventScroll:true});
+  });
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll();else clearTimeout(timer);});
   window.addEventListener('online',poll);
   for(const key of ['web-tools-files-root','web-tools-files-snapshot'])try{const prior=JSON.parse(localStorage.getItem(key));if(validListing(prior,key==='web-tools-files-root'?'':prior?.path))cache.set(cacheKey('gh',prior.path),prior);}catch{}

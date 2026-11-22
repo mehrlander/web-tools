@@ -21,7 +21,9 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
+import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { repoRoot } from '../repo-root.mjs';
 
@@ -42,4 +44,33 @@ test('every prose field name in this repo is one the vocabulary accounts for', (
     'accounts for (see: python3 python/text-carriers.py . --offvocab), or an ' +
     'authored data file is named nowhere in the repo. Tail of the run:\n' +
     out.split('\n').slice(-8).join('\n'));
+});
+
+// The gate itself: a temp git repo holding a copy of the vocabulary, a CSV with
+// one prose column, and a README that names both CSVs (so neither is undeclared).
+const checkFixture = (column) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'text-carriers-'));
+  try {
+    fs.mkdirSync(path.join(dir, 'docs'));
+    fs.copyFileSync(path.join(repoRoot, 'docs', 'text-fields.csv'), path.join(dir, 'docs', 'text-fields.csv'));
+    const sentence = 'This sentence is long enough to count as prose for the scan';
+    fs.writeFileSync(path.join(dir, 'items.csv'),
+      `id,${column}\n` + [1, 2, 3].map(i => `${i},${sentence} number ${'x'.repeat(i).replace(/x/g, 'ly')}`).join('\n') + '\n');
+    fs.writeFileSync(path.join(dir, 'README.md'), 'The rows live in items.csv, over docs/text-fields.csv.\n');
+    const git = (...a) => execFileSync('git', ['-C', dir, ...a], { stdio: 'ignore' });
+    git('init', '-q'); git('add', '-A');
+    return spawnSync('python3',
+      [path.join(repoRoot, 'python', 'text-carriers.py'), dir, '--check'], { encoding: 'utf8' });
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+};
+
+test('--check fails on a prose column the vocabulary does not account for', () => {
+  const r = checkFixture('zzqwidget');
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /prose field name\(s\) the vocabulary does not account for/);
+});
+
+test('--check passes a prose column that is an alias the vocabulary maps', () => {
+  const r = checkFixture('blurb');
+  assert.equal(r.status, 0, r.stdout);
 });

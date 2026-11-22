@@ -97,6 +97,11 @@ test('intent is not delivery: the same file wired both ways differs', () => {
   assert.equal(run(delivery), '', 'a resolved import is');
 });
 
+test('one delivered checkout silences the session even when an undelivered one sorts first', () => {
+  const root = build('mixed', { a: { 'CLAUDE.md': 'run /web-tools\n' }, z: BOTH });
+  assert.equal(run(root), '', 'the conventions are in context through z, so a must not make the directive speak');
+});
+
 test('an opted-out repo is silent, and the field is the declared one', () => {
   const root = build('optout', {
     home: { 'CLAUDE.md': 'run /web-tools\n', '.web-tools.json': '{"conventions":"optout"}' },
@@ -145,10 +150,12 @@ test('the plugin registers it as its OWN SessionStart entry, not inside the disp
     0, 'it does not share an entry with the dispatcher, so it does not share a budget');
   assert.match(mine[0], /\$\{CLAUDE_PLUGIN_ROOT\}/, 'addressed through the plugin root, like its siblings');
   // Compaction drops the conventions from context with nothing on disk changed,
-  // so this is the one session-start hook that has to fire again on it.
+  // so this hook has to fire again on it; topic-context is the other one, for
+  // the topics a compaction drops the same way.
   const own = entries.find(e => e.hooks.some(h => h.command.includes('invoke-default.sh')));
   assert.equal(own.matcher, 'startup|resume|compact', 'fires again after a compaction');
-  for (const e of entries.filter(e => e !== own)) assert.equal(e.matcher, 'startup|resume', 'the other session-start hooks fire on the same two events');
+  const topics = entries.find(e => e.hooks.some(h => h.command.includes('topic-context.py')));
+  for (const e of entries.filter(e => e !== own && e !== topics)) assert.equal(e.matcher, 'startup|resume', 'the other session-start hooks fire on the same two events');
 });
 
 test('the directive fits the preview a truncated hook payload leaves', () => {

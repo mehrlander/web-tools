@@ -21,6 +21,7 @@ fork,actions-hosted,Pull requests from forks,A pull request
 tools,personal-laptop,The daemon's tools,A tick
 plugin,,The plugin's hooks,A session start
 odd,Home laptop,An old spelling,Anything
+odd2,Home laptop,Another old spelling,Anything
 `;
 const asked = [];
 window.GH = class {
@@ -55,7 +56,7 @@ test('the groups follow docs/machines.csv, under its labels, read from the hub',
 
 test('a value machines.csv lacks keeps its own group, and a blank one reads as any machine, last', () => {
   const [stray, any] = data.watchGroups.slice(-2);
-  assert.deepEqual(plain([stray.machine, stray.label, stray.rows.map(r => r.id)]), ['Home laptop', 'Home laptop', ['odd']]);
+  assert.deepEqual(plain([stray.machine, stray.label, stray.rows.map(r => r.id)]), ['Home laptop', 'Home laptop', ['odd', 'odd2']]);
   assert.deepEqual(plain([any.machine, any.label, any.rows.map(r => r.id)]), ['', 'Any machine', ['plugin']]);
   assert.equal(data.watchGroups.length, 4, 'a machine with no trigger draws no group');
 });

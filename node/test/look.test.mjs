@@ -189,6 +189,30 @@ test('nested regions open outermost first, and each opener is clicked once', asy
   assert.equal(said(w), 'found');
 });
 
+test('an opener whose region is already open is not clicked, so the open region stays open', async () => {
+  // A toggle clicked on an open region closes it, so the walkthrough must skip
+  // an opener whose region is up and click only the one still shut.
+  const w = realm(
+    '<button data-at="outer">o</button>' +
+    '<div id="o" data-at-open="outer">' +
+      '<button data-at="inner">i</button>' +
+      '<div id="i" hidden data-at-open="inner"><p data-at="deep">deep</p></div>' +
+    '</div>');
+  const order = [];
+  for (const id of ['outer', 'inner']) {
+    w.document.querySelector(`[data-at="${id}"]`).addEventListener('click', () => {
+      order.push(id);
+      const r = w.document.getElementById(id[0]);
+      r.hidden = !r.hidden;
+    });
+  }
+  w.Look.start([{ at: 'deep', say: 'found' }], { wait: 300 });
+  await wait(250);
+  assert.deepEqual(order, ['inner']);
+  assert.equal(w.document.getElementById('o').hidden, false, 'the open region was not toggled shut');
+  assert.equal(said(w), 'found');
+});
+
 test('doing a do step unlocks its forward arrow rather than moving on, and the tap reaches the page', async () => {
   // The reader should see what the tap did before going on, so the walkthrough
   // stays on the step: the hand becomes the arrow, the number becomes a check.
@@ -1463,4 +1487,15 @@ test('component:<name> prefers the instance with the most of itself in sight', (
   } });
   assert.equal(w.Look.find('component:viewer').id, 'here');
   assert.equal(w.Look.find('component:viewer#1').id, 'prev', 'a number still counts in the page’s order');
+});
+
+test('the step list shows a step\'s message as text, never as markup', async () => {
+  const w = realm('<p data-at="a">a</p><p data-at="b">b</p>',
+    'steps=' + encodeURIComponent(JSON.stringify([{ at: 'a', say: '<b>bold</b> <img src=x>' }, { at: 'b', say: 'Second' }])));
+  await loaded(w);
+  await wait(30);
+  card(w).querySelector('[data-list]').click();
+  const list = w.document.querySelector('[data-look="steps"]');
+  assert.equal(list.querySelector('b, img'), null, 'no element came out of the message');
+  assert.equal(list.querySelector('[data-jump]').textContent, '1<b>bold</b> <img src=x>');
 });

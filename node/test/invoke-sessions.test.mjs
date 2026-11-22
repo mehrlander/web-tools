@@ -94,7 +94,10 @@ test('the env var wins over a manifest, and a store still silences both', () => 
 test('the search is root, children and siblings, like the Stop hook', () => {
   // Root IS a checkout; the pointer sits on a sibling.
   const root = build('sibling', { home: { 'CLAUDE.md': '# home\n' }, other: POINTER });
-  assert.notEqual(run(path.join(root, 'home')), '', 'a sibling manifest is read');
+  assert.match(run(path.join(root, 'home')), /owner\/store/, 'a sibling manifest is read');
+  // Root IS a checkout; the store is a sibling.
+  const sib = build('sib', { home: { '.web-tools.json': '{}' }, wtp: STORE });
+  assert.equal(run(path.join(sib, 'home')), '', 'a sibling store is found');
   // Root above the checkouts; the store is a child.
   const above = build('above', { home: POINTER, 'web-tools-private': STORE });
   assert.equal(run(above), '', 'a child store is found');
@@ -116,8 +119,10 @@ test('the plugin registers it as its OWN SessionStart entry, not inside the disp
   assert.equal(commands.filter(c => c.includes('session-dispatch.sh') && c.includes('invoke-sessions.sh')).length,
     0, 'it does not share an entry with the dispatcher, so it does not share a budget');
   assert.match(mine[0], /\$\{CLAUDE_PLUGIN_ROOT\}/, 'addressed through the plugin root, like its siblings');
-  // invoke-default alone also fires on compact (invoke-default.test.mjs says why).
-  for (const e of entries.filter(e => !e.hooks.some(h => h.command.includes('invoke-default.sh'))))
+  // invoke-default and topic-context also fire on compact, to give again what
+  // a compaction loses (their own tests hold that matcher).
+  const AGAIN = ['invoke-default.sh', 'topic-context.py'];
+  for (const e of entries.filter(e => !e.hooks.some(h => AGAIN.some(n => h.command.includes(n)))))
     assert.equal(e.matcher, 'startup|resume', 'every other entry fires on the same two events');
 });
 

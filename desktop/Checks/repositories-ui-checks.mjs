@@ -32,7 +32,7 @@ const row=()=>doc.querySelector(`[data-checkout="${key}"]`),menu=()=>doc.querySe
 const indicator=direction=>row().querySelector(`[data-commit="${key}:files:${direction}"]`);
 check(!requests.length,'Files does not collect outside its view.');
 setTop(250);click('[data-view=files]');await flush();
-const location=doc.querySelector('[data-file-root]');location.value='gh';location.dispatchEvent(new w.Event('change',{bubbles:true}));await flush();
+click('[data-file-root="gh"]');await flush();
 check(w.location.hash==='#view=files&root=gh'&&doc.querySelector('#view-title').textContent==='Files'&&doc.querySelector('#repository-back').hidden&&!doc.querySelector('#panel-files').inert,'Repository folders open through their explicit Files root.');
 check(!doc.querySelector('[data-view=repositories],[data-files],#repository-info')&&doc.querySelectorAll('[data-repository]').length===1&&doc.querySelectorAll('[data-checkout]').length===2&&doc.getElementById('workfolders-'+repoKey).hidden&&doc.getElementById('workfolders-other').hidden,'Files shows one repository row with secondary folders and ordinary files collapsed.');
 check(indicator('ahead').getAttribute('data-title-tip').includes('2 commits ahead of GitHub feature/work.')&&indicator('behind').getAttribute('data-title-tip').includes('GitHub checked just now')&&!doc.querySelector('[data-commit*=":main:"]'),'Each branch shows one comparison whose tooltip includes its target and GitHub check age.');
