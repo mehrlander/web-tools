@@ -92,7 +92,8 @@ function harness(search = '') {
 test('variants is visible without changing the Probes landing', () => {
   const plain = harness().model;
   assert.equal(plain.pane, 'probes');
-  assert.equal([...plain.PANES].join(','), 'probes,variants,instruments,resources,runs,exemplars');
+  assert.equal([...plain.PANES].join(','), 'probes,variants,instruments,resources,runs');
+  assert.equal(harness('?exemplar=fixture').model.pane, 'probes', 'the exemplars are Skill Lab\'s now: an old ?exemplar= lands on the default pane');
   const linked = harness('?variant=audit-1').model;
   assert.equal(linked.pane, 'variants', 'a variant id is the stronger pane address');
   assert.equal(linked.variantOpen, 'audit-1');
