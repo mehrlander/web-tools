@@ -1504,7 +1504,9 @@ test('a walkthrough keeps a slot for the FAB between its arrows, in place of the
   assert.equal(card(w).querySelector('[aria-label="Close"]'), null, 'and no ✕');
   const next = row.find(b => b.getAttribute('aria-label') === 'Next');
   assert.ok(next, 'Next follows the slot');
-  assert.doesNotMatch(next.getAttribute('style'), /background:var\(--color-primary/, 'an outlined arrow in the FAB\'s dock, not a solid block');
+  assert.doesNotMatch(next.getAttribute('style'), /background:\s*var\(--color-primary/, 'a bare chevron in the FAB\'s dock, not a solid block');
+  assert.doesNotMatch(next.getAttribute('style'), /border-color:\s*var\(--color-base-300/, 'and no outline');
+  assert.match(next.getAttribute('style'), /(^|;\s*)color:\s*var\(--color-primary/, 'blue, the way open');
   assert.equal(w.document.documentElement.hasAttribute('data-look-open'), true);
   w.Look.stop();
   assert.equal(w.document.documentElement.hasAttribute('data-look-open'), false, 'the end of the walkthrough says so');
