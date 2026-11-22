@@ -23,7 +23,7 @@
 <div class="max-w-6xl mx-auto px-4 py-10" x-data="index()" x-cloak>
 
   <div class="flex items-baseline justify-between mb-1">
-    <h1 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+    <h1 data-at="title" class="text-2xl font-bold tracking-tight flex items-center gap-2">
       <img src="../lib/favicon.svg" alt="" width="28" height="28" class="w-7 h-7">web-tools
     </h1>
     <div class="flex items-center gap-4">
@@ -46,7 +46,7 @@
     <span class="font-medium">live</span> preview or the <span class="font-medium">source</span>.
   </p>
 
-  <div class="flex flex-wrap items-center gap-1.5 mb-8">
+  <div data-at="folders" class="flex flex-wrap items-center gap-1.5 mb-8">
     <template x-for="c in chips" :key="c.key">
       <button class="btn btn-xs font-mono"
               :class="filter===c.key ? 'btn-primary' : 'btn-ghost text-base-content/60'"
@@ -74,7 +74,7 @@
       </h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <template x-for="p in g.items" :key="p.href">
-          <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+          <div data-at="card" class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
 
         <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden">
           <a :href="p.href" x-show="p.view==='shot'" class="block w-full h-full">
@@ -1273,6 +1273,15 @@ function index(){
     },
   };
 }
+</script>
+<!-- The page's standard walkthrough, for look links (#walkthrough=tour) and
+     the FAB, which offers it from its menu and from a badge on the launcher. -->
+<script type="application/json" id="look-walkthroughs">
+{ "tour": [
+  { "at": "title", "say": "Web Tools: browser-based tools and demos, one card per page." },
+  { "at": "folders", "say": "Each chip narrows the cards to one folder; the field filters by name." },
+  { "at": "card", "say": "A card shows its page's screenshot; the buttons switch it to a live preview or the source." }
+] }
 </script>
 </body>
 </html>

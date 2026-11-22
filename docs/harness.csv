@@ -28,7 +28,7 @@ node/build/graph.mjs,the static resolver for a page's gh.load chain; feeds build
 node/build/graphql-schema.mjs,regenerate the pruned GitHub GraphQL schema the suite typechecks queries against,node/build,229,npm:graphql-schema,node/test/,yes,no,no
 node/build/kit-shim.mjs,run a browser-shaped gh.load kit inside Node; the bridge build.mjs and the suite share,node/build,19,imported,node/build/bake.mjs;node/build/build-app.mjs;node/build/build-lib.mjs;node/build/build.mjs;node/build/registries-load.mjs;node/build/repo-pages-shots.mjs;node/test/,no,yes,yes
 node/build/kits-index.mjs,"restamp docs/kits.csv, the kit shelf registry, every field read off lib/kits/ and the files that load it",node/build,173,npm:kits-index,.githooks/pre-commit,yes,no,yes
-node/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,node/build,469,npm:pages-index,.githooks/pre-commit,yes,yes,yes
+node/build/pages-index.mjs,regenerate both page catalogs: pages/README.md and pages/index.html,node/build,478,npm:pages-index,.githooks/pre-commit,yes,yes,yes
 node/build/pages-shots.mjs,"regenerate pages/thumbs/*.png, one screenshot per page for the visual index",node/build,119,npm:pages-shots,.githooks/pre-commit;node/build/pages-index.mjs;node/test/,no,yes,yes
 node/build/peeves-csv.mjs,,node/build,92,npm:peeves-csv,.githooks/pre-commit,yes,no,yes
 node/build/policy-skills.mjs,"writes the h plugin's skills, one user-only skill per shortcut in docs/house-policies.md; refuses a shortcut two entries claim; --check compares bytes",node/build,105,npm:policy-skills,.githooks/pre-commit,yes,yes,yes
