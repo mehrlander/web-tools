@@ -14,7 +14,7 @@ substituting the current repo in URL templates.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - ⚖️ **Choice needed:** Competing proposals would go in different directions. Present this state only after a full assessment. Give the question, then `Recommended: <answer>, because <reason>.`
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
-  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. When it shows one inline, with no link, name the format in parentheses: 👁️‍🗨️ **Have a look (screenshot):** the overflow on the Map view.
+  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. When it needs to be inline rather than linked, place it with the closing state.
   - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes. Say what the session will do once approval is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** The session's work is complete; the reader can end the session or bring more.
@@ -26,7 +26,7 @@ substituting the current repo in URL templates.
   Use 🟢 for a closing state that needs only confirmation to proceed. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
   The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
-  - 👁️‍🗨️ always a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
+  - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
   - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
   - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
