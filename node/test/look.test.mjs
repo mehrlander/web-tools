@@ -1502,6 +1502,9 @@ test('a walkthrough keeps a slot for the FAB between its arrows, in place of the
   const back = row.find(b => b.getAttribute('aria-label') === 'Back');
   assert.ok(back && row.indexOf(slot) === row.indexOf(back) + 1, 'right after Back');
   assert.equal(card(w).querySelector('[aria-label="Close"]'), null, 'and no ✕');
+  const next = row.find(b => b.getAttribute('aria-label') === 'Next');
+  assert.ok(next, 'Next follows the slot');
+  assert.doesNotMatch(next.getAttribute('style'), /background:var\(--color-primary/, 'an outlined arrow in the FAB\'s dock, not a solid block');
   assert.equal(w.document.documentElement.hasAttribute('data-look-open'), true);
   w.Look.stop();
   assert.equal(w.document.documentElement.hasAttribute('data-look-open'), false, 'the end of the walkthrough says so');
