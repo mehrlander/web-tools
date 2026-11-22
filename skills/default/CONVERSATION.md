@@ -8,7 +8,7 @@ substituting the current repo in URL templates.
 
 ## Every reply
 
-* **Closing state.** Tell the reader what the session expects next with exactly one closing state, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
+* **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
   - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
   - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
