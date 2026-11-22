@@ -100,3 +100,13 @@ test('url() picks one destination out of the same list', () => {
     'https://github.com/me/r/tree/HEAD/tasks');
   assert.equal(GL.url('me/r', 'nope'), '');
 });
+
+test('a ref that is the default branch reaches neither the tracker nor the commits row', () => {
+  assert.equal(GL.url('me/r', 'tracker', { tracker: 't/b.md', ref: 'claude/x' }),
+    'https://github.com/me/r/blob/HEAD/t/b.md', 'no defaultRef: the ref is not known to differ');
+  assert.equal(GL.url('me/r', 'tracker', { tracker: 't/b.md', ref: 'main', defaultRef: 'main' }),
+    'https://github.com/me/r/blob/HEAD/t/b.md');
+  assert.equal(GL.url('me/r', 'commits', { ref: 'claude/x' }), 'https://github.com/me/r/commits');
+  assert.equal(GL.url('me/r', 'commits', { ref: 'main', defaultRef: 'main' }),
+    'https://github.com/me/r/commits');
+});

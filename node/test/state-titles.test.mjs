@@ -129,6 +129,20 @@ test('a row with no session id is counted apart from a stale export', () => {
   assert.match(data.coverWhy(), /the other 1 are not in this one/);
 });
 
+test('a titled row with no session id is named, not unjoinable', () => {
+  // An assistant's row carries its own title and no Claude session link, the
+  // shape repo-sessions-cache gives codex rows. Counting it as unjoinable split
+  // the real 262 unnamed rows as 242 and 20 when they were 104 and 158.
+  const t = data.titlesOf({ ...SESSIONS, rows: [
+    { assistant: 'codex', title: 'X', agent: '' },
+    { agent: 'https://claude.ai/code/session_z' },
+    {},
+  ] });
+  assert.equal(t.named, 1);
+  assert.equal(t.total, 3);
+  assert.equal(t.unjoinable, 1, 'only the row with neither a title nor a session id');
+});
+
 test('an old export is marked, at the cadence the capture is meant to run', () => {
   const stale = data.titlesOf({ ...SESSIONS, titlesAt: day(30) });
   assert.equal(stale.stale, true, 'a month with no capture is worth seeing');

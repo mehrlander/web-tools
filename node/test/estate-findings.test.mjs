@@ -116,6 +116,19 @@ test('a finding naming a session record shows on that session', () => {
   assert.equal(data.sessionFindings({ id: 'ffffffff', day: '2026-09-29' }).length, 0);
 });
 
+test('a finding about the merged PR a branch headed shows on that branch', () => {
+  seed({ branches: [{ name: 'claude/x', group: 'landed', date: DATE }],
+         branchPRs: [{ head: 'claude/x', number: 900, state: 'merged', draft: false, count: 1 }],
+         notes: [finding('m1', ['acme/widget#900'])] });
+  assert.equal(data.rowFindings(row('claude/x')).length, 1, 'a finding about the merged PR a branch headed shows on that branch');
+});
+
+test('a session finding matches the full record location, not just the id', () => {
+  seed({ notes: [finding('s1', ['me/registry:sessions/2026/09/2026-09-28-01895c91.json']),
+                 finding('s2', ['other/repo:sessions/2026/09/2026-09-29-01895c91.json'])] });
+  assert.equal(data.sessionFindings({ id: '01895c91', day: '2026-09-29' }).length, 0);
+});
+
 test('the notes store loads for every pane that shows findings', () => {
   for (const tab of ['repos', 'branches', 'sessions', 'lists']) assert.equal(data.paneNeeds(tab).notes, true, tab);
   assert.equal(data.paneNeeds('stage').notes, false);

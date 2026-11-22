@@ -81,6 +81,22 @@ test('a run inherits the ref of the newest earlier install of its name', () => {
   assert.deepEqual(K.refs(es), [SHA]);
 });
 
+test('a run inherits the NEWEST earlier install, and is scored against that install\'s baseline', () => {
+  const A = 'a'.repeat(40), B = 'b'.repeat(40);
+  const paste = (ref) => K.parse('s', JSON.stringify({ op: 'paste', name: 'Dump-Named', from: raw('packed', 'dump-named.json', ref), target: 'c4fd8aa', build: 'f18efdb' }));
+  const es = K.link([K.parse('2026-09-25-121953', DUMP), paste(B), paste(A)]);
+  assert.equal(es[0].via, B);
+  const v = K.verdict(es[0], { at: { main: { 'Dump-Named': 'f0304eb' }, [HEAD]: { 'Dump-Named': 'c4fd8aa' } },
+                               base: { [A]: { kind: 'main' }, [B]: { kind: 'pr', pr: 50, head: HEAD } } });
+  assert.equal(v.state, 'current');
+  assert.equal(v.against.kind, 'pr');
+});
+
+test('a ref with no known baseline gives no verdict rather than defaulting to main', () => {
+  const es = K.link([K.parse('2026-09-25-121953', DUMP), K.parse('2026-09-25-081915', PASTE)]);
+  assert.equal(K.verdict(es[0], { at: { main: { 'Dump-Named': 'c4fd8aa' } }, base: {} }), null);
+});
+
 test('an open PR carrying the commit is the baseline; otherwise main', () => {
   const open = [{ number: 50, state: 'open', head: { sha: HEAD, ref: 'claude/x' } }];
   assert.deepEqual(K.baseOf(SHA, open), { kind: 'pr', pr: 50, head: HEAD, branch: 'claude/x', title: '' });

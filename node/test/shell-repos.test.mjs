@@ -63,6 +63,15 @@ test('repoLandingUrl: formats toss-render hash with repo, ref and route query', 
   assert.equal(shell.repoLandingUrl, '../pages/toss-render.html#gh=mehrlander/home@dev:app/index.html?view=calc');
 });
 
+test('repoLandingUrl: omits the @ref when the ref is the default branch', () => {
+  const { shell, browserStore } = makeShell({ browserStore: {
+    repo: 'mehrlander/home', ref: 'main', defaultRef: 'main',
+  }});
+  browserStore.config = { landing: 'app/index.html' };
+
+  assert.equal(shell.repoLandingUrl, '../pages/toss-render.html#gh=mehrlander/home:app/index.html');
+});
+
 test('repoBoardFile: discovers tracker board or defaults to tracker/board.md unless tracker is false', () => {
   const { shell, browserStore } = makeShell({ browserStore: { repo: 'mehrlander/home' } });
 
@@ -144,6 +153,10 @@ test('goLanding: switches tab and syncs URL', () => {
 
   shell.goLanding('app', 'view=status');
   assert.equal(shell.landingTab, 'app');
+  assert.equal(shell.landingAppRoute, 'view=status');
+
+  // A leading ? on the route is dropped, since repoLandingUrl adds its own.
+  shell.goLanding('app', '?view=status');
   assert.equal(shell.landingAppRoute, 'view=status');
 
   shell.goLanding('files');

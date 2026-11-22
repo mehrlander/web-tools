@@ -33,7 +33,7 @@ const DIRS = ['lib', 'lib/kits', 'lib/alpineComponents'];
 // modules and are not this test's subject.
 const MODULES = new Set(['lib/entry.js']);
 function loadable(src, rel) {
-  return !MODULES.has(rel) && !/^\s*(export|import)\s/m.test(src);
+  return !MODULES.has(rel) && !/^(export|import)\s/m.test(src);
 }
 
 const files = DIRS.flatMap(dir =>
@@ -60,4 +60,12 @@ test('every loadable lib file compiles as a function body', () => {
     }
   }
   assert.ok(checked > 50, `only ${checked} files were checked; the loadable filter is too broad`);
+});
+
+test('only the real ES modules are skipped; a function-body file quoting export or import indented is still compiled', () => {
+  const skipped = files
+    .map(rel => rel.split(path.sep).join('/'))
+    .filter(rel => !loadable(readFileSync(path.join(repoRoot, rel), 'utf8'), rel))
+    .sort();
+  assert.deepEqual(skipped, ['lib/build.js', 'lib/entry.js', 'lib/gh-api.js']);
 });

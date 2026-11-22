@@ -55,7 +55,7 @@ test('two names add two entries', () => {
 test('lowercase, a longer word, and no copy all stay silent', () => {
   const dir = root();
   try {
-    for (const prompt of ['take a tour', 'TOURS and SPURRED', 'Tour', '']) {
+    for (const prompt of ['take a tour', 'TOURS and SPURRED', 'Tour', 'see MYTOUR now', 'a DETOUR', 'UNSPUR', '']) {
       assert.equal(run(dir, { prompt }), '', `silent on ${JSON.stringify(prompt)}`);
     }
     assert.equal(run(dir, 'not json'), '', 'silent on an unparseable payload');

@@ -174,6 +174,9 @@ test('analyze: sparse row keeps the gap instead of compacting columns', () => {
   const result = xlsxKit.analyze(buildParts());
   const [row] = xlsxKit.sheetRows(result.xl.sheets.sheet1);
   assert.deepEqual(Object.keys(row), ['Row', 'A', 'C']); // no 'B'
+  // The DOM parse path must keep the gap too.
+  const [d] = xlsxKit.sheetRows(xlsxKit.analyze(buildParts(), { dom: true }).xl.sheets.sheet1);
+  assert.deepEqual(Object.keys(d), ['Row', 'A', 'C']);
 });
 
 test('analyze: cell/style/formula/merged-cell counts on sheet2', () => {

@@ -53,6 +53,13 @@ test('the report counts governed commits per entry and lists the latest', () => 
     assert.match(r.stdout, /- \w+ \d{4}-\d{2}-\d{2} touch a and a form/);
     assert.doesNotMatch(r.stdout, /touch nothing governed/);
 
+    // One commit touching two files under a folder entry raises its row by one.
+    commit({ 'docs/forms/y.md': '1', 'docs/forms/z.md': '1' }, 'touch two forms');
+    git('push', '-q', 'origin', 'HEAD:main');
+    const two = spawnSync('python3', [SCRIPT, 'report', 'demo', '--since', '2000-01-01'], { cwd: work, env, encoding: 'utf8' });
+    assert.equal(two.status, 0, two.stderr);
+    assert.match(two.stdout, /\| `docs\/forms\/` \| 2 \|/, 'a commit touching two files under one folder entry counts once for it');
+
     // A clone cut at its newest commit holds none of the window before it.
     const shallow = join(base, 'shallow');
     spawnSync('git', ['clone', '-q', '--depth', '1', 'file://' + origin, shallow]);

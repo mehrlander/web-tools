@@ -250,6 +250,19 @@ test('the optimistic move survives the reload it triggers, then retires itself',
   assert.equal(data.unfiledMoved['me/older'], undefined, 'and has handed off to the config');
 });
 
+test('the optimistic move survives a reload for a repo that already has a config, until it says optout', async () => {
+  const prior = { ...CONFIG_MAP, 'me/older': { note: 'keep me' } };
+  await loadWith(prior);
+  const row = () => data.unfiledRepos.find(r => r.repo === 'me/older');
+  await data.setAside(row());
+
+  // The cache is still behind: the config exists but does not yet say optout.
+  await loadWith(prior);
+  assert.equal(data.unfiledState(row()), 'aside');
+  assert.equal(data.unfiledMoved['me/older'], 'aside', 'a config without optout does not retire the override');
+  delete data.unfiledMoved['me/older'];   // the override is shared state; leave it as found
+});
+
 test('adopt prefills the one add form rather than writing a second way', async () => {
   await loadWith();
   WRITES = [];

@@ -18,6 +18,8 @@ test('hashConfig is stable, order-preserving, and separates null', () => {
   assert.equal(C.hashConfig({ a: 1, b: 2 }), C.hashConfig({ a: 1, b: 2 }));
   assert.notEqual(C.hashConfig({ a: 1 }), C.hashConfig({ a: 2 }));
   assert.notEqual(C.hashConfig(null), C.hashConfig({}));
+  assert.notEqual(C.hashConfig({ a: 1, b: 2 }), C.hashConfig({ b: 2, a: 1 }));
+  assert.notEqual(C.hashConfig({ s: { x: 1 } }), C.hashConfig({ s: { x: 2 } }));
 });
 
 test('mergeRepo seeds history on first sight', () => {

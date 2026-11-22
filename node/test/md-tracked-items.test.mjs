@@ -88,6 +88,7 @@ test('blocks with items: a bullet or "1." interrupts a paragraph, "2." mid-parag
   assert.deepEqual(b('Lead:\n- a\n- b'), ['Lead:', '- a', '- b']);
   assert.deepEqual(b('In the year\n2. of grace'), ['In the year\n2. of grace']);
   assert.deepEqual(b('1. a\n2. b'), ['1. a', '2. b']);
+  assert.deepEqual(b('1) a\n2) b'), ['1) a', '2) b']);
   assert.deepEqual(b('Text\n\n* * *\n\nMore'), ['Text', '* * *', 'More']);
   assert.deepEqual(b('- a\n  lazy more\n- b'), ['- a\n  lazy more', '- b']);
   assert.deepEqual(b('```\n- not\n- items\n```'), ['```\n- not\n- items\n```']);

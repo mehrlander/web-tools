@@ -140,6 +140,29 @@ test('an authored per-file row must name a file the file table lists', t => {
   assert.match(r.stderr, /source\/x\/gone\.pdf is not a file in that bundle/);
 });
 
+test('--check fails when a declared bundle has no committed tables', t => {
+  const root = fixture(t);
+  put(root, 'proj/source/x/README.md', README('title: "X"\nacquired: "2026-01-01"'));
+  git(root, 'add', '.');
+  assert.equal(run(root).status, 0);
+  rmSync(path.join(root, 'proj/catalog/bundles.csv'));
+  const r = run(root, '--check');
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /proj\/catalog\/bundles\.csv is behind the index/);
+});
+
+test('a per-file row naming a file of another bundle is refused', t => {
+  const root = fixture(t);
+  put(root, 'proj/source/x/README.md', README('title: "X"\nacquired: "2026-01-01"'));
+  put(root, 'proj/source/x/a.pdf', 'x\n');
+  put(root, 'proj/source/y/README.md', README('title: "Y"\nacquired: "2026-01-01"'));
+  put(root, 'proj/catalog/file-sources.csv', 'bundle,path,source_url\nsource/y,a.pdf,https://example.org\n');
+  git(root, 'add', '.');
+  const r = run(root);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /source\/y\/a\.pdf is not a file in that bundle/);
+});
+
 test('a repository with no declaration is told so', t => {
   const root = fixture(t);
   writeFileSync(path.join(root, '.web-tools.json'), '{}\n');

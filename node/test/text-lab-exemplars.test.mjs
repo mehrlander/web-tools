@@ -260,6 +260,13 @@ test('the focus and the caption are found in UTF-16 from a standoff counted in c
   assert.deepEqual(two.spans.map(s => PIECE.slice(s.start, s.end)), ['## I', '## II'], 'separate runs stay separate');
 });
 
+test('a same-length edit in code points is caught by the byte count when no digest can be taken', () => {
+  const { model } = harness();
+  const edited = PIECE.replace('these', 'thëse');
+  const changed = Buffer.from(edited, 'utf8');
+  assert.equal(model.exemplarFocus(standoff(PIECE, FOCUS, CAPTION), edited, '', changed.length).stale, true, 'a same-length edit in code points is caught by the byte count when no digest can be taken');
+});
+
 test('a standoff that no longer pins the piece marks nothing, and says so', async () => {
   const { model } = harness();
   const bytes = new Uint8Array(Buffer.from(PIECE, 'utf8'));

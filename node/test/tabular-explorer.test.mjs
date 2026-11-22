@@ -93,6 +93,11 @@ test('DataProfile.analyze profiles empty, numeric, categorical, and text columns
   assert.equal(amountCol.numStats.negatives, 1);
   assert.equal(amountCol.numStats.zeros, 1);
   assert.equal(amountCol.numStats.bins.length, 10);
+  assert.equal(amountCol.numStats.p25, 0);
+  assert.equal(amountCol.numStats.median, 50);
+  assert.equal(amountCol.numStats.p75, 100);
+  assert.equal(amountCol.numStats.mean, 31.75);
+  assert.deepEqual(Array.from(amountCol.numStats.bins, b => b.count), [1, 1, 0, 0, 0, 1, 0, 0, 0, 1]);
 
   const pkgCol = profile.columns.find(c => c.name === 'package');
   assert.equal(pkgCol.type, 'categorical');
