@@ -231,6 +231,8 @@ test('a trip carries the edit it was tagged with, E- or outside as 0; only trips
   const headed = py('parse_report', 'Trips, most costly first:\n\n- P06 · E1 · line 19 · "the others" · Name them.\n\nClear: P01\n\nVerdict: FAIL');
   assert.deepEqual([headed.verdict, headed.trips.map((t) => t.peeve)], ['fail', ['P06']],
     'the Trips heading the critic copies from its definition, "Trips, most costly first:", heads the section');
+  const dot = py('parse_report', '**Trips**\n\n\u2022 P05 \u00b7 E1 \u00b7 line 3 \u00b7 "a quote" \u00b7 Vague.\n\n**Clear**: P01\n\nVERDICT: FAIL');
+  assert.deepEqual([dot.verdict, dot.trips.map((t) => t.peeve)], ['fail', ['P05']], 'a trip line opening with the bullet character is a trip');
   // From the first real use (the critic-review docs, 2026-11-20): a trip
   // quoting the trip format, whose separators sit in a code span.
   const [fmt, kept] = pyMany([
@@ -286,6 +288,8 @@ test('the edits as the critic\'s spans: an insertion\'s new text, a rewrite\'s, 
   assert.deepEqual(spans.map((s) => s.lines), [[3, 3], [5, 5], [7, 7]]);
   const bullet = py('spans_of', { edits: [{ from: '- one\n- two\n- three', to: '- one\n- 2, said again\n  over two lines\n- three' }] }, 'Intro.\n\n- one\n- 2, said again\n  over two lines\n- three\n');
   assert.deepEqual(bullet.map((s) => s.lines), [[4, 5]], 'a rewritten list is cut to the lines that differ');
+  const row = py('spans_of', { edits: [{ from: '| a |\n|---|\n| b |\n| c |', to: '| a |\n|---|\n| b |\n| new |\n| c |' }] }, '| a |\n|---|\n| b |\n| new |\n| c |\n');
+  assert.deepEqual(row.map((s) => s.lines), [[4, 4]], 'a row inserted into a table is its own line, not the row after it too');
   assert.match(block, /^The edits to docs\/x\.md, as lines of the file as you read it:\nE1 {2}line 3\nE2 {2}lines 5-6\n\nTag each trip with its edit/);
   assert.match(block, /`Verdict: PASS` when no trip falls inside an edit/, 'the block carries the verdict rule, for a critic whose definition predates it');
 });

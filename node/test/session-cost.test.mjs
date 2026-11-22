@@ -31,7 +31,8 @@ const old = { ...record, short: 'feed0002', responses: undefined, schema: 15 };
 
 const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
   <div id="cost" x-data="sessionBrief(window.__cost)"></div>
-  <div id="old" x-data="sessionBrief(window.__old)"></div></body></html>` });
+  <div id="old" x-data="sessionBrief(window.__old)"></div>
+  <div id="empty" x-data="sessionBrief(window.__empty)"></div></body></html>` });
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; }
   async get() { throw Object.assign(new Error('404'), { status: 404 }); }
@@ -52,6 +53,7 @@ window.chatRender = { block: () => window.document.createElement('pre') };
 window.swipeDeck = { top: () => null };
 window.__cost = { id: 'c0517ab1', repo: 'me/private', framed: true, record, pane: 'cost' };
 window.__old = { id: 'feed0002', repo: 'me/private', framed: true, record: old, pane: 'cost' };
+window.__empty = { id: 'feed0003', repo: 'me/private', framed: true, record: { ...record, short: 'feed0003', responses: [] }, pane: 'cost' };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
@@ -99,6 +101,12 @@ test('a record without responses has no cost line, and pane=cost lands on the Ov
   assert.equal(data('old').pane, 'overview');
   assert.equal(el('old').querySelector('[data-session-cost]').style.display, 'none');
   assert.equal(data('old').usage, null);
+});
+
+test('a record whose responses are empty is not measured: no cost line either', () => {
+  assert.equal(data('empty').measured, false);
+  assert.equal(el('empty').querySelector('[data-session-cost]').style.display, 'none');
+  assert.equal(el('empty').querySelector('[data-cost-line]'), null);
 });
 
 test('the panel carries the list-price caveat once, as a title-tip, and the harness total beside it', async () => {

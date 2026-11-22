@@ -153,10 +153,10 @@
       <article class="space-y-5">
         <div class="space-y-1">
           <p class="text-xs font-semibold uppercase tracking-widest text-primary">${esc(n.group)}</p>
-          <h2 class="text-3xl font-semibold text-balance">${esc(n.title)}</h2>
+          <h2 class="text-3xl font-semibold">${esc(n.title)}</h2>
           <p class="text-sm text-base-content/50">${esc(n.subtitle)}</p>
         </div>
-        ${n.paras.map(p => `<p class="text-xl leading-8 text-pretty">${esc(p)}</p>`).join('')}
+        ${n.paras.map(p => `<p class="text-xl leading-8">${esc(p)}</p>`).join('')}
         <table class="w-full border border-base-300"><tbody>${rows(n.readings)}</tbody></table>
         ${drillable ? `<button data-drill class="btn btn-sm btn-outline">
             <i class="ph ph-cards-three"></i> Readings, one at a time</button>` : ''}
@@ -220,7 +220,7 @@
         slide.innerHTML = `<div class="space-y-3">
           <p class="font-mono text-sm text-base-content/50">${esc(r.when)}</p>
           <p class="font-mono text-4xl tabular-nums">${esc(r.value)}</p>
-          <p class="text-xl leading-8 text-pretty">${esc(r.note)}</p></div>`;
+          <p class="text-xl leading-8">${esc(r.note)}</p></div>`;
       },
     });
   }

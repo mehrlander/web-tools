@@ -145,7 +145,7 @@ document.addEventListener('alpine:init', () => {
     if (!window.marked) return esc(s);
     return inline ? marked.parseInline(String(s)) : marked.parse(String(s));
   };
-  const MD = 'text-pretty [&_a]:underline [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1 [&_code]:font-mono [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5';
+  const MD = '[&_a]:underline [&_code]:rounded [&_code]:bg-base-200 [&_code]:px-1 [&_code]:font-mono [&_p]:mb-2 [&_ul]:mb-2 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:mb-2 [&_ol]:list-decimal [&_ol]:pl-5';
   const label = t => `<div class="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">${esc(t)}</div>`;
   const LENSES = [['documents', 'Documents'], ['findings', 'Findings'], ['questions', 'Questions']];
   const ESTATE = 'estate';
@@ -373,7 +373,7 @@ document.addEventListener('alpine:init', () => {
         render: (i, el) => {
           // A file's slide is its card, which names the file in its own row.
           el.innerHTML = (rows[i].type === 'file' ? ''
-            : `<h2 class="mb-1 text-2xl font-bold text-balance break-words">${esc(this.plain(rows[i].title))}</h2>`
+            : `<h2 class="mb-1 text-2xl font-bold break-words">${esc(this.plain(rows[i].title))}</h2>`
               + `<div class="mb-3 font-mono text-xs text-base-content/60">${esc(rows[i].facet || '')}</div>`) + this.cardHtml(rows[i].id, true);
           this.mountReviews(el);
         },
@@ -397,7 +397,7 @@ document.addEventListener('alpine:init', () => {
     table(size) { return size === 'text-sm' ? 'table table-sm text-sm' : 'table [&_td]:text-xl [&_td]:leading-8 [&_th]:text-base max-sm:[&_td]:px-2 max-sm:[&_th]:px-2'; },
     figure(before, after, est) {
       const delta = before - after;
-      return `<div><div class="mb-1 text-balance tabular-nums">${this.fmt(before)} → ${this.fmt(after)} words`
+      return `<div><div class="mb-1 tabular-nums">${this.fmt(before)} → ${this.fmt(after)} words`
         + (delta ? ` · ${delta > 0 ? '−' : '+'}${this.fmt(Math.abs(delta))} (${this.pct(before, after)})` : '')
         + (est != null && est !== '' ? `<span class="text-base-content/60"> · survey est. −${esc(String(est).replace(/^−/, ''))}%</span>` : '') + '</div>'
         + this.bar(before, after, 0) + '</div>';

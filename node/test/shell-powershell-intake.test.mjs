@@ -169,6 +169,13 @@ test('file picker and desktop file drop share declaration choice and decoded sou
   assert.equal(h.shell.view, 'project');
 });
 
+for (const type of ['drop', 'paste']) test(`a file ${type} read after the selection changes still lands on the file selected when it arrived`, async () => {
+  const h = fixture();
+  const f = { name: 'Report.ps1', arrayBuffer: async () => { h.shell.powershellOutpostItem = B; return new TextEncoder().encode('function Get-Report { 1 }\r\n').buffer; } };
+  await h.fire(type, event(clipboard('', { files: [f], items: [{ kind: 'file' }] }), { drop: type === 'drop' }));
+  assert.equal(h.received[0].target.path, A);
+});
+
 test('app Paste follows explicit single-line addresses before code intake', async () => {
   const h = fixture();
   const opened = [];

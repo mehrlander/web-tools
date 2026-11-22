@@ -94,8 +94,10 @@ test('an edit to the document shows which annotations no longer line up', () => 
 test('at commit, only what the commit changes is checked, against the staged text, and only trouble is printed', () => {
   assert.equal(run('--staged').stdout, '', 'nothing staged, nothing to say');
   git(doc, 'add', 'doc.md');
+  writeFileSync(path.join(doc, 'doc.md'), DOC); // working file differs from the staged text
   const r = rows('--staged');
   assert.deepEqual(Object.keys(r).sort(), ['n1', 'standoff'], 'not the ok quote, not other files, not other repos');
+  assert.equal(r.n1.verdict, 'changed', 'judged on the staged text, not the working file');
   assert.match(r.standoff.detail, /3 of 4 units are found again, 1 would need annotating again \(python\/annotate\/reanchor\.py\)/,
     'the standoff is re-anchored from HEAD to the staged text');
   const plain = run('--staged');
@@ -110,4 +112,18 @@ test('a file renamed in the commit leaves its quotes pointing at nothing, and sa
   assert.equal(r.n3.verdict, 'broken');
   assert.match(r.n3.detail, /renamed to moved\.md/);
   git(doc, 'commit', '-qm', 'move');
+});
+
+test('a store whose only quote is unverifiable passes --strict', () => {
+  const lone = mkdtempSync(path.join(tmpdir(), 'anchors-lone-')); // no sibling checkouts
+  const d = path.join(lone, 'store2');
+  mkdirSync(d);
+  git(d, 'init', '-q', '-b', 'main');
+  git(d, 'remote', 'add', 'origin', 'https://github.com/o/store2.git');
+  mkdirSync(path.join(d, 'notes'));
+  writeFileSync(path.join(d, '.web-tools.json'), '{"notes": "notes"}\n');
+  writeFileSync(path.join(d, 'notes/notes.jsonl'), JSON.stringify(NOTES[3]) + '\n');
+  git(d, 'add', '.'); git(d, 'commit', '-qm', 'init');
+  const r = spawnSync('python3', [ANCHORS, '--strict'], { cwd: d, env: ENV, encoding: 'utf8' });
+  assert.equal(r.status, 0, 'unverifiable is not bad: ' + r.stdout + r.stderr);
 });

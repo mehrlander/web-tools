@@ -375,18 +375,18 @@
         peeveHtml(id) {
           if (!id) return '';
           const name = (this.led.peeves || {})[id];
-          return '<div class="text-pretty"><span class="font-bold">✎ fixes ' + window.esc(id) + '</span>'
+          return '<div><span class="font-bold">✎ fixes ' + window.esc(id) + '</span>'
             + (name ? ' <span class="opacity-70">' + window.esc(name) + '</span>' : '') + '</div>';
         },
         cardHtml(id) {
-          const box = 'leading-8 text-pretty whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
+          const box = 'leading-8 whitespace-pre-wrap break-words border-l-4 pl-3 flex flex-col gap-3 ';
           // A dome's card reads against the original, so the red piles up step by step.
           if (this.isDome && id !== '0') {
             const { s, prev } = this.stepAt(id), e = this.editOf(id), d = this.wc(prev) - s.words;
             return '<div class="flex flex-col gap-3 pb-24">'
               + '<div class="font-mono text-xs opacity-80">' + window.esc('bout ' + s.bout + ' · ' + e.by + ' · '
                 + (d > 0 ? '−' + d : d < 0 ? '+' + (-d) : '±0') + ' this edit · ' + s.words + ' of ' + this.wc(this.original) + ' words') + '</div>'
-              + (e.repair ? '<div class="text-pretty"><span class="font-bold">↩ complaint</span> <span class="opacity-70">' + window.esc(e.why) + '</span></div>' : '')
+              + (e.repair ? '<div><span class="font-bold">↩ complaint</span> <span class="opacity-70">' + window.esc(e.why) + '</span></div>' : '')
               + this.peeveHtml(e.peeve)
               + '<div class="' + box + 'border-base-300"><p>' + this.diffHtml(this.original, s.text) + '</p></div></div>';
           }
@@ -398,18 +398,18 @@
           const { s, prev } = this.stepAt(id), e = this.editOf(id), rs = this.ratingsOf(id);
           const line = (cls, html) => '<div class="' + cls + '">' + html + '</div>';
           const label = t => '<span class="font-mono text-xs opacity-70">' + window.esc(t) + '</span> ';
-          const honour = (kind, sign) => rs.filter(r => this.won(r, kind)).map(r => line('text-pretty', '<span class="font-bold">' + sign + ' ' + kind + '</span> <span class="opacity-70">' + window.esc(r.by + ': ' + this.won(r, kind).why) + '</span>')).join('');
+          const honour = (kind, sign) => rs.filter(r => this.won(r, kind)).map(r => line('', '<span class="font-bold">' + sign + ' ' + kind + '</span> <span class="opacity-70">' + window.esc(r.by + ': ' + this.won(r, kind).why) + '</span>')).join('');
           const saved = this.wc(prev) - s.words;
           const who = e.aim === 'repair' ? 'reader, ' + e.kind : e.aim ? e.by + ', aiming ' + e.aim : e.by + ((e.ideas || []).length ? ', from ' + e.ideas.join(', ') : '');
           return '<div class="flex flex-col gap-3 pb-24">'
             + '<div class="flex flex-wrap items-center gap-2"><span class="rounded-full px-2.5 py-0.5 text-sm font-semibold ' + TIER[s.risk].pill + '">' + s.risk + '</span>'
             + '<span class="font-mono text-xs opacity-80">' + window.esc(s.blocks.join('–') + ' · ' + s.confidence + '% confident · ' + (saved >= 0 ? '−' + saved : '+' + (-saved)) + (Math.abs(saved) === 1 ? ' word' : ' words')) + '</span></div>'
             + line(box + TIER[s.risk].border, this.changedHtml(prev, s.text))
-            + (s.replaces ? line('text-pretty', '<span class="font-bold">↺ replaces</span> <span class="opacity-70">' + window.esc(s.replaces.map(x => 'step ' + this.stepAt(x).i).join(', ') + ', which it overlaps') + '</span>') : '')
+            + (s.replaces ? line('', '<span class="font-bold">↺ replaces</span> <span class="opacity-70">' + window.esc(s.replaces.map(x => 'step ' + this.stepAt(x).i).join(', ') + ', which it overlaps') + '</span>') : '')
             + honour('brilliancy', '!!') + honour('brutality', '✂')
             + this.peeveHtml(e.peeve)
-            + line('text-pretty', label(who) + window.esc(e.why))
-            + rs.map(r => line('text-pretty', label(r.by + ': ' + r.risk + ', ' + r.confidence + '%' + (r.clarity === 'loses' ? ', ?! loses clarity' : '')) + window.esc(r.note || ''))).join('')
+            + line('', label(who) + window.esc(e.why))
+            + rs.map(r => line('', label(r.by + ': ' + r.risk + ', ' + r.confidence + '%' + (r.clarity === 'loses' ? ', ?! loses clarity' : '')) + window.esc(r.note || ''))).join('')
             + '</div>';
         },
         mountLadder() {
@@ -479,7 +479,7 @@
   <!-- header: what passage, where it lives, what it came to -->
   <header class="flex items-center gap-3 px-4 py-2 border-b border-base-300 min-w-0">
     <div class="min-w-0 flex-1">
-      <div class="font-semibold text-balance" x-text="heading"></div>
+      <div class="font-semibold" x-text="heading"></div>
       <template x-if="led">
         <a class="link font-mono text-xs opacity-80" :href="led.source.url || '#'" target="_blank" rel="noopener" x-text="where"></a>
       </template>
@@ -537,7 +537,7 @@
             <button class="btn btn-xs btn-outline" x-show="!!led.reading" @click="openReading()">open the reading</button>
           </div>
           <template x-for="(p, j) in found" :key="j">
-            <div class="text-pretty"><span class="font-mono text-xs opacity-70" x-text="p.problem + ' · ' + p.blocks.join('–')"></span> “<span x-text="md(p.quote)"></span>” <span class="opacity-70" x-text="p.note"></span></div>
+            <div><span class="font-mono text-xs opacity-70" x-text="p.problem + ' · ' + p.blocks.join('–')"></span> “<span x-text="md(p.quote)"></span>” <span class="opacity-70" x-text="p.note"></span></div>
           </template>
         </section>
         <template x-for="[lens, ideas] in lenses" :key="lens">
@@ -551,8 +551,8 @@
                   <span class="font-bold" x-show="!!i.peeve" x-text="'✎ ' + i.peeve"></span>
                   <template x-for="eid in builtFrom(i.id)" :key="eid"><span class="badge badge-xs badge-primary" x-text="'built into step ' + (stepAt(eid).i || eid)"></span></template>
                 </div>
-                <div class="text-pretty" x-text="i.idea"></div>
-                <div class="text-pretty opacity-70" x-text="i.why"></div>
+                <div x-text="i.idea"></div>
+                <div class="opacity-70" x-text="i.why"></div>
               </div>
             </template>
           </section>
@@ -573,7 +573,7 @@
           <tbody>
             <template x-for="t in tasks" :key="t.id">
               <tr class="align-top" :class="t.dropped && 'opacity-50'">
-                <td class="pl-0 text-pretty"><span class="font-mono text-xs opacity-70" x-text="t.id"></span> <span x-text="t.question"></span></td>
+                <td class="pl-0"><span class="font-mono text-xs opacity-70" x-text="t.id"></span> <span x-text="t.question"></span></td>
                 <template x-for="n in targets" :key="n">
                   <td class="px-1 text-center">
                     <template x-if="cell(t.id, n)">
@@ -593,7 +593,7 @@
           </tbody>
         </table>
         <template x-if="tcell">
-          <div class="flex flex-col gap-1 border-l-4 border-base-300 pl-3 text-pretty">
+          <div class="flex flex-col gap-1 border-l-4 border-base-300 pl-3">
             <div class="font-mono text-xs opacity-80" x-text="tcell.t.id + ' · ' + (tcell.n ? 'after bout ' + tcell.n : 'the original') + ' · ' + tcell.c.status"></div>
             <div class="font-semibold" x-text="tcell.t.question"></div>
             <div><span class="opacity-70">the referee answered</span> <span x-text="tcell.c.answer"></span></div>
@@ -615,7 +615,7 @@
         <div class="flex-1 min-h-0 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
           <section class="min-h-0 overflow-y-auto px-4 pb-24 lg:border-r border-base-300" :class="side === 'original' ? 'block' : 'hidden lg:block'">
             <div class="text-xs font-mono opacity-70 py-2 hidden lg:block">Original</div>
-            <div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="srcHtml"></div>
+            <div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base!" x-html="srcHtml"></div>
           </section>
           <section class="min-h-0 overflow-y-auto px-4 pb-24" :class="side === 'result' ? 'block' : 'hidden lg:block'">
             <div class="flex flex-wrap items-center gap-2 py-2 text-xs">
@@ -632,9 +632,9 @@
                 <span x-text="'changes from ' + base.label"></span>
               </label>
             </div>
-            <template x-if="res && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base! [&_h1]:text-balance [&_h2]:text-balance [&_h3]:text-balance [&_p]:text-pretty [&_li]:text-pretty" x-html="res.html"></div></template>
+            <template x-if="res && !marks"><div :class="mdClass" class="text-base! leading-7 [&_code]:text-[0.9em]! [&_code]:px-[0.15em]! [&_h1]:text-xl! [&_h2]:text-lg! [&_h3]:text-base!" x-html="res.html"></div></template>
             <template x-if="res && marks">
-              <div class="whitespace-pre-wrap break-words leading-7 text-pretty"><template x-for="(s, i) in rsegs" :key="i"><span
+              <div class="whitespace-pre-wrap break-words leading-7"><template x-for="(s, i) in rsegs" :key="i"><span
                 :class="s.k === 'add' ? ADD : s.k === 'del' ? DEL : ''" x-text="s.t"></span></template></div>
             </template>
           </section>
@@ -657,13 +657,13 @@
                 <td class="font-mono" x-text="row.n"></td>
                 <td>
                   <template x-for="r in row.readers" :key="r.role">
-                    <div class="text-pretty">
+                    <div>
                       <span class="font-semibold" x-text="r.role"></span>
                       <span class="opacity-70" x-text="(ROLES[r.role] || '') + (r.model ? ' (' + r.model + ')' : '')"></span>:
                       <span x-text="added(r)"></span>
                     </div>
                   </template>
-                  <div class="text-pretty" x-show="!!row.h">
+                  <div x-show="!!row.h">
                     <span class="font-semibold">harvester</span>
                     <span class="opacity-70" x-text="ROLES.harvester"></span>:
                     <span x-text="row.h && deid(row.h.note, row.n, 'kind')"></span>
@@ -702,7 +702,7 @@
             <li>
               <button class="w-full text-left px-4 py-2 flex gap-3 items-baseline" :class="sel === u.id ? 'bg-base-200' : 'hover:bg-base-200'" @click="sel = sel === u.id ? null : u.id">
                 <span class="font-mono text-xs opacity-60 w-7 shrink-0" x-text="u.id"></span>
-                <span class="flex-1 min-w-0 text-pretty break-words" :class="[dropped(u) ? 'line-through opacity-50' : '', /^h\d/.test(u.kind) ? 'font-semibold' : '']" x-text="plain(u.text)"></span>
+                <span class="flex-1 min-w-0 break-words" :class="[dropped(u) ? 'line-through opacity-50' : '', /^h\d/.test(u.kind) ? 'font-semibold' : '']" x-text="plain(u.text)"></span>
                 <span class="font-mono text-xs opacity-60 shrink-0" x-text="count(u) + ' notes'"></span>
               </button>
             </li>
@@ -722,11 +722,11 @@
                     <span class="badge badge-xs badge-primary" x-show="used.has(e.id)" x-text="'used in round ' + n"></span>
                   </div>
                   <template x-if="e.tag === 'word'">
-                    <div class="text-pretty break-words"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.text || '∅'"></span></div>
+                    <div class="break-words"><span class="line-through opacity-60" x-text="e.from"></span> <span x-text="e.text || '∅'"></span></div>
                   </template>
-                  <template x-if="e.tag !== 'word'"><div class="text-pretty whitespace-pre-wrap break-words" x-html="inline(e.text)"></div></template>
+                  <template x-if="e.tag !== 'word'"><div class="whitespace-pre-wrap break-words" x-html="inline(e.text)"></div></template>
                   <template x-for="(v, j) in downs(e)" :key="j">
-                    <div class="opacity-70 text-pretty"><span class="text-error font-mono text-xs" x-text="'voted down by ' + v.role + ':'"></span> <span x-text="deid(v.why, v.round)"></span></div>
+                    <div class="opacity-70"><span class="text-error font-mono text-xs" x-text="'voted down by ' + v.role + ':'"></span> <span x-text="deid(v.why, v.round)"></span></div>
                   </template>
                 </div>
               </template>
@@ -751,12 +751,12 @@
             <template x-for="e in cores" :key="e.id">
               <tr>
                 <td class="align-top">
-                  <div class="text-pretty break-words" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-html="inline(e.text)"></div>
+                  <div class="break-words" :class="downs(e).length > ups(e) ? 'line-through opacity-60' : ''" x-html="inline(e.text)"></div>
                   <template x-if="coreNow(e)">
-                    <div class="opacity-70 break-words text-pretty" x-html="coreNow(e).quote ? 'kept as “' + inline(coreNow(e).quote) + '”' : 'given up: ' + window.esc(deid(coreNow(e).lost, n))"></div>
+                    <div class="opacity-70 break-words" x-html="coreNow(e).quote ? 'kept as “' + inline(coreNow(e).quote) + '”' : 'given up: ' + window.esc(deid(coreNow(e).lost, n))"></div>
                   </template>
                   <template x-if="downs(e).length > ups(e)">
-                    <div class="opacity-70 break-words text-pretty" x-text="'voted out as a repeat: ' + deid(downs(e)[0].why, downs(e)[0].round)"></div>
+                    <div class="opacity-70 break-words" x-text="'voted out as a repeat: ' + deid(downs(e)[0].why, downs(e)[0].round)"></div>
                   </template>
                 </td>
                 <template x-for="r in led.rounds.slice(0, k + 1)" :key="r.n">

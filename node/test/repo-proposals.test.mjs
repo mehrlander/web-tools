@@ -486,6 +486,15 @@ test('unsetField fails closed on a target that is not a JSON object', () => {
   assert.match(P.unsetField('[1,2]', 'x').error, /not an object/);
 });
 
+test('the channel keeps the errands mailbox layout', () => {
+  assert.deepEqual([P.PENDING_DIR, P.APPLIED_DIR, P.ATTEMPT_DIR],
+    ['proposals/pending', 'proposals/applied', 'proposals/attempts']);
+});
+
+test('unsetField treats an inherited name as absent, not as a key in the file', () => {
+  assert.equal(P.unsetField('{"a":1}\n', 'toString').removed, false, 'an inherited name is not a key in the file');
+});
+
 test('a removal carrying a value is refused, since it was probably meant as a set', () => {
   assert.match(P.validate(unset({ value: true })).error, /takes no value/);
   assert.match(P.validate(unset({ field: '' })).error, /needs a field name/);

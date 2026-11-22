@@ -143,6 +143,14 @@ test('a check pins the revision, holds exact incoming text, and persists an hone
   assert.equal(browserStore.stage.filter(it => !it.local).length, 1, 'reopening reuses the repository item');
 });
 
+test('a trailing-newline difference is not an exact match', async () => {
+  const { win, saved } = harness();
+  await win.FileCorrespondence.open({ target, text: 'same', name: 'work.psm1' });
+  assert.equal(saved[0].exact, false);
+  assert.equal(saved[0].lineEndingsOnly, false);
+  assert.equal(saved[0].observation, 'Submitted text differed from this repository revision.');
+});
+
 test('PowerShell check distinguishes CRLF-only changes without altering submitted text or its hash', async () => {
   const { win, saved, browserStore, setRepositoryText } = harness();
   const repository = 'function Get-Thing {\n  "é"\n}\n';

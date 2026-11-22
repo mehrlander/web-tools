@@ -184,6 +184,8 @@ test('Ctrl+F and Cmd+F open it from anywhere, in place of the browser\'s own fin
   await tick(2);
   key({ key: 'f', ctrlKey: true, shiftKey: true });
   assert.equal(d.findOpen, false, 'a chord with more keys is not this one');
+  key({ key: 'f', ctrlKey: true, altKey: true });
+  assert.equal(d.findOpen, false, 'Ctrl+Alt+F is not this one either');
 });
 
 test('a hosted view hands the field to the header in place of the title, once, and keeps its facts', async () => {
@@ -195,6 +197,7 @@ test('a hosted view hands the field to the header in place of the title, once, a
   key({ key: 'f', ctrlKey: true });
   await until(() => d.findOpen);
   await tick(2);
+  assert.equal(data('inline').findOpen, false, 'an inline view with a deck on top does not answer');
   const c = chromes.at(-1);
   assert.equal(chromes.length, before + 1, 'one hand-over for the field');
   assert.ok(c.head?.matches('[role="search"]'), 'the field takes the title\'s place');

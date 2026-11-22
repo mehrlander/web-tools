@@ -36,7 +36,13 @@ test('wsl.js (async gh.load shape) registers window.wsl once awaited', async () 
   const w = { addEventListener: () => {} };
   // wsl.js's first move is gh.load('kits/wsl-core.js'); satisfy it locally.
   // It references `gh` bare, which resolves in the Node global scope here.
-  globalThis.gh = { load: async (p) => { loadKit(p.replace(/^kits\//, ''), { window: w }); } };
+  // Genuinely asynchronous, as gh.load is: a kit that does not await it reads window.wslCore too early.
+  const calls = [];
+  globalThis.gh = { load: async (p) => {
+    calls.push(p);
+    await new Promise(r => setTimeout(r, 0));
+    loadKit(p.replace(/^kits\//, ''), { window: w });
+  } };
   try {
     loadKit('wsl.js', { window: w, console: { ...console } });
     await w.__kitReturn;
@@ -44,6 +50,9 @@ test('wsl.js (async gh.load shape) registers window.wsl once awaited', async () 
     delete globalThis.gh;
   }
   assert.equal(typeof w.wsl, 'object');
+  assert.deepEqual(calls, ['kits/wsl-core.js'], 'wsl-core is loaded once');
+  for (const k of ['getBillNumber', 'consolidate', 'groupWithCompanions', 'classifyPensionBill'])
+    assert.equal(typeof w.wsl[k], 'function', `wsl.${k} passes through from wsl-core`);
   assert.equal(typeof w.wsl.classifyPensionBill, 'function');
   assert.equal(typeof w.wsl.parseLegislationXml, 'function');
 });

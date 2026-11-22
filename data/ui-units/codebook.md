@@ -90,7 +90,7 @@ Rules the rows cannot hold:
 A **pattern** here is a `body` code: a named arrangement of a unit's main
 region, such as `list` or `source-beside`. Its definition is its row of
 `codes.csv` (name, gloss, test, what it is not to be confused with) and, for
-the three codes that have one, its `parts` cell. Nothing else defines it, so a
+the four codes that have one, its `parts` cell. Nothing else defines it, so a
 pattern exists whether or not any code draws it, and the other dimensions'
 codes are not patterns in this sense.
 
@@ -124,11 +124,12 @@ definition and are observed across its units:
 A body code can also be stated by the unit's own markup, which treats the code
 as an interface: a set of named parts and a behavior the unit promises. Piloted
 on 2026-10-05 for `list` and `list-detail` on five units, then carried to every
-unit coded either code, and the same day to every unit coded `card-grid`, the
+unit coded either code, and the same day to every unit coded `card-grid`, a
 third code whose `parts` cell is filled. A card grid's parts are a list's: the
 grid is the `list` part and each card an `item`, with the same anatomy. The
 rollout's readers asked for `body` and `links` and for the rules on groups,
-nesting and alternates below.
+nesting and alternates below. `linked-swiper`, the fourth code with a `parts`
+cell, takes list-detail's parts.
 
 - **`data-pattern="<code>"`** goes on the element that holds the whole
   arrangement, using a body code from [`codes.csv`](codes.csv).
@@ -187,7 +188,7 @@ code's.
 - **A frame slot** is `data-slot="frame:<code>"` on the control that draws
   that code. A code drawn by two controls marks both.
 - **The body slot** is the element carrying `data-pattern`, under every body
-  code, not only the three with parts.
+  code, not only the four with parts.
 - **A unit's region** bounds which slots are its own: `main` for an app view
   or tab and for a budget-drs view, `body` for a page. The shell's region is
   everything outside `main`, and its body is `main` (`host`). Where two units

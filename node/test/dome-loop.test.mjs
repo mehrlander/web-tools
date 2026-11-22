@@ -140,6 +140,20 @@ test('a repair lands first, and a bout that saves nothing ends the run', () => {
   assert.equal(led.best, 1)
 })
 
+test('an edit that starts before words the bout wrote and runs into them is knocked out', () => {
+  const run = fixture(true, 1)
+  next(run)
+  referee(run, 0, { t1: true, t2: true, t3: 'the data team' })
+  next(run)
+  // The cutter's six words land first and write 'by hand'; the fuser's
+  // 'weekly, by' still matches the text, but its last word is the cutter's.
+  jsonl(join(run, 'b1-cutter.jsonl'), [{ from: 'by hand, not from the hook', text: 'by hand' }])
+  jsonl(join(run, 'b1-fuser.jsonl'), [{ from: 'weekly, by', text: 'weekly,' }])
+  const led = next(run)
+  assert.deepEqual([led.bouts[0].landed, led.bouts[0].knocked], [1, 1])
+  assert.equal(led.bouts[0].text, 'Refresh the cache weekly, by hand. Run make cache from the repository root. A stale cache shows old totals.')
+})
+
 test('the smash tidies a cut without touching a code span', () => {
   const run = fixture(true, 1, 'Run `make . -o out` from the root, not by hand.')
   next(run)

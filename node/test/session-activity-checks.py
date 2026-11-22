@@ -139,6 +139,12 @@ class CloudActivityChecks(unittest.TestCase):
         self.assertEqual(self.read(staged)["state"], "working")
         self.assertNotIn("Private result", json.dumps(self.read(staged)))
 
+    def test_recovered_prompt_is_bounded(self):
+        transcript = self.root / (self.payload["session_id"] + ".jsonl")
+        transcript.write_text(json.dumps({"type":"user", "message":{"role":"user", "content":"z" * 5000}}), encoding="utf-8")
+        staged = activity.capture(dict(self.payload, hook_event_name="PreToolUse", tool_name="Read", transcript_path=str(transcript)), self.env, self.now)
+        self.assertEqual(len(self.read(staged)["prompt"]), 2000)
+
     def test_git_publish_preserves_checkout_and_rejects_late_start(self):
         before = (self.git("rev-parse", "HEAD"), self.git("status", "--porcelain"), self.git("write-tree"))
         staged = activity.capture(self.payload, self.env, self.now)

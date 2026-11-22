@@ -104,9 +104,7 @@
   // lighter; the own output's number disc is primary (badgeTone). An output's
   // only passage and the first of several are filled; the first of several and
   // each later one carry a line at the foot, so a later one is the line alone.
-  // The line is an inset shadow because title-tip's unlayered rule on
-  // [data-title-tip-bare] removes text decoration. A passage under the
-  // pointer, and its counterparts, deepen (data-hot).
+  // A passage under the pointer, and its counterparts, deepen (data-hot).
   const fillOf = (mine, role, c) => {
     const [f, h, g, l] = mine ? [40, 55, 20, 100] : [25, 38, 15, 70];
     const line = `shadow-[inset_0_-1.5px_0_color-mix(in_oklab,var(--color-${c})_${l}%,transparent)]`;
@@ -265,7 +263,7 @@
   function rowHTML(r) {
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
       class="flex cursor-pointer flex-col border-b border-base-200 px-2.5 py-1 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
-      <span class="truncate font-medium" data-title-tip="${esc(r.title)}" data-title-tip-bare>${esc(r.title)}</span>
+      <span class="truncate font-medium" data-title-tip="${esc(r.title)}">${esc(r.title)}</span>
       <div class="flex min-h-7 items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-ls-tabs></span>
         ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div></div>`;
   }
@@ -276,7 +274,7 @@
     if (!o.tag) return '';
     const t = P.tagOf[o.tag] || { label: o.tag }, tn = TONE[toneOf(o)] || TONE.neutral;
     // A tag with an icon is the icon alone, filled in its tone; its tip names it.
-    if (t.icon) return `<span class="mr-1.5 inline-flex shrink-0 cursor-pointer align-[-0.15em] @lg:mr-0 @lg:h-[1lh] @lg:items-center" data-title-tip="${esc(t.label || o.tag)}" data-title-tip-bare>`
+    if (t.icon) return `<span class="mr-1.5 inline-flex shrink-0 cursor-pointer align-[-0.15em] @lg:mr-0 @lg:h-[1lh] @lg:items-center" data-title-tip="${esc(t.label || o.tag)}">`
       + `<i class="ph-fill ${esc(t.icon)} ${tn.text} text-[1.15em]"></i></span>`;
     return `<span class="badge badge-sm ${tn.tag} mr-2 @lg:mr-0 ${big ? '@lg:mt-1.5' : '@lg:mt-1'} shrink-0 justify-start gap-1 font-normal" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${esc(t.label || o.tag)}</span>`;
   }
@@ -330,7 +328,7 @@
       const top = mine && first.block === b.id && first.at[0] === a;
       const nums = spans.filter(s => s.at[0] === a).map(({ o, role }) =>
         `<span data-badge="${esc(o.id)}" data-role="${role}" class="${BADGE} ${badgeTone(r.id, o.id, o === own, role)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
-      h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} data-title-tip-bare tabindex="-1"`
+      h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} tabindex="-1"`
         + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
     }
     return h;
@@ -364,7 +362,7 @@
   const opened = new Set();
   const turnHTML = (r, b, own, pad) => `
       <section data-block="${esc(b.id)}" class="${pad}">
-        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]"><span class="${TURN.badge}" data-title-tip="${esc(b.label || b.id)}" data-title-tip-bare>${esc(turnNo(b))}</span>${marked(r, b, own)}</p>
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]"><span class="${TURN.badge}" data-title-tip="${esc(b.label || b.id)}">${esc(turnNo(b))}</span>${marked(r, b, own)}</p>
       </section>`;
   // A run's turns, each run of two or more quiet ones folded unless opened.
   function turnsHTML(r, own, pad) {
@@ -538,7 +536,7 @@
     head.innerHTML = `
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <i class="ph ph-list-checks shrink-0 text-xl text-primary"></i>
-        <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Inspection')}" data-title-tip-bare>${esc(P.title || 'Inspection')}</h1>
+        <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Inspection')}">${esc(P.title || 'Inspection')}</h1>
         ${judged ? `<span class="min-w-[7ch] shrink-0 font-mono text-xs tabular-nums text-base-content/60">${done}/${total}</span>` : ''}
       </div>
       <div class="flex min-w-0 items-center gap-2">${status}

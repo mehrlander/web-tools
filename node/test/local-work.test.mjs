@@ -18,6 +18,8 @@ test('publication and incorporation remain independent', () => {
   assert.equal(W.preservation(row), 'Committed content pushed');
   assert.equal(W.integration(row), 'Committed content is in the default branch');
   assert.equal(W.preservation({}), 'Publication unknown');
+  assert.equal(W.preservation({publication:'local-commits'}), 'Ahead of the checked branch');
+  assert.notEqual(W.preservation({publication:'local-commits'}), W.preservation({publication:'pushed'}));
 });
 test('query includes path associations and session links reject arbitrary destinations', () => {
   assert.equal(W.rows({checkouts:[{path:'old-thread',sessions:[{title:'Excel assessment'}]}]}, 'excel old').length, 1);
@@ -28,10 +30,11 @@ test('query includes path associations and session links reject arbitrary destin
 
 test('a loaded observation mounts checkout rows and survives a failed refresh', async () => {
   const {window: browser} = makeWindow({html:'<div id="local" x-data="localWork()"></div>'});
-  let fail = false;
+  let fail = false, schema2 = false;
   browser.GH = class {
     async get() {
       if (fail) throw new Error('offline');
+      if (schema2) return {text:JSON.stringify({schema:2,checkouts:[]})};
       return {text:JSON.stringify({schema:1,observedAt:'2026-11-11T12:00:00Z',coverage:{complete:true,sessions:[]},
         stores:[],standalone:[],sessions:[],checkouts:[{id:'checkout',path:'project',scope:'repositories',
           branch:'main',repo:'fixture/project',publication:'pushed',integration:'incorporated',changed:1,untracked:0,ignored:0,state:'ready'}]})};
@@ -48,6 +51,10 @@ test('a loaded observation mounts checkout rows and survives a failed refresh', 
   fail = true;
   await data.load();
   assert.equal(data.snapshot.checkouts.length, 1);
+  assert.match(data.error, /previous observation/);
+  fail = false; schema2 = true; data.error = '';
+  await data.load();
+  assert.equal(data.snapshot.checkouts.length, 1, 'an unknown schema version is rejected, not adopted');
   assert.match(data.error, /previous observation/);
   browser.close();
 });

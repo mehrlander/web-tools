@@ -15,7 +15,8 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readdirSync } from 'node:fs';
+import { readdirSync, mkdtempSync, mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parse } from 'acorn';
 import { repoRoot } from './bootstrap.mjs';
@@ -47,4 +48,14 @@ test('the words import and export inside a string are left alone', () => {
   assert.match(css, /"@import":\d+/);
   const js = String(serve('@codemirror/lang-javascript').body);
   assert.match(js, /label: "import",/);
+});
+
+test('an object key "@import" is not rewritten: the body is served byte for byte', () => {
+  const tmp = mkdtempSync(path.join(tmpdir(), 'cdn-esm-'));
+  const dir = path.join(tmp, 'node_modules', 'probepkg');
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ name: 'probepkg', module: 'index.js' }));
+  const text = 'let t,y;t={"@import":1};y="z";export{t,y};\n';
+  writeFileSync(path.join(dir, 'index.js'), text);
+  assert.equal(String(resolveCdn('https://esm.sh/probepkg', tmp).body), text);
 });

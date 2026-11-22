@@ -146,6 +146,32 @@ test('the pager steps the strip, and the arrows are disabled at the ends', async
   assert.deepEqual(s.picks.at(-1), ['b', 'swipe']);
 });
 
+test('the Next arrow is disabled on the last row and enabled on the first, with and without swipe-deck', async () => {
+  for (const swipe of [true, false]) {
+    const w = page({ swipe });
+    const last = mountList(w, ['a', 'b', 'c'], { sel: 'c' });
+    await tick();
+    assert.equal(last.card.querySelector('[data-swipe-step="1"]').disabled, true, `no next row from the last (swipe ${swipe})`);
+    const first = mountList(w, ['a', 'b', 'c']);
+    await tick();
+    assert.equal(first.card.querySelector('[data-swipe-step="1"]').disabled, false, `next is open on the first (swipe ${swipe})`);
+  }
+});
+
+test('Ctrl, Meta or Alt with an arrow on a row is left to the browser', async () => {
+  const w = page({ swipe: false });
+  const s = mountList(w, ['a', 'b', 'c']);
+  await tick();
+  const row = s.list.querySelector('[data-row="a"]');
+  row.focus();
+  for (const mod of ['ctrlKey', 'metaKey', 'altKey']) {
+    const ev = new w.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true, [mod]: true });
+    row.dispatchEvent(ev);
+    assert.equal(ev.defaultPrevented, false, mod);
+  }
+  assert.deepEqual(s.picks, []);
+});
+
 test('without swipe-deck the card is drawn once and a step redraws it', async () => {
   const w = page({ swipe: false });
   const s = mountList(w, ['a', 'b']);
