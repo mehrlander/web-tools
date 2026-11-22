@@ -81,6 +81,16 @@ test('the PR slide frames the page, with no button out to GitHub', async () => {
   assert.equal([...slide.querySelectorAll('a')].filter((a) => /github\.com/.test(a.getAttribute('href') || '')).length, 0);
 });
 
+test('the PR header carries the GitHub mark, shown, at the PR\'s own address', async () => {
+  data().at = data().mats.findIndex((m) => m.src === 'pr');
+  await tick(4);
+  const a = root().querySelector('a[data-title-tip="On GitHub"]');
+  assert.ok(a, 'the mark is in the header');
+  assert.notEqual(a.style.display, 'none', 'shown while the PR is current');
+  assert.equal(a.getAttribute('href'), mat('pr').gh);
+  assert.ok(a.querySelector('i').classList.contains('ph-github-logo'));
+});
+
 test('a plain URL, which nothing here can frame, keeps its one way out', () => {
   const m = mat('url');
   assert.equal(m.peek, null);

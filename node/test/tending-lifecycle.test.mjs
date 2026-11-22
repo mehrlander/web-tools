@@ -171,3 +171,20 @@ test('a pull request the crawl cache lacks reads unverifiable on the command lin
     [['acme/evidence#99', 'ok'], ['acme/evidence#98', 'unverifiable'], ['acme/evidence#7', 'ok']]);
   assert.match(v[1].detail, /not in the crawl cache/);
 });
+
+test('an open pull request witness acknowledged as seen comes back when its updated time moves later', () => {
+  const pr = py('add', jfile({
+    kind: 'superseded', title: 'A pull request kept an eye on', subjects: ['acme/evidence#7'], why: 'w', evidence: ['open'],
+    witnesses: [{ ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
+  })).split(' ')[0];
+  const w = window.Findings.fold(storeNotes()).find(f => f.id === pr).witnesses[0];
+  const seen = { state: 'open', updated: '2026-09-01T00:00:00Z' };
+  viewWrites(window.Findings.resolution(pr, 'Handled', 'mehrlander', [window.Findings.ackOf(w, seen)]));
+  activity.repos['acme/evidence'].openPRs[0].updatedAt = '2026-10-01T00:00:00Z';
+  sh(store, 'pull', '-q', '--rebase', 'origin', 'main');
+  writeFileSync(path.join(store, 'state/activity.json'), JSON.stringify(activity));
+  sh(store, 'commit', '-qam', 'the pull request moved'); sh(store, 'push', '-q', 'origin', 'main');
+  assert.ok(check(pr).moved.some(m => m.ref === 'acme/evidence#7' || m === 'acme/evidence#7'), 'a later update surfaces on the command line');
+  const w2 = window.Findings.fold(storeNotes()).find(f => f.id === pr).witnesses[0];
+  assert.equal(window.Findings.compare(w2, { state: 'open', updated: '2026-10-01T00:00:00Z' }).verdict, 'changed', 'and in the kit');
+});

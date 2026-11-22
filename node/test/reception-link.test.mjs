@@ -34,6 +34,7 @@ test('--dest and --file ride as an errand names them', () => {
 
 test('a malformed --dest, a --file without --dest, and a file that is not a function are refused', () => {
   assert.throws(() => mint(fn, '--note', 'N', '--dest', 'projects/x/dump'));
+  for (const d of ['/repo:x', 'me/repo:', 'me/repo@main:']) assert.throws(() => mint(fn, '--note', 'N', '--dest', d), d);
   assert.throws(() => mint(fn, '--note', 'N', '--file', 'out.tsv'));
   const bad = path.join(dir, 'bad.js');
   writeFileSync(bad, 'rows => {');

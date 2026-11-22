@@ -39,6 +39,10 @@ test('the vocabulary quoted as a list is not a state', () => {
   assert.deepEqual(CS.marks(doc), []);
   // And a marker with no bold lead is prose about a state, not one.
   assert.deepEqual(CS.marks('🟢 is the marker we use for ready.'), []);
+  // An ordered list is a list too: any list marker fails the line-start rule.
+  const ordered = '1. 🟢 **Ready to continue:** x\n2. 🟣 **Merged:** y';
+  assert.deepEqual(CS.marks(ordered), []);
+  assert.deepEqual(CS.closings(ordered), []);
 });
 
 test('both spellings of the three variation-selector glyphs settle to one key', () => {

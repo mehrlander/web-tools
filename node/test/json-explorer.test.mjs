@@ -226,6 +226,22 @@ test('JsonExplorer chunk zooming and path navigation', () => {
   explorer.destroy();
 });
 
+test('JsonProfile counts an empty string as an unfilled cell', () => {
+  const col = JsonProfile.analyze({ r: [{ a: '' }, { a: 'x' }] }).collections[0].columns[0];
+  assert.equal(col.fillRate, 0.5);
+  assert.deepEqual([...col.samples], ['x']);
+});
+
+test('JsonExplorer a crumb zooms to its own level, not the one above', () => {
+  const container = window.document.getElementById('c');
+  const explorer = JsonExplorer.mount(container, { data: { a: { b: { c: 1 } } }, chunk: ['a', 'b'] });
+  const names = () => [...container.querySelectorAll('[data-crumb]')].map(b => b.textContent.trim());
+  assert.deepEqual(names(), ['document.json', 'a', 'b']);
+  container.querySelectorAll('[data-crumb]')[1].click();
+  assert.deepEqual(names(), ['document.json', 'a']);
+  explorer.destroy();
+});
+
 test('JsonExplorer search filters to matching rows and their ancestors', () => {
   const container = window.document.getElementById('c');
   const explorer = JsonExplorer.mount(container, {

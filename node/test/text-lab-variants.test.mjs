@@ -295,3 +295,12 @@ test('a run the collection\'s proposals cite is listed from them, and ?run= mark
   assert.deepEqual(cited.files.map(f => [f.path, f.variants]), [['docs/a.md', 2], ['b.md', 1]]);
   assert.match(SRC, /:id="'run-' \+ r\.name"/, 'each run row is addressable');
 });
+
+test('an explicit ?variant= wins over a legacy ?proposal= in the open row and the rewritten address', () => {
+  const h = harness('?variant=audit-1&proposal=phrase-1');
+  assert.equal(h.model.variantOpen, 'audit-1');
+  h.model.migrateLegacyAddress();
+  const u = new URL(h.location.href);
+  assert.equal(u.searchParams.get('variant'), 'audit-1');
+  assert.equal(u.searchParams.has('proposal'), false);
+});

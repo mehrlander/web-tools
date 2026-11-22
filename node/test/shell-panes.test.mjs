@@ -97,6 +97,18 @@ test('every pill tap has an arm in goSub naming a method the shell defines', () 
   }
 });
 
+test('every pill tap lands on its own pane, not merely on a method that exists', () => {
+  const body = estateSrc.match(/goSub\(key\)\{[\s\S]*?\n      \},/)[0];
+  for (const key of pillKeys()) {
+    const { shell, win } = makeShell();
+    shell.view = 'repos';
+    shell.syncUrl = () => {}; shell.checkCache = () => {}; shell.hasToken = () => false;
+    win.__shell = shell;
+    new Function('window', 'return function ' + body.replace(/,\s*$/, ''))(win)(key);
+    assert.equal(shell.view, key, `goSub('${key}') did not open the ${key} pane`);
+  }
+});
+
 test('no pane is declared that the nav cannot reach', () => {
   const { shell } = makeShell();
   shell.proposalCount = 1;

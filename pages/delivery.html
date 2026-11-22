@@ -85,7 +85,7 @@
         </span>
       </template>
     </div>
-    <p class="text-base text-base-content/70 text-balance mt-1" x-show="snap" x-text="snap?.title"></p>
+    <p class="text-base text-base-content/70 mt-1" x-show="snap" x-text="snap?.title"></p>
     <a :href="contextMapUrl" class="text-sm text-primary hover:underline">Current context map ↗</a>
   </header>
 
@@ -100,11 +100,11 @@
     <template x-if="snap">
       <div class="px-4 sm:px-6 pb-5 flex flex-col gap-1.5">
         <template x-for="e in (snap.evidence || [])" :key="e">
-          <p class="text-base text-pretty flex gap-2">
+          <p class="text-base flex gap-2">
             <i class="ph ph-dot-outline text-base-content/40 shrink-0 mt-1"></i><span x-text="e"></span>
           </p>
         </template>
-        <p class="text-base text-base-content/50 text-pretty mt-1" x-text="snap.provenance"></p>
+        <p class="text-base text-base-content/50 mt-1" x-text="snap.provenance"></p>
       </div>
     </template>
 
@@ -122,14 +122,14 @@
                   :class="tip.freshness === 'pinned' ? 'badge-warning' : 'badge-ghost'"
                   x-text="fresh(tip.freshness)?.label"></span>
           </div>
-          <p class="text-base text-pretty" x-text="tip.gloss"></p>
+          <p class="text-base" x-text="tip.gloss"></p>
           <code x-show="tip.where" class="text-xs text-base-content/60 break-all" x-text="tip.where"></code>
-          <p x-show="tip.upkeep" class="text-xs text-base-content/60 text-pretty"
+          <p x-show="tip.upkeep" class="text-xs text-base-content/60"
              x-text="'Refreshed: ' + tip.upkeep"></p>
-          <p x-show="tip.freshness" class="text-xs text-base-content/60 text-pretty"
+          <p x-show="tip.freshness" class="text-xs text-base-content/60"
              x-text="fresh(tip.freshness)?.gloss + '. Lag: ' + fresh(tip.freshness)?.lag + '.'"></p>
-          <p x-show="tip.goes" class="text-xs text-warning text-pretty">The next state removes this copy.</p>
-          <p x-show="tip.note" class="text-xs text-base-content/70 text-pretty" x-text="tip.note"></p>
+          <p x-show="tip.goes" class="text-xs text-warning">The next state removes this copy.</p>
+          <p x-show="tip.note" class="text-xs text-base-content/70" x-text="tip.note"></p>
         </div>
       </template>
     </div>

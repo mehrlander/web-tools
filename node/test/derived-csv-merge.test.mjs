@@ -102,6 +102,16 @@ test('rows added on both sides are unioned, which is the half a take-ours would 
     'SNAGS merge-drops-authored-csv-cells is exactly this row going missing');
 });
 
+test('a row both sides added with different authored cells is refused, not picked', () => {
+  // With no base row there is no side that left the cell alone, so neither
+  // sentence is the unchanged one and the rule above has nothing to stand on.
+  const r = merge(csv(row('docs/a.md')),
+                  csv(row('docs/a.md'), row('docs/new.md', 'ours says')),
+                  csv(row('docs/a.md'), row('docs/new.md', 'theirs says')));
+  assert.equal(r.code, 1, 'a row absent from base gives no baseline to take either side against');
+  assert.match(r.err, /authored cell/);
+});
+
 test('a row only theirs added lands where theirs has it, not at the end', () => {
   // docs/docs.csv is not re-sorted by its deriver, so a row main added in the
   // middle and appended here would move on every merge of main.

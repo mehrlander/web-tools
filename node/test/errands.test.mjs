@@ -208,6 +208,7 @@ test('a read grades itself, and green means complete', () => {
   const tree = E.normalize({ id: 't', action: 'tree', repo: 'me/r', note: 'n' });
   assert.equal(E.verdict(tree, { ok: true, data: { truncated: true, entries: [{}] } }).level, 'amber', 'a truncated listing is not complete');
   assert.equal(E.verdict(tree, { ok: true, data: { truncated: false, entries: [{}, {}] } }).text, '2 entries listed');
+  assert.equal(E.verdict(tree, { ok: true, data: { truncated: false, entries: [] } }).level, 'amber', 'an empty listing is not complete');
 });
 
 test('any other errand is graded against what is staged and what it expects', () => {

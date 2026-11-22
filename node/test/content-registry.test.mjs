@@ -55,13 +55,16 @@ test('group: authored leads, mechanical trails collapsed, undeclared is a normal
     { path: 'lib/b.js' },
     { path: 'docs/plan.md' },
     { path: 'README.md' },
+    { path: 'lib/vendored/x.js' },
   ];
   const groups = CR.group(files, rows);
   assert.deepEqual(groups.map(g => g.mode),
-    ['human-authored', 'hybrid-authored', 'undeclared', 'mechanical']);
+    ['human-authored', 'hybrid-authored', 'supplied', 'undeclared', 'mechanical']);
   const mech = groups.find(g => g.mode === 'mechanical');
   assert.equal(mech.collapsed, true);
   assert.equal(mech.note, 'The pre-build');
+  // Only mechanical collapses: supplied material is shown open.
+  assert.deepEqual(groups.filter(g => g.collapsed).map(g => g.mode), ['mechanical']);
   const und = groups.find(g => g.mode === 'undeclared');
   assert.equal(und.collapsed, false);
   // A group drawn from ONE locator carries its description; several carry none.

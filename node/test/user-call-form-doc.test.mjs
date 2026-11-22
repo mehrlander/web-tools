@@ -83,7 +83,7 @@ window.mdDiff = { render: async (host, a, b, opts) => {
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
 const heads = [];
-window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd) };
+window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd), listed: true };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
@@ -128,9 +128,10 @@ test('in the deck a documentation call shows neither its question nor a recommen
   assert.equal(root().querySelector('[data-call-recommend]').style.display, 'none');
 });
 
-// The owner judges a documentation call by its edits (2026-11-21), so the
-// brief the session filed waits behind an icon at the end of the document's
-// head, with nothing of it drawn above the edits. It opens as the house
+// On a card in the session page's list of calls the owner judges a
+// documentation call by its edits (2026-11-21), so the brief the session filed
+// waits behind an icon at the end of the document's head, with nothing of it
+// drawn above the edits. It opens as the house
 // panel-tip (html-style rule 10): a tap pins it, with the kit's ✕, and its ↗
 // is the call's file.
 test("a documentation call's brief is a panel-tip behind an icon in the document's head", async () => {
@@ -156,6 +157,18 @@ test("a documentation call's brief is a panel-tip behind an icon in the document
   panel.querySelector('[data-wt-panel-tip-close]').click();
   await until(() => panel.style.display === 'none');
   assert.equal(data().briefAt, null, 'the ✕ closes it');
+});
+
+// In the deck and on the call's own page the brief is a line above the
+// document again, and the head has no icon (owner, 2026-11-21).
+test("outside the list of calls a documentation call's brief is a line, not an icon", async () => {
+  const shown = (el) => { for (let e = el; e && e !== root(); e = e.parentElement) if (e.style.display === 'none') return false; return true; };
+  data().listed = false;
+  await until(() => root().querySelector('[data-doc-head] [data-doc-brief]').style.display === 'none');
+  const text = [...root().querySelectorAll('[data-call-card] p')].filter(shown).map((p) => p.textContent).join(' ');
+  assert.match(text, /Tidy the doc\./, 'a paragraph carries it');
+  data().listed = true;
+  await until(() => root().querySelector('[data-doc-head] [data-doc-brief]').style.display !== 'none');
 });
 
 test('a documentation call shows no PR readiness, even when the PR has conflicts', async () => {
@@ -341,6 +354,20 @@ test('nothing records until every staged edit is decided, and a decision stays m
   act(1, 'Keep');
   await tick(2);
   assert.equal(mark(1).dataset.decision, 'open', 'a second tap lets it go');
+});
+
+test('one edit still open with no notes keeps Record disabled and sends nothing', async () => {
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
+  const before = puts.length;
+  assert.equal(send().disabled, true, 'one undecided edit blocks the record');
+  assert.match(send().textContent, /1 to decide/);
+  await data().sendDoc();
+  assert.equal(puts.length, before, 'sendDoc writes nothing while an edit is open');
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
 });
 
 test('Old and New draw the whole file as it stands and as proposed; Changes keeps its decisions', async () => {

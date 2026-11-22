@@ -1141,8 +1141,8 @@
                 + `${f.variants} ${run.unit}`));
             const notes = (f.drafter || f.audit) && h('details', { class: 'mb-5 text-base leading-7' },
               h('summary', { class: 'cursor-pointer font-mono text-xs opacity-60' }, 'What changed, and what the audit restored'),
-              h('p', { class: 'mt-2 text-pretty' }, f.drafter || ''),
-              h('p', { class: 'mt-2 text-pretty opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
+              h('p', { class: 'mt-2' }, f.drafter || ''),
+              h('p', { class: 'mt-2 opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
             const doc = h('div', {}, h('span', { class: 'loading loading-dots loading-md opacity-60' }));
             slide.append(...[head, notes, doc].filter(Boolean));
             this.renderRunFile(doc, f);
@@ -1480,7 +1480,7 @@
                      :id="'variant-' + p.id"
                      :class="variantOpen === p.id && 'bg-base-200/30'">
               <div class="min-w-0" x-init="lazyPair($el, p)">
-                <div class="text-lg leading-7 text-pretty text-base-content/50" x-text="variantPreview(p.from.text, 300)"></div>
+                <div class="text-lg leading-7 text-base-content/50" x-text="variantPreview(p.from.text, 300)"></div>
               </div>
               <!-- The facts and the acts, under the pair, as in both decks. A
                    proposal chip rides this line too (data-variant-proposals). -->
@@ -1572,7 +1572,7 @@
                       x-show="!!r.locator && !resourceUrl(r.locator)" x-text="r.locator"></span>
               </div>
 
-              <p class="text-lg leading-7 text-pretty mt-0.5" x-text="r.note"></p>
+              <p class="text-lg leading-7 mt-0.5" x-text="r.note"></p>
 
               <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs mt-2">
                 <template x-for="p in list(r.rates)" :key="p">
@@ -1605,7 +1605,7 @@
             <article :id="'run-' + r.name" class="border-b border-base-300 py-5 flex items-start gap-5"
                      :class="r.name === runFocus && 'bg-primary/5'">
               <div class="grow min-w-0">
-                <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
+                <div class="text-lg leading-7 font-medium" x-text="r.title"></div>
                 <div class="mt-1 font-mono text-xs opacity-70 tabular-nums"
                      x-text="r.date + ' · ' + r.files.length + ' files · ' + r.variants.toLocaleString() + ' ' + r.unit"></div>
               </div>
@@ -1629,8 +1629,8 @@
       <template x-for="r in RUNS" :key="r.dir">
         <article class="border-b border-base-300 py-5 flex items-start gap-5">
           <div class="grow min-w-0">
-            <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
-            <div class="text-lg leading-7 text-pretty" x-text="r.line"></div>
+            <div class="text-lg leading-7 font-medium" x-text="r.title"></div>
+            <div class="text-lg leading-7" x-text="r.line"></div>
             <div class="mt-1 font-mono text-xs opacity-70" x-text="r.date"></div>
           </div>
           <div class="flex flex-col items-end gap-1 font-mono text-xs shrink-0">
@@ -1656,8 +1656,8 @@
     <template x-if="tip && tip.kind === 'info'">
       <div class="pr-6 grid gap-1.5">
         <div><span class="font-medium" x-text="tip.v.purpose"></span><span class="text-base-content/50" x-text="' · ' + tip.v.author"></span></div>
-        <p class="text-base-content/70 text-pretty" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></p>
-        <p class="text-base-content/70 text-pretty italic" x-show="purposeDef(tip.v.purpose)?.prompt" x-text="purposeDef(tip.v.purpose)?.prompt"></p>
+        <p class="text-base-content/70" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></p>
+        <p class="text-base-content/70 italic" x-show="purposeDef(tip.v.purpose)?.prompt" x-text="purposeDef(tip.v.purpose)?.prompt"></p>
         <!-- Where the original stands, from home's occurrences snapshot. -->
         <div class="grid gap-0.5 mt-1" x-show="tip.v.at && tip.v.at.length">
           <template x-for="loc in (tip.v.at || [])" :key="loc">

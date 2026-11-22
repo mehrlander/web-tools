@@ -850,18 +850,20 @@ test('the scope chip names the held scope and clearing it keeps the pane matches
     q: 'captured', mode: 'sessions', sessionIds: ['cccc3333', 'aaaa1111'], sessionExtraIds: ['dddd4444'],
     sessionScope: { scope: 'week', repo: '', state: '', topic: '', list: '' },
   } }));
-  await tick();
+  // The chip's x-show is checked as its binding, sessionIds !== null: jsdom
+  // runs x-show's show and hide on timers whose order a loaded CI runner
+  // shuffles, so the rendered display failed there while the state was right.
+  // The real-browser check (activity-session-search-browser.mjs) sees it shown.
   const chip = window.document.querySelector('[data-session-scope-chip]');
-  assert.notEqual(chip.style.display, 'none', 'a held scope shows its chip');
+  const settle = async (ok) => { for (let i = 0; i < 100 && !ok(); i++) await tick(); };
+  await settle(() => data.sessionHits.length === 2);
+  assert.notEqual(data.sessionIds, null, 'a held scope shows its chip');
   assert.equal(chip.textContent.trim(), 'Activity · Week');
   assert.deepEqual(j(data.sessionHits.map(h => h.id)), ['cccc3333', 'aaaa1111']);
   assert.deepEqual(j(CALLS.filter(c => c[0] === 'sessions').at(-1)[1].includeIds), ['dddd4444']);
   chip.click();
-  await tick();
-  // x-show hides on a later frame than it shows, so wait for it rather than
-  // for one tick.
-  for (let i = 0; i < 50 && chip.style.display !== 'none'; i++) await tick();
-  assert.equal(chip.style.display, 'none', 'a cleared scope drops its chip');
+  await settle(() => data.sessionHits.length === 3);
+  assert.equal(data.sessionIds, null, 'a cleared scope drops its chip');
   assert.equal(data.sessionHits.length, 3);
   assert.deepEqual(j(CALLS.filter(c => c[0] === 'sessions').at(-1)[1].includeIds), ['dddd4444']);
   assert.equal(shell.searchSeed.sessionScope, null);

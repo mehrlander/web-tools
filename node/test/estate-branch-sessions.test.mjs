@@ -61,6 +61,17 @@ test('sessionIn pulls the trailer out of a commit or PR body', () => {
   assert.equal(GH.sessionIn(null), '');
 });
 
+test('sessionIn keeps the digits of a real session id, not just its leading letters', () => {
+  assert.equal(GH.sessionIn('x\n\nClaude-Session: https://claude.ai/code/session_01Ug8CX8r9RbfAqcsDoboGEg'),
+    'https://claude.ai/code/session_01Ug8CX8r9RbfAqcsDoboGEg');
+  assert.equal(GH.sessionIn(`w\n\nClaude-Session: ${SESS('01AbC9xY')}`), SESS('01AbC9xY'));
+});
+
+test('a branch trailer with a digit-bearing id resolves whole', async () => {
+  const gh = fakeGH([[['feature', [`work\n\nClaude-Session: ${SESS('01AbC9xY')}`]]]]);
+  assert.deepEqual(await gh.branchSessions(), { feature: SESS('01AbC9xY') });
+});
+
 test('a branch resolves to the session in its own commit trailer', async () => {
   const gh = fakeGH([[['feature', [`work\n\nClaude-Session: ${SESS('AAA')}`]]]]);
   assert.deepEqual(await gh.branchSessions(), { feature: SESS('AAA') });
@@ -104,6 +115,14 @@ test('pulls() still lifts the session from the PR body', async () => {
                           body: `summary\n\n${SESS('PR')}` }];
   const [pr] = await gh.pulls();
   assert.equal(pr.session, SESS('PR'));
+});
+
+test('pulls() keeps a digit-bearing session id whole', async () => {
+  const gh = Object.create(GH.prototype);
+  gh.req = async () => [{ number: 7, title: 'T', head: { ref: 'f' }, draft: true,
+                          body: `summary\n\n${SESS('01AbC9xY')}` }];
+  const [pr] = await gh.pulls();
+  assert.equal(pr.session, SESS('01AbC9xY'));
 });
 
 // ── the row layer ───────────────────────────────────────────────────────────
