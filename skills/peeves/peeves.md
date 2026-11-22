@@ -16,7 +16,7 @@ Instructions growing through rationale, duplicated claims, correction notes and 
 
 ### Chat style · `P04`
 
-Phrasing for effect, especially the informal voice of online writing. Write in the register of the [exemplars](https://github.com/mehrlander/home/tree/main/projects/text/exemplars), such as the statement of facts in Roberts's opinion in *Riley v. California*.
+Carefully avoid the informal voice of online writing. The best model is a statement of facts from a legal brief: short, crisp sentences, using common terms in their most basic sense.
 
 **Look for:** a maxim or truism, such as 'Hold inferences loosely, and keep their hedges when you retell them'; a one-line closing punch; a metaphor where a literal word exists; 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work'; 'deliberately' or 'never' used for emphasis; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
 
