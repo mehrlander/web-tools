@@ -8,8 +8,8 @@ Hooks come from three places: git hooks in `.githooks/`, which `npm run setup` a
 
 | Hook | Event | File | Purpose | Test |
 |---|---|---|---|---|
-| pre-commit | git `pre-commit` | [`.githooks/pre-commit`](../../.githooks/pre-commit) | regenerates and stages the deterministic derived artifacts the staged changes touch; legs and order in the [refresh model](../../node/README.md#the-refresh-model) | `derived-artifacts.test.mjs` |
-| pre-merge-commit | git `pre-merge-commit` | [`.githooks/pre-merge-commit`](../../.githooks/pre-merge-commit) | runs the same refresher on an automatic merge; when it changes the index, the merge pauses for `git -c core.editor=true merge --continue` | |
+| pre-commit | git `pre-commit` | [`.githooks/pre-commit`](../../.githooks/pre-commit) | runs the rules in [`docs/commit-rules.csv`](../../docs/commit-rules.csv), which regenerate and stage the generated files the staged changes touch; see the [refresh model](../../node/README.md#the-refresh-model) | `derived-artifacts.test.mjs` |
+| pre-merge-commit | git `pre-merge-commit` | [`.githooks/pre-merge-commit`](../../.githooks/pre-merge-commit) | runs the commit hook on an automatic merge; when that changes the index, the merge pauses for `git -c core.editor=true merge --continue` | |
 | commit-msg | git `commit-msg` | [`.githooks/commit-msg`](../../.githooks/commit-msg) | the consent gate and the machine-path gate (engines in `skills/hooks/commit-consent.py` and `machine-paths.py`) | |
 | session-start | `SessionStart`, dispatched | [`.claude/hooks/session-start.sh`](../../.claude/hooks/session-start.sh) | remote sessions only: the dependency half of `node/checkout-setup.mjs` | |
 | session-githooks | `SessionStart`, dispatched | [`.claude/hooks/session-githooks.sh`](../../.claude/hooks/session-githooks.sh) | every session: the git half (hooks path, CSV merge driver) | |
@@ -19,6 +19,7 @@ Hooks come from three places: git hooks in `.githooks/`, which `npm run setup` a
 | invoke-sessions | `SessionStart` | [`invoke-sessions.sh`](../../skills/hooks/invoke-sessions.sh) | tells the session to invoke `/portable:sessions` when no session store is checked out | `invoke-sessions.test.mjs` |
 | environment-report | `SessionStart` | [`environment-report.sh`](../../skills/hooks/environment-report.sh) | says which setup script built the environment and whether it changed on `main` | `environment-report.test.mjs` |
 | account-skills | `SessionStart` | [`account-skills.py`](../../skills/hooks/account-skills.py) `--hook` | the account's skills against what they should be; silent unless something needs attention | |
+| topic-context | `SessionStart`, also on compact; `UserPromptSubmit` | [`topic-context.py`](../../skills/hooks/topic-context.py) | adds this session's [topics](https://github.com/mehrlander/web-tools-private/blob/main/sessions/topics/README.md), as Gemini summarized them in the session store, with each one's status. Warns when Gemini's topics fall an hour behind the store's records | `topic-context.test.mjs` |
 | default-files-hint | `UserPromptSubmit` | [`default-files-hint.py`](../../skills/hooks/default-files-hint.py) | says the default skill files changed since the session last read them, naming the commit it read and the files, and to invoke `/portable:default`; silent once it has | `default-files-hint.test.mjs` |
 | context-size-hint | `UserPromptSubmit` | [`context-size-hint.py`](../../skills/hooks/context-size-hint.py) | tells the session to say the context's size in its reply once that size passes `CONTEXT_HINT_TOKENS`, and again every `CONTEXT_HINT_STEP` | `context-size-hint.test.mjs` |
 | check-in | `UserPromptSubmit`; `PostToolUse` on `send_later`, `ReadNotifications` | [`check-in.py`](../../skills/hooks/check-in.py) | has a cloud session schedule a check-in for shortly before its prompt cache lapses, and says when it is read what to do with it | `check-in.test.mjs` |
@@ -71,10 +72,10 @@ or server-side merge has no local checkout in which a hook can run. So
 `node/test/derived-artifacts.test.mjs` re-runs the generators in `--check` mode
 inside `npm test`, and a stale artifact fails the suite wherever it runs.
 
-**A gated note** is a `session-*.sh` script that runs every session and prints
-only while its condition is unmet, which is how to leave a check for a future
-session rather than hold it in mind. A one-shot check also speaks once on
-success, reporting that it is finished and naming itself for deletion.
+To leave a check for a future session, add a `session-*.sh` script that runs
+every session and prints only while its condition is unmet. A one-time check
+also prints once on success, saying it is finished and naming itself for
+deletion.
 
 ### Stop: the session recorder
 
@@ -140,7 +141,7 @@ and that file is read **only when the session's project root is that repo**.
 A session spanning several checkouts has its root above all of them (primary
 working directory `/home/user`, repos below it), so none of their declared
 hooks fire, and nothing reports it; `ls ~/.claude/projects/` names the root a
-session is using. This is why the commit refresher is a git hook and why the
+session is using. This is why the commit rules run from a git hook and why the
 plugin carries every hook that must run everywhere.
 
 The dispatcher supplies the missing glob. The plugin registers it once, at user

@@ -31,7 +31,7 @@ THE TWO CHECKS.
   Why after the newest commit, not this reply alone. A PR event or a finished
   job wakes the session with an entry that is not the owner's, so the window
   stays open from the owner's last message, and the wake's reply is one line
-  by convention (CONVERSATION.md, "Close in one order"). Read alone, that line
+  by convention (CONVERSATION.md, "Wakes"). Read alone, that line
   was sent back for a link the reply before it had already given (web-tools
   #1036, 2026-10-21). Read back to the newest page commit, a link already
   given counts, and a wake that commits to a page again still owes a new one.

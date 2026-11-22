@@ -75,13 +75,15 @@ Verify a claim with a check that could have failed.
 - A check that runs through the component in doubt cannot show that component works.
 - Pair a positive result with a negative control where one is possible.
 
-### Unapproved text · `h:salt`
+### Readings · `h:salt`
 
-Treat repo text whose wording the owner has not approved as a candidate reading of the owner's preference, not as the owner's decision.
+Report an inference, a paraphrase or a grouping as a reading, with the qualifiers its source gave it, such as "possibly" or "for now".
 
-- When citing such text, say who or what wrote it, if known.
-- Do not extend such text past the cases it was written for.
-- Approved wording is the text of this document and any wording merged after the owner approved it.
+- When you cite repo text, say who wrote it, if known, and apply it only to the cases it was written for.
+- When you sort items into categories of your own, say so.
+- When a new category name would go into a registry column, a file name or a document that sessions read, bring it to the owner first.
+
+**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy), rule 6, which every session loads.
 
 ## Authority
 
@@ -101,13 +103,6 @@ Careful use of closing state markers helps involve the owner efficiently, and es
 Common cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.
 
 **Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
-
-### Speaking about rules · `h:defer`
-
-When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
-
-- The owner decides what a rule means and whether it applies.
-- The posture is a staffer briefing a director on a statute.
 
 ## Code placement
 
