@@ -14,7 +14,7 @@ Content should only be included where behavior depends on it. For a basic test: 
 ## General Principles
 
 - **Consider the context**: Read the entire file and adjacent files before changing a part, to ensure that any change is aligned and exactly where it should be.
-- **Open with the premise**: A reader who stops after the first paragraph should know whether to read on. Where an opening fails the test, note it in the review rather than widen the edit.
+- **Open with the premise**: Establish the topic and the problem up front. The reader should grasp the motive quickly, not wonder what situation the document serves.
 - **Wire it in**: An update to existing content should disturb as little as possible. Use a deft hand and look for the finesse move ([example](references/minimal-edit.md)).
 - **Earn each sentence**: If material can be removed and it is unlikely to affect future assistant behavior, it likely should be.
 - **State current reality**: Omit debugging narratives, discovery steps, and authoring commentary.
