@@ -250,7 +250,7 @@ test('a generated patch applies back to the modified text', () => {
   app.stripHtml = false;
   app._opsCache = null;
 
-  for (const ctx of [1, 3, 8, 999]) {
+  for (const ctx of [0, 1, 3, 8, 999]) {
     app.patchContext = ctx;
     app.genPatch();
     assert.ok(app.patch.includes('@@'), `context ${ctx}: no hunk emitted`);

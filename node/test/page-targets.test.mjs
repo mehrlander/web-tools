@@ -98,6 +98,15 @@ test('the app\'s own page is the app, and an undeclared page keeps its own toss'
   assert.deepEqual(out.map(t => t.label), ['app.html', 'loose.html']);
   assert.deepEqual(out.map(t => t.framed), [true, undefined]);
   assert.equal(out[0].addr.includes('?view='), false);
+  assert.equal(out[0].addr, REPO + '@' + BRANCH + ':' + SHOWING.app, 'the app chip carries the branch ref');
+});
+
+test('a page under the app directory other than app.html is the app, not tossed alone', () => {
+  const out = G.pageTargets(REPO, BRANCH, ['projects/budget-drs/app/atlas/atlas.html'], SHOWING);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].framed, true);
+  assert.equal(out[0].path, SHOWING.app);
+  assert.equal(out[0].addr, 'mehrlander/home@claude/sidebar-tables-fyl605:projects/budget-drs/app/view/app.html');
 });
 
 test('the longest declared prefix wins, so a nested view resolves to itself', () => {

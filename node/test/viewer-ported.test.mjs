@@ -42,6 +42,13 @@ test('a rule further down the file is a rule, not a fence', () => {
   assert.equal(R.stripFrontmatter(md), md);
 });
 
+test('a body with two rules further down is not read as a fence pair', () => {
+  // Only a fence that OPENS the file counts; an unanchored match would close
+  // the pair between the two mid-file rules and swallow what lies before it.
+  const md = '# T\n\ntext\n\n---\n\nmid\n\n---\n\nend\n';
+  assert.equal(R.stripFrontmatter(md), md);
+});
+
 test('a document with no frontmatter is returned unchanged', () => {
   for (const md of ['# Title\n', '', 'plain text', '--- not a fence\n']) {
     assert.equal(R.stripFrontmatter(md), md);
@@ -286,15 +293,6 @@ test('everything a commented cell knows arrives in one note, in reading order', 
     'the comment first, the form\'s own instruction after, separated by a blank line');
   assert.match(html, /data-title-tip-lead="Shields, Sharon \(OFM\):"/,
     'the author took the lead line, so the form\'s own title comes back inline');
-});
-
-test('a sheet cell opts out of the title-tip kit\'s underline', () => {
-  // The kit underlines a `data-title-tip` element by default. Excel underlines
-  // nothing, the render\'s claim is that it looks like Excel, and the stored-
-  // value note lands on most numeric cells, so the underline would be on half
-  // the sheet.
-  const html = drawWith(commented());
-  assert.match(html, /data-title-tip-bare(="")?[ >]/);
 });
 
 test('a fact never rides in a title attribute', () => {

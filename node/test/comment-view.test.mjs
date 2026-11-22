@@ -175,3 +175,8 @@ test('render marks the words looked up and opens a bar to its code', () => {
   assert.equal(bar.getAttribute('aria-expanded'), 'true');
   assert.equal(bar.nextElementSibling.textContent, 'import csv\n');
 });
+
+test('a long triple-quoted string after a dict-key colon is not a docstring', () => {
+  const src = 'def f():\n    d = {"k":\n\"\"\"one two three four five six seven eight nine ten eleven twelve thirteen\"\"\"}\n    return d\n';
+  assert.deepEqual(CV.blocks(src, 'py').map((x) => x.kind), []);
+});

@@ -47,7 +47,7 @@
       <dt>flagged</dt>
       <dd><template x-for="f in run.flagged" :key="f"><button type="button" class="link" @click="document.querySelector('[data-flag]')?.scrollIntoView({ block: 'center' })"><span x-text="f"></span> <i class="ph ph-arrow-down"></i></button></template></dd>
     </dl>
-    <div class="whitespace-pre-wrap break-words leading-7 md:leading-8 text-pretty"><template x-for="(seg, n) in segments" :key="n"><span :class="seg.flag ? 'bg-base-300 underline decoration-2 underline-offset-4' : ''" :data-flag="seg.flag ? '' : null" x-text="seg.t"></span></template></div>
+    <div class="whitespace-pre-wrap break-words leading-7 md:leading-8"><template x-for="(seg, n) in segments" :key="n"><span :class="seg.flag ? 'bg-base-300 underline decoration-2 underline-offset-4' : ''" :data-flag="seg.flag ? '' : null" x-text="seg.t"></span></template></div>
   </section>
 
   <section x-show="step.key === 'index'">
@@ -101,7 +101,7 @@
         <li class="grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,12rem)_6rem_minmax(0,1fr)] gap-x-4 gap-y-1 py-3 border-t border-base-300 items-baseline">
           <span class="break-words"><span x-text="r.flag"></span> <span class="font-mono text-xs text-base-content/60" x-text="r.tier"></span></span>
           <span class="badge badge-sm justify-self-end sm:justify-self-start" :class="r.verdict === 'fix' ? 'badge-primary' : 'badge-ghost'" x-text="r.verdict"></span>
-          <span class="col-span-2 sm:col-span-1 text-pretty" x-text="r.reason"></span>
+          <span class="col-span-2 sm:col-span-1" x-text="r.reason"></span>
         </li>
       </template>
     </ul>

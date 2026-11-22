@@ -24,10 +24,7 @@ has assessed the codes.
 | `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, cropped from the topmost slot; `thumbs.csv` naming them with the focus each crop used; `overlays.json` with the boxes of each shot's slots and components, and the Map draws those boxes over that shot | `node/build/ui-shots.mjs` |
 | `thumbs/component-*` | each component that names where the app shows it (`docs/components.csv`, `seen_at`), shot at that address uncropped, and `component-shots.json` with each component's box in each shot | `node/build/component-shots.mjs` |
 
-Regenerate the snapshot with `npm run ui-units -- --write --date <date>`,
-from a checkout that has `home` beside it. Without `--write` it prints counts.
-The names are stable so the Map can read them without listing the folder; git
-holds the earlier snapshots.
+Regenerate the snapshot with `npm run ui-units -- --write --date <date>`, from a checkout that has `home` and `budget-drs` beside it. Without `--write` it prints counts. Add `--store public` to write only the tables here, or `--store home` to write only home's. The names are stable so the Map can read them without listing the folder; git holds the earlier snapshots.
 
 The shots are taken by `npm run ui-shots`, once per session at most, like
 `pages/thumbs/`: they are not byte-deterministic, so no commit hook owns them.
@@ -37,13 +34,9 @@ shot reads only the sibling checkouts named in `PUBLIC_SIBLINGS`
 (`node/build/ui-recipes.mjs`), and the render shim answers any other as
 missing, so add a repository there only once it is public.
 
-**The public and private halves are split by visibility.** Rows whose unit
-lives in this repo are written here. Rows for home's own pages and for
-everything the budget-drs app draws or frames go to home's `data/ui-units/`,
-so no private file name lands in public source. The 2026-10-06 snapshot holds
-158 units here and 65 in home, and 57 and 45 of them are coded. Units in other
-repositories, such as shortcut-tools' own pages, are counted by the script and
-written nowhere.
+**The public and private halves are split by visibility.** Rows whose unit lives in this repo are written here. Rows for home's own pages, for budget-drs's own pages and for everything the budget-drs app draws or frames go to home's `data/ui-units/`. That store keeps private file names out of public source. The 2026-10-06 snapshot holds 158 units here and 65 in home, and 57 and 45 of them are coded. Units in other repositories, such as shortcut-tools' own pages, are counted by the script and written nowhere.
+
+A budget-drs app view's `unit` is `budget-drs:view/<view>[/<tab>]`. A budget-drs page's `unit` is `budget-drs:<path>`.
 
 ## Rings
 

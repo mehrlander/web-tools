@@ -66,6 +66,7 @@ const SHEET = `<?xml version="1.0" encoding="UTF-8"?>
   <row r="3"><c r="C3"><f t="shared" si="0"/><v>0</v></c><c r="D3" t="str"><f>"q&gt;"</f><v>q&gt;</v></c></row>
   <row><c><v>  7  </v></c><c><v>8</v></c></row>
   <row r="6"/>
+  <row r="8" hidden="true" outlineLevel="9"/>
   <row r="7"><c r="A7" t="b"><v>1</v></c><c r="B7" t="e"><v>#N/A</v></c><c r="C7"><v>&#38;&#x41;</v><extLst><ext uri="x"/></extLst></c></row>
 </sheetData>
 <mergeCells count="1"><mergeCell ref="A1:B1"/></mergeCells>

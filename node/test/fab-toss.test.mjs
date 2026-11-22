@@ -63,6 +63,10 @@ test('adopts a pre-stamped toss subject at init, restores on clear, re-adopts on
   assert.equal(d.frameRef, 'feature-x');
   // Shell identity survives for the Components/Scripts link targets.
   assert.equal(d.shellRepo, 'mehrlander/web-tools');
+  assert.equal(d.shellPath, 'pages/toss-render.html');
+  assert.equal(d.shellRef, 'main');
+  assert.match(d.componentLinks({ name: 'fab' })[0].u, /github\.com\/mehrlander\/web-tools\/blob\/main\/alpineComponents\/fab\.js$/,
+    'component links name the shell, not the tossed subject');
   assert.match(d.scriptUrl('kits/console.js'), /mehrlander\/web-tools\/blob\/main\/kits\/console\.js$/);
   // Inside a toss the fab IS the toss tab, so no open-in-toss link.
   assert.equal(d.tossUrl, '');

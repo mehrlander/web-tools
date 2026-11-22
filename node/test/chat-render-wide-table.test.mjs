@@ -76,3 +76,13 @@ test('prose with no table is left alone', () => {
   assert.equal(el.querySelectorAll('.overflow-x-auto').length, 0, 'no wrapper minted');
   marked.parser = () => TABLE;
 });
+
+test('every table in a reply gets its own scroll box, not just the first', () => {
+  marked.parser = () => '<p>one</p>' + TABLE + '<p>two</p>' + TABLE;
+  const el = cr.markdown('anything');
+  const tables = el.querySelectorAll('table');
+  assert.equal(tables.length, 2, 'the fixture produced two tables');
+  assert.equal(el.querySelectorAll('.overflow-x-auto').length, tables.length, 'one wrapper per table');
+  for (const t of tables) assert.match(t.parentElement.className, /overflow-x-auto/);
+  marked.parser = () => TABLE;
+});

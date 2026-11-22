@@ -47,11 +47,16 @@ test('runs session-*.sh in every checkout and ignores everything else', () => {
     'repoA/.claude/hooks/session-alpha.sh': '#!/bin/bash\necho "alpha spoke"\n',
     'repoA/.claude/hooks/build-on-commit.sh': '#!/bin/bash\necho "COMMIT HOOK RAN"\n',
     'repoA/.claude/hooks/helper.sh': '#!/bin/bash\necho "HELPER RAN"\n',
+    'repoA/.claude/hooks/session-notes.txt': '#!/bin/bash\necho "TXT RAN"\n',
+    'repoA/.claude/hooks/session.sh': '#!/bin/bash\necho "BARE RAN"\n',
     'repoB/.claude/hooks/session-beta.sh': '#!/bin/bash\necho "beta spoke"\n'
   });
   try {
     const out = dispatch(ws);
     assert.match(out, /alpha spoke/);
+    // Only the session-*.sh shape counts: a non-.sh file and a bare session.sh
+    // sit beside the real one and must not run.
+    assert.doesNotMatch(out, /TXT RAN|BARE RAN/);
     assert.match(out, /beta spoke/);
     // The opt-out is the name, and it has to be airtight: these two sit in the
     // same folder and must never be treated as session scripts.
@@ -60,6 +65,16 @@ test('runs session-*.sh in every checkout and ignores everything else', () => {
     // Two checkouts contributed, so each block is attributed.
     assert.match(out, /\[repoA\/session-alpha\.sh\]/);
     assert.match(out, /\[repoB\/session-beta\.sh\]/);
+  } finally { rmSync(box, { recursive: true, force: true }); }
+});
+
+test('a sibling checkout of the project root is scanned too', () => {
+  const { box, ws } = workspace({});
+  const sib = join(box, 'sib', '.claude', 'hooks');
+  mkdirSync(sib, { recursive: true });
+  writeFileSync(join(sib, 'session-s.sh'), '#!/bin/bash\necho "sibling spoke"\n', { mode: 0o755 });
+  try {
+    assert.match(dispatch(ws), /sibling spoke/);
   } finally { rmSync(box, { recursive: true, force: true }); }
 });
 

@@ -66,6 +66,16 @@ over["allowance"]["worker_jobs"] = 2
 assert not run(over)["valid"]
 passed.append("effort usage exceeding the run allowance is rejected")
 
+exact = copy.deepcopy(base)
+exact["allowance"]["worker_jobs"] = 3
+assert run(exact)["valid"]
+passed.append("effort usage exactly at the run allowance is accepted")
+
+unaccounted = copy.deepcopy(base)
+unaccounted["actions"][0]["used"]["worker_jobs"] = 0
+assert not run(unaccounted)["valid"]
+passed.append("a completed creator assignment must account for a worker job")
+
 revised = copy.deepcopy(base)
 revised["state"] = "in_progress"
 revised["artifacts"].append({"id": "m2", "kind": "structure", "path": "m2.json", "parents": [], "revises": "m1"})
@@ -151,7 +161,7 @@ test('page design actions preserve revisions, dependency checks and effort limit
     const scriptPath=path.join(repoRoot,'skills/page-design-loop/scripts/validate_run.py');
     const result=spawnSync(python,['-B','-',scriptPath,work],{input:cases,encoding:'utf8'});
     assert.equal(result.status,0,result.stderr+'\n'+result.stdout);
-    assert.equal(JSON.parse(result.stdout).count,12);
+    assert.equal(JSON.parse(result.stdout).count,14);
   } finally {
     const relative=path.relative(tempRoot,path.resolve(work));
     assert.ok(relative&&!relative.startsWith('..')&&!path.isAbsolute(relative));

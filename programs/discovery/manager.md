@@ -10,7 +10,7 @@ The question is what the owner's probes, explorations and gathered source files 
 
 - **Declared research:** the `research` arrays in `.web-tools.json` across the named checkouts, together with [`research/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/research/README.md) in web-tools-private, list declared write-ups and mark each `probe` or `exploration`.
 - **Research and probe folders on disk:** `research/` and `probes/` directories on `origin/main` in those checkouts hold write-ups, scripts and CSV outputs not yet declared in `.web-tools.json`.
-- **Gathered sources and readership:** `sources.csv`, `manifest.csv` and Wayback tables built under [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md) show what external material is already fetched locally, and [`state/doc-reads.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/doc-reads.json) on web-tools-private's `background` branch shows whether later sessions opened a write-up.
+- **Gathered sources and readership:** a [scour](../../skills/scour/SKILL.md) corpus's `roster.json` and its sources' `content/*.md` pages, the capture lists and saved pages a [wayback](../../skills/wayback/SKILL.md) run keeps, and the source bundles each checkout declares under `bundles` in `.web-tools.json` show what external material is already fetched locally. [`state/doc-reads.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/doc-reads.json) on web-tools-private's `background` branch shows whether later sessions opened a write-up.
 
 Return one line for each matching write-up or source folder, newest first, or one `none found` line:
 

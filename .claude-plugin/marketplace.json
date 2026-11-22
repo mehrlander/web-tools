@@ -30,6 +30,7 @@
         "./file-retrieval",
         "./scour",
         "./gold-set",
+        "./facets",
         "./apple-shortcuts-actions",
         "./sessions",
         "./tend",

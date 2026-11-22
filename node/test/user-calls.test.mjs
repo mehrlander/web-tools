@@ -130,6 +130,22 @@ test("links: a pick call answered on its board and every other call on its call 
   assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: true }),
     'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@claude/x:pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed');
   window.__ref = null;
+  globalThis.location = { search: '?use=claude/y' };
+  try {
+    assert.equal(U.dictateHref({ file: 'mehrlander/web-tools:docs/x.md', proposed: true }),
+      'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@claude/y:pages/dictate.html?file=mehrlander/web-tools:docs/x.md&proposed',
+      'with no hub ref, the page\'s own ?use= ref carries the link');
+  } finally { delete globalThis.location; }
+});
+
+test('a down vote answered by an up vote on the same pair leaves the proposal pending', async () => {
+  const key = 'mehrlander/home:projects/text/reviews.jsonl';
+  const keep = FILES[key];
+  FILES[key] = keep + JSON.stringify({ from: sha('Tail.'), to: sha('End.'), by: 'second', at: '2026-10-07T00:00:02Z', vote: 'up' }) + '\n';
+  try {
+    const x = (await U.pendingEdits({ fresh: true })).get('mehrlander/web-tools:docs/x.md');
+    assert.equal(x.staged, 2, 'the down vote no longer rejects it once someone voted it up');
+  } finally { FILES[key] = keep; }
 });
 
 test('a proposal is a tightening when its purpose only rewords, and an edit otherwise, an unknown purpose included', () => {

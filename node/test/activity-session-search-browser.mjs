@@ -257,9 +257,12 @@ async function activityScenario(viewport) {
     mkdirSync(process.env.SHOTS, { recursive: true });
     await page.screenshot({ path: path.join(process.env.SHOTS, 'activity-discussion-' + viewport.width + '.png') });
   }
-  await page.getByRole('button', { name: /Inspect matches$/ }).click();
+  await page.locator('#find-pill-box').press('Enter');
   await readyResults(page, 4);
-  check('Inspect keeps the query and scoped result set', params(page).get('sq') === 'cobalt' && params(page).get('smode') === 'sessions');
+  check('Enter keeps the query and scoped result set', params(page).get('sq') === 'cobalt' && params(page).get('smode') === 'sessions'
+    && params(page).get('sscope') === 'week' && params(page).has('sset'));
+  check('the held scope shows as a chip', /Activity · Week/.test(await page.locator('[data-session-scope-chip]').textContent())
+    && await page.locator('[data-session-scope-chip]').isVisible());
   assert.deepEqual(new Set(await resultIds(page)), new Set(['a0000001', 'a0000002', 'a0000003', 'a0000006'])); checks++;
   check('opening results stays embedded', await page.evaluate(() => !window.swipeDeck?.stack.length));
   await page.locator('[data-session-result="a0000002"]').click();
@@ -290,8 +293,8 @@ async function activityScenario(viewport) {
   await context.close();
 }
 
-// Enter in the Activity filter: every session, at every scope, on its row and
-// its conversation, with where each matched.
+// Enter in the Activity filter: the pane's scope, held as a chip; cleared, every
+// session at every scope, on its row and its conversation, with where each matched.
 async function resultsScenario(viewport) {
   const f = fixture(scoped, { metadata: true });
   const { page, context } = await openPage(f, viewport, routeUrl({ view: 'sessions' }));
@@ -300,10 +303,13 @@ async function resultsScenario(viewport) {
   const box = await filterActivity(page, 'cobalt');
   check(label + ' the filter bar offers the results page', await page.locator('[data-find-submit-button]').isVisible());
   await box.press('Enter');
-  await readyResults(page, 5);
+  await readyResults(page, 3);
   check(label + ' Enter opens the results page with the term', params(page).get('view') === 'search'
     && params(page).get('smode') === 'sessions' && params(page).get('sq') === 'cobalt');
-  check(label + ' the results are not held to the Activity scope', !params(page).has('sset') && !params(page).has('sscope'));
+  check(label + ' the results are held to the Activity scope', params(page).get('sscope') === 'day' && params(page).has('sset'));
+  await page.locator('[data-session-scope-chip]').click();
+  await readyResults(page, 5);
+  check(label + ' clearing the chip searches every session', !params(page).has('sset') && !params(page).has('sscope'));
   assert.deepEqual(new Set(await resultIds(page)), new Set(['a0000001', 'a0000002', 'a0000003', 'a0000004', 'a0000006'])); checks++;
   check(label + ' the In row counts each kind of field, a zero included',
     await count('title') === 2 && await count('said') === 3 && await count('summary') === 0);
@@ -339,9 +345,8 @@ async function resultsScenario(viewport) {
   check(label + ' a session that worked in a hidden repo stays out, with no control to show it',
     !(await resultIds(page)).includes('a0000008') && !(await page.locator('[data-session-facets]').textContent()).includes('veiled')
     && await page.locator('[data-session-hidden]').count() === 0);
-  await page.goBack();
-  await page.goBack();
-  await page.goBack();
+  // Back walks the two searches, the cleared chip and the scoped answer.
+  for (let i = 0; i < 4; i++) await page.goBack();
   await page.waitForFunction(() => new URLSearchParams(location.search).get('view') === 'sessions');
   check(label + ' Back returns to Activity with its filter', params(page).get('aq') === 'cobalt');
   await context.close();

@@ -24,6 +24,8 @@ test('the registry loader exports the kit\'s own functions', async () => {
   const m = await import('../build/registries-load.mjs');
   const { Csv } = (await import('../build/kit-shim.mjs')).loadKit(repoRoot, OWNER);
   assert.equal(m.parseCsv('a,b\n"x,1",2\n')[0].a, 'x,1');
+  assert.equal(m.parseCsv.toString(), Csv.rows.toString(), 'parseCsv is the kit\'s own rows, not a second reader');
+  assert.deepEqual(m.parseCsv('a, b\n x , 2\n'), Csv.rows('a, b\n x , 2\n'), 'and it reads a padded row as the kit does');
   assert.deepEqual(m.parseCsvLine('"a ""q""",b'), Csv.parseLine('"a ""q""",b'));
   assert.equal(m.joinList(['x;y', 'z']), Csv.join(['x;y', 'z']));
   assert.deepEqual(m.splitList(m.joinList(['x;y', 'z'])), ['x;y', 'z'], 'a delimiter inside a value survives the round trip');

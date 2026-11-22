@@ -56,6 +56,11 @@ test('a Writes view kind is one write-kinds.js knows, and a local definition exi
   }
 });
 
+test('every writer\'s machine is a docs/machines.csv key', () => {
+  const keys = new Set(Csv.rows(read('docs/machines.csv')).map(r => r.machine));
+  for (const r of writers) if (r.machine) assert.ok(keys.has(r.machine), `${r.writer}: machine ${r.machine} is not a docs/machines.csv key`);
+});
+
 test('every writer docs/direct-to-main.csv names is a writer here', () => {
   const rows = Csv.rows(read('docs/direct-to-main.csv'));
   for (const d of rows) {
