@@ -1,6 +1,6 @@
 # Wire it in: an example
 
-A new point belongs inside the text that already covers its subject. Here a one-clause point is added two ways.
+From [doc-craft's General Principles](../SKILL.md#general-principles): one point added to existing text two ways.
 
 **The point to add.** `/tend prod` should also pick up a session whose last reply closed on ❇️ or 🟢.
 
