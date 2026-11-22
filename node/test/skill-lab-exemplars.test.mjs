@@ -1,4 +1,4 @@
-// text-lab-exemplars.test.mjs: the Exemplars pane reads home's pieces as their
+// skill-lab-exemplars.test.mjs: Skill Lab reads home's exemplar pieces as their
 // README states the format (YAML front matter, then the text verbatim), finds a
 // piece's focus and caption from its standoff, and shows the piece on two
 // faces: Text, from the text proper on with the focus marked over the render,
@@ -19,10 +19,10 @@ import { JSDOM } from 'jsdom';
 import { marked } from 'marked';
 import { repoRoot as root } from '../repo-root.mjs';
 
-const SRC = readFileSync(path.join(root, 'pages/text-lab.html'), 'utf8');
+const SRC = readFileSync(path.join(root, 'pages/skill-lab.html'), 'utf8');
 const start = SRC.indexOf("document.addEventListener('alpine:init'");
 const stop = SRC.indexOf("await gh.load('alpine-bundle.js')", start);
-assert.ok(start >= 0 && stop > start, 'the Text Lab Alpine model is extractable');
+assert.ok(start >= 0 && stop > start, 'the Skill Lab Alpine model is extractable');
 const MODEL = SRC.slice(start, stop);
 
 // One jsdom document for the render; the kits run against a plain window
@@ -145,7 +145,7 @@ function citations(text, cites = CITES) {
 }
 
 function harness(search = '') {
-  const address = new URL(`https://example.test/pages/text-lab.html${search}`);
+  const address = new URL(`https://example.test/pages/skill-lab.html${search}`);
   const location = { href: address.href, search: address.search, hostname: address.hostname };
   const history = { replaceState(_s, _t, value) { location.href = String(value); location.search = new URL(location.href).search; } };
   const loads = [];
@@ -179,7 +179,7 @@ function harness(search = '') {
 function home(files) {
   return {
     req: async p => {
-      assert.match(p, /^contents\/projects\/text\/exemplars\/pieces\?ref=/);
+      assert.match(p, /^contents\/projects\/skill-lab\/exemplars\/pieces\?ref=/);
       return Object.keys(files).map(name => ({ type: 'file', name }));
     },
     bytes: async p => ({ bytes: new Uint8Array(Buffer.from(files[p.split('/').pop()], 'utf8')) }),
@@ -194,14 +194,12 @@ const FILES = () => ({
 });
 const render = html => { const el = dom.window.document.createElement('div'); el.innerHTML = html; return el; };
 
-test('the pane is a sixth tab, and ?exemplar= opens it unless ?pane= names another', () => {
+test('the page is the one list, with no panes, and ?exemplar= names the piece it opens on', () => {
   const plain = harness().model;
-  assert.ok(plain.PANES.includes('exemplars'));
-  assert.equal(plain.pane, 'probes', 'the landing is unchanged');
-  const linked = harness('?exemplar=fixture').model;
-  assert.equal(linked.pane, 'exemplars');
-  assert.equal(linked.exemplarSel, 'fixture');
-  assert.equal(harness('?pane=runs&exemplar=fixture').model.pane, 'runs', 'an explicit pane wins, as it does over ?run=');
+  assert.equal('PANES' in plain, false, 'one pane, so no pane switcher');
+  assert.equal(plain.exemplarSel, '');
+  assert.equal(harness('?exemplar=fixture').model.exemplarSel, 'fixture');
+  assert.doesNotMatch(SRC, /role="tablist" data-slot="frame:tabs"/, 'no tab strip of one tab');
 });
 
 test('front matter parses as the pieces write it, escapes included', () => {
@@ -283,7 +281,7 @@ test('a standoff that no longer pins the piece marks nothing, and says so', asyn
   assert.deepEqual(model.exemplarFocus(null, PIECE), { spans: [], captions: [], stale: false }, 'no standoff is not a stale one');
 });
 
-test('the pane reads every piece and standoff once, and lists them by genre', async () => {
+test('the page reads every piece and standoff once, and lists them by genre', async () => {
   const h = harness('?exemplar=gone');
   h.model.home = home(FILES());
   await h.model.loadExemplars();
@@ -500,19 +498,17 @@ test('a ref from before `caption`, or a stale standoff, shows the whole body and
 });
 
 test('the address keeps the open piece, and the deck keeps its place', async () => {
-  const h = harness('?pane=exemplars');
+  const h = harness();
   h.model.home = home(FILES());
   await h.model.loadExemplars();
-  h.model.pane = 'exemplars';
   h.model.exemplarSel = 'fixture';
   h.model.syncSel();
   assert.equal(new URL(h.location.href).searchParams.get('exemplar'), 'fixture');
-  h.model.pane = 'probes';
+  h.model.exemplarSel = '';
   h.model.syncSel();
-  assert.equal(new URL(h.location.href).searchParams.has('exemplar'), false, 'another pane drops it');
+  assert.equal(new URL(h.location.href).searchParams.has('exemplar'), false, 'no piece, no parameter');
   const opened = [];
   h.window.swipeDeck = { open: o => { opened.push(o); return {}; } };
-  h.model.pane = 'exemplars';
   await h.model.openExemplarDeck(5);
   assert.equal(opened[0].count, 2);
   assert.equal(opened[0].start, 1, 'a slide past the end is clamped to the last one');
@@ -527,7 +523,7 @@ test('the address keeps the open piece, and the deck keeps its place', async () 
   assert.equal(at.get('exemplar'), 'short', 'the list follows the deck, so closing returns to the piece last read');
   opened[0].onClose();
   assert.equal(new URL(h.location.href).searchParams.has('deck'), false);
-  const again = harness('?pane=exemplars&deck=exemplars&at=1');
+  const again = harness('?deck=exemplars&at=1');
   again.window.swipeDeck = { open: o => { opened.push(o); return {}; } };
   again.model.home = home(FILES());
   await again.model.loadExemplars();
@@ -537,7 +533,7 @@ test('the address keeps the open piece, and the deck keeps its place', async () 
 });
 
 test('the deck header names the piece in view, and a swipe changes it', async () => {
-  const h = harness('?pane=exemplars');
+  const h = harness();
   h.model.home = home(FILES());
   await h.model.loadExemplars();
   const opened = [], header = [];
@@ -612,11 +608,10 @@ test('the card speaks the piece in view from its head, and the deck reads from t
   assert.match(h.model.exemplarHead(1, 2, false), /data-exemplar-speak="fixture"[^>]*aria-label="Pause"/, 'the head says it is speaking');
   h.model.speakCard('fixture');
   assert.equal(h.model.voice.state, 'paused', 'a second tap pauses');
-  h.model.showPane('probes').catch(() => {});
-  assert.equal(h.model.voice, null, 'leaving the pane quiets it');
   const opened = [];
   h.window.swipeDeck = { open: o => { opened.push(o); return {}; } };
   await h.model.openExemplarDeck(0);
+  assert.equal(h.model.voice, null, 'opening the deck quiets the card, whose voice the deck\'s own replaces');
   const action = opened[0].actions[0];
   assert.equal(action.title, 'Read the text aloud from this piece');
   spoken.length = 0;
@@ -629,7 +624,6 @@ test('the pad steps through the passages, or the citations once chosen, on every
   const h = harness('?exemplar=fixture');
   h.model.home = home(FILES());
   await h.model.loadExemplars();
-  h.model.pane = 'exemplars';
   assert.ok(h.loads.includes('kits/mark-pad.js'), 'the pad is the page\'s own, with no trial to ask for it');
   assert.equal('marks' in h.model, false, 'the FAB\'s marks contract is gone');
   assert.doesNotMatch(SRC, /marksMode|\?marks=|railDraw|citesControl/, 'and so are the trials');
@@ -648,18 +642,19 @@ test('the pad steps through the passages, or the citations once chosen, on every
   h.model.padFollow('another', 'focus', 0);
   assert.deepEqual(placed, [1], 'the passage is the second mark, after the caption; another piece is not the pad\'s');
   h.model.pad = null;
-  h.model.pane = 'probes';
-  assert.deepEqual(h.model.padItems(), [], 'no pad on another pane');
+  h.model.exemplarSel = '';
+  assert.deepEqual(h.model.padItems(), [], 'no marks without a piece');
   assert.match(SRC, /\$watch\('padSig', \(\) => this\.pad\?\.refresh\(\)\)/, 'the pad follows every change of piece or kind');
 });
 
-test('the header comment names the pane, its faces and its address', () => {
+test('the header comment names the page, the pieces, their faces and the address', () => {
   const head = SRC.slice(0, SRC.indexOf('-->'));
-  assert.match(head, /\n {4}exemplars {4}projects\/text\/exemplars\/pieces\//);
+  assert.match(head, /the Skill Lab, the Sessions program's workshop for skills/);
+  assert.match(head, /\n {4}exemplars {4}projects\/skill-lab\/exemplars\/pieces\//);
   assert.match(head, /two faces\. Text is the piece/);
   assert.match(head, /<slug>\.citations\.standoff\.json/);
-  assert.match(head, /\?exemplar=<slug> opens one piece and implies the exemplars pane/);
-  assert.match(head, /runs or exemplars/);
+  assert.match(head, /\?exemplar=<slug> opens one piece\./);
+  assert.match(head, /\?deck=exemplars, with \?at=<n>/);
   assert.doesNotMatch(head, /\?marks=/, 'no trials left to ask for');
   assert.match(head, /A pad over the FAB \(kits\/mark-pad\.js\)/);
   assert.match(head, /context and text, that swipes between them/);

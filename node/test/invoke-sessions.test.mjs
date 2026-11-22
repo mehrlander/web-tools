@@ -119,8 +119,10 @@ test('the plugin registers it as its OWN SessionStart entry, not inside the disp
   assert.equal(commands.filter(c => c.includes('session-dispatch.sh') && c.includes('invoke-sessions.sh')).length,
     0, 'it does not share an entry with the dispatcher, so it does not share a budget');
   assert.match(mine[0], /\$\{CLAUDE_PLUGIN_ROOT\}/, 'addressed through the plugin root, like its siblings');
-  // invoke-default alone also fires on compact (invoke-default.test.mjs says why).
-  for (const e of entries.filter(e => !e.hooks.some(h => h.command.includes('invoke-default.sh'))))
+  // invoke-default and topic-context also fire on compact, to give again what
+  // a compaction loses (their own tests hold that matcher).
+  const AGAIN = ['invoke-default.sh', 'topic-context.py'];
+  for (const e of entries.filter(e => !e.hooks.some(h => AGAIN.some(n => h.command.includes(n)))))
     assert.equal(e.matcher, 'startup|resume', 'every other entry fires on the same two events');
 });
 
