@@ -43,7 +43,7 @@
 // location.hash.
 //
 // THE MARKS. A shot is the plain page. Beside each store's manifest,
-// marks.json records what a tab can draw over it: per unit and width,
+// ui-unit-marks.json records what a tab can draw over it: per unit and width,
 // `slots` (the unit's slots: a frame control or the body, with its code's
 // name) and `comps` (every Alpine component, by the name x-data mounts it
 // by), each with its box as fractions of the image.
@@ -111,7 +111,7 @@ const slotJs = (stage, coded) => `
 // tab wanted the page's frame and body marked, and its Components tab,
 // showing the same image to say where one component sits, got two outlines
 // about something else. A shot is now the plain page, and what could be
-// marked on it is written beside it (marks.json) for a tab to draw:
+// marked on it is written beside it (ui-unit-marks.json) for a tab to draw:
 // `slots`, the unit's slots, each { k: frame|body, n: the code's name } with
 // its box, and `comps`, every Alpine component's box.
 //
@@ -282,7 +282,7 @@ for (const store of STORES) {
   writeFileSync(file, writeCsv(rows, MANIFEST_COLS));
   // The marks, beside the manifest: this run's units replace their own
   // entries and every other unit's are kept, as the manifest's rows are.
-  const cfile = path.join(store.thumbs, 'marks.json');
+  const cfile = path.join(store.thumbs, 'ui-unit-marks.json');
   const had = existsSync(cfile) ? JSON.parse(readFileSync(cfile, 'utf8')) : {};
   const all = { ...had, ...boxes.get(store.name) };
   writeFileSync(cfile, JSON.stringify(Object.fromEntries(Object.keys(all).sort().map(k => [k, all[k]]))) + '\n');
