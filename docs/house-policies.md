@@ -104,13 +104,6 @@ Common cases that are found to benefit from owner attention are set up with a fo
 
 **Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
 
-### Speaking about rules · `h:defer`
-
-When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
-
-- The owner decides what a rule means and whether it applies.
-- The posture is a staffer briefing a director on a statute.
-
 ## Code placement
 
 ### Library folders · `h:place`

@@ -363,10 +363,11 @@ skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of we
 skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing ⚖️ call with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,151,hook:Stop,,no,yes,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled check-in other than the check-in hook's: denies any other send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,72,hook:PreToolUse,,no,yes,yes
 skills/hooks/session-activity.py,,skills/hooks,255,hook:SessionEnd,,no,yes,yes
-skills/hooks/session-detail-caption.py,"prints the session detail caption a reply closes with at each prompt, and again after a Bash call that changes its count of documentation edits awaiting sign-off",skills/hooks,624,hook:UserPromptSubmit,skills/hooks/check-in.py,yes,yes,yes
+skills/hooks/session-detail-caption.py,"prints the session detail caption a reply closes with at each prompt, and again after a Bash call that changes its count of documentation edits awaiting sign-off",skills/hooks,624,hook:UserPromptSubmit,skills/hooks/check-in.py;skills/hooks/topic-context.py,yes,yes,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,,no,yes,yes
 skills/hooks/stat-cards-guard.sh,,skills/hooks,77,hook:PreToolUse,,no,yes,yes
 skills/hooks/stat-cards.py,,skills/hooks,86,npm:stat-cards,,no,yes,yes
+skills/hooks/topic-context.py,"gives the session its topics as Gemini read them and how fresh that reading is, at session start and at a prompt when the reading changed, and warns when the Gemini daemon has stopped reading sessions or a job it runs is failing",skills/hooks,501,hook:UserPromptSubmit,,no,yes,yes
 skills/hooks/wake-quiet-hint.sh,"after ReadNotifications, says whether the PR events read call for a reply; a failing check or unknown kind counts as work",skills/hooks,101,hook:PostToolUse,,no,yes,yes
 skills/hooks/warn-governing-docs.sh,"warns the model, right after a documentation edit lands, that governing prose needs specific permission; keyed on the sources registry, and silent on research declared in .web-tools.json",skills/hooks,36,hook:PostToolUse,,no,yes,yes
