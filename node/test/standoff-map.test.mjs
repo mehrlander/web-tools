@@ -157,3 +157,14 @@ test('an inline space between two constructs still maps', () => {
   assert.ok(gap, `the separator was skipped: ${JSON.stringify(spans)}`);
   assert.equal(src[gap.at], ' ');
 });
+
+// A short text node far from the cursor is a lookalike, not a place: "ab" in
+// the source's tail must not capture the paragraph that precedes "Hello world".
+test('a short node far past the cursor is refused rather than stamped', () => {
+  const r = dom.window.document.getElementById('r');
+  r.innerHTML = '<p>ab</p><p>Hello world</p>';
+  S.mapText(r, 'Hello world ' + 'z'.repeat(300) + ' ab');
+  const spans = [...r.querySelectorAll('[data-src]')].map(s => ({ at: +s.dataset.src, text: s.textContent }));
+  assert.ok(!spans.some(s => s.text === 'ab'), `ab was stamped: ${JSON.stringify(spans)}`);
+  assert.ok(spans.some(s => s.at === 0 && s.text === 'Hello world'), `Hello world unmapped: ${JSON.stringify(spans)}`);
+});

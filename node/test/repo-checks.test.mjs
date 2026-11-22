@@ -49,6 +49,22 @@ test('content-date passes inside its window and fails outside it', async () => {
   assert.match(stale.detail, /91d since 2026-05-01, over 30d/);
 });
 
+test('a check whose age equals staleAfterDays exactly still passes', async () => {
+  const cd = await only({ kind: 'content-date', path: 's.md', pattern: '## Run (\\d{4}-\\d{2}-\\d{2})', staleAfterDays: 30 },
+    reader({ files: { 's.md': '## Run 2026-07-01\n' } }));
+  assert.equal(cd.ok, true, '30d against a 30d window is not over');
+  assert.equal(cd.detail, '30d since 2026-07-01');
+  assert.doesNotMatch(cd.detail, /over/);
+  const fa = await only({ kind: 'file-age', path: 'full-picture.md', staleAfterDays: 60 },
+    reader({ commits: { 'full-picture.md': '2026-06-01T00:00:00Z' } }));
+  assert.equal(fa.ok, true, '60d against a 60d window is not over');
+  assert.doesNotMatch(fa.detail, /over/);
+  const tr = await only({ ...TRACKER, staleAfterDays: 30 },
+    reader({ files: { 'w/tracker/board.csv': board(task({ lastActivity: '2026-07-01' })) } }));
+  assert.equal(tr.ok, true);
+  assert.equal(tr.detail, '1 open, oldest quiet 30d');
+});
+
 test('content-date reads only the FIRST match, so a newest-first log works', async () => {
   // chron/sweeps.md is newest-first, so the top heading is the live one. A
   // check that scanned for the oldest date would report a repo as stale forever.

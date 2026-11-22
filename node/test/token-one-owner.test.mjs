@@ -36,6 +36,12 @@ const READERS = {
 };
 const WRITERS = { 'lib/gh-auth.js': 2, 'pages/launcher.html': 2 };
 
+// Bracket and property forms read or write the same key; `localStorage.ghToken`
+// is anchored to code position (not after a quote, backtick, or word char) so
+// prose and comment mentions of it are not counted.
+const READ_ALT = /localStorage\[\s*['"]ghToken['"]\s*\]|(?<![\w'"`.])localStorage\.ghToken\b(?!\s*=[^=])(?=\s*[;,)|&?:\]}]|\s*$)/gm;
+const WRITE_ALT = /localStorage\[\s*['"]ghToken['"]\s*\]\s*=(?!=)|(?<![\w'"`.])(?:localStorage\.ghToken\s*=(?!=)|delete\s+localStorage\.ghToken\b)/g;
+
 const files = execFileSync('git', ['ls-files', 'lib', 'pages', 'app', 'popups'], { cwd: repoRoot, encoding: 'utf8' })
   .split('\n').filter((f) => /\.(js|html)$/.test(f) && !f.startsWith('pages/scratch/'));
 const count = (re) => Object.fromEntries(files
@@ -50,4 +56,9 @@ test('only gh-auth.js reads the saved token, and each exception is where it was'
 
 test('only gh-auth.js and the library-free launcher write it', () => {
   assert.deepEqual(count(WRITE), WRITERS, 'a token write outside ghAuth.save skips its change notice');
+});
+
+test('no bracket-form or property-form access to the saved token hides outside the owners', () => {
+  assert.deepEqual(count(READ_ALT), {}, "localStorage['ghToken'] read: ask window.ghAuth.resolve()");
+  assert.deepEqual(count(WRITE_ALT), {}, 'a bracket or property write skips ghAuth.save');
 });

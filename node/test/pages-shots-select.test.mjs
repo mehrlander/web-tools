@@ -59,3 +59,11 @@ test('a run whose argument names no page exits nonzero and names it', () => {
   assert.match(r.stderr, /no-such-page-xyz/);
   assert.doesNotMatch(r.stdout, /shooting/, 'and nothing was shot');
 });
+
+test('a mixed list with one unknown name exits nonzero and shoots nothing', () => {
+  const r = spawnSync(process.execPath, [path.join(repoRoot, 'node/build/pages-shots.mjs'), 'diff-tool', 'no-such-page-xyz'],
+    { cwd: repoRoot, encoding: 'utf8' });
+  assert.notEqual(r.status, 0, 'one bad name fails the whole refresh');
+  assert.match(r.stderr, /no-such-page-xyz names no page/);
+  assert.doesNotMatch(r.stdout, /shooting/, 'the matched page is not shot either');
+});

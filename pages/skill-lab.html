@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Lab</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>✒️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  skill-lab.html: the Skill Lab, the Sessions program's workshop for skills.
+  It starts with the exemplars: writing others have praised for its clarity,
+  kept as reading copies in home's projects/skill-lab/exemplars/, as examples
+  a skill can point to. They were the Exemplars pane of text-lab.html until
+  2026-11-21, and they read here as they read there. One pane for now, so the
+  page draws no tab strip.
+
+    exemplars    projects/skill-lab/exemplars/pieces/, writing others have praised
+                 for its clarity, kept whole where the source allows (that
+                 folder's README states the format). A list with a
+                 detail, grouped by genre, one line a piece: its `short`
+                 title, then the surnames and the year. A piece's card is its
+                 reader, with two faces. Text is the piece, from the text
+                 proper on, rendered by kits/guide-render.js at reading size.
+                 Context holds the full title, who praised it and in their
+                 words, the caption an opinion opens with, and where the copy
+                 came from. The piece's standoff (<slug>.standoff.json,
+                 standoff/1, mapped onto the render by kits/standoff.js) says
+                 which paragraphs are the caption and which the focus, the
+                 passage to read first, and is read only while it still pins
+                 the piece's bytes. Each focus passage is a container in
+                 md-diff's manner, an outline with its number and two stops,
+                 context and text, that swipes between them: the background
+                 on the passage (what it is, its length, and the piece's
+                 praise), or the passage. Neutral: the page takes no
+                 colour. A pad over the FAB (kits/mark-pad.js), two arrows
+                 and a bookmark between them counting the mark in view, steps
+                 through the caption and the focus passages, or the citations
+                 once the bookmark is tapped; the FAB leaves a handle in its
+                 corner while the pad is up. The card's head holds the voice
+                 and the door to the deck, whose header names the piece in
+                 view. Reading aloud
+                 (kits/read-aloud.js) speaks Text alone, from the stored
+                 Markdown: no front matter, no caption, and none of the spans
+                 an optional second standoff, <slug>.citations.standoff.json,
+                 labels `citation`. A ref without `short`, `caption` or that
+                 file shows the title's head and the whole body, and speaks
+                 all of it.
+
+  Data contract. Everything is read live from mehrlander/home through the
+  viewer's token (gh-api + gh-auth). This page holds no copy of the pieces, so
+  it cannot drift from them; the cost is that home is private, so a tokenless
+  reader meets the auth prompt, as text-lab.html does over the same repo. It
+  writes nothing.
+
+  Address params:
+    ?use=<ref>   pins this page's own lib chain to a ref.
+    ?data=<ref>  pins which ref of home is read (defaults to main).
+    ?exemplar=<slug> opens one piece.
+    ?deck=exemplars, with ?at=<n>, reopens the deck on a slide.
+-->
+
+<script type="module">
+ try {
+  const params = new URLSearchParams(location.search);
+  await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('gh-auth.js');
+
+  document.addEventListener('alpine:init', () => {
+    const esc = s => window.esc(s);   // lib/vanilla-bundle.js, loaded by the boot chain
+    Alpine.data('skillLab', () => ({
+      REPO: 'mehrlander/home',
+      EXEMPLARS: 'projects/skill-lab/exemplars/pieces',
+      ICON: 'ph-pen-nib',
+      // Which ref of home is read; ?data= moves it.
+      DATA_REF: params.get('data') || 'main',
+      // The raised segmented control, for a card's two faces.
+      SEG: {
+        box: 'inline-flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5',
+        item: 'rounded-md px-2.5 py-1 text-sm cursor-pointer whitespace-nowrap',
+      },
+
+      home: null,
+      exemplars: [],
+      exemplarState: 'idle',
+      exemplarError: '',
+      exemplarSel: params.get('exemplar') || '',
+      exemplarTab: 'text',
+      voice: null,
+      voiceAt: { state: 'idle', id: '' },
+      // The way through a piece's marks (its caption, its focus passages, its
+      // citations): the page's own pad over the FAB (kits/mark-pad.js).
+      padKind: 'marks',
+      _stuckFrame: 0,
+      pad: null,
+      deckParam: params.get('deck') || '',
+      deckAt: Math.max(0, parseInt(params.get('at'), 10) || 0),
+      framed: window.self !== window.top,
+
+      async init() {
+        document.getElementById('boot')?.remove();
+        // A focus passage's pills, stuck or not (focusStuck), in whichever
+        // card or deck slide scrolled.
+        document.addEventListener('scroll', e => this.focusStuck(e && e.target), { capture: true, passive: true });
+        // A focus passage's readings become a swipe track wherever its body is
+        // drawn (mountFocus).
+        if (typeof MutationObserver === 'function' && document.body) new MutationObserver(recs => {
+          for (const r of recs) for (const n of r.addedNodes) {
+            if (n.nodeType !== 1) continue;
+            for (const sec of n.matches('[data-focus]') ? [n] : n.querySelectorAll('[data-focus]')) this.mountFocus(sec);
+          }
+        }).observe(document.body, { childList: true, subtree: true });
+        this.home = new window.GH({ token: window.TOKEN || '', repo: this.REPO, ref: this.DATA_REF });
+        // The list-with-a-detail kit. A page that cannot load it still shows a
+        // list over a card; it only loses the swipe.
+        this.swipers = {};
+        try { await gh.load('kits/swipe-deck.js'); await gh.load('kits/linked-swiper.js'); } catch (_) {}
+        this.$watch('padSig', () => this.pad?.refresh());
+        await this.loadExemplars();
+        this.$nextTick(() => this.mountDetail());
+      },
+
+      // ── a list with a detail ──────────────────────────────────────────
+      // The pieces draw as a list beside a card once they are read.
+      get listDetail() { return this.exemplars.length > 0; },
+      syncSel() {
+        const url = new URL(location.href);
+        if (this.exemplarSel) url.searchParams.set('exemplar', this.exemplarSel);
+        else url.searchParams.delete('exemplar');
+        history.replaceState(null, '', url);
+      },
+      groupHtml(name, n) {
+        return `<div class="sticky top-0 z-[1] flex items-baseline gap-2 bg-base-100 px-3 py-1.5 border-b border-base-200 font-mono text-xs uppercase tracking-wide text-base-content/70" data-part="group">`
+          + `<span>${esc(name)}</span><span class="tabular-nums">${n}</span></div>`;
+      },
+      detailSpec() {
+        return {
+          box: this.$refs.exemplarBox, list: this.$refs.exemplarList, card: this.$refs.exemplarCard, key: 'exemplar', noun: 'piece',
+          ids: () => this.exemplarIds(),
+          sel: () => this.exemplarSel, set: id => { this.exemplarSel = id; },
+          listHtml: () => this.exemplarListHtml(), body: id => this.exemplarCardHtml(id),
+          name: id => { const p = this.exemplarOf(id) || {}; return { when: this.shortYear(p.year), title: this.listTitle(p) }; },
+          deck: () => this.openExemplarDeck(Math.max(0, this.exemplarIds().indexOf(this.exemplarSel))),
+          head: ({ i, n, tight }) => this.exemplarHead(i, n, tight),
+          empty: 'No pieces.',
+        };
+      },
+      // Draw the list and the card. Without the kit the card still shows the
+      // selected row, and a tap on a row still picks it.
+      mountDetail() {
+        if (!this.listDetail) return;
+        const d = this.detailSpec(), ids = d.ids();
+        if (!ids.includes(d.sel())) d.set(ids[0] || '');
+        d.list.innerHTML = d.listHtml();
+        this.wireDetail(d);
+        const kit = window.linkedSwiper;
+        if (!kit) {
+          d.box.className = 'h-full grid gap-2 grid-rows-[minmax(0,38%)_minmax(0,1fr)]';
+          d.list.className = 'min-h-0 overflow-y-auto rounded-lg border border-base-300';
+          d.card.className = 'min-h-0 overflow-y-auto rounded-lg border border-base-300 px-3.5 py-3';
+          for (const row of d.list.querySelectorAll(`[data-${d.key}]`)) row.setAttribute('aria-selected', String(row.getAttribute(`data-${d.key}`) === d.sel()));
+          d.card.innerHTML = d.body(d.sel());
+        } else if (!this.swipers.exemplar) {
+          this.swipers.exemplar = kit.attach({
+            root: d.box, list: d.list, card: d.card, key: d.key, noun: d.noun,
+            ids: d.ids, sel: d.sel, body: d.body, name: d.name,
+            listMax: 'max-h-[36vh]', wide: 'grid-cols-[minmax(0,26rem)_minmax(0,1fr)]',
+            empty: `<p class="p-4 text-base-content/70">${d.empty}</p>`,
+            onPick: id => {
+              d.set(id); this.syncSel();
+              if (this.voice) this.voice.seek(this.exemplarIds().indexOf(id));
+            },
+            deck: d.deck,
+            head: d.head,
+          });
+        } else {
+          this.swipers.exemplar.mount();
+        }
+        this.syncSel();
+        requestAnimationFrame(() => this.swipers.exemplar?.show(String(d.sel())));
+      },
+      // One listener for the card and one for the list, for the lifetime of
+      // the page: the kit redraws their contents and leaves the elements
+      // themselves alone.
+      wireDetail(d) {
+        if (d.card.dataset.wired) return;
+        d.card.dataset.wired = '1';
+        d.card.addEventListener('click', e => this.exemplarClick(e));
+        d.list.addEventListener('click', e => {
+          const row = e.target.closest(`[data-${d.key}]`);
+          if (!row || window.linkedSwiper) return;
+          d.set(row.getAttribute(`data-${d.key}`));
+          this.mountDetail();
+        });
+      },
+
+      // The deck keeps its place in the address, so a slide can be linked and
+      // a reload lands where the reader was.
+      syncDeckAddress(deck, at = 0) {
+        const url = new URL(location.href);
+        if (deck) {
+          url.searchParams.set('deck', deck);
+          url.searchParams.set('at', String(at));
+        } else {
+          url.searchParams.delete('deck');
+          url.searchParams.delete('at');
+        }
+        history.replaceState(null, '', url);
+      },
+
+      wordCount(s) { return (String(s || '').match(/\S+/g) || []).length },
+
+      // ── Exemplars ─────────────────────────────────────────────────────────
+      // home's projects/skill-lab/exemplars: a piece is pieces/<slug>.md, front
+      // matter then the text verbatim, with pieces/<slug>.standoff.json beside
+      // it where the piece names a focus. All of it is read when the page
+      // opens, since the list needs every piece's front matter and the
+      // card reads the rest.
+      async loadExemplars() {
+        if (this.exemplarState !== 'idle') return;
+        this.exemplarState = 'loading';
+        this.exemplarError = '';
+        try {
+          await Promise.all(['kits/guide-render.js', 'kits/standoff.js', 'kits/read-aloud.js', 'kits/md-diff.js'].map(k => gh.load(k)));
+          await window.GuideRender.needMarked();
+          const dir = this.EXEMPLARS;
+          const names = (await this.home.req(`contents/${dir}?ref=${encodeURIComponent(this.DATA_REF)}`))
+            .filter(f => f.type === 'file').map(f => f.name);
+          const pieces = await Promise.all(names.filter(n => n.endsWith('.md')).map(async name => {
+            const id = name.slice(0, -3);
+            const { bytes } = await this.home.bytes(`${dir}/${name}`);
+            const text = new TextDecoder().decode(bytes);
+            const { fields, bodyAt } = this.exemplarFields(text);
+            const so = names.includes(`${id}.standoff.json`)
+              ? JSON.parse((await this.home.get(`${dir}/${id}.standoff.json`)).text) : null;
+            // The citations are a second standoff, optional, at a finer grain
+            // than the paragraphs: what reading aloud leaves out.
+            const cso = names.includes(`${id}.citations.standoff.json`)
+              ? JSON.parse((await this.home.get(`${dir}/${id}.citations.standoff.json`)).text) : null;
+            const digest = await this.sha256(bytes);
+            const { spans, captions, stale } = this.exemplarFocus(so, text, digest, bytes.length);
+            const cites = this.standoffRuns(cso, text, digest, bytes.length);
+            const textAt = this.textStart(bodyAt, captions);
+            return { ...fields, id, text, bodyAt, textAt, focusSpans: spans, captionSpans: captions, stale, standoff: !!so,
+                     citationSpans: cites.runs.citation || [], citations: !!cso,
+                     words: this.wordCount(text.slice(textAt)), doc: '', captionDoc: '', speech: '' };
+          }));
+          this.exemplars = pieces;
+          if (!this.exemplarOf(this.exemplarSel)) this.exemplarSel = '';
+          this.exemplarState = 'done';
+          await gh.load('kits/mark-pad.js');
+          this.mountPad();
+          if (this.deckParam === 'exemplars') {
+            this.deckParam = '';
+            this.$nextTick(() => this.openExemplarDeck(this.deckAt));
+          }
+        } catch (e) {
+          this.exemplarError = `${e.message || e} (${this.REPO}@${this.DATA_REF})`;
+          this.exemplarState = 'error';
+        }
+      },
+
+      // A piece's front matter: one `key: value` a line, each value a YAML
+      // double-quoted scalar (whose escapes are JSON's), a single-quoted one,
+      // or plain. `bodyAt` is where the text after it starts in the file.
+      exemplarFields(text) {
+        const m = /^---\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/.exec(String(text || ''));
+        if (!m) return { fields: {}, bodyAt: 0 };
+        const fields = {};
+        for (const line of m[1].split(/\r?\n/)) {
+          const kv = /^([A-Za-z0-9_]+):[ \t]*(.*?)[ \t]*$/.exec(line);
+          if (!kv) continue;
+          let v = kv[2];
+          if (v.startsWith('"')) { try { v = JSON.parse(v); } catch (_) { v = v.slice(1, -1); } }
+          else if (v.startsWith("'")) v = v.slice(1, -1).replace(/''/g, "'");
+          fields[kv[1]] = String(v);
+        }
+        return { fields, bodyAt: m[0].length };
+      },
+
+      async sha256(bytes) {
+        try {
+          const d = await crypto.subtle.digest('SHA-256', bytes);
+          return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (_) { return ''; }   // no SubtleCrypto outside a secure context; the byte count still checks
+      },
+
+      // A standoff's runs by label, as spans of the index this page slices by.
+      // The standoff's offsets count code points, as Python does, and
+      // kits/standoff.js adopts them into UTF-16; consecutive units of one
+      // label are one run, adjacent units included. A standoff that no longer
+      // pins these bytes, or does not partition them, yields nothing and says
+      // so (`stale`), rather than marking the wrong text.
+      standoffRuns(so, text, digest = '', size = null) {
+        const S = window.Standoff, none = stale => ({ runs: {}, stale });
+        if (!so || !S) return none(false);
+        const t = so.target || {};
+        if ((digest && t.sha256 && t.sha256 !== digest) || (size != null && t.bytes != null && t.bytes !== size)) return none(true);
+        const adopted = S.adopt(so, text);
+        if (S.check(adopted, text).length) return none(true);
+        const runs = {};
+        let prev = '';
+        for (const u of [...adopted.units].sort((a, b) => a.start - b.start)) {
+          const list = (runs[u.label] ||= []);
+          if (prev === u.label) list[list.length - 1].end = u.end;
+          else list.push({ start: u.start, end: u.end });
+          prev = u.label;
+        }
+        return { runs, stale: false };
+      },
+      // The focus standoff's two runs: `focus`, the passage to read first, and
+      // `caption`, a source's notices and caption ahead of the text proper.
+      exemplarFocus(so, text, digest = '', size = null) {
+        const { runs, stale } = this.standoffRuns(so, text, digest, size);
+        return { spans: (runs.focus || []).map(s => ({ ...s, words: this.wordCount(text.slice(s.start, s.end)) })),
+                 captions: runs.caption || [], stale };
+      },
+      // Where the text proper starts: past the captions that open the body.
+      // Without them, the body is the text.
+      textStart(bodyAt, captions) {
+        let at = bodyAt;
+        for (const c of captions) if (c.start <= at + 2 && c.end > at) at = c.end;
+        return at;
+      },
+
+      exemplarOf(id) { return this.exemplars.find(p => p.id === id) || null; },
+      // By genre, the kind of writing a session arrives to imitate, largest
+      // first; oldest first inside one.
+      exemplarGroups() {
+        const by = new Map();
+        for (const p of this.exemplars) {
+          const k = p.genre || 'other';
+          if (!by.has(k)) by.set(k, []);
+          by.get(k).push(p);
+        }
+        return [...by].map(([name, items]) => ({ name, items: items.sort((a, b) =>
+            String(a.year).localeCompare(String(b.year)) || String(a.title).localeCompare(String(b.title))) }))
+          .sort((a, b) => b.items.length - a.items.length || a.name.localeCompare(b.name));
+      },
+      exemplarIds() { return this.exemplarGroups().flatMap(g => g.items.map(p => p.id)); },
+      // The title a list shows: the piece's own `short`, or, on a ref that
+      // predates it, the full title up to its first clause break.
+      shortTitle(t) { return String(t || '').split(/: | \(/)[0]; },
+      listTitle(p) { return p.short || this.shortTitle(p.title || p.id); },
+      shortAuthor(a) { return String(a || '').split(/ \(|, |; /)[0]; },
+      // Surnames, for a row: a person's last name (two words, or a name with
+      // initials), an organisation's name whole.
+      surnames(a) {
+        return this.shortAuthor(a).split(/ and | & /).map(name => {
+          const w = name.trim().split(/\s+/).filter(x => !/^(Jr|Sr|II|III|IV)\.?$/.test(x));
+          return w.length === 2 || w.some(x => /^([A-Z]\.)+$/.test(x)) ? w[w.length - 1] : name.trim();
+        }).join(' & ');
+      },
+      shortYear(y) {
+        const m = /^(\d{4})(?:-(\d{4}))?/.exec(String(y || ''));
+        return !m ? String(y || '') : m[2] ? `${m[1]} → ${m[2]}` : m[1];
+      },
+      shortExtent(p) { return /^whole\b/i.test(p.extent || '') ? '' : String(p.extent || '').split(/ \(|: |; |, /)[0]; },
+
+      // Who praised a piece, in their words, and where. A field naming several
+      // keeps them in order, `|` between quotations and between sources and
+      // `;` between names, and is read as pairs only where the three counts
+      // agree; otherwise the words stand once, with every source after them.
+      // "none found" is a placeholder and draws nothing.
+      recognitions(p) {
+        const none = v => !v || /^none found$/i.test(String(v).trim());
+        if (none(p.recognition)) return [];
+        const split = (v, sep) => none(v) ? [] : String(v).split(sep).map(s => s.trim()).filter(Boolean);
+        const words = split(p.recognition, ' | '), hrefs = split(p.recognition_source, ' | ');
+        const names = hrefs.length > 1 ? split(p.recognized_by, '; ') : [String(p.recognized_by || '').trim()];
+        if (words.length === hrefs.length && names.length === hrefs.length)
+          return words.map((w, i) => ({ words: w, by: names[i], links: this.links(hrefs[i]) }));
+        return [{ words: words.join(' '), by: none(p.recognized_by) ? '' : p.recognized_by, links: this.links(hrefs.join(' ')) }];
+      },
+      // The addresses in a field, each named by its host, or by its file
+      // where the host has already been named.
+      links(text) {
+        const seen = new Set();
+        return (String(text || '').match(/https?:\/\/[^\s)|]+/g) || []).map(href => {
+          let label = href;
+          try {
+            const u = new URL(href);
+            label = seen.has(u.hostname) ? (u.pathname.split('/').filter(Boolean).pop() || u.hostname) : u.hostname;
+            seen.add(u.hostname);
+          } catch (_) {}
+          return { href, label: label.replace(/^www\./, '') };
+        });
+      },
+      exemplarFiles(p) {
+        const md = `${this.EXEMPLARS}/${p.id}.md`, so = `${this.EXEMPLARS}/${p.id}.standoff.json`;
+        const files = [{ name: `${p.id}.md`, href: window.RepoAddress.github.blob(this.REPO, this.DATA_REF, md) }];
+        if (p.standoff) files.push({ name: `${p.id}.standoff.json`,
+          href: `https://mehrlander.github.io/web-tools/pages/audit-render.html?src=${this.REPO}${this.DATA_REF === 'main' ? '' : '@' + this.DATA_REF}:${so}` });
+        return files;
+      },
+
+      // One line a piece: its short title, then the surnames and the year,
+      // quieter. The rest is the card's.
+      exemplarRowHtml(p) {
+        const by = [this.surnames(p.author), this.shortYear(p.year)].filter(Boolean).join(' · ');
+        return `<div data-exemplar="${esc(p.id)}" role="option" tabindex="-1" data-part="item" class="flex px-3 py-2.5 cursor-pointer border-b border-base-200 aria-selected:bg-base-200">`
+          + `<span class="min-w-0 truncate text-base leading-6"><span class="font-medium" data-part="title">${esc(this.listTitle(p))}</span>`
+          + `<span class="ml-2 text-sm text-base-content/60" data-part="meta">${esc(by)}</span></span></div>`;
+      },
+      exemplarListHtml() {
+        return this.exemplarGroups().map(g => this.groupHtml(g.name, g.items.length)
+          + g.items.map(p => this.exemplarRowHtml(p)).join('')).join('');
+      },
+
+      // A piece's card has two faces, switched by a control that stays at the
+      // top of the card as it scrolls. Text is the piece itself, from the text
+      // proper on. Context is everything about it: the full title and its
+      // facts, who praised it and in what words, the caption a court opinion
+      // opens with, and where the copy came from. Which face shows is one
+      // choice for every card and the deck, so a swipe compares like with like.
+      exemplarCardHtml(id) {
+        const p = this.exemplarOf(id);
+        if (!p) return '';
+        const face = this.exemplarTab;
+        const tab = (key, label) => `<button type="button" role="tab" data-exemplar-tab="${key}" aria-selected="${face === key}"`
+          + ` class="${this.SEG.item} text-base-content/70 group-data-[tab=${key}]:bg-base-100 group-data-[tab=${key}]:font-medium`
+          + ` group-data-[tab=${key}]:text-base-content group-data-[tab=${key}]:shadow-sm">${label}</button>`;
+        return `<div class="group pb-[calc(var(--fab-bottom,1.5rem)+4rem)]" data-exemplar-body="${esc(p.id)}" data-tab="${face}">`
+          // Stuck above the slide's own top padding, so no line shows through it.
+          + `<div class="sticky -top-8 z-[1] -mt-8 pt-8 -mx-1 px-1 pb-3 bg-base-100 flex items-center justify-between gap-2"><div class="${this.SEG.box}" role="tablist" aria-label="Show">`
+          + tab('text', 'Text') + tab('context', 'Context') + `</div></div>`
+          + `<div data-pane="text" class="min-w-0 pt-2 group-data-[tab=context]:hidden">${this.exemplarDoc(p)}</div>`
+          + `<div data-pane="context" class="hidden group-data-[tab=context]:grid gap-8 min-w-0">${this.exemplarContextHtml(p)}</div></div>`;
+      },
+      // Context: each part led by an icon, its sentences at the text's size and
+      // its names, links and dates at the size of a label.
+      exemplarContextHtml(p) {
+        const read = this.readClass();
+        const out = '<i class="ph ph-arrow-square-out ml-1"></i>';
+        const a = (href, label, cls = '') => `<a class="link link-hover ${cls}" href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}${out}</a>`;
+        const part = (icon, label, body) => `<div class="flex gap-3"><i class="ph ${icon} text-xl mt-1 self-start shrink-0 text-base-content/60" role="img" aria-label="${label}"></i>`
+          + `<div class="min-w-0 grid gap-2 grow">${body}</div></div>`;
+        const facts = [p.author, this.shortYear(p.year), p.genre, `${p.words.toLocaleString()} words`].filter(Boolean).join(' · ');
+        const head = `<div class="grid gap-1"><h3 class="text-2xl leading-9 font-medium">${esc(p.title || p.id)}</h3>`
+          + `<p class="text-sm leading-6 text-base-content/70">${esc(facts)}</p></div>`;
+        const praise = this.recognitions(p).map(r => part('ph-quotes', 'Praised',
+          `<div class="${read}"><p>${esc(r.words)}</p></div>`
+          + `<p class="text-sm text-base-content/70">${r.links.length === 1 ? a(r.links[0].href, r.by || r.links[0].label)
+            : esc(r.by) + r.links.map(l => ' ' + a(l.href, l.label, 'ml-2')).join('')}</p>`)).join('');
+        const caption = p.captionSpans.length ? part('ph-scroll', 'Caption', this.exemplarCaption(p)) : '';
+        const where = [...this.links(p.source_page).map(l => a(l.href, l.label)),
+                       p.acquired ? `<span class="text-base-content/60">acquired ${esc(p.acquired)}</span>` : '']
+          .filter(Boolean).join('<span class="text-base-content/40"> · </span>');
+        const files = this.exemplarFiles(p).map(f => a(f.href, f.name, 'text-base-content/70')).join('');
+        const sentences = [/\(/.test(p.year || '') ? p.year : '', p.extent && p.extent !== 'whole' ? p.extent : '', p.note]
+          .filter(Boolean).map(s => `<p>${esc(s)}</p>`).join('');
+        const source = part('ph-archive', 'Source',
+          `<p class="text-base leading-7 font-medium">${esc(p.publisher || '')}</p>`
+          + `<p class="flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">${where}</p>`
+          + (sentences ? `<div class="${read}">${sentences}</div>` : '')
+          + `<p class="flex flex-wrap gap-x-4 gap-y-1 font-mono text-xs">${files}</p>`);
+        return head + praise + caption + source;
+      },
+      // The caption, rendered as the source sets it, for Context.
+      exemplarCaption(p) {
+        if (p.captionDoc) return p.captionDoc;
+        const G = window.GuideRender;
+        if (!G || !window.marked) return '';
+        const md = p.captionSpans.map(c => p.text.slice(c.start, c.end)).join('\n\n');
+        p.captionDoc = `<div class="${this.readClass()}">${G.render(md, { knownRefs: [this.DATA_REF, 'main'] }).html}</div>`;
+        return p.captionDoc;
+      },
+      // One face for every card: the attribute each body carries is what its
+      // panes and its control read. The face being left keeps its scroll, so
+      // Text reopens where the reader was.
+      setExemplarTab(face) {
+        if (face !== 'text' && face !== 'context') return;
+        this.exemplarTab = face;
+        for (const body of document.querySelectorAll('[data-exemplar-body]')) {
+          if (body.getAttribute('data-tab') === face) continue;
+          const box = this.scrollerOf(body);
+          if (box) { (body._at ||= {})[body.getAttribute('data-tab')] = box.scrollTop; }
+          body.setAttribute('data-tab', face);
+          for (const b of body.querySelectorAll('[data-exemplar-tab]')) b.setAttribute('aria-selected', String(b.getAttribute('data-exemplar-tab') === face));
+          if (box) box.scrollTop = (body._at || {})[face] || 0;
+        }
+      },
+      // ── Reading aloud ──────────────────────────────────────────────────────
+      // What Text shows, spoken: the stored Markdown with the front matter and
+      // the caption cut out, and each span the citations standoff labels
+      // `citation`. kits/read-aloud.js's speechText takes the syntax off. A
+      // citation cut mid-sentence leaves a mark (CUT, a private-use
+      // character speechText carries through), so the tidy that follows
+      // touches only the places a cut was: a comma doubled across it, a
+      // parenthesis it emptied, a comma it stranded before a full stop. A
+      // footnote marker, `[^1]`, is apparatus too, and is not spoken.
+      CUT: '\uE000',
+      speechMarkdown(p) {
+        const cuts = [{ start: 0, end: p.bodyAt, block: true },
+                      ...p.captionSpans.map(c => ({ ...c, block: true })),
+                      ...(p.citationSpans || []).map(c => ({ ...c, block: false }))]
+          .sort((a, b) => a.start - b.start);
+        let out = '', at = 0;
+        for (const c of cuts) {
+          if (c.end <= at) continue;
+          if (c.start > at) out += p.text.slice(at, c.start);
+          out += c.block ? '\n\n' : this.CUT;
+          at = c.end;
+        }
+        return out + p.text.slice(at);
+      },
+      tidySpeech(s) {
+        const C = this.CUT;
+        return String(s)
+          .replace(/\[\^[^\]\s]+\]/g, '')
+          .replace(new RegExp(`[(\\[][\\s,;:]*(?:${C}[\\s,;:]*)+[)\\]]`, 'g'), C)
+          // Punctuation on both sides of a cut, closing quotes allowed between:
+          // the first comma stands for a second, and a full stop after it
+          // takes its place, so "turpitude,” ⌧, and" and "decisionmaking,” ⌧."
+          // read "turpitude,” and" and "decisionmaking.”".
+          .replace(new RegExp(`([,;:])([”’"'\\s]*?)\\s*${C}\\s*[,;:]`, 'g'), `$1$2${C}`)
+          .replace(new RegExp(`[,;:]([”’"'\\s]*?)\\s*${C}\\s*([.!?])`, 'g'), `$2$1${C}`)
+          .replace(new RegExp(`[,;:]\\s*${C}(?=\\s*[)\\]])`, 'g'), C)
+          // A sentence ended before the cut, so a comma after it is stray;
+          // after an abbreviation ("Inc.") the sentence goes on and keeps it.
+          .replace(new RegExp(`([.!?(\\[])\\s*${C}\\s*[,;:]+(?=\\s*(?:[A-Z“"]|$))`, 'gm'), `$1${C}`)
+          .replace(new RegExp(`[ \\t]*${C}[ \\t]*(?=[—–])|(?<=[—–])[ \\t]*${C}[ \\t]*`, 'g'), '')
+          .replace(new RegExp(`[ \\t]*${C}[ \\t]*`, 'g'), ' ')
+          .replace(/[ \t]+([,;:.!?)\]])/g, '$1')
+          .replace(/([(\[])[ \t]+/g, '$1')
+          .replace(/[ \t]{2,}/g, ' ')
+          .replace(/ ?\n ?/g, '\n')
+          .trim();
+      },
+      speech(p) {
+        if (!p.speech && window.readAloud) p.speech = this.tidySpeech(window.readAloud.speechText(this.speechMarkdown(p)));
+        return p.speech || '';
+      },
+      speechItems(ids) {
+        return ids.map((id, i) => { const p = this.exemplarOf(id); return { key: i, label: this.listTitle(p), md: this.speech(p) }; });
+      },
+      readRate() { try { return Number(localStorage.getItem('wt:readRate')) || 1; } catch (_) { return 1; } },
+      // The card's voice: one player over the list, item `i` being row `i`,
+      // started at the piece in view. As in the deck, the voice drives the
+      // list when it moves on, and a pick in the list re-points the voice.
+      speakCard(id) {
+        const R = window.readAloud;
+        if (!R || !R.supported) return;
+        const ids = this.exemplarIds(), i = ids.indexOf(id);
+        if (i < 0) return;
+        if (!this.voice) {
+          this.voice = R.player({ rate: this.readRate(), onState: s => {
+            this.voiceAt = { state: s.state, id: ids[s.i] || '' };
+            if (s.state !== 'idle' && ids[s.i] && ids[s.i] !== this.exemplarSel) this.swipers?.exemplar?.pick(ids[s.i]);
+            this.swipers?.exemplar?.paint();
+          } });
+          this.voice.load(this.speechItems(ids));
+        }
+        if (this.voice.index === i && this.voice.state !== 'idle' && this.voice.state !== 'done') this.voice.toggle();
+        else this.voice.play(i);
+      },
+      quietCard() { this.voice?.stop(); this.voice = null; this.voiceAt = { state: 'idle', id: '' }; },
+      speakButton(p) {
+        if (!window.readAloud?.supported) return '';
+        const on = this.voiceAt.id === p.id && this.voiceAt.state === 'speaking';
+        const label = on ? 'Pause' : 'Read the text aloud';
+        return `<button type="button" data-exemplar-speak="${esc(p.id)}" aria-pressed="${on}" aria-label="${label}" data-title-tip="${label}"`
+          + ` class="btn btn-ghost btn-xs btn-square flex-none -my-1 max-sm:h-8 max-sm:w-8"><i class="ph ${on ? 'ph-pause' : 'ph-speaker-high'} text-base"></i></button>`;
+      },
+
+      // Reading size, set on the page's own text boxes over guide-render's
+      // smaller default, with the headings, paragraph gaps and rules scaled
+      // to match. The `!` is needed because the kit's sheet is unlayered.
+      readClass() {
+        const G = window.GuideRender;
+        return (G ? G.bodyClass('page') + ' ' : '')
+          + '!text-xl !leading-8 [&_p]:!my-4 [&_h1]:!text-2xl [&_h2]:!text-2xl [&_h3]:!text-xl [&_h4]:font-semibold'
+          + ' [&_h2]:!mt-6 [&_h3]:!mt-5 [&_hr]:!my-8 [&_blockquote]:!pl-4 [&>:first-child]:!mt-0 [&>:last-child]:!mb-0';
+      },
+      // The card's head: the kit's own row, with the voice beside the counter,
+      // in one place on every piece.
+      exemplarHead(i, n, tight) {
+        const id = this.exemplarIds()[i], p = this.exemplarOf(id) || {};
+        const html = window.linkedSwiper.head({ when: this.shortYear(p.year), title: this.listTitle(p) },
+          i, n, 'piece', { deck: true, tight });
+        const at = html.indexOf('</h2>') + 5;
+        const own = this.speakButton(p);
+        return at > 4 ? html.slice(0, at) + own + html.slice(at) : html + own;
+      },
+
+      // The text proper, rendered once a piece and kept; the caption ahead of
+      // it is Context's. The focus is marked over the render rather than cut
+      // out of the source, so a passage cannot split a list or strand a
+      // footnote: kits/standoff.js maps each text node back to its offset in
+      // the file, a top-level block takes the offset of its first text, and a
+      // run of blocks inside one focus span is wrapped. A block with no text of
+      // its own (a rule, an image) joins a passage only from inside one. Each
+      // passage is a container (focusBox) with two readings, the passage and
+      // the background on it.
+      exemplarDoc(p) {
+        if (p.doc) return p.doc;
+        const G = window.GuideRender, S = window.Standoff;
+        if (!G || !window.marked) return '';
+        const box = document.createElement('div');
+        box.className = this.readClass();
+        box.innerHTML = G.render(p.text.slice(p.textAt), { knownRefs: [this.DATA_REF, 'main'] }).html;
+        const cites = S ? p.citationSpans || [] : [];
+        if ((p.focusSpans.length || cites.length) && S) S.mapText(box, p.text, p.textAt);
+        if (p.focusSpans.length && S) {
+          const blocks = [...box.children];
+          const own = blocks.map(b => {
+            const s = b.matches('[data-src]') ? b : b.querySelector('[data-src]');
+            return s ? p.focusSpans.findIndex(f => +s.dataset.src >= f.start && +s.dataset.src < f.end) : null;
+          });
+          const near = (i, d) => { for (let j = i + d; j >= 0 && j < own.length; j += d) if (own[j] != null) return own[j]; return -1; };
+          const which = own.map((k, i) => k != null ? k : near(i, -1) === near(i, 1) ? near(i, -1) : -1);
+          const total = p.focusSpans.length;
+          for (let i = 0; i < blocks.length;) {
+            const k = which[i];
+            if (k < 0) { i++; continue; }
+            let j = i;
+            while (j < blocks.length && which[j] === k) j++;
+            const wrap = this.focusBox(p, k, total);
+            blocks[i].before(wrap);
+            wrap.querySelector('[data-focus-text]').append(...blocks.slice(i, j));
+            i = j;
+          }
+        }
+        if (cites.length) this.wrapCitations(box, cites);
+        p.doc = box.outerHTML;
+        return p.doc;
+      },
+      // A FOCUS PASSAGE IS A CHANGE CONTAINER, the one md-diff draws for a
+      // change (lib/kits/md-diff.js, container()), drawn to its measure: the
+      // outline outside the text (`-mx-2 px-2`), so the text keeps its left
+      // edge, at md-diff's neutral 22%; the passage's number alone in a pill
+      // at the top left and the stops in a pill at the top right, both
+      // centred on the top edge; md-diff's own pill and mix (mdDiff.PILL,
+      // mdDiff.hueMix), imported rather than copied, so the two cannot drift.
+      // The one passage selected is marked as md-diff marks its one change:
+      // the outline stays as it is, a faint wash fills the box, and the number
+      // fills. Neutral where md-diff's selection is yellow: this page takes no
+      // colour of its own.
+      //
+      // TWO READINGS, `context` and `text`, where md-diff has old, inline and
+      // new: the background on the passage (what it is, how long, and who
+      // praised the piece, in their words), and the passage. The background
+      // is the piece's, not the passage's, so a piece's passages show the same
+      // praise; only the description's place and the length are their own.
+      // They swipe, as md-diff's do (mountFocus), context then text, landing
+      // on text, so a swipe to the right brings the background in; the stops
+      // read in the track's order and a tap on one still goes there.
+      //
+      // THE PILLS STAY IN REACH: they ride a zero-height sticky row at the
+      // passage's top, so a reader halfway down Part I still has them, under
+      // the card's own sticky row, until the passage ends. Once the row has
+      // stuck (data-stuck, focusStuck), an opaque band of the page runs across
+      // the passage behind them, so the prose scrolling under them does not
+      // print through, as it did even through md-diff's own 90% backing. On a
+      // selected passage the band is the wash laid over the page, opaque.
+      focusBox(p, k, total) {
+        const D = window.mdDiff, PILL = D ? D.PILL : '';
+        const mix = pct => (D ? D.hueMix('--color-base-content', pct) : 'transparent');
+        const sec = document.createElement('section');
+        sec.dataset.focus = String(k);
+        sec.dataset.reading = 'text';
+        sec.className = `group/focus relative my-8 rounded-[4px] -mx-2 px-2 py-1 ring-1 ring-[${mix(22)}] transition-colors duration-200`
+          + ` data-[on]:bg-[${mix(5)}]`;
+        // A stop's hit area runs past its drawn edge (the ::before), since a
+        // pill ten pixels tall is a hard thing to hit with a thumb.
+        const stop = (key) => `<button type="button" data-focus-reading="${key}" aria-pressed="${key === 'text'}"`
+          + ` class="relative cursor-pointer rounded-full px-1.5 py-0.5 transition-colors text-[${mix(85)}] opacity-55`
+          + ` before:absolute before:-inset-y-2 before:inset-x-0 before:content-['']`
+          + ` group-data-[reading=${key}]/focus:opacity-100 group-data-[reading=${key}]/focus:font-medium group-data-[reading=${key}]/focus:bg-[${mix(20)}]">${key}</button>`;
+        const words = p.focusSpans[k].words.toLocaleString();
+        const a = (href, label) => `<a class="link link-hover" href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}<i class="ph ph-arrow-square-out ml-1"></i></a>`;
+        const praise = this.recognitions(p).map(r => `<div class="flex gap-3"><i class="ph ph-quotes text-xl mt-1 self-start shrink-0 text-base-content/60" role="img" aria-label="Praised"></i>`
+          + `<div class="min-w-0 grid gap-2"><div>${esc(r.words)}</div><div class="text-sm leading-6 text-base-content/70">`
+          + (r.links.length === 1 ? a(r.links[0].href, r.by || r.links[0].label) : esc(r.by) + r.links.map(l => ' ' + a(l.href, l.label)).join(''))
+          + `</div></div></div>`).join('');
+        sec.innerHTML = `<div class="sticky top-14 z-10 -mx-2 -mt-1 mb-1 h-0">`
+          + `<div class="absolute inset-x-0 -top-3 h-6 bg-base-100 group-data-[on]/focus:bg-[color-mix(in_oklab,var(--color-base-content)_5%,var(--color-base-100))] hidden group-data-[stuck]/focus:block"></div>`
+          + `<button type="button" data-focus-claim class="${PILL} left-1 cursor-pointer px-1.5 py-0.5 tabular-nums font-medium transition-colors opacity-80`
+          + ` group-data-[on]/focus:opacity-100 group-data-[on]/focus:bg-[${mix(20)}] group-data-[on]/focus:!border-[${mix(60)}]"`
+          + ` aria-label="Passage ${k + 1}${total > 1 ? ` of ${total}` : ''}">${k + 1}</button>`
+          + `<div class="${PILL} right-1 gap-0.5 px-0.5 py-0.5 !border-[${mix(40)}]"`
+          + ` role="group" aria-label="Show this passage as">${stop('context')}${stop('text')}</div></div>`
+          + `<div data-focus-text class="[&>:first-child]:!mt-0 [&>:first-child>:first-child]:!mt-0 [&>:last-child]:!mb-0 [&>:last-child>:last-child]:!mb-0 group-data-[reading=context]/focus:hidden"></div>`
+          + `<div data-focus-context class="hidden group-data-[reading=context]/focus:grid gap-4 pt-3 pb-2">`
+          + `<div class="grid gap-1"><div class="font-medium">${esc(p.focus || 'The passage to read first')}</div>`
+          + `<div class="text-sm leading-6 text-base-content/70">${words} words</div></div>`
+          + praise + `</div>`;
+        return sec;
+      },
+      // The pills' row has stuck once it has left the passage's top edge.
+      focusStuck(box) {
+        if (!box || !box.querySelectorAll || this._stuckFrame) return;
+        this._stuckFrame = requestAnimationFrame(() => {
+          this._stuckFrame = 0;
+          for (const sec of box.querySelectorAll('[data-focus]')) {
+            const row = sec.firstElementChild;
+            if (!row) continue;
+            const stuck = row.getBoundingClientRect().top - sec.getBoundingClientRect().top > 1;
+            if (stuck !== sec.hasAttribute('data-stuck')) sec.toggleAttribute('data-stuck', stuck);
+          }
+        });
+      },
+      // A tap on a stop: the reading the passage shows, and the passage is
+      // where the reader now is, so it is the one selected (ringMark). The
+      // box follows the reading, so a reader deep in a long passage would be
+      // left past the end of a short background: the card goes back to the
+      // passage's top.
+      // A tap on a passage's number claims it, as md-diff's index claims a
+      // change: it is selected, and the pad counts it.
+      claimFocus(sec) {
+        if (!sec) return;
+        this.ringMark([sec]);
+        const id = sec.closest('[data-exemplar-body]')?.getAttribute('data-exemplar-body');
+        if (id != null) this.padFollow(id, 'focus', +sec.dataset.focus);
+      },
+      setFocusReading(sec, r) {
+        if (!sec || (r !== 'text' && r !== 'context')) return;
+        // Mounted, the track goes there and its settling does the rest.
+        if (sec._focusGo) { sec._focusGo(r); this.focusChosen(sec, false); return; }
+        this.paintReading(sec, r);
+        this.focusChosen(sec, true);
+      },
+      paintReading(sec, r) {
+        if (sec.dataset.reading === r) return;
+        sec.dataset.reading = r;
+        for (const b of sec.querySelectorAll('[data-focus-reading]')) b.setAttribute('aria-pressed', String(b.getAttribute('data-focus-reading') === r));
+      },
+      // A passage the reader turned is the one selected, and the pad counts
+      // it. `top` takes the card back to the passage's top, for a box whose
+      // height has just followed its reading.
+      focusChosen(sec, top) {
+        const body = sec.closest('[data-exemplar-body]'), id = body?.getAttribute('data-exemplar-body');
+        if (top && body) this.scrollToMark(body, sec);
+        this.ringMark([sec]);
+        if (id != null) this.padFollow(id, 'focus', +sec.dataset.focus);
+      },
+      // THE READINGS SWIPE, as md-diff's container does (lib/kits/md-diff.js,
+      // swipe()): a swipeDeck.core track of two stops, context then text,
+      // landing on text, the slides handing the vertical axis to the card
+      // (slideScroll: false) and one stop per flick (snapStop). The pills
+      // ride the sticky row outside the track. Mounted wherever a body is
+      // drawn, a card's slide or the deck's, since both draw it from the one
+      // stored render (exemplarDoc), whose readings stand stacked and hidden
+      // by the reading until a track takes them.
+      //
+      // INSIDE THE DECK the track keeps a sideways swipe to itself: core()'s
+      // track is `overscroll-x-contain`, as every md-diff container's is when
+      // a deck holds it, so a swipe that starts on a passage turns its
+      // readings and, at either end, goes nowhere rather than to the next
+      // piece. A reader changes pieces with a swipe that starts outside a
+      // passage, or with the deck's footer, its arrows and its dots.
+      //
+      // THE HEIGHT HOLDS THROUGH THE GESTURE AND FOLLOWS THE READING ONCE THE
+      // SNAP HAS SETTLED. md-diff fixes its box at its tallest reading, since a
+      // box resized under a finger snapped between stops on iOS (swipe-deck's
+      // account, pages/probe-snap.html). Here the tallest reading can run to
+      // thousands of words and the other is a few lines, so a fixed box would
+      // leave the background in a screenful of empty outline. The box keeps
+      // its height while the track moves, and once it has been quiet for
+      // 160ms (or says scrollend) takes the height of the reading it rests
+      // on, then takes the card back to the passage's top if the reader was
+      // deep in it. That probe also found that deferring the write until the
+      // scroll went quiet did not, alone, cure iOS's snap; whether this holds
+      // there is for the device to say.
+      mountFocus(sec) {
+        if (!sec || sec._focusDeck || !window.swipeDeck?.core) return;
+        const ctx = sec.querySelector(':scope > [data-focus-context]'), txt = sec.querySelector(':scope > [data-focus-text]');
+        if (!ctx || !txt) return;
+        ctx.classList.remove('hidden', 'group-data-[reading=context]/focus:grid');
+        ctx.classList.add('grid');
+        txt.classList.remove('group-data-[reading=context]/focus:hidden');
+        const READ = ['context', 'text'];
+        const host = document.createElement('div');
+        host.className = 'flex min-h-0';
+        host.dataset.focusTrack = '';
+        const deck = window.swipeDeck.core(2, (n, slide) => slide.append(n ? txt : ctx),
+          { slideScroll: false, innerClass: 'w-full', slideClass: '', snapStop: true, start: 1 });
+        host.append(deck.track);
+        sec.firstElementChild.after(host);
+        deck.build(0); deck.build(1);
+        sec._focusDeck = deck;
+        // A reading's own height: its content's, from the top of its slide.
+        const fit = (n) => {
+          const slide = deck.track.children[n], c = slide?.firstElementChild?.firstElementChild;
+          if (!c) return;
+          const h = Math.ceil(c.getBoundingClientRect().top - slide.getBoundingClientRect().top) + c.scrollHeight;
+          if (h && host.style.height !== h + 'px') host.style.height = h + 'px';
+        };
+        let live = false, rest = 1, quiet = 0, then = null;
+        const settle = () => {
+          clearTimeout(quiet);
+          const a = deck.active();
+          fit(a);
+          if (live && a !== rest) {
+            const box = this.scrollerOf(sec);
+            const deep = box && sec.getBoundingClientRect().top < box.getBoundingClientRect().top;
+            this.focusChosen(sec, deep);
+          }
+          rest = a;
+          live = false;
+          if (then && then.at === a) { const f = then.f; then = null; f(); }
+        };
+        deck.onSlide(a => this.paintReading(sec, READ[a]));
+        deck.track.addEventListener('scroll', () => { clearTimeout(quiet); quiet = setTimeout(settle, 160); }, { passive: true });
+        deck.track.addEventListener('scrollend', settle);
+        deck.track.addEventListener('pointerdown', () => { live = true; });
+        // A reader's turn (a stop) selects the passage once it settles; the
+        // page's own (a mark inside the passage, `f`) runs f once it has.
+        sec._focusGo = (r, f) => {
+          const at = READ.indexOf(r);
+          if (f) { if (deck.active() === at && sec.dataset.reading === r) return f(); then = { at, f }; } else live = true;
+          deck.go(at);
+        };
+        requestAnimationFrame(() => { deck.go(1, 'instant'); fit(1); });
+        if (typeof ResizeObserver === 'function') {
+          const ro = new ResizeObserver(() => fit(deck.active()));
+          ro.observe(txt); ro.observe(ctx);
+        }
+      },
+      // Each citation's text wrapped where the render drew it, cut at its own
+      // edges inside the mapped text nodes, so the pad can find it and mark
+      // it. One citation across an italic is several pieces with one index.
+      wrapCitations(box, cites) {
+        for (const sp of [...box.querySelectorAll('[data-src]')]) {
+          const node = sp.firstChild;
+          if (!node || node.nodeType !== 3) continue;
+          const s = +sp.dataset.src, raw = node.data, e = s + raw.length;
+          const hits = cites.map((c, k) => ({ ...c, k })).filter(c => c.start < e && c.end > s);
+          if (!hits.length) continue;
+          const frag = document.createDocumentFragment();
+          let cur = s;
+          for (const c of hits) {
+            const a = Math.max(s, c.start), b = Math.min(e, c.end);
+            if (a > cur) frag.append(raw.slice(cur - s, a - s));
+            const w = document.createElement('span');
+            w.dataset.cite = String(c.k);
+            w.textContent = raw.slice(a - s, b - s);
+            frag.append(w);
+            cur = b;
+          }
+          if (cur < e) frag.append(raw.slice(cur - s));
+          sp.replaceChildren(frag);
+        }
+      },
+
+      // A tap on a piece's own controls: its face, or the voice or the focus
+      // control in the head, which is outside the piece's body and so names
+      // the piece.
+      exemplarClick(e) {
+        const tab = e.target.closest('[data-exemplar-tab]');
+        if (tab) { this.setExemplarTab(tab.getAttribute('data-exemplar-tab')); return true; }
+        const reading = e.target.closest('[data-focus-reading]');
+        if (reading) { this.setFocusReading(reading.closest('[data-focus]'), reading.getAttribute('data-focus-reading')); return true; }
+        const claim = e.target.closest('[data-focus-claim]');
+        if (claim) { this.claimFocus(claim.closest('[data-focus]')); return true; }
+        const voice = e.target.closest('[data-exemplar-speak]');
+        if (voice) { this.speakCard(voice.getAttribute('data-exemplar-speak')); return true; }
+        return false;
+      },
+      scrollerOf(el) {
+        let box = el && el.parentElement;
+        while (box && box !== document.body
+          && !(/auto|scroll/.test(getComputedStyle(box).overflowY) && box.scrollHeight > box.clientHeight)) box = box.parentElement;
+        return box && box !== document.body ? box : null;
+      },
+      // Below the stuck face toggle, with a little room. On a phone the list
+      // stands above the card and the card starts halfway down, so the page
+      // brings the card up first: the mark is what the reader asked to read,
+      // and a look link's dock covers the lower half of the screen.
+      scrollToMark(body, el) {
+        const box = this.scrollerOf(el);
+        if (!box) return el.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        const card = this.$refs?.exemplarCard;
+        if (card?.contains(box) && card.getBoundingClientRect().top > 8)
+          window.scrollTo({ top: window.scrollY + card.getBoundingClientRect().top - 8, behavior: 'smooth' });
+        const top = box.getBoundingClientRect().top;
+        const bar = body.querySelector('[role="tablist"]')?.parentElement;
+        const under = bar ? Math.max(0, bar.getBoundingClientRect().bottom - top) : 0;   // below the stuck toggle
+        box.scrollTo({ top: box.scrollTop + el.getBoundingClientRect().top - top - under - 12, behavior: 'smooth' });
+      },
+
+      // ── Marks ─────────────────────────────────────────────────────────────
+      // A piece's marked passages, in the order the file has them: the
+      // caption (shown in Context) and each focus passage. The citations are
+      // the pad's other kind (padItems), one at a time.
+      markItems(p) {
+        if (!p) return [];
+        const items = [], n = p.focusSpans.length;
+        if (p.captionSpans.length) items.push({ key: 'caption', at: p.captionSpans[0].start, label: 'caption',
+          go: () => this.goMark(p.id, 'caption') });
+        p.focusSpans.forEach((f, k) => items.push({ key: 'focus' + k, at: f.start, label: `focus ${k + 1} of ${n}`,
+          go: () => this.goMark(p.id, 'focus', k) }));
+        return items.sort((a, b) => a.at - b.at);
+      },
+      // What the pad follows: a change in any of these refreshes it.
+      get padSig() {
+        return [this.exemplarSel, this.exemplars.length, this.padKind].join('|');
+      },
+      // The pad's arrows step through the piece's marked passages, the caption
+      // and each focus, in the order the file has them; a tap on the bookmark
+      // turns them to the citations, one at a time, since an opinion's hundred
+      // are a different walk from its two passages.
+      padItems() {
+        const p = this.exemplarOf(this.exemplarSel);
+        if (!p) return [];
+        const c = p.citationSpans || [];
+        if (this.padKind === 'citations' && c.length)
+          return c.map((_, k) => ({ key: 'cite' + k, label: `citation ${k + 1} of ${c.length}`, go: () => this.goMark(p.id, 'cite', k) }));
+        return this.markItems(p).map(m => ({ key: m.key, label: m.label, go: m.go }));
+      },
+      // A mark the reader reached another way (its passage's stops or its
+      // number, or a swipe between its readings) is where they are, so the pad
+      // counts it and its next arrow goes on from it, as md-diff's strip goes
+      // on from the change a reader last claimed.
+      padFollow(id, kind, k = 0) {
+        if (!this.pad || id !== this.exemplarSel) return;
+        const key = kind === 'cite' ? 'cite' + k : kind === 'focus' ? 'focus' + k : 'caption';
+        const i = this.padItems().findIndex(it => it.key === key);
+        if (i >= 0) this.pad.set(i);
+      },
+      mountPad() {
+        if (this.pad || !window.MarkPad) return;
+        this.pad = window.MarkPad.mount({
+          at: 'marks',
+          items: () => this.padItems(),
+          go: (i, item) => item.go(),
+          scope: () => [this.exemplarSel, this.padKind].join('|'),
+          idle: n => this.padKind === 'citations' ? `${n} citations` : `${n} ${n === 1 ? 'mark' : 'marks'}`,
+          kinds: () => (this.exemplarOf(this.exemplarSel)?.citationSpans || []).length
+            ? [{ key: 'marks', label: 'the marked passages', icon: 'ph-bookmark-simple' },
+               { key: 'citations', label: 'the citations', icon: 'ph-paperclip' }] : [],
+          kind: () => this.padKind,
+          choose: k => { this.padKind = k; },
+        });
+      },
+      // The body on screen for a piece: the deck's when one is open over the
+      // card, else the card's.
+      visibleBody(id) {
+        const all = [...document.querySelectorAll('[data-exemplar-body]')]
+          .filter(b => b.getAttribute('data-exemplar-body') === id && b.getClientRects().length);
+        const inView = b => { const r = b.getBoundingClientRect(); return r.right > 1 && r.left < innerWidth - 1; };
+        return all.find(b => b.closest('.sd-overlay') && inView(b)) || all.find(inView) || all[0] || null;
+      },
+      // Show the mark's face, scroll to it, and mark it until another is
+      // chosen, in the base colour, since this page takes no colour.
+      goMark(id, kind, k = 0) {
+        const body = this.visibleBody(id);
+        if (!body) return;
+        this.padFollow(id, kind, k);
+        const go = () => {
+          // A citation across an italic is several pieces, and all of them ring.
+          const els = kind === 'caption' ? [body.querySelector('[aria-label="Caption"]')?.parentElement]
+            : kind === 'focus' ? [body.querySelectorAll('[data-focus]')[k]] : [...body.querySelectorAll(`[data-cite="${k}"]`)];
+          if (!els[0]) return;
+          // A mark inside a passage turned to its background is out of sight:
+          // the passage turns back to its text first, and the card goes there
+          // once its track has settled.
+          const inside = kind === 'cite' && els[0].closest('[data-focus]');
+          if (inside && inside.dataset.reading !== 'text' && inside._focusGo) return inside._focusGo('text', go);
+          this.scrollToMark(body, els[0]);
+          this.ringMark(kind === 'cite' ? els : [this.ringable(body, els[0])]);
+        };
+        const face = kind === 'caption' ? 'context' : 'text';
+        if (body.getAttribute('data-tab') !== face) { this.setExemplarTab(face); requestAnimationFrame(go); } else go();
+      },
+      // A block mark rings. A citation runs inside a sentence and across
+      // italics in several pieces, where a ring a piece is a row of boxes, so
+      // it is underlined instead, one line through all of its pieces.
+      RING: ['ring-2', 'ring-base-content/40', 'ring-offset-4', 'ring-offset-base-100', 'rounded-sm'],
+      UNDERLINE: ['underline', 'decoration-2', 'decoration-base-content/60', 'underline-offset-[6px]'],
+      // A RING THE READER SEES WHOLE. A block taller than the card's view
+      // cannot be ringed whole, and a ring the card's edge cuts off reads as
+      // a fault, so such a block is ringed at its opening instead: a caption
+      // at its first paragraph, or at its own icon where even that is taller
+      // than the view, as the notice that opens an opinion is on a phone. A
+      // focus passage has an outline of its own and marks itself (ringMark).
+      ringable(body, el) {
+        if (el.matches('[data-focus]')) return el;
+        const box = this.scrollerOf(el), row = body.querySelector('[role="tablist"]')?.parentElement;
+        if (!box) return el;
+        const under = row ? Math.max(0, row.getBoundingClientRect().bottom - box.getBoundingClientRect().top) : 0;
+        const room = box.clientHeight - under - 24;
+        if (el.offsetHeight <= room) return el;
+        const open = el.querySelector('.guide-body > :first-child, p');
+        if (open && open.offsetHeight <= room) return open;
+        return el.querySelector(':scope > [aria-label]') || el;
+      },
+      // SELECTION STAYS, as md-diff's does: the mark the reader was taken to
+      // stays marked until another is chosen, rather than flashing and going
+      // out, which left the pad's bookmark counting a mark the page no longer
+      // showed. A focus passage already wears an outline, so it is selected
+      // rather than ringed (data-on): a faint wash fills it and its number
+      // fills, on either reading, as md-diff marks the change a reader is on,
+      // in the base colour.
+      ringMark(els) {
+        for (const [e, c] of this._ringEls || []) c ? e.classList.remove(...c) : e.removeAttribute('data-on');
+        this._ringEls = [].concat(els).filter(Boolean).map(e => [e, e.matches('[data-focus]') ? null : e.matches('[data-cite]') ? this.UNDERLINE : this.RING]);
+        for (const [e, c] of this._ringEls) c ? e.classList.add(...c) : e.setAttribute('data-on', '');
+      },
+
+      // The pieces one at a time, the card in a takeover. Its place follows
+      // the list, so closing it returns to the piece last read. The header
+      // names the piece in view and is set again on every slide (the snag
+      // swipe-deck-generic-header); the icon says what kind of slide it is.
+      // The voice is read-aloud's deck action: it starts at the slide in view
+      // and drives the deck, and a swipe re-points it.
+      async openExemplarDeck(start = 0) {
+        const ids = this.exemplarIds();
+        if (!ids.length) return;
+        await gh.load('kits/swipe-deck.js');
+        this.quietCard();
+        const at = Math.min(Math.max(0, start), ids.length - 1);
+        const name = i => { const p = this.exemplarOf(ids[i]) || {};
+          return { title: this.listTitle(p), sub: [this.surnames(p.author), this.shortYear(p.year), p.genre].filter(Boolean).join(' · ') }; };
+        const speaker = window.readAloud?.supported ? window.readAloud.deckAction({
+          items: this.speechItems(ids), title: 'Read the text aloud from this piece' }) : null;
+        let handle = null;
+        handle = window.swipeDeck.open({
+          count: ids.length,
+          start: at,
+          title: name(at).title,
+          subtitle: name(at).sub,
+          icon: this.ICON,
+          innerClass: 'w-full min-w-0 mx-auto',
+          actions: speaker ? [speaker.action] : [],
+          index: i => {
+            const p = this.exemplarOf(ids[i]);
+            return { title: this.listTitle(p), subtitle: [this.shortAuthor(p.author), this.shortYear(p.year)].join(' · '), group: p.genre };
+          },
+          render: (i, slide) => {
+            const el = document.createElement('div');
+            el.innerHTML = this.exemplarCardHtml(ids[i]);
+            el.addEventListener('click', e => this.exemplarClick(e));
+            slide.append(el);
+          },
+          onSlide: i => {
+            const n = name(i);
+            handle?.setTitle?.(n.title);
+            handle?.setSubtitle?.(n.sub);
+            speaker?.onSlide(i);
+            this.exemplarSel = ids[i];
+            this.swipers?.exemplar?.show(ids[i]);
+            this.syncSel();
+            this.syncDeckAddress('exemplars', i);
+          },
+          onClose: () => { speaker?.stop(); this.syncDeckAddress(''); },
+        });
+        this.syncDeckAddress('exemplars', at);
+        return handle;
+      },
+    }));
+  });
+
+  await gh.load('alpine-bundle.js');   // starts Alpine
+ } catch (e) {
+  // Without this the page has no way to say anything. The boot chain runs
+  // before Alpine, and every element is inside the x-cloak root, so a rejected
+  // await left a blank white page carrying no clue as to which step failed.
+  const b = document.getElementById('boot');
+  if (b) b.textContent = `boot failed at ${location.hostname}: ${e.message || e}`;
+  throw e;
+ }
+</script>
+</head>
+
+<body class="bg-base-100 min-h-dvh text-base-content">
+
+<!-- Sits outside the cloaked root and is removed by init(), so the page always
+     says something: booting, or which step failed. -->
+<div id="boot" class="p-6 font-mono text-sm opacity-70">loading…</div>
+
+<div x-data="skillLab" x-cloak class="[&[x-cloak]]:hidden h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+
+  <!-- The title shows only when the page stands alone; framed, the app's
+       header names it. One pane, so no tab strip. -->
+  <header x-show="!framed" class="px-4 sm:px-6 pt-3 pb-2 flex items-center gap-2 border-b border-base-200">
+    <i class="ph ph-pen-nib text-xl text-base-content/50"></i>
+    <h1 class="text-lg font-semibold">Skill Lab</h1>
+  </header>
+
+  <main class="row-start-2 min-h-0" :class="listDetail ? 'overflow-hidden' : 'overflow-y-auto'">
+
+   <!-- ── a list with a detail ──────────────────────────────────────────
+        html-style rule 11, drawn by kits/linked-swiper.js: the list beside
+        the card when the page is wide, over it when narrow, each scrolling
+        inside itself. The rows and the cards are built in script
+        (exemplarListHtml, exemplarCardHtml), since the kit fills the card
+        itself. data-pattern declares the unit (data/ui-units/codebook.md);
+        nothing at runtime reads it. -->
+   <div x-show="listDetail" class="h-full p-2" data-pattern="list-detail">
+     <div x-ref="exemplarBox" class="h-full">
+       <div x-ref="exemplarList" role="listbox" aria-label="Exemplars" data-part="list"></div>
+       <div x-ref="exemplarCard" class="min-h-0" data-part="detail"></div>
+     </div>
+   </div>
+
+   <!-- ── until the pieces are read ─────────────────────────────────────── -->
+   <section x-show="!listDetail" class="px-4 sm:px-6 py-5 mx-auto max-w-[72rem]">
+     <div x-show="exemplarState === 'idle' || exemplarState === 'loading'" class="py-24 text-center">
+       <span class="loading loading-dots loading-md opacity-60"></span>
+     </div>
+     <div x-show="exemplarState === 'error'" class="font-mono text-sm text-error py-6 break-words" x-text="exemplarError"></div>
+     <p x-show="exemplarState === 'done' && !exemplars.length" class="py-16 text-center font-mono text-xs opacity-70">
+       no pieces at this ref
+     </p>
+   </section>
+  </main>
+</div>
+
+</body>
+</html>

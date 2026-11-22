@@ -256,3 +256,9 @@ test('exact badges wait for the record read and report its captured discussion',
   Alpine.destroyTree(box); box.remove();
   assert.deepEqual(problems, []);
 });
+
+test('a passage is cut around the match even when lowercasing lengthens the text before it', () => {
+  const rec = { ...record, replies: [{ at: at(2), text: 'İ'.repeat(100) + ' the needle sits here ' + 'z'.repeat(50) }] };
+  const hit = window.sessionRender.find(rec, 'needle').hits[0];
+  assert.match(hit.passages[0].text, /needle/);
+});

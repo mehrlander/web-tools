@@ -11,10 +11,10 @@
   const file='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0 text-stone-500" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5"/></svg>';
   const arrow='<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" class="size-3 shrink-0 text-stone-500" aria-hidden="true"><path d="m6 4 4 4-4 4"/></svg>';
   const workfolders='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="size-4 shrink-0" aria-hidden="true"><path d="M7 3h5l2 2h7v12M3 7h5l2 2h7v12H3Z"/></svg>';
-  const roots={gh:'Repository folders',outputs:'Assistant outputs'};
+  const roots={downloads:'Downloads',gh:'Repository folders',outputs:'Assistant outputs'};
   const imageTypes=new Set(['image/png','image/jpeg','image/gif','image/webp']);
   const textLimit=1024*1024,imageLimit=32*1024*1024;
-  let current=null,rootId='gh',openedFile='',filter='all',query='',listing,snapshot,live=false,active=false,timer,controller,failed=false,denied=false,signature='';
+  let current=null,rootId='downloads',openedFile='',filter='all',query='',listing,snapshot,live=false,active=false,timer,controller,failed=false,denied=false,signature='';
   let contentController,previewUrl='',contentState;
   const cache=new Map();
   const folderStates=new Map();
@@ -134,7 +134,7 @@
   function branchLine(checkout,hint=''){
     if(!checkout)return '';
     const name=checkout.branch==='(detached)'?checkout.branchStatus?.state==='snapshot'?(checkout.main?.branch||'Default branch')+' snapshot':'Detached commit':checkout.branch||'Branch unavailable';
-    return `<div class="flex min-w-0 items-center gap-x-2 pl-6 pr-3 text-xs leading-5 text-stone-600"><span class="flex min-w-0 flex-1 items-start gap-1">${window.NowRepositories.branchControl(checkout)}<span data-file-branch="${checkout.key}" tabindex="0" data-title-tip="${escape(hint?hint+' · '+name:name)}" data-title-tip-bare class="min-w-0 truncate">${hint?`<span class="text-stone-500">${escape(hint)} · </span>`:''}${escape(name)}</span></span>${window.NowRepositories.comparison(checkout.tracked,checkout.key+':files')}</div>`;
+    return `<div class="flex min-w-0 items-center gap-x-2 pl-6 pr-3 text-xs leading-5 text-stone-600"><span class="flex min-w-0 flex-1 items-start gap-1">${window.NowRepositories.branchControl(checkout)}<span data-file-branch="${checkout.key}" tabindex="0" data-title-tip="${escape(hint?hint+' · '+name:name)}" class="min-w-0 truncate">${hint?`<span class="text-stone-500">${escape(hint)} · </span>`:''}${escape(name)}</span></span>${window.NowRepositories.comparison(checkout.tracked,checkout.key+':files')}</div>`;
   }
   const isMain=checkout=>Boolean(checkout&&checkout.branch!=='(detached)'&&(checkout.branch===checkout.main?.branch||!checkout.main?.branch&&checkout.branchStatus?.state==='main'));
   function rootGroups(items){
@@ -152,7 +152,7 @@
   const isExpanded=key=>expanded.has(key)||Boolean(query)&&!searchCollapsed.has(key);
   function groupControl(key,count,name){
     const open=isExpanded(key),tip=count+' other work '+(count===1?'folder':'folders');
-    return `<button data-workfolders="${key}" data-focus="${key}:workfolders" aria-expanded="${open}" aria-controls="workfolders-${key}" aria-label="${open?'Hide':'Show'} ${tip} for ${escape(name)}" data-title-tip="${tip}" data-title-tip-bare class="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-md px-1.5 text-[11px] tabular-nums ${open?'bg-sky-50 text-sky-800':'text-stone-500'}">${workfolders}<span>${count}</span></button>`;
+    return `<button data-workfolders="${key}" data-focus="${key}:workfolders" aria-expanded="${open}" aria-controls="workfolders-${key}" aria-label="${open?'Hide':'Show'} ${tip} for ${escape(name)}" data-title-tip="${tip}" class="inline-flex min-h-8 shrink-0 items-center justify-center gap-1 rounded-md px-1.5 text-[11px] tabular-nums ${open?'bg-sky-50 text-sky-800':'text-stone-500'}">${workfolders}<span>${count}</span></button>`;
   }
   function entryRow(e,checkout,inventory,{label=e.name,control='',repo=false}={}){
     const path=(current?current+'/':'')+e.name,main=repo&&isMain(checkout);
@@ -231,7 +231,7 @@
     finally{clearTimeout(timeout);if(controller===request){controller=null;if(active&&current===path&&rootId===root){results();timer=setTimeout(poll,failed?15000:10000);}}}
   }
   function render(value,path,isLive,options={}){
-    const nextRoot=options.root||'gh',nextFile=options.file||'';
+    const nextRoot=options.root||'downloads',nextFile=options.file||'';
     snapshot=value;live=isLive;header(Boolean(path)||Boolean(nextFile));
     if(current!==path||rootId!==nextRoot||openedFile!==nextFile||!active){
       stop();active=true;current=path;rootId=nextRoot;openedFile=nextFile;signature='';failed=false;denied=false;
@@ -252,8 +252,8 @@
   function setFilter(value){if(active&&!openedFile&&['all','tracked','untracked','ignored'].includes(value)&&filter!==value){filter=value;results();}}
   document.addEventListener('click',async event=>{
     if(!active||!openedFile||!event.target.closest('[data-file-copy]'))return;
-    const root=rootId,path=openedFile,url=new URL(location.pathname,location.origin),params=new URLSearchParams({view:'files'});
-    if(root!=='gh')params.set('root',root);params.set('file',path);url.hash=params.toString();
+    const root=rootId,path=openedFile,url=new URL(location.pathname,location.origin),params=new URLSearchParams({view:'files',root});
+    params.set('file',path);url.hash=params.toString();
     let message='Link copied';try{await navigator.clipboard.writeText(url.href);}catch{message='Copy unavailable';}
     if(active&&rootId===root&&openedFile===path&&contentState?.state==='ready')el('file-status').textContent=message;
   });

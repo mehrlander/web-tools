@@ -78,6 +78,7 @@
   const safeUrl = value => { try { const url = new URL(value); return url.origin === 'https://mehrlander.github.io' && !url.username && !url.password && !url.port && url.pathname.startsWith('/web-tools/') ? url.href : ''; } catch { return ''; } };
   let data, assistant = '', timer, etag = '', failures = 0, pending = false, connected = false, accessDenied = false, savedScroll = 0;
   let launchKey = '', copiedTitle = '', savedKey = '', temporaryItem = null, forceAfterPoll = false, detailTrail = null;
+  let syncRetryPending = false, syncRetryUntil = 0, syncRetryMessage = '';
   const desktop = !/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) && !(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   const selectedDetails = new Map();
   const replies = new Map();
@@ -85,7 +86,7 @@
   const active = i => i.state === 'working' && !i.needsAttention;
   const recordedChange = change => ({...change,kind:'change',state:'recorded'});
   const selected = () => { try { const p=new URLSearchParams(location.hash.slice(1)); return p.get('item') || ((!p.get('view') || p.get('view') === 'now') ? p.get('session') || '' : ''); } catch { return ''; } };
-  const backLabel = () => history.state?.nowDetail && history.state?.originView === 'usage' ? '← Usage' : '← Now';
+  const backLabel = () => history.state?.nowDetail && history.state.fromDetail ? '← Back' : '← ' + (history.state?.nowDetail ? ({now:'Now',usage:'Usage',errands:'Errands',computer:'Computer',files:'Files'}[history.state.originView] || 'Now') : 'Now');
   const nowScroll = () => window.NowViews?.scrollPosition?.() ?? window.scrollY;
   const scrollNow = top => window.NowViews?.scrollTo ? window.NowViews.scrollTo(top) : window.scrollTo(0,top);
   const metadata = () => window.NowPhoneUsage?.sessionUsage?.() || {};
@@ -219,16 +220,33 @@
 
   function savedObservation() {
     const at = Date.parse(data.observedAt);
-    return !connected || !data.sources.recordsConnected || !Number.isFinite(at) || Date.now()-at >= 15000;
+    return !connected || !Number.isFinite(at) || Date.now()-at >= 15000;
+  }
+
+  const syncNames = {errands:'Errands',sessions:'Session history',summaries:'Session summaries'};
+  const syncErrors = {timeout:'The refresh took too long.', 'fetch-failed':'Could not refresh from GitHub.', 'read-failed':'The saved records could not be read.', 'invalid-data':'The received records could not be interpreted.', 'repository-unavailable':'The local activity repository is unavailable.'};
+  const syncError = code => Object.hasOwn(syncErrors,code) ? syncErrors[code] : 'The refresh failed.';
+  function syncFeeds() {
+    return Object.entries(syncNames).flatMap(([key,label]) => {
+      const health = data?.sources?.sync?.[key];
+      return health && ['unknown','refreshing','ok','error'].includes(health.state) ? [{...health,key,label}] : [];
+    });
+  }
+  const validTime = value => typeof value === 'string' && Number.isFinite(Date.parse(value));
+  function syncNotice() {
+    return syncFeeds().filter(feed => feed.state === 'error' || feed.state === 'refreshing' && feed.errorCode).map(feed => {
+      const saved = savedObservation(), label = `${feed.label} ${saved ? 'status' : feed.state === 'refreshing' ? 'retrying' : feed.errorCode === 'timeout' ? 'timed out' : 'delayed'}`;
+      return `<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5"><a data-sync-status="${feed.key}" href="#view=now&amp;session=status%3Async" class="inline-flex min-h-7 items-center gap-1 rounded text-sm font-medium underline decoration-amber-700/40 underline-offset-4 ${focusStyle}" aria-label="${escape(feed.label+': '+syncError(feed.errorCode)+' Open connection status.')}"${saved?' data-saved-observation':''}>${escape(label)}<span aria-hidden="true">›</span></a><span class="text-xs">${validTime(feed.succeededAt)?`Last synced ${observedTime(feed.succeededAt)}`:'No successful refresh recorded'}</span>${saved?'<span class="w-full text-xs">Saved sync status</span>':''}</div>`;
+    }).join('');
   }
 
   function queueNotice() {
     const waiting = data.items.filter(item => item.kind === 'errand' && keyFor(item.provider) === 'gemini' && item.state === 'queued');
     if (!waiting.length || data.sources.workerState !== 'absent') return '';
     const label = `${waiting.length} Gemini ${waiting.length === 1 ? 'errand' : 'errands'} waiting`;
-    const saved = savedObservation();
+    const saved = savedObservation(), savedQueue = saved || !data.sources.recordsConnected;
     const link = `inline-flex min-h-7 items-center gap-1 rounded underline decoration-amber-700/40 underline-offset-4 ${focusStyle}`;
-    return `<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><a data-queue-notice="gemini" href="#view=errands&amp;provider=gemini&amp;tab=waiting" class="${link} text-sm font-medium" aria-label="${escape('Review '+label)}">${escape(label)}<span aria-hidden="true">›</span></a><a data-worker-status="gemini" href="#view=now&amp;session=worker%3Agemini" class="${link}" aria-label="${saved?'Last observation: Gemini errand daemon not detected.':'Gemini errand daemon not detected.'} Open daemon status.">${saved?'Daemon status':'Daemon not detected'}<span aria-hidden="true">›</span></a>${saved ? '<span class="w-full text-xs">Saved queue and daemon status</span>' : ''}</div>`;
+    return `<div class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><a data-queue-notice="gemini" href="#view=errands&amp;provider=gemini&amp;tab=waiting" class="${link} text-sm font-medium" aria-label="${escape('Review '+label)}">${escape(label)}<span aria-hidden="true">›</span></a><a data-worker-status="gemini" href="#view=now&amp;session=worker%3Agemini" class="${link}" aria-label="${saved?'Last observation: Gemini errand daemon not detected.':'Gemini errand daemon not detected.'} Open daemon status.">${saved?'Daemon status':'Daemon not detected'}<span aria-hidden="true">›</span></a>${savedQueue ? `<span class="w-full text-xs">${saved?'Saved queue and daemon status':'Saved queue'}</span>` : ''}</div>`;
   }
 
   function render() {
@@ -239,7 +257,7 @@
     // Rebuilding open panels can temporarily shorten the document and clamp its scroll position.
     const viewport = {left:window.scrollX,top:nowScroll()};
     const focus = ['content','assistants','notice'].some(id => el(id).contains(document.activeElement)) ? document.activeElement : null;
-    const focusAction = focus && ['pick','status','assistant','providerMenu','launch','sessionTokens','topicContext','queueNotice','workerStatus'].find(key => focus.dataset[key]);
+    const focusAction = focus && ['pick','status','assistant','providerMenu','launch','sessionTokens','topicContext','queueNotice','workerStatus','syncStatus'].find(key => focus.dataset[key]);
     const focusKey = focusAction && focus.dataset[focusAction];
     const focusOwner = focus?.dataset.for;
     html('assistants', ['codex','gemini','claude'].map(key => {
@@ -251,7 +269,8 @@
       return `<div class="${ui.provider}"><button data-assistant="${key}" aria-pressed="${assistant === key}" aria-label="${escape({codex:'Codex',gemini:'Gemini',claude:'Claude'}[key] + ': ' + shown.map(s=>s.count+' '+s.label.toLowerCase()).join(', '))}" class="${ui.providerFilter}"><span class="${ui.providerName} ${colours[key]}">${mark(key)}${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]}</span><span class="${ui.providerCounts}">${shown.map(s=>`<span class="phone-status-${s.tone} ${statusTones[s.tone]} ${ui.count}" title="${escape(s.count+' '+s.label)}">${icon(s.glyph)}<span>${s.count}</span></span>`).join('')}</span></button><button data-provider-menu="${key}" class="${ui.providerMore}" aria-label="${{codex:'Codex',gemini:'Gemini',claude:'Claude'}[key]} options" aria-haspopup="menu" aria-expanded="${launchKey === 'provider:'+key}">${icon('more')}</button></div>`;
     }).join(''));
     const items = filtered();
-    html('notice', queueNotice() + data.sources.notices.filter(Boolean).map(note => `<div>${escape(note)}</div>`).join(''));
+    const syncNotices = new Set(syncFeeds().length && Array.isArray(data.sources.syncNotices) ? data.sources.syncNotices : []);
+    html('notice', queueNotice() + syncNotice() + data.sources.notices.filter(note => note && !syncNotices.has(note)).map(note => `<div>${escape(note)}</div>`).join(''));
     const {current,needs,accepted,arriving,queued,quiet,recent} = activityGroups(items);
     const queueTitle = data.sources.recordsConnected ? 'Waiting' : 'Waiting · Saved queue';
     const queue = queued.length ? group(queueTitle,queued,'',true) : assistant === 'gemini' && !data.sources.queueAvailable ? group('Waiting',[],'Queue unavailable') : '';
@@ -262,7 +281,7 @@
     updateTimes(); detail(); connection(); renderLaunch();
     if (focusAction && !focus.isConnected) {
       const target = [...document.querySelectorAll('#content button,#content a,#assistants button,#assistants a,#notice a')].find(n => n.dataset[focusAction] === focusKey && n.dataset.for === focusOwner);
-      (target || (['queueNotice','workerStatus'].includes(focusAction) ? el('view-picker') : null))?.focus({preventScroll:true});
+      (target || (['queueNotice','workerStatus','syncStatus'].includes(focusAction) ? el('view-picker') : null))?.focus({preventScroll:true});
     }
     document.querySelectorAll('time[data-at]').forEach(node => { node.textContent = age(node.dataset.at); });
     if (!selected() && nowScroll() !== viewport.top) scrollNow(viewport.top);
@@ -340,9 +359,9 @@
   }
   function openSession(key){
     if(typeof key!=='string'||!key||key.length>1024||/[\u0000-\u001f]/.test(key))return;
-    const route='#view=now&session='+encodeURIComponent(key),originView=window.NowViews?.current?.()==='usage'?'usage':'now';
+    const route='#view=now&session='+encodeURIComponent(key),originView=window.NowViews?.current?.() || 'now';
     detailTrail=makeTrail(key,originView);savedScroll=detailTrail.scroll;savedKey=key;closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});
-    if(location.hash!==route)history.pushState({nowDetail:true,originView,nowSessionTrail:detailTrail},'',route);
+    if(location.hash!==route)history.pushState({nowDetail:true,originView,nowSessionTrail:detailTrail,fromDetail:!!selected()},'',route);
     window.NowViews?.setView?.('now',false);render();detail();connection();window.scrollTo(0,0);
     el('detail').querySelector('h2')?.focus({preventScroll:true});
   }
@@ -434,6 +453,7 @@
     window.NowViews?.setContext?.(key && key !== 'worker:gemini' ? item || null : null);
     if (!key) return;
     if (key === 'worker:gemini') { workerDetail(); return; }
+    if (key === 'status:sync') { syncDetail(); return; }
     if (!item) {
       html('detail',`<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button>${sessionNavigation(key)}</header><div id="detail-connection"></div><p class="p-4 text-base">Activity is no longer in the current snapshot.</p>`);
       return;
@@ -452,6 +472,49 @@
     if (item.kind === 'errand' && ['reply','complete','declined','failed'].includes(item.state) && !replies.has(item.id)) loadReply(item);
   }
 
+  function syncDetail() {
+    if (!data) return;
+    const viewport = {left:window.scrollX,top:window.scrollY}, focused = document.activeElement;
+    const headingFocused = focused === el('detail').querySelector('h2');
+    const focusAttribute = el('detail').contains(focused) && ['data-back','data-sync-retry','data-worker-status'].find(attribute => focused.hasAttribute(attribute));
+    const focusValue = focusAttribute && focused.getAttribute(focusAttribute);
+    const feeds = syncFeeds(), saved = savedObservation(), busy = syncRetryPending || feeds.some(feed => feed.state === 'refreshing');
+    const cooldown = Math.max(0,Math.ceil((syncRetryUntil-Date.now())/1000));
+    const cards = feeds.map(feed => {
+      const state = {unknown:'Not checked',refreshing:'Refreshing',ok:'Up to date',error:'Delayed'}[feed.state];
+      const tone = saved ? 'text-stone-600' : feed.state === 'ok' ? 'text-emerald-700' : feed.state === 'error' ? 'text-amber-800' : 'text-blue-700';
+      const schedule = validTime(feed.nextAttemptAt) && Date.parse(feed.nextAttemptAt) > Date.now() ? `<p class="mt-2 text-xs text-stone-500">Automatic retry ${escape(stamp(feed.nextAttemptAt))}</p>` : feed.state === 'error' ? '<p class="mt-2 text-xs text-stone-500">Retries automatically while the companion is running.</p>' : '';
+      return `<section data-sync-feed="${feed.key}" class="border-b border-stone-100 py-4"><div class="flex flex-wrap items-baseline justify-between gap-2"><h3 class="font-semibold text-stone-800">${feed.label}</h3><span class="text-sm ${tone}">${state}${saved?' · Saved observation':''}</span></div>${feed.errorCode?`<p class="mt-2 text-sm text-amber-800">${escape(syncError(feed.errorCode))}</p>`:''}<dl class="mt-3 grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-2 text-sm text-stone-600"><dt>Last successful refresh</dt><dd class="text-right">${validTime(feed.succeededAt)?observedTime(feed.succeededAt):'Not yet'}</dd><dt>Last attempt</dt><dd class="text-right">${validTime(feed.attemptedAt)?observedTime(feed.attemptedAt):'Not yet'}</dd>${feed.key === 'sessions' && validTime(data.sources.cloudCapturedAt)?`<dt>Snapshot captured</dt><dd class="text-right">${observedTime(data.sources.cloudCapturedAt)}</dd>`:''}</dl>${schedule}</section>`;
+    }).join('');
+    const daemon = {detected:'Detected',absent:'Not detected',unknown:'Status unavailable'}[data.sources.workerState] || 'Status unavailable';
+    const retryMessage = saved ? (connected ? 'Wait for a fresh laptop observation before retrying.' : 'Reconnect to the laptop to request a refresh.') : (syncRetryMessage || 'Refreshes the GitHub feeds; local branches and files stay unchanged.');
+    html('detail',`<header class="${ui.detailHeader}"><button data-back class="${ui.back}">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="px-4 pt-5 pb-10"><h2 tabindex="-1" class="text-xl font-semibold text-stone-800">Connection status</h2><p class="mt-2 text-sm leading-5 text-stone-500">Laptop access, the errand daemon and GitHub feeds are checked separately.</p><a data-worker-status="gemini" href="#view=now&amp;session=worker%3Agemini" class="mt-4 flex min-h-11 items-center justify-between gap-3 border-b border-stone-100 py-2 text-sm text-blue-800 ${focusStyle}"><span>Gemini errand daemon</span><span>${daemon}${saved?' · Saved':''} ›</span></a>${cards || '<p class="py-4 text-sm text-stone-500">Feed status is not available in this snapshot.</p>'}<div class="mt-5"><button data-sync-retry class="min-h-11 rounded-lg border border-stone-300 px-4 py-2 text-sm font-medium text-emerald-800 disabled:opacity-50 ${focusStyle}" ${saved || busy || cooldown || !feeds.length?'disabled':''}>${busy?'Refreshing…':cooldown?'Retry in '+cooldown+'s':'Retry sync'}</button><p role="status" aria-live="polite" class="mt-2 text-sm text-stone-600">${escape(retryMessage)}</p></div></article>`);
+    if (headingFocused) el('detail').querySelector('h2')?.focus({preventScroll:true});
+    else if (focusAttribute) {
+      const target = [...el('detail').querySelectorAll('['+focusAttribute+']')].find(node => node.getAttribute(focusAttribute) === focusValue);
+      (target?.disabled ? el('detail').querySelector('h2') : target)?.focus({preventScroll:true});
+    }
+    updateTimes();
+    if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
+  }
+
+  async function retrySync() {
+    if (!data || savedObservation() || syncRetryPending || Date.now() < syncRetryUntil) return;
+    syncRetryPending = true; syncRetryMessage = 'Requesting a refresh…'; syncDetail();
+    const controller = new AbortController(), timeout = setTimeout(() => controller.abort(),6000);
+    try {
+      const response = await fetch('/api/v1/sync/retry',{method:'POST',headers:{'X-WebTools-Action':'1'},cache:'no-store',signal:controller.signal});
+      const result = await response.json().catch(() => ({}));
+      const delay = Number(result.retryAfterSeconds);
+      if ([202,409,429].includes(response.status)) {
+        syncRetryUntil = Date.now() + (Number.isFinite(delay) && delay > 0 ? Math.min(delay,300) : 15)*1000;
+        syncRetryMessage = response.status === 202 ? 'Refresh requested. Status updates automatically.' : response.status === 409 ? 'A refresh is already in progress.' : 'Please wait briefly before retrying.';
+      } else syncRetryMessage = response.status === 403 ? 'Reconnect through your Tailscale account to retry.' : 'The refresh could not be requested. Try again shortly.';
+    } catch { syncRetryMessage = 'The laptop could not be reached. Reconnect and try again.'; }
+    finally { clearTimeout(timeout); syncRetryPending = false; if (selected() === 'status:sync') { syncDetail(); connection(); } }
+    window.NowPhone?.refresh();
+  }
+
   function workerDetail() {
     if (!data) return;
     const viewport = {left:window.scrollX,top:window.scrollY}, focused = document.activeElement;
@@ -463,6 +526,7 @@
     const jobs = data.items.filter(i => i.kind === 'errand' && keyFor(i.provider) === 'gemini' && ['queued','claimed','reply'].includes(i.state));
     const queued = jobs.filter(i => i.state === 'queued').sort((a,b) => Date.parse(a.createdAt) - Date.parse(b.createdAt));
     const accepted = jobs.filter(i => i.state !== 'queued');
+    const savedQueue = savedObservation() || !source.recordsConnected;
     const status = source.workerState === 'detected' ? 'Detected' : source.workerState === 'absent' ? 'Not detected' : 'Status unavailable';
     const saved = savedObservation(), now = Date.now();
     const session = data.items.filter(i => ['session','cloud'].includes(i.kind) && keyFor(i.provider) === 'gemini'
@@ -470,7 +534,7 @@
       .sort((a,b) => Date.parse(b.at)-Date.parse(a.at))[0];
     const observations = `<dl class="mt-3 space-y-3 text-sm"><div data-daemon-observation><dt class="text-xs text-stone-500">Errand daemon${saved?' · Saved observation':''}</dt><dd class="mt-0.5 font-medium ${source.workerState === 'absent'?'text-amber-800':'text-stone-700'}">${status}</dd>${Number.isFinite(Date.parse(data.observedAt))?`<dd class="mt-0.5 text-xs text-stone-500">Observed ${observedTime(data.observedAt)}</dd>`:''}</div><div data-gemini-observation><dt class="text-xs text-stone-500">Gemini sessions${saved?' · Saved observation':''}</dt><dd class="mt-0.5 text-stone-700">${session?`Session update observed ${observedTime(session.at)}`:'No session update in the past day in this snapshot'}</dd></div><div><dt class="text-xs text-stone-500">Gemini connection</dt><dd class="mt-0.5 text-stone-700">Not checked</dd></div></dl>`;
     const reportRows = (reports.length ? `<ol class="px-4">${reports.map(r => { const job = r.itemId && data.items.find(i => i.kind === 'errand' && i.id === r.itemId); return `<li class="border-b border-stone-100 py-3"><p class="text-xs text-stone-500">${escape(stamp(r.at))}</p><p class="mt-0.5 text-[13px] leading-5">${escape(r.headline)}</p>${job ? `<button data-pick="${escape(job.key)}" class="min-h-11 text-left text-sm text-blue-800">${escape(job.title)} ›</button>` : ''}</li>`; }).join('')}</ol>` : '<p class="px-4 py-3 text-stone-500">No reports available</p>');
-    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 tabindex="-1" class="text-xl font-semibold">Gemini errand daemon</h2></div>${observations}${reports[0] ? `<p class="mt-2 text-xs text-stone-500">Last report ${observedTime(reports[0].at)} · ${escape(reports[0].headline)}</p>` : ''}<div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div></div>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by daemon',accepted,'',false,false) : ''}<section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section><p class="px-4 pt-5 text-xs leading-5 text-stone-500">Session updates do not verify the daemon’s Gemini connection. Reports show the daemon’s last recorded tasks; process detection or acceptance does not confirm a running task.</p></article>`);
+    html('detail', `<header class="sticky top-0 z-10 flex items-center justify-between border-b border-stone-200 bg-white/95 px-3 py-2 backdrop-blur"><button data-back class="min-h-11 px-2 text-base text-stone-700">${backLabel()}</button><span class="text-xs text-stone-500">Laptop</span></header><div id="detail-connection"></div><article class="pt-5 pb-10"><div class="px-4"><div class="flex items-center gap-2 text-blue-700">${mark('Gemini')}<h2 tabindex="-1" class="text-xl font-semibold">Gemini errand daemon</h2></div>${observations}${reports[0] ? `<p class="mt-2 text-xs text-stone-500">Last report ${observedTime(reports[0].at)} · ${escape(reports[0].headline)}</p>` : ''}<div class="mt-4 flex gap-3 text-sm"><span class="rounded bg-amber-50 px-3 py-2">${source.queueAvailable ? queued.length + ' waiting' : 'Queue unavailable'}</span><span class="rounded bg-blue-50 px-3 py-2">${accepted.length} accepted</span></div>${savedQueue ? '<p class="mt-2 text-xs text-amber-800">Saved queue</p>' : ''}</div>${group('Waiting', queued, source.queueAvailable ? 'Queue clear' : 'Queue unavailable', true, false)}${accepted.length ? group('Accepted by daemon',accepted,'',false,false) : ''}<section><h3 class="px-3 pt-2 pb-1 text-xs font-semibold text-stone-600">Recent reports</h3>${reportRows}</section><p class="px-4 pt-5 text-xs leading-5 text-stone-500">Session updates do not verify the daemon’s Gemini connection. Reports show the daemon’s last recorded tasks; process detection or acceptance does not confirm a running task.</p></article>`);
     if (headingFocused) el('detail').querySelector('h2')?.focus({preventScroll:true});
     else if (focusAttribute) [...el('detail').querySelectorAll('['+focusAttribute+']')].find(node => node.getAttribute(focusAttribute) === focusValue)?.focus({preventScroll:true});
     if (window.scrollX !== viewport.left || window.scrollY !== viewport.top) window.scrollTo(viewport.left,viewport.top);
@@ -514,6 +578,10 @@
   }
 
   document.addEventListener('click', event => {
+    const syncLink = event.target.closest('[data-sync-status]');
+    if (syncLink && !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+      event.preventDefault(); openSession('status:sync'); return;
+    }
     const notice = event.target.closest('[data-queue-notice],[data-worker-status]');
     if (notice && !event.defaultPrevented && event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
       if (notice.dataset.workerStatus) { event.preventDefault();openSession('worker:gemini');return; }
@@ -527,6 +595,7 @@
       }
     }
     const button = event.target.closest('button');
+    if (button?.hasAttribute('data-sync-retry')) { event.preventDefault(); retrySync(); return; }
     if (!button) { if(event.target.closest('#phone-session-menu a')){closeLaunch();return;} if(!event.target.closest('#phone-session-menu'))closeLaunch();const card=event.target.closest('#content [data-item]');if(card&&!event.target.closest('a,input,select,textarea,[data-title-tip]'))openSession(card.dataset.item);return; }
     if(button.dataset.providerMenu){openLaunch('provider:'+button.dataset.providerMenu);return;}
     if(button.dataset.launch){openLaunch(button.dataset.launch);return;}
@@ -575,16 +644,22 @@
     [...panel.querySelectorAll('[data-facet]')].find(n => n.dataset.facet === facet)?.focus({preventScroll:true});
     event.preventDefault();
   });
+  const finishViewReturn=()=>{
+    if(window.NowViews?.active()&&!selected()&&detailTrail){detailTrail=null;el('view-picker')?.focus({preventScroll:true});}
+  };
   const routeChanged=()=>{
     closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});
-    if(window.NowViews?.active())return;
+    if(window.NowViews?.active()){
+      finishViewReturn();
+      return;
+    }
     if(selected()){if(history.state?.nowSessionTrail)assistant=currentTrail().filter||'';render();detail();connection();window.scrollTo(0,0);}
     else if(detailTrail)restoreNow();
     else{render();connection();}
   };
   window.addEventListener('popstate',routeChanged);
   window.addEventListener('hashchange',routeChanged);
-  window.addEventListener('nowviewchange', () => {closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});if(window.NowViews?.active()&&!selected())detailTrail=null;if (!window.NowViews?.active() || window.NowViews.current?.() === 'usage') { render(); connection(); } });
+  window.addEventListener('nowviewchange', () => {closeLaunch();window.NowPhoneInfo?.close({restoreFocus:false});finishViewReturn();if (!window.NowViews?.active() || window.NowViews.current?.() === 'usage') { render(); connection(); } });
   window.addEventListener('nowusagearchivechange',render);
   window.addEventListener('resize',()=>{if(launchKey)placeLaunch();});
   document.addEventListener('scroll',()=>{if(launchKey)closeLaunch();},{capture:true,passive:true});

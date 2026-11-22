@@ -215,7 +215,7 @@ test('the count says what the query left and what it searched', () => {
   assert.equal(data.sessionQueryCount, '');
 });
 
-test('Discussion stays in Activity; Inspect is the explicit query handoff', async () => {
+test('Discussion stays in Activity; Enter is the explicit query handoff', async () => {
   seedSessions();
   SEARCHES.length = 0;
   data.activityQuery = '  merge guide  ';
@@ -225,7 +225,7 @@ test('Discussion stays in Activity; Inspect is the explicit query handoff', asyn
   window.EstateSearch = { sessions: async () => ({ hits: [], indexed: true, missing: [] }) };
   window.SessionIndex = {};
   await data.refreshSessionDiscussion(true);
-  data.inspectSessionMatches();
+  data.openSessionResults();
   // Field by field: the object crosses the vm boundary, so it is structurally
   // equal to a literal here and never reference-equal to one.
   assert.equal(SEARCHES.length, 1);
@@ -235,7 +235,7 @@ test('Discussion stays in Activity; Inspect is the explicit query handoff', asyn
   assert.equal(data.sessionDiscussion, false);
   // An empty box hands off nothing rather than opening the whole store.
   data.activityQuery = '   ';
-  data.inspectSessionMatches();
+  data.openSessionResults();
   assert.equal(SEARCHES.length, 1);
 });
 

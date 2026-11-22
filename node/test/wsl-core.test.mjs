@@ -17,6 +17,8 @@ test('sanitize: booleans to 1/0, ISO dates to M/D/YYYY, sentinels to null', () =
   assert.equal(wslCore.sanitize('false'), '0');
   assert.equal(wslCore.sanitize('2025-01-14T00:00:00'), '1/14/2025');
   assert.equal(wslCore.sanitize('0001-01-01T00:00:00'), null);
+  assert.equal(wslCore.sanitize('0001-01-01'), null);
+  assert.equal(wslCore.sanitize('0001-01-01T00:00:00.000'), null);
   assert.equal(wslCore.sanitize('   '), null);
   assert.equal(wslCore.sanitize(null), null);
   assert.equal(wslCore.sanitize('Sine Die'), 'Sine Die');

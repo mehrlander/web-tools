@@ -99,6 +99,7 @@ test('in web-tools itself, a path to a removed skill is read from code, not from
       '```bash',
       'python3 skills/retired/run.py',
       '```',
+      'Our own skills sit at `.claude/skills/drain/SKILL.md`.',
     ].join('\n'),
     'skills/default/SKILL.md': '# default\n',
   });
@@ -113,6 +114,7 @@ test('in web-tools itself, a path to a removed skill is read from code, not from
   assert.match(out, /skills\/tasks\/SKILL\.md:5 {2}\[skills\/retired\]/, 'a fence is read');
   assert.doesNotMatch(out, /skills\/plugins/, 'bare prose is not read');
   assert.doesNotMatch(out, /skills\/hooks/, 'hooks/ is a folder, not a skill');
+  assert.doesNotMatch(out, /skills\/drain/, "a .claude/skills/ path in a code span is not web-tools' own, even in web-tools");
 }));
 
 test('with no manifest on disk a reference is unverifiable, never dead', () => withLayout((dir) => {

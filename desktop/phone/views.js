@@ -4,7 +4,7 @@
   const names = {now:'Now',usage:'Usage',errands:'Errands',computer:'Computer',files:'Files'};
   const ids = Object.keys(names), positions = Object.fromEntries(ids.map(id => [id,0]));
   const track = el('view-track'), panels = new Map(ids.map(id => [id,el('panel-' + id)]));
-  const interfaceVersion = '26.9';
+  const interfaceVersion = '26.12';
   let current = 'now', deck, registration, updateJob, refreshing = false;
   let startupAligned = false, startupFrame = 0, startupStyles, startupSizes;
   let filesRoute = '#view=files', selectedContext = null;
@@ -55,6 +55,7 @@
     const params = new URLSearchParams(location.hash.slice(1)), requested = params.get('view');
     const next = canonical(requested);
     if (requested === 'devices' || requested === 'repositories') {
+      if(requested==='repositories'&&!params.get('root'))params.set('root','gh');
       params.set('view',next);
       history.replaceState(history.state,'','#' + params);
     }
@@ -180,7 +181,7 @@
     if (event.key === 'Escape' && !el('view-menu').hidden) { closeMenu(true); event.preventDefault(); return; }
     if (event.target === el('view-picker') && event.key === 'ArrowDown') { openMenu(); event.preventDefault(); return; }
     if (el('view-menu').hidden || !['ArrowDown','ArrowUp','Home','End'].includes(event.key)) return;
-    const items = [...el('view-menu').querySelectorAll('[data-view],[data-interface-refresh]')], at = items.indexOf(document.activeElement);
+    const items = [...el('view-menu').querySelectorAll('[data-view],[data-sync-status],[data-interface-refresh]')], at = items.indexOf(document.activeElement);
     items[event.key === 'Home' ? 0 : event.key === 'End' ? items.length - 1 : (at + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length]?.focus({preventScroll:true});
     event.preventDefault();
   });

@@ -57,6 +57,16 @@
       "icon": "ph-flask",
       "order": 60,
       "slug": "text-lab"
+    },
+    {
+      "path": "pages/skill-lab.html",
+      "title": "Skill Lab",
+      "note": "The Sessions program's workshop for skills, starting with exemplars: writing praised for its clarity, kept as reading copies.",
+      "appView": true,
+      "viewLabel": "Skill Lab",
+      "icon": "ph-pen-nib",
+      "order": 70,
+      "slug": "skill-lab"
     }
   ],
   "stage": {
@@ -129,7 +139,8 @@
         "lib/alpineComponents/branch-brief.js",
         "lib/alpineComponents/session-brief.js",
         "lib/alpineComponents/waiting.js",
-        "lib/alpineComponents/user-call-form.js"
+        "lib/alpineComponents/user-call-form.js",
+        "pages/skill-lab.html"
       ],
       "measures": [
         "mehrlander/web-tools-private@background:state/closings.json",
@@ -325,7 +336,17 @@
       "governs": [
         "research/",
         "skills/scour/",
-        "skills/wayback/"
+        "skills/wayback/",
+        "skills/source-anchoring/",
+        "skills/source-anchored-writing/",
+        "skills/source-anchored-xlsx/",
+        "skills/content-registry/",
+        "skills/gold-set/",
+        "docs/source-bundles.md",
+        "docs/probes.md",
+        "python/source-bundles.py",
+        "python/probes.py",
+        "pages/text-lab.html"
       ],
       "reviewers": [
         "portable:owner-proxy",

@@ -131,6 +131,12 @@ test('unwrapControls: every level unwraps, text and order survive, nothing is le
   assert.deepEqual([...yes.children].map(c => c.localName), ['pPr', 'r', 'r']);
 });
 
+test('unwrapControls: a control holding several children keeps their order', () => {
+  const doc = parse(`<w:document ${NS}><w:body><w:sdt><w:sdtPr/><w:sdtContent><w:p><w:r><w:t>A</w:t></w:r></w:p><w:p><w:r><w:t>B</w:t></w:r></w:p></w:sdtContent></w:sdt></w:body></w:document>`);
+  assert.equal(docxKit.unwrapControls(doc), 1);
+  assert.deepEqual(texts(doc), ['A', 'B']);
+});
+
 test('unwrapControls: a control with no content element is removed rather than kept empty', () => {
   const doc = parse(`<w:document ${NS}><w:body><w:p><w:sdt><w:sdtPr/></w:sdt><w:r><w:t>kept</w:t></w:r></w:p></w:body></w:document>`);
   assert.equal(docxKit.unwrapControls(doc), 1);

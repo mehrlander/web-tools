@@ -97,6 +97,11 @@ test('intent is not delivery: the same file wired both ways differs', () => {
   assert.equal(run(delivery), '', 'a resolved import is');
 });
 
+test('one delivered checkout silences the session even when an undelivered one sorts first', () => {
+  const root = build('mixed', { a: { 'CLAUDE.md': 'run /web-tools\n' }, z: BOTH });
+  assert.equal(run(root), '', 'the conventions are in context through z, so a must not make the directive speak');
+});
+
 test('an opted-out repo is silent, and the field is the declared one', () => {
   const root = build('optout', {
     home: { 'CLAUDE.md': 'run /web-tools\n', '.web-tools.json': '{"conventions":"optout"}' },

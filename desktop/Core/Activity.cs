@@ -18,7 +18,17 @@ public record Errand(string Id, string Title, string Note, string State,
 }
 
 public record ActivitySnapshot(DateTimeOffset ObservedAt, DateTimeOffset? SyncedAt,
-    string? Revision, bool Connected, string? Notice, List<Errand> Errands);
+    string? Revision, bool Connected, string? Notice, List<Errand> Errands)
+{
+    public SyncHealth? Sync { get; init; }
+    public List<string>? SyncNotices { get; init; }
+    public string? RecordNotice { get; init; }
+}
+
+public record FeedHealth(string State = "unknown", DateTimeOffset? AttemptedAt = null,
+    DateTimeOffset? SucceededAt = null, string? ErrorCode = null,
+    DateTimeOffset? NextAttemptAt = null, double? DurationMilliseconds = null);
+public record SyncHealth(FeedHealth Errands, FeedHealth Sessions, FeedHealth Summaries);
 
 public record ApplicationSignal(string Name, string State, string Detail, int Processes);
 public record WorkerActivity(string Kind, string Headline, DateTimeOffset At, string? ItemId = null);

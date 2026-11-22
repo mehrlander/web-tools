@@ -568,7 +568,7 @@ test('Areas draws a tile an area: its icon and files, its declared panels, its w
   assert.ok(heat.classList.contains('grid-cols-[repeat(7,6px)]') && heat.classList.contains('grid-rows-[repeat(4,6px)]')
     && !heat.classList.contains('grid-flow-col'), 'seven columns of a weekday and four rows of a week, filled a row at a time');
   const name = tile('Forms').querySelector('[data-part="title"] h3');
-  assert.ok(name.classList.contains('truncate') && name.hasAttribute('data-title-tip-bare'), 'the name cut short before the grid gives way, whole in a title-tip');
+  assert.ok(name.classList.contains('truncate') && (name.getAttribute('x-effect') || '').includes('fitTip'), 'the name cut short before the grid gives way, whole in a title-tip');
   assert.ok(heat.classList.contains('shrink-0'));
   assert.equal(heat.dataset.areaState, 'ok');
   const cells = [...heat.querySelectorAll('[data-day]')];

@@ -83,12 +83,12 @@ window.mdDiff = { render: async (host, a, b, opts) => {
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
 const heads = [];
-window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd) };
+window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd), listed: true };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
-for (const k of ['lib/kits/repo-address.js', 'lib/kits/call-answer.js']) {
+for (const k of ['lib/kits/repo-address.js', 'lib/kits/call-answer.js', 'lib/kits/panel-tip.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
 for (const p of ['lib/vanilla-bundle.js', 'lib/alpine-bundle.js', 'lib/alpineComponents/user-call-form.js']) {
@@ -123,9 +123,52 @@ test('a deck header names the document, not the kind of call', () => {
   assert.equal(heads.at(-1).action, null, 'no record circle in the header: the Record row under the document records');
 });
 
-test('in the deck a documentation call shows its brief, not its question or a recommendation', () => {
+test('in the deck a documentation call shows neither its question nor a recommendation', () => {
   assert.equal(root().querySelector('[data-call-question]').style.display, 'none', 'the deck header names the document');
   assert.equal(root().querySelector('[data-call-recommend]').style.display, 'none');
+});
+
+// On a card in the session page's list of calls the owner judges a
+// documentation call by its edits (2026-11-21), so the brief the session filed
+// waits behind an icon at the end of the document's head, with nothing of it
+// drawn above the edits. It opens as the house
+// panel-tip (html-style rule 10): a tap pins it, with the kit's ✕, and its ↗
+// is the call's file.
+test("a documentation call's brief is a panel-tip behind an icon in the document's head", async () => {
+  const shown = (el) => { for (let e = el; e && e !== root(); e = e.parentElement) if (e.style.display === 'none') return false; return true; };
+  const text = [...root().querySelectorAll('[data-call-card] p')].filter(shown).map((p) => p.textContent).join(' ');
+  assert.doesNotMatch(text, /Tidy the doc\./, 'no paragraph carries it');
+  const icon = root().querySelector('[data-doc-head] [data-doc-brief]');
+  assert.ok(icon && shown(icon), 'the icon is in the head');
+  const panel = root().querySelector('[data-doc-brief-panel]');
+  assert.equal(panel.style.display, 'none');
+  icon.click();
+  await until(() => panel.style.display !== 'none');
+  assert.match(panel.textContent, /brief\s*↗\s*Tidy the doc\./);
+  assert.equal(panel.querySelector('[data-doc-brief-source]').getAttribute('href'),
+    'https://github.com/me/private/blob/main/user-calls/c0ffee01-doc.json', "the ↗ is the call's file");
+  assert.ok(panel.querySelector('[data-wt-panel-tip-close]'), "pinned, it carries the kit's ✕");
+  assert.equal(icon.getAttribute('aria-expanded'), 'true');
+  icon.click();
+  await until(() => panel.style.display === 'none');
+  assert.equal(panel.style.display, 'none', 'a second tap closes it');
+  icon.click();
+  await until(() => panel.style.display !== 'none');
+  panel.querySelector('[data-wt-panel-tip-close]').click();
+  await until(() => panel.style.display === 'none');
+  assert.equal(data().briefAt, null, 'the ✕ closes it');
+});
+
+// In the deck and on the call's own page the brief is a line above the
+// document again, and the head has no icon (owner, 2026-11-21).
+test("outside the list of calls a documentation call's brief is a line, not an icon", async () => {
+  const shown = (el) => { for (let e = el; e && e !== root(); e = e.parentElement) if (e.style.display === 'none') return false; return true; };
+  data().listed = false;
+  await until(() => root().querySelector('[data-doc-head] [data-doc-brief]').style.display === 'none');
+  const text = [...root().querySelectorAll('[data-call-card] p')].filter(shown).map((p) => p.textContent).join(' ');
+  assert.match(text, /Tidy the doc\./, 'a paragraph carries it');
+  data().listed = true;
+  await until(() => root().querySelector('[data-doc-head] [data-doc-brief]').style.display !== 'none');
 });
 
 test('a documentation call shows no PR readiness, even when the PR has conflicts', async () => {
@@ -313,6 +356,20 @@ test('nothing records until every staged edit is decided, and a decision stays m
   assert.equal(mark(1).dataset.decision, 'open', 'a second tap lets it go');
 });
 
+test('one edit still open with no notes keeps Record disabled and sends nothing', async () => {
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
+  const before = puts.length;
+  assert.equal(send().disabled, true, 'one undecided edit blocks the record');
+  assert.match(send().textContent, /1 to decide/);
+  await data().sendDoc();
+  assert.equal(puts.length, before, 'sendDoc writes nothing while an edit is open');
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
+});
+
 test('Old and New draw the whole file as it stands and as proposed; Changes keeps its decisions', async () => {
   act(1, 'Keep');
   await tick(2);
@@ -405,4 +462,26 @@ test('the answer line is the one Dictate and the Docs tab write, with the kept e
   assert.equal(line.patch, 'PATCH docs/x.md ' + JSON.stringify('First.\n\nTwo.\n\nThird.\n\nFourth.\n'), 'only the kept edits are in the patch');
   await until(() => data().done);
   assert.equal(data().done, line.answer, 'the form reads as answered');
+});
+
+// The session page's Calls tab mounts a form inside its own scope, where
+// Alpine writes a field no scope declares to the outermost one. Two forms
+// there, each holding its own document, are held to their own fields, and
+// the scope around them keeps its own.
+test('forms mounted inside another scope keep their fields to themselves', async () => {
+  const outer = window.document.createElement('div');
+  outer.setAttribute('x-data', "{ _notes: 'the host\\'s' }");
+  outer.innerHTML = '<div data-n="1" x-data="userCallForm(window.__form)"></div><div data-n="2" x-data="userCallForm(window.__form)"></div>';
+  window.document.body.append(outer);
+  Alpine.initTree(outer);
+  const form = (n) => outer.querySelector(`[data-n="${n}"]`);
+  await until(() => [1, 2].every((n) => Alpine.$data(form(n)).doc.ready && form(n).querySelectorAll('[data-md-diff-change]').length === 4));
+  const host = Alpine.$data(outer);
+  assert.equal(host._notes, "the host's", "a form's notes are not the host's");
+  for (const k of ['_root', '_seam', '_viewsRead', '_jumpTill'])
+    assert.equal(Object.prototype.hasOwnProperty.call(Alpine.closestDataStack(outer)[0], k), false, k + ' is not written on the host');
+  assert.equal(Alpine.$data(form(1))._root, form(1));
+  assert.equal(Alpine.$data(form(2))._root, form(2), 'each form finds its own document');
+  Alpine.destroyTree(outer);
+  outer.remove();
 });

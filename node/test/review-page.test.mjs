@@ -244,6 +244,18 @@ test('a late response for a file already left cannot replace the current file or
   }
 });
 
+test('a comparison choice made for another ref is not adopted by this file', async () => {
+  await navigate(DOC);
+  const send = detail => window.dispatchEvent(new window.CustomEvent('web-tools:compare-ref', { detail }));
+  send({ repo: DOC.repo, ref: 'someother', base: 'zzz' });
+  await tick(4);
+  assert.equal(card().base, 'main');
+  send({ repo: DOC.repo, ref: 'someother', off: true });
+  await tick(4);
+  assert.equal(card().compareOff, false);
+  assert.equal(card().tab, 'mddiff');
+});
+
 test('page initialization and navigation produce no Alpine expression errors', async () => {
   await tick(4);
   assert.deepEqual(problems, []);

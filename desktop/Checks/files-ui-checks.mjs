@@ -20,14 +20,18 @@ const folders=new Map([
  ['project/cache',listing('project/cache',[entry('x.txt','file','ignored')])],
  ['project/src',listing('project/src',[entry('<img onerror=x>.txt','file','tracked')])]
 ]);
+const downloads=new Map([
+ ['',{...listing('',[entry('existing.png','file'),entry('photos')]),rootName:'Downloads'}],
+ ['photos',{...listing('photos',[entry('holiday.png','file')]),rootName:'Downloads'}],
+]);
 w.setTimeout=(fn,delay)=>{timers.set(++id,{fn,delay});return id;};w.clearTimeout=k=>timers.delete(k);
 Object.defineProperty(w,'scrollY',{get:()=>top});w.scrollTo=(_x,y)=>{top=y;};w.AbortController=AbortController;
 w.matchMedia=()=>({matches:false});w.eval(read('../../lib/kits/title-tip.js'));
 w.fetch=async(path,options={})=>{
  requests.push({path,...options});if(offline)throw new Error();
- const isFiles=path.startsWith('/api/v1/files'),folder=isFiles?new URL(path,w.location).searchParams.get('path'):null;
+ const isFiles=path.startsWith('/api/v1/files'),url=new URL(path,w.location),folder=isFiles?url.searchParams.get('path'):null;
  if(isFiles&&hold)await hold;
- return {ok:!denied,status:denied?403:200,headers:{get:()=>''},json:async()=>structuredClone(isFiles?folders.get(folder):snapshot)};
+ return {ok:!denied,status:denied?403:200,headers:{get:()=>''},json:async()=>structuredClone(isFiles?(url.searchParams.get('root')==='downloads'?downloads:folders).get(folder):snapshot)};
 };
 w.eval(read('../phone/local-files.js'));w.eval(read('../phone/repositories.js'));w.eval(read('../../lib/kits/swipe-deck.js'));w.eval(read('../phone/views.js'));
 const position=()=>w.NowViews.scrollPosition(w.NowViews.current());
@@ -37,8 +41,13 @@ const check=(condition,message)=>{assert.ok(condition,message);checks++;};
 const click=selector=>{assert.ok(doc.querySelector(selector),selector);doc.querySelector(selector).click();};
 const poll=async()=>{w.dispatchEvent(new w.Event('online'));await flush();};
 click('[data-view=files]');await flush();setTop(220);
+check(w.location.hash==='#view=files'&&doc.querySelector('[data-file-root]').value==='downloads'&&doc.querySelector('[data-file="existing.png"]'),'Bare Files opens the existing files in Downloads.');
+check(doc.querySelector('#local-breadcrumb').textContent==='Downloads'&&!doc.querySelector('[data-repository],[data-fetch]'),'Downloads uses the existing plain explorer without repository controls.');
+click('[data-folder="photos"]');await flush();
+check(new URLSearchParams(w.location.hash.slice(1)).get('root')==='downloads'&&doc.querySelector('[data-file="photos/holiday.png"]'),'Downloads folder navigation retains its root.');
+const location=doc.querySelector('[data-file-root]');location.value='gh';location.dispatchEvent(new w.Event('change',{bubbles:true}));await flush();
 click('[data-folder=""]');await flush();
-check(w.location.hash==='#view=files'&&doc.querySelector('#view-title').textContent==='Files','Files has a root route within the shared app shell.');
+check(w.location.hash==='#view=files&root=gh'&&doc.querySelector('#view-title').textContent==='Files','Repository folders use an explicit root within the shared Files view.');
 check(doc.querySelector('#local-breadcrumb').textContent==='repos'&&doc.querySelector('[data-folder=project]')&&doc.querySelector('[data-folder=ordinary]'),'The root shows actual sibling folders, including non-Git folders, under its real root name.');
 check(doc.querySelector('#local-results').textContent.includes('work')&&doc.querySelectorAll('[data-commit]').length===2&&!doc.querySelector('#local-results').textContent.includes('61'),'Working folders show their selected branch and only its tracked synchronization pair.');
 check(doc.querySelector('#file-filters').hidden,'Git filters are omitted at the estate root.');
@@ -115,7 +124,7 @@ check(group().hidden,'Clearing search restores the collapsed root.');
 click('[data-workfolders=other]');check(!doc.getElementById('workfolders-other').hidden&&doc.querySelector('[data-folder=ordinary]'),'Other files remain available through their own group.');
 
 offline=true;await poll();check(doc.querySelector('#local-observed').textContent.includes('Saved')&&doc.querySelector('[data-folder=project]'),'A lost connection labels and retains the observed folder listing.');
-const reloaded=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/#view=files',runScripts:'outside-only',pretendToBeVisual:true}),saved=reloaded.window;
+const reloaded=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/#view=files&root=gh',runScripts:'outside-only',pretendToBeVisual:true}),saved=reloaded.window;
 saved.localStorage.setItem('web-tools-repositories-snapshot',w.localStorage.getItem('web-tools-repositories-snapshot'));
 saved.localStorage.setItem('web-tools-files-root',w.localStorage.getItem('web-tools-files-root'));
 saved.localStorage.setItem('web-tools-files-snapshot',JSON.stringify(folders.get('project/src')));
