@@ -176,6 +176,9 @@ test('the sequence: unknown, compared, recorded, reloaded, GitHub moves, verifie
   d = K.derive(moved, rows);
   assert.equal(d.state, 'verified'); assert.equal(d.label, 'verified from supplied copy');
   assert.equal(d.history.length, 2, 'the earlier row is kept, not replaced');
+  d = K.derive({ ...moved, blobSha: sha40('f') }, rows);
+  assert.equal(d.state, 'changed', 'GitHub moving past the verified blob is a change');
+  assert.equal(d.label, 'GitHub changed since verification');
   assert.equal(K.isRecorded({ ...check, revision: sha40('b') }, rows), true);
   // 6b. Or it contradicts the record.
   const differ = K.fromCheck({ ...check, revision: sha40('b'), blobSha: sha40('e'), exact: false, incomingSha256: sha64('d') });

@@ -58,13 +58,13 @@ test('estate.js branchRowBody renders frisbee dropdown button and omits staging 
   assert.ok(body.includes('branchRoutes(row)'), 'has branchRoutes conditional');
   assert.ok(
     body.includes('<i class="ph ph-signpost text-base text-base-content/40 shrink-0"') &&
-    body.includes('data-title-tip="Views this branch changes" data-title-tip-bare></i>'),
-    'signpost icon carries standard data-title-tip and data-title-tip-bare'
+    body.includes('data-title-tip="Views this branch changes"></i>'),
+    'signpost icon carries standard data-title-tip'
   );
   assert.ok(
     body.includes(':data-title-tip="rt.label + (rt.url ? \', on this branch: \' : \', on main (no tip crawled): \')') &&
-    body.includes('+ rt.hits.join(\', \')" data-title-tip-bare'),
-    'route chips use :data-title-tip and data-title-tip-bare instead of :title'
+    body.includes('+ rt.hits.join(\', \')"'),
+    'route chips use :data-title-tip instead of :title'
   );
 
   // 3. No title or :title attributes remain in branchRowBody
@@ -81,20 +81,20 @@ test('estate.js branchRowBody renders frisbee dropdown button and omits staging 
 
 test('branch-brief.js Look row aligns toss render pages and uses data-title-tip tooltips', () => {
   assert.ok(
-    branchBriefSrc.includes('data-title-tip="What this branch changes, as something to open" data-title-tip-bare'),
+    branchBriefSrc.includes('data-title-tip="What this branch changes, as something to open"'),
     'signpost icon in branch-brief uses data-title-tip'
   );
   assert.ok(
-    branchBriefSrc.includes(':data-title-tip="c.title" data-title-tip-bare'),
+    branchBriefSrc.includes(':data-title-tip="c.title"'),
     'route chips in branch-brief use :data-title-tip'
   );
   assert.ok(
     branchBriefSrc.includes('data-title-tip="Pages this branch changed, rendered via toss"') &&
-    branchBriefSrc.includes('data-title-tip-bare>🥏</span>'),
+    branchBriefSrc.includes('rendered via toss">🥏</span>'),
     'leading frisbee icon before pageChips in branch-brief'
   );
   assert.ok(
-    branchBriefSrc.includes(':data-title-tip="t.title" data-title-tip-bare'),
+    branchBriefSrc.includes(':data-title-tip="t.title"'),
     'page chips in branch-brief use :data-title-tip'
   );
   assert.ok(
@@ -103,14 +103,23 @@ test('branch-brief.js Look row aligns toss render pages and uses data-title-tip 
   );
 });
 
+test('the frisbee leads the page chips in both briefs', () => {
+  for (const [src, loop, what] of [[branchBriefSrc, 'x-for="t in pageChips"', 'page chips'], [sessionBriefSrc, 'x-for="g in pageGroups"', 'page groups']]) {
+    const frisbee = src.indexOf('>🥏</span>');
+    const chips = src.indexOf(loop);
+    assert.ok(frisbee >= 0 && chips >= 0, `both the frisbee and the ${what} loop are in the markup`);
+    assert.ok(frisbee < chips, `the frisbee leads the ${what}`);
+  }
+});
+
 test('session-brief.js page strip aligns toss render pages with leading frisbee icon and data-title-tip', () => {
   assert.ok(
     sessionBriefSrc.includes('data-title-tip="Pages this session changed, rendered via toss"') &&
-    sessionBriefSrc.includes('data-title-tip-bare>🥏</span>'),
+    sessionBriefSrc.includes('rendered via toss">🥏</span>'),
     'leading frisbee icon in session-brief page chips'
   );
   assert.ok(
-    sessionBriefSrc.includes(':data-title-tip="t.title" data-title-tip-bare'),
+    sessionBriefSrc.includes(':data-title-tip="t.title"'),
     'page chips in session-brief use :data-title-tip'
   );
   assert.ok(

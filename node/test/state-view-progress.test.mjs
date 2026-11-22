@@ -40,6 +40,11 @@ const shell = {
   crawlProgress: { configs: null, activity: null, sessions: null },
 };
 window.__shell = shell;
+// The drawn row is read from the DOM, and the shell is not reactive, so the
+// running crawl is set before Alpine starts.
+shell.activityRefreshing = true;
+shell.crawlProgress = { ...shell.crawlProgress,
+  activity: { verb: 'Scanning branches', unit: 'repos', done: 4, total: 11, active: ['me/home'] } };
 
 const Alpine = await startAlpine(window, [
   'lib/alpine-bundle.js',
@@ -48,9 +53,21 @@ const Alpine = await startAlpine(window, [
 ]);
 const data = Alpine.$data(window.document.getElementById('sv'));
 const row = (key) => data.rows.find(r => r.key === key);
+const drawn = [...window.document.querySelectorAll('[role=progressbar]')]
+  .filter((b) => { for (let e = b; e; e = e.parentElement) if (e.style.display === 'none') return false; return true; });
 const put = (key, slot) => { shell.crawlProgress = { ...shell.crawlProgress, [key]: slot }; };
 
+test('the drawn bar fills to the crawl\'s percentage and its label line reads the count', () => {
+  // The activity crawl lights every row that shares its flag, so read the bar
+  // whose label line carries the slot rather than counting bars.
+  const bar = drawn.find((b) => /Scanning branches/.test(b.nextElementSibling.textContent));
+  assert.ok(bar, 'a visible bar carries the running crawl\'s label');
+  assert.equal(bar.firstElementChild.getAttribute('style'), 'width:36%');
+  assert.equal(bar.nextElementSibling.querySelector('span').textContent, 'Scanning branches · 4 of 11 repos');
+});
+
 test('idle: no slot, nothing to say, and a bar at zero', () => {
+  put('activity', null);
   assert.equal(data.prog(row('activity')), null);
   assert.equal(data.progLabel(row('activity')), '');
   assert.equal(data.progActive(row('activity')), '');

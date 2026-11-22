@@ -21,6 +21,7 @@ public sealed class ActivityCollector
     private string? error;
     public CollectedActivity? Latest => Volatile.Read(ref latest);
     public string? Error => Volatile.Read(ref error);
+    public (int Status, int RetryAfterSeconds) RequestSync() => Volatile.Read(ref reader)?.RequestRetry() ?? (503, 0);
 
     public async Task Run(CancellationToken stop)
     {
@@ -40,7 +41,7 @@ public sealed class ActivityCollector
                     }
                     var active = reader;
                     var watch = Stopwatch.StartNew();
-                    var activity = await active.Read(settings.SeenThrough, synchronize: false);
+                    var activity = active.Cached(settings.SeenThrough);
                     activity = activity with { Errands = activity.Errands.Select(j => j with {
                         HasLocalOutput = Directory.Exists(LaptopSignals.Outbox(j.Id)) }).ToList() };
                     var now = DateTimeOffset.UtcNow;
@@ -76,7 +77,10 @@ public sealed class ActivityCollector
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
             do {
                 var active = Volatile.Read(ref reader);
-                if (active is not null) await active.Synchronize(force: true);
+                if (active is not null) {
+                    await active.Bootstrap();
+                    await active.Synchronize();
+                }
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
     }

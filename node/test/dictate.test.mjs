@@ -53,6 +53,16 @@ test('available() reads the window it was given, not the ambient one', () => {
   assert.equal(engine({ win: {} }).available(), false);
 });
 
+test('available() does not fall back to the ambient window when the given one has no recognizer', () => {
+  for (const name of ['SpeechRecognition', 'webkitSpeechRecognition']) {
+    window[name] = FakeSR;
+    try {
+      assert.equal(D.available({}), false, name + ' on the ambient window must not count');
+      assert.equal(D.available(() => ({})), false, name + ' must not count through an accessor either');
+    } finally { delete window[name]; }
+  }
+});
+
 test('the callbacks are optional: a caller that only polls text passes nothing', () => {
   const d = D.create({ win: { SpeechRecognition: FakeSR } });
   d.start();

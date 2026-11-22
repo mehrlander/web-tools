@@ -61,6 +61,14 @@ test('a note on a paragraph is held by it unchanged, by its card once edited, an
     'joined to the paragraph above, it is on the card that holds its text');
 });
 
+test('a note on one list item is held by its own unit, not the item above', () => {
+  const base = '- one\n- two\n- three\n';
+  const us = units(base, base);
+  assert.deepEqual(us.map((u) => u.o), [[0, 6], [6, 12], [12, 20]]);
+  const n = R.make(unitWith(us, base, base, 'two'), base, base, 'n');
+  assert.deepEqual(R.place([n], us, base).get(n.id).o, [6, 12], 'held by the item it was made on');
+});
+
 test('a note on added paragraphs is a point, held by their one card, and its quote follows the text', () => {
   const text = BASE.replace('Bravo para two.\n\n', 'Bravo para two.\n\nInserted para.\n\nSecond insert.\n\n');
   const us = units(BASE, text);

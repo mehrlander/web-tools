@@ -55,6 +55,21 @@ test('a live tint is a colour the FAB wears', () => {
     assert.match(markup, new RegExp(`var\\(--color-${r.tone}\\)_\\d+%,var\\(--color-base-100\\)\\)\\] border-${r.tone}/\\d+ hover:`), `${r.key}: the FAB is tinted ${r.tone} at rest`);
 });
 
+test('the glyph and the selection ring follow the tint', () => {
+  const at = markup.indexOf('<i class="text-2xl');
+  const glyph = markup.slice(at, markup.indexOf('</i>', at));
+  assert.ok(at > 0, 'the glyph element is found');
+  // Drawn in the tone, or in a mix taken from it (the off-branch glyph is the
+  // warning colour deepened toward the text colour, so it reads on a light page).
+  const drawnIn = (tone) => glyph.includes(`'text-${tone}`) || glyph.includes(`text-[color-mix(in_oklab,var(--color-${tone})`);
+  for (const r of live.filter(r => r.part === 'glyph' && r.tone !== 'tint'))
+    assert.ok(drawnIn(r.tone), `${r.key}: the glyph is drawn in ${r.tone}`);
+  for (const r of live.filter(r => r.part === 'tint')) {
+    assert.ok(drawnIn(r.tone), `${r.key}: the glyph follows the ${r.tone} tint`);
+    assert.ok(markup.includes(`ring-[var(--color-${r.tone})]`), `${r.key}: the selection ring follows the ${r.tone} tint`);
+  }
+});
+
 test('a glyph or badge names a mark that exists, and a tint names none', () => {
   for (const r of rows) {
     if (r.part === 'tint') { assert.equal(r.icon, '', `${r.key}: a tint has no mark`); continue; }

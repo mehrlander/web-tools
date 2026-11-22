@@ -123,6 +123,18 @@ try {
   check(/(?:^|;)\s*img-src[^;]*\bblob:/.test(rootPage.headers.get('content-security-policy')||''),'The private parent page permits raster preview object URLs.');
   check((await request('/vendor/marked.js',owner)).ok && (await request('/vendor/purify.js',owner)).ok && (await request('/reading.js',owner)).ok,'The formatted detail renderer and its existing Markdown dependencies are served from the private origin.');
   const controls={...owner,Origin:`http://127.0.0.1:${port}`,'X-WebTools-Action':'1'};
+  check(['errands','sessions','summaries'].every(key=>phone.sources.sync?.[key] && ['unknown','refreshing','ok','error'].includes(phone.sources.sync[key].state))
+    &&Array.isArray(phone.sources.syncNotices),'The phone exposes separately classified feed health and exact safe legacy notices.');
+  for(const headers of [owner,{...owner,Origin:controls.Origin},{...owner,'X-WebTools-Action':'1'},{...controls,Origin:'https://foreign.example'},{...controls,'Sec-Fetch-Site':'cross-site'}, {...controls,'Tailscale-User-Login':'other@example.test'}])
+    check((await request('/api/v1/sync/retry',headers,'POST')).status===403,'Sync retry requires owner access, deliberate-action header and same origin.');
+  check((await request('/api/v1/sync/retry',controls)).status===405
+    &&(await request('/api/v1/sync/retry?feed=all',controls,'POST')).status===403,
+    'Sync retry has no GET side effects and rejects query parameters.');
+  check((await fetch(`http://127.0.0.1:${port}/api/v1/sync/retry`,{method:'POST',headers:controls,body:'arbitrary'})).status===403,
+    'Sync retry rejects request bodies.');
+  const syncRetry=await request('/api/v1/sync/retry',controls,'POST'),syncReply=await syncRetry.json();
+  check(syncRetry.status===503&&syncReply.accepted===false&&syncReply.retryAfterSeconds===0,
+    'An isolated missing activity checkout returns a safe unavailable retry response without reading a real repository.');
   const repositoryResponse=await request('/api/v1/repositories',owner), repositoryData=await repositoryResponse.json();
   check(repositoryResponse.ok && repositoryData.repositories.length===0 && repositoryData.refreshing.length===0,'Isolated API fixtures never discover or fetch the real checkout estate.');
   check((await request('/api/v1/repositories')).status===403 && (await request('/api/v1/repositories',{'Tailscale-User-Login':'other@example.test'})).status===403,'Repository observations share the owner-only access boundary.');

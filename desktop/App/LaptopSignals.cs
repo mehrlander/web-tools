@@ -37,16 +37,19 @@ public static class LaptopSignals
         var reports = WorkerLog.ReadReports(log);
         var activity = reports.FirstOrDefault();
         try {
-            using var query = new ManagementObjectSearcher("SELECT CommandLine FROM Win32_Process WHERE Name='pythonw.exe' OR Name='python.exe'");
+            using var query = new ManagementObjectSearcher("SELECT Name,CommandLine FROM Win32_Process WHERE Name LIKE 'python%.exe' OR Name='py.exe' OR Name='pyw.exe'");
             using var rows = query.Get();
+            var processes = new List<(string Name, string? CommandLine)>();
             foreach (ManagementObject row in rows) {
                 using (row) {
-                    var command = row["CommandLine"] as string ?? "";
-                    if (command.Contains("poll_followup.py", StringComparison.OrdinalIgnoreCase)
-                        && command.Contains("--daemon", StringComparison.Ordinal))
-                        return new("detected", "Gemini worker process detected. Reported tasks are observations, not a heartbeat.", lastLog, activity, reports);
+                    processes.Add((row["Name"] as string ?? "", row["CommandLine"] as string));
                 }
             }
+            var state = WorkerProcess.State(processes);
+            if (state == "detected")
+                return new(state, "Gemini worker process detected. Reported tasks are observations, not a heartbeat.", lastLog, activity, reports);
+            if (state == "unknown")
+                return new(state, "Worker process status could not be checked. The last report is shown when available.", lastLog, activity, reports);
             return new("absent", "The Gemini worker process was not detected. Queued errands may wait until the worker starts.", lastLog, activity, reports);
         } catch {
             return new("unknown", "Worker process status could not be checked. The last report is shown when available.", lastLog, activity, reports);

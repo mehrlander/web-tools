@@ -72,6 +72,13 @@ test('an over-length prompt is refused whole, never truncated', () => {
   assert.equal(D.fits('x'.repeat(D.PROMPT_MAX)), true);
 });
 
+test('an over-length prompt on chat is dropped whole and not carried', () => {
+  const r = D.chat({ prompt: 'x'.repeat(D.PROMPT_MAX + 1) });
+  assert.equal(params(r.url).has('q'), false);
+  assert.match(r.dropped[0], new RegExp(String(D.PROMPT_MAX)));
+  assert.deepEqual(r.carried, []);
+});
+
 test('prompt_url is passed through, and yields to prompt as documented', () => {
   const u = 'https://raw.githubusercontent.com/o/r/main/p.md';
   const alone = D.code({ promptUrl: u });

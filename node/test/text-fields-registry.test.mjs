@@ -58,7 +58,7 @@ const AUDIENCES = new Set(['reader', 'editor']);
 const EXPECTED_NAMES = 13;
 
 function aliasesOf(r) {
-  return (r.instead_of || '').split(',').map(s => s.trim()).filter(Boolean);
+  return (r.instead_of || '').split(',').map(s => s.trim().split(' ')[0].trim()).filter(Boolean);
 }
 
 test('the vocabulary is the declared size', () => {
