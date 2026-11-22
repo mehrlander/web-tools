@@ -5,7 +5,7 @@ description: Write in a style the owner's exemplars show, by reading the pieces 
 
 # Exemplars
 
-The owner keeps exemplars, writing others have praised for its clarity, in home's [`projects/skill-lab/exemplars/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars). [`projects/skill-lab/styles.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/styles.md) lists the styles a session can be asked to write in, each with the pieces that show it, what to take from them and where our use departs from theirs.
+The owner keeps exemplars in home's [`projects/skill-lab/exemplars/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars): writing praised for its clarity, each piece's front matter naming who praised it. [`projects/skill-lab/styles.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/styles.md) lists the styles a session can be asked to write in. Each entry names the pieces that show the style, what to take from them, and where the owner's use departs from the pieces.
 
 1. Read the style's entry in `styles.md`.
 2. Read the focus passage of each piece the entry names, before drafting. A piece's `focus` field names its passage, and `<slug>.standoff.json` beside it marks the passage by character offsets.
