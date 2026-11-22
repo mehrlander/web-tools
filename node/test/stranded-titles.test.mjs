@@ -58,6 +58,12 @@ test('a title inside a button is reachable, since tapping the button reaches it'
   assert.equal(r.stranded, 0);
 });
 
+test('a title inside a bare button is reachable by the ancestor tag alone', () => {
+  const r = scan('<button><span title="what this opens">6</span></button>');
+  assert.equal(r.reachable, 1);
+  assert.equal(r.stranded, 0);
+});
+
 test('an ancestor several levels up still counts as reachable', () => {
   const r = scan('<a href="#x"><span><i></i><span title="deep label">go</span></span></a>');
   assert.equal(r.reachable, 1);

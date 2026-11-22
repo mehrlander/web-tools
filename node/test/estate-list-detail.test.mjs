@@ -387,6 +387,37 @@ test('what is typed in a note box stays with its snag across cards, and through 
   assert.equal(data.snagNoteBusy, false, 'which can be sent again');
 });
 
+test('text typed in a snag note box while its note is being saved is kept, and is not saved with it', async () => {
+  await open('snag', 'a-count-off-by-one');
+  const card = () => cardOf('snag', 'a-count-off-by-one');
+  await until(() => noteBox(card()), 'the note box');
+  const id = 'a-count-off-by-one';
+  data.snagNoteDrafts[id] = 'first';
+  const req = FakeGH.prototype.req;
+  FakeGH.prototype.req = async function (path, opts) {
+    if (opts?.method === 'PUT') data.snagNoteDrafts[id] = 'first and more';
+    return req.call(this, path, opts);
+  };
+  try { await data.addSnagNote(data.snagItems.find(x => x.id === id)); } finally { FakeGH.prototype.req = req; }
+  assert.equal(lastNote().text, 'first', 'only what was sent is saved');
+  assert.equal(data.snagNoteDrafts[id], 'first and more', 'the text typed during the save is still the draft');
+  await until(() => noteBox(card()).value === 'first and more', 'the box to keep it');
+});
+
+test('a reply whose save is refused stays in its draft', async () => {
+  await open('note', 'n3');
+  const before = FILES[NOTES];
+  data.replyDrafts.n3 = 'my reply';
+  const req = FakeGH.prototype.req;
+  FakeGH.prototype.req = async function (path, opts) {
+    if (opts?.method === 'PUT') throw Object.assign(new Error('500'), { status: 500 });
+    return req.call(this, path, opts);
+  };
+  try { await data.addReply({ id: 'n3' }); } finally { FakeGH.prototype.req = req; }
+  assert.equal(data.replyDrafts.n3, 'my reply', 'the text is still there to send again');
+  assert.equal(FILES[NOTES], before, 'nothing was written');
+});
+
 test('deleting the snag in view hands the card to the row that took its place', async () => {
   await open('snag', 'a-door-left-open');
   click(await menuItem(head('snag'), 'Delete'));

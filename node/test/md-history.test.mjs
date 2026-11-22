@@ -118,6 +118,19 @@ test('plan keeps the blocks with a predecessor, in document order; compose puts 
   assert.equal(K.compose(DOC, p), `# Reading fund 600\n\n${BEFORE}\n\n${UNTOUCHED}\n\n${LATER}\n`);
 });
 
+test('compose puts back two changed blocks when the earlier one\'s predecessor is longer than its current text', async () => {
+  const cur = '# T\n\nAlpha one.\n\nBeta two.\n';
+  const old = '# T\n\nAlpha one, in a much longer earlier wording.\n\nBeta two, before.\n';
+  const src = {
+    async commits() { return [C1, C2]; },
+    async read(p, at) { return at === C2.sha ? old : cur; },
+  };
+  const w = await K.walk(cur, { source: src, path: 'docs/fund.md', ref: 'main' });
+  const p = K.plan(cur, w);
+  assert.equal(p.count, 2);
+  assert.equal(K.compose(cur, p), old, 'later blocks are replaced first so earlier offsets hold');
+});
+
 test('render draws one container per changed block, with the chain, its variants, and the origin underneath', async () => {
   const host = window.document.createElement('div');
   window.document.body.append(host);

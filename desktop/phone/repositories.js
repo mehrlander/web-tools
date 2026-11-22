@@ -24,6 +24,9 @@
       &&r.checkouts.every(c=>/^[a-f0-9]{24}$/.test(c.key)&&typeof c.name==='string'&&typeof c.branch==='string'&&c.tracked&&window.NowLocalFiles.valid(c.localFiles,c.key)));
   let data,active=false,connected=false,pending=false,timer,staleTimer,etag='',failed=false,denied=false,sending='',message='',selected='',selectedRoot='downloads',selectedFile='',popup=null;
   const positions=new Map();
+  const locations=new Map(),blockedLocations=new Set();
+  const locationRoots=['downloads','gh','outputs'];
+  let pendingFilePosition;
   const routeKey=()=>selectedRoot+'\0'+(selectedFile?'file:'+selectedFile:'folder:'+selected);
   const fresh=()=>connected&&navigator.onLine!==false&&data&&Date.now()-Date.parse(data.observedAt)<45000;
   const repoFor=checkout=>data?.repositories.find(r=>r.checkouts.some(c=>c.key===checkout.key));
@@ -39,12 +42,12 @@
   }
   function comparison(value,key,compact=false){
     const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),upstream=checkout?.upstream?.startsWith('origin/')?checkout.upstream.slice(7):'',age=checkAge(repo)+(repo?.notice?' '+repo.notice:'')+(upstream&&upstream!==value?.branch?' Configured upstream: GitHub '+upstream+'.':'');
-    const warning=tip=>`<span data-commit="${key}:state" tabindex="0" data-title-tip="${escape(tip)}" data-title-tip-bare aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 shrink-0 cursor-pointer items-center justify-center text-amber-700">${icons.warning}</span>`;
+    const warning=tip=>`<span data-commit="${key}:state" tabindex="0" data-title-tip="${escape(tip)}" aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 shrink-0 cursor-pointer items-center justify-center text-amber-700">${icons.warning}</span>`;
     if(compact&&repo?.notice)return warning(age);
     if(compact&&value?.ahead===0&&value?.behind===0)return '';
     if(Number.isInteger(value?.ahead)&&Number.isInteger(value?.behind))return `<span class="inline-flex shrink-0 items-center gap-1 font-mono text-[11px] font-medium tabular-nums">${['ahead','behind'].filter(direction=>!compact||value[direction]).map(direction=>{
       const n=value[direction],label=compact&&n>=1000?new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1}).format(n).toLowerCase():n.toLocaleString(),tip=`${n.toLocaleString()} ${n===1?'commit':'commits'} ${direction==='ahead'?'ahead of':'behind'} GitHub ${value.branch||'tracking branch'}. ${age}`;
-      return `<span data-commit="${key}:${direction}" tabindex="0" data-title-tip="${escape(tip)}" data-title-tip-bare aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-0.5 ${n?direction==='ahead'?'text-[color:var(--color-success,#047857)]':'text-amber-700':'text-stone-500'}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="size-3" aria-hidden="true"><path d="${direction==='ahead'?'M8 13V3m-4 4 4-4 4 4':'M8 3v10m-4-4 4 4 4-4'}"/></svg><span aria-hidden="true">${label}</span></span>`;
+      return `<span data-commit="${key}:${direction}" tabindex="0" data-title-tip="${escape(tip)}" aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 cursor-pointer items-center justify-center gap-0.5 ${n?direction==='ahead'?'text-[color:var(--color-success,#047857)]':'text-amber-700':'text-stone-500'}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" class="size-3" aria-hidden="true"><path d="${direction==='ahead'?'M8 13V3m-4 4 4-4 4 4':'M8 3v10m-4-4 4 4 4-4'}"/></svg><span aria-hidden="true">${label}</span></span>`;
     }).join('')}</span>`;
     const target='GitHub '+(value?.branch||'tracking branch');
     const tip=({'no-upstream':'No tracked GitHub branch is configured.','unrelated-history':`The local branch and ${target} have separate commit histories.`,'incomplete-history':`Limited history prevents comparison with ${target}.`,'remote-missing':`${target} was absent at the last check.`,'not-checked':`${target} has not been checked.`,'fetch-needed':`Check GitHub to compare with ${target}.`})[value?.state]||`Could not compare with ${target}.`;
@@ -138,9 +141,17 @@
     const legacy=params.get('view')==='repositories'||['folder','file','checkout','filter'].some(key=>params.has(key));
     const root=params.get('root')||(legacy?'gh':'downloads'),file=params.get('file')||'',key=params.get('checkout');
     const next=file?file.split('/').slice(0,-1).join('/'):params.get('folder')??(root==='gh'?checkoutFor(key)?.name:null)??'';
-    if(next!==selected||root!==selectedRoot||file!==selectedFile){if(!enter)positions.set(routeKey(),scrollPosition());selected=next;selectedRoot=root;selectedFile=file;popup=null;window.TitleTip?.close();render();restoreScroll(positions.get(routeKey())||0);}
-    else {render();if(enter)restoreScroll(positions.get(routeKey())||0);}
+    if(next!==selected||root!==selectedRoot||file!==selectedFile){
+      if(!enter)positions.set(routeKey(),scrollPosition());
+      selected=next;selectedRoot=root;selectedFile=file;popup=null;window.TitleTip?.close();
+      const top=positions.get(routeKey())||0;pendingFilePosition=selectedFile?{key:routeKey(),top}:undefined;
+      render();restoreScroll(top);
+    }else {
+      if(enter)pendingFilePosition=selectedFile?{key:routeKey(),top:positions.get(routeKey())||0}:undefined;
+      render();if(enter)restoreScroll(positions.get(routeKey())||0);
+    }
     window.NowLocalFiles.setFilter(params.get('filter')||'all');
+    rememberLocation();
     window.NowViews?.refreshContext?.();
   }
   function folderRoute(path,root=selectedRoot,filter='all'){
@@ -150,22 +161,52 @@
   function openFolder(path,filter='all',root=selectedRoot){
     if(!selectedFile&&path===selected&&root===selectedRoot&&filter===window.NowLocalFiles.filter()){refresh();return;}
     const hash=folderRoute(path,root,filter);
-    history.pushState({localFiles:true},'',hash);route();
+    history.pushState({localFiles:true,filesBack:location.hash},'',hash);route();
   }
   function openFile(path){
     const params=new URLSearchParams({view:'files',root:selectedRoot});params.set('file',path);
     history.pushState({localFiles:true,filesBack:location.hash},'','#'+params);route();
   }
+  function rememberLocation(verified=false){
+    if(!active||!locationRoots.includes(selectedRoot))return;
+    if(verified)blockedLocations.delete(selectedRoot);
+    if(blockedLocations.has(selectedRoot))return;
+    const params=new URLSearchParams({view:'files',root:selectedRoot});
+    if(selectedFile)params.set('file',selectedFile);
+    else {if(selected)params.set('folder',selected);const filter=window.NowLocalFiles.filter();if(filter!=='all')params.set('filter',filter);}
+    locations.set(selectedRoot,'#'+params);
+  }
+  function clearLocations(){locations.clear();positions.clear();pendingFilePosition=undefined;for(const root of locationRoots)blockedLocations.add(root);}
+  function fileLayout(ready=false){
+    if(!active||!selectedFile)return;
+    const key=routeKey();
+    if(!ready){if(pendingFilePosition?.key!==key)pendingFilePosition={key,top:scrollPosition()};return;}
+    if(pendingFilePosition?.key===key){const {top}=pendingFilePosition;pendingFilePosition=undefined;restoreScroll(top);}
+  }
+  function switchRoot(root){
+    if(!locationRoots.includes(root)||root===selectedRoot)return;
+    rememberLocation();
+    history.pushState({localFiles:true},'',locations.get(root)||folderRoute('',root));route();
+    el('repositories').querySelector(`[data-file-root="${root}"]`)?.focus({preventScroll:true});
+  }
+  function isParent(hash,path){
+    if(typeof hash!=='string')return false;
+    const params=new URLSearchParams(hash.replace(/^#/,''));
+    const legacy=params.get('view')==='repositories'||['folder','file','checkout','filter'].some(key=>params.has(key));
+    const root=params.get('root')||(legacy?'gh':'downloads');
+    const folder=params.get('folder')??(root==='gh'?checkoutFor(params.get('checkout'))?.name:null)??'';
+    return ['files','repositories'].includes(params.get('view'))&&root===selectedRoot&&!params.get('file')&&folder===path;
+  }
   function back(){
-    if(selectedFile){
-      if(history.state?.localFiles&&history.state?.filesBack){history.back();return;}
-      history.replaceState(null,'',folderRoute(selected));route();return;
-    }
-    if(history.state?.localFiles){history.back();return;}
-    const parent=selected.split('/').slice(0,-1).join('/');history.replaceState(null,'',folderRoute(parent));route();
+    if(!selectedFile&&!selected)return;
+    const parent=selectedFile?selected:selected.split('/').slice(0,-1).join('/');
+    if(history.state?.localFiles&&isParent(history.state.filesBack,parent)){history.back();return;}
+    history.replaceState(null,'',folderRoute(parent));route();
   }
   document.addEventListener('click',event=>{
     if(!active)return;
+    const locationTab=event.target.closest('[data-file-root]');
+    if(locationTab){switchRoot(locationTab.dataset.fileRoot);return;}
     const button=event.target.closest('[data-menu],[data-signal],[data-branch-signal],[data-fetch],[data-github],[data-inventory]');
     if(button?.dataset.branchSignal){const key=button.dataset.branchSignal;setPopup(popup?.type==='branch'&&popup.key===key?null:'branch',key);return;}
     if(button?.dataset.menu){const key=button.dataset.menu;setPopup(popup?.type==='menu'&&popup.key===key?null:'menu',key);return;}
@@ -190,9 +231,6 @@
     const items=[...el('menu-'+popup.key).querySelectorAll('[role=menuitem]:not(:disabled)')],index=items.indexOf(document.activeElement);
     items[event.key==='Home'?0:event.key==='End'?items.length-1:(index+(event.key==='ArrowDown'?1:-1)+items.length)%items.length]?.focus({preventScroll:true});
   });
-  document.addEventListener('change',event=>{
-    if(active&&event.target.matches('[data-file-root]')&&['downloads','gh','outputs'].includes(event.target.value))openFolder('','all',event.target.value);
-  });
   document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden)poll();});
   window.addEventListener('popstate',()=>route());window.addEventListener('hashchange',()=>route());
   window.addEventListener('online',poll);window.addEventListener('offline',()=>{connected=false;render();});
@@ -213,5 +251,5 @@
     const trackedPath=!path||!localOnly&&comparison.ahead===0&&checkout.changed===0&&checkout.branch===ref&&window.NowLocalFiles.gitState?.(selected)==='tracked';
     return {repo:new URL(url).pathname.slice(1),ref,path:trackedPath?path:null};
   }
-  window.NowRepositories={connection,comparison,branchControl,tools,rootTools,positionPanels,context,version:()=>JSON.stringify([popup,sending,message,data]),setActive:value=>{const prior=active;if(prior&&!value)positions.set(routeKey(),scrollPosition());active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {popup=null;window.TitleTip?.close();window.NowLocalFiles.stop();window.NowLocalFiles.header(false,false);}}};
+  window.NowRepositories={connection,comparison,branchControl,tools,rootTools,positionPanels,context,rememberLocation,clearLocations,fileLayout,version:()=>JSON.stringify([popup,sending,message,data]),setActive:value=>{const prior=active;if(prior&&!value)positions.set(routeKey(),scrollPosition());active=value;clearTimeout(timer);clearTimeout(staleTimer);if(active){route(!prior);poll();}else {popup=null;window.TitleTip?.close();window.NowLocalFiles.stop();window.NowLocalFiles.header(false,false);}}};
 })();

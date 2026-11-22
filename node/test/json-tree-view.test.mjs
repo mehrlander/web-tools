@@ -136,8 +136,10 @@ test("the console's object row draws the native tree", async () => {
   const c = Alpine.$data(window.document.getElementById('con'));
   const host = window.document.createElement('div');
   window.document.body.append(host);
+  editorLoads = 0;
   await c._mountTree(host, { _id: 9001, args: [{ level: 'info', n: 3 }] });
   assert.ok(host.querySelector('.json-explorer'), 'the console did not mount the explorer');
+  assert.equal(editorLoads, 0, 'the console row reached for vanilla-jsoneditor');
   assert.match(host.textContent, /level/);
   assert.equal(typeof c._editors.get(9001)?.destroy, 'function');
 });

@@ -15,9 +15,10 @@ const HOME = 'lib/kits/traffic.js';
 
 const DIVIDES = /\/\s*\(?\s*(?:1024|1048576)\b/;
 const NAMES_UNIT = /\b[KMG]i?B\b|['"`][KMG]['"`]/;
+const NAMES_UNIT_ANYCASE = /['"`][^'"`]*\b[KMG]i?B\b/i;  // inside a string: a variable named kb is not a unit
 const UNIT_LIST = /\[\s*['"]B['"]\s*,\s*['"]KB['"]/;
 
-export const offendersIn = linesMatching((line) => (DIVIDES.test(line) && NAMES_UNIT.test(line)) || UNIT_LIST.test(line));
+export const offendersIn = linesMatching((line) => (DIVIDES.test(line) && (NAMES_UNIT.test(line) || NAMES_UNIT_ANYCASE.test(line))) || UNIT_LIST.test(line));
 
 test('only traffic.js turns a byte count into KB text', () => {
   assert.deepEqual(offendersIn(sources(new Set([HOME]))), [],
@@ -32,6 +33,8 @@ test('the gate catches the shapes the copies took, and not a limit or a word', (
     'd.js': "const u = ['B', 'KB', 'MB', 'GB'];",
     'e.js': 'const MAX = 50 * 1024 * 1024; // 50 MB',
     'f.js': "said('copied, ' + kb + ' KB');",
+    'g.js': "return (n / 1024).toFixed(1) + ' kB';",
+    'h.js': "return (n / 1024 / 1024).toFixed(1) + ' mb';",
   };
-  assert.deepEqual(offendersIn(Object.keys(lines), (f) => lines[f]), ['a.js:1', 'b.js:1', 'c.js:1', 'd.js:1']);
+  assert.deepEqual(offendersIn(Object.keys(lines), (f) => lines[f]), ['a.js:1', 'b.js:1', 'c.js:1', 'd.js:1', 'g.js:1', 'h.js:1']);
 });

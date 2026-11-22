@@ -1,15 +1,15 @@
-// .githooks/pre-commit: a leg that writes under docs/ runs before leg
+// .githooks/pre-commit: a rule that writes under docs/ runs before rule
 // docs-reach, which stamps every docs/ file's word count into docs/docs.csv
-// (node/README.md, "The refresh model"). Leg themes-graph ran after it, and the
-// only later restamp sits inside docs-readme's `changed docs/docs.csv`, so a
+// (node/README.md, "The refresh model"). Rule themes-graph ran after it, and the
+// only later restamp runs on a change to docs/docs.csv, so a
 // commit whose only change was markdown outside skills/, lib/, pages/ and docs/
 // rewrote docs/themes.csv and left its count stale until CI said so (snag
 // themes-graph-runs-after-the-word-stamp, seen three times).
 //
-// The real hook runs here in a scratch repository, with npm and python3
-// stubbed: npm logs each script it is asked to run, and its themes-graph adds a
-// row to docs/themes.csv as the real generator would. What is asserted is the
-// order the hook ran them in.
+// The real hook and its rules run here in a scratch repository, with npm and
+// python3 stubbed: npm logs each script it is asked to run, and its
+// themes-graph adds a row to docs/themes.csv as the real generator would. What
+// is asserted is the order the hook ran them in.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -25,10 +25,12 @@ test('a markdown-only commit that moves docs/themes.csv restamps docs/docs.csv a
   const box = mkdtempSync(path.join(tmpdir(), 'hook-order-'));
   try {
     const root = path.join(box, 'repo');
-    mkdirSync(path.join(root, '.githooks'), { recursive: true });
-    mkdirSync(path.join(root, 'docs'));
+    for (const f of ['.githooks/pre-commit', 'docs/commit-rules.csv', 'node/build/commit-rules.mjs',
+      'node/build/registries-load.mjs', 'node/build/kit-shim.mjs', 'node/repo-root.mjs', 'lib/kits/csv.js']) {
+      mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
+      copyFileSync(path.join(repoRoot, f), path.join(root, f));
+    }
     mkdirSync(path.join(root, 'notes'));
-    copyFileSync(path.join(repoRoot, '.githooks/pre-commit'), path.join(root, '.githooks/pre-commit'));
     writeFileSync(path.join(root, 'docs/themes.csv'), 'a,b,weight\n');
     writeFileSync(path.join(root, 'docs/docs.csv'), 'path,words\ndocs/themes.csv,1\n');
     writeFileSync(path.join(root, 'notes/n.md'), '# A note\n');

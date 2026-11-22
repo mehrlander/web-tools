@@ -25,6 +25,17 @@ test('a role follows a move when exactly one dropped and one added path share a 
   assert.equal(byPath.get('skills/hooks/guard.sh').role, 'refuses the thing');
 });
 
+test('a role follows each file of a folder move', () => {
+  const byPath = new Map([
+    ['old/a.sh', { role: 'R-a' }], ['old/b.sh', { role: 'R-b' }],
+    ['new/a.sh', { role: '' }], ['new/b.sh', { role: '' }],
+  ]);
+  const carried = carryMovedRoles(byPath, ['new/a.sh', 'new/b.sh'], ['old/a.sh', 'old/b.sh']);
+  assert.deepEqual(carried, ['old/a.sh -> new/a.sh', 'old/b.sh -> new/b.sh']);
+  assert.equal(byPath.get('new/a.sh').role, 'R-a');
+  assert.equal(byPath.get('new/b.sh').role, 'R-b');
+});
+
 test('a role is not guessed when either side of a move is ambiguous', () => {
   const byPath = new Map([
     ['old/run.sh', { role: 'the old one' }],
@@ -45,7 +56,8 @@ test('callers are what runs a file, never a mention of it', async () => {
   const rows = deriveTools(repoRoot);
   const callers = p => rows.get(p).callers.split(';').filter(Boolean);
   assert.deepEqual(callers('skills/hooks/commit-consent.py'), ['.githooks/commit-msg'], 'found through the hooks\' plugin_script');
-  assert.ok(callers('node/build/build-app.mjs').includes('.githooks/pre-commit'), 'npm run build:app in the commit hook');
+  assert.ok(callers('node/build/build-app.mjs').includes('node/build/commit-rules.mjs'), 'npm run build:app in a commit rule');
+  assert.ok(callers('node/build/commit-rules.mjs').includes('.githooks/pre-commit'), 'the commit hook runs the rule runner');
   assert.ok(callers('node/checkout-setup.mjs').includes('.claude/hooks/session-start.sh'), 'npm run setup in a session script');
   assert.ok(callers('python/scheduled-tasks.py').includes('.github/workflows/scheduled-tasks.yml'), 'python3 <path> in a workflow');
   assert.ok(callers('node/render/cdn.mjs').includes('node/test/'), 'an import from the suite');

@@ -14,11 +14,11 @@ Instructions growing through rationale, duplicated claims, correction notes and 
 
 **Area:** writing · **Detector:** reader · **Sessions:** 100 · **Status:** active
 
-### Dramatic prose · `P04`
+### Chat style · `P04`
 
-Slogans, posturing, emphatic absolutes and sentences that sound profound while saying little.
+Carefully avoid the informal voice of online writing. The best model is a statement of facts from a legal brief: short, crisp sentences, using common terms in their most basic sense.
 
-**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
+**Look for:** a maxim or truism, such as 'Hold inferences loosely, and keep their hedges when you retell them'; a one-line closing punch; a metaphor where a literal word exists; 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work'; 'deliberately' or 'never' used for emphasis; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 35 · **Status:** active
 
@@ -26,7 +26,7 @@ Slogans, posturing, emphatic absolutes and sentences that sound profound while s
 
 Claims a reader cannot check, unnamed subjects and pronouns whose referents the reader has to recover.
 
-**Look for:** 'a file here', 'some cases', 'it is complicated'; a sentence that cannot be checked; two replies that disagree silently
+**Look for:** 'a file here', 'some cases', 'it is complicated'; 'thing', 'whatever' or 'something' in place of a noun the sentence could name, as in 'a second thing to look at' or 'whatever view is on screen'; a sentence that cannot be checked; two replies that disagree silently
 
 **Owner:** docs/QUALIFIED-WRITING.md (rules 3 and 4)
 

@@ -49,6 +49,8 @@ test('the flag marks the page at its path, whichever entry carries it', async ()
   await shell.loadEstateSidebar();
   assert.deepEqual(shell.fullAppKeys, ['me/home:' + APP]);
   assert.equal(shell.isFullApp('me/home', APP), true);
+  assert.equal(shell.isFullApp('me/home', 'pages/other.html'), false,
+    'the flag marks one page, not every page of its repo');
   assert.equal(shell.isFullApp('me/hub', 'pages/news.html'), false,
     'a promoted page without the flag stays a hosted page');
   const byLabel = Object.fromEntries(shell.appViews.map(v => [v.baseLabel, v]));

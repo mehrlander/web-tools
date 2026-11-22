@@ -63,8 +63,8 @@ docs/prototypes/code-comments-ideas.json edit=write-once
 docs/prototypes/session-repos-ideas.json edit=write-once
 docs/prototypes/program-areas-ideas.json edit=write-once
 
-# Rebuilt whole by a builder, never by hand: the commit hook's legs
-# (node/README.md, "The refresh model") and the page thumbnails.
+# Rebuilt whole by a builder, never by hand: the outputs of the commit rules
+# (docs/commit-rules.csv) and the page thumbnails.
 # linguist-generated folds a file in GitHub's diffs. An index a reviewer reads
 # in the diff, such as docs/README.md, stays unfolded. A file with authored
 # cells beside computed ones, such as docs/docs.csv, is in place.
@@ -78,7 +78,6 @@ pages/thumbs/**                       edit=regenerated
 docs/README.md                        edit=regenerated
 docs/tests.csv                        edit=regenerated linguist-generated
 docs/kits.csv                         edit=regenerated linguist-generated
-docs/hook-legs.csv                    edit=regenerated linguist-generated
 docs/themes.csv                       edit=regenerated linguist-generated
 data/csv-census.csv                   edit=regenerated linguist-generated
 tracker/board.md                      edit=regenerated

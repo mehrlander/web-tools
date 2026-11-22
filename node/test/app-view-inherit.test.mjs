@@ -81,7 +81,17 @@ test('an app at main passes no page ref down', () => {
 test('the getter hands the method the app state: __ref and __lib tossed, a real ?use= deployed', () => {
   const getter = SRC.slice(SRC.indexOf('get appViewUrl(){'), SRC.indexOf('get appViewUrl(){') + 600);
   assert.match(getter, /window\.__fabHosted === true/);
+  assert.match(getter, /!!window\.__tossTop/);
   assert.match(getter, /tossed \? \(window\.__lib \|\| ''\) : \(new URLSearchParams\(location\.search\)\.get\('use'\)/);
+});
+
+test('a toss-hosted app (__tossTop, not __fabHosted) hands its page ref and lib to the view', () => {
+  const src = SRC.slice(SRC.indexOf('get appViewUrl(){'));
+  const body = src.slice(0, src.indexOf('\n  },') + 4).replace(/^get appViewUrl\(\)\{/, 'function(){').replace(/\n  \},$/, '\n}');
+  const getter = new Function('window', 'location', 'selectionEntries', 'return (' + body + ');')(
+    { __tossTop: {}, __ref: 'page-branch', __lib: 'main', __refs: {} }, { search: '' }, new Function(selectionEntriesSrc + '\nreturn selectionEntries;')());
+  const self = { appView: wt(), DEFAULT_REPO: HUB, appViewAddress: appViewAddress };
+  assert.equal(getter.call(self), R + '?lib=main#gh=' + HUB + '@page-branch:pages/diff-tool.html');
 });
 
 // ── inside a toss, where the params shim is live ─────────────────────────────

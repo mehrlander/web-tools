@@ -88,6 +88,9 @@ test('anything it was not aimed at passes silently, and it never fails a turn', 
                          JSON.stringify({ tool_name: 'mcp__Gmail__send_message' })]) {
     assert.equal(run(payload), '', `silent on ${payload.slice(0, 28)}`);
   }
+  for (const tool_name of ['mcp__Claude_Code_Remote__send_later_cancel', 'send_later']) {
+    assert.equal(run(JSON.stringify({ tool_name })), '', `${tool_name} only contains send_later, so it passes`);
+  }
 });
 
 test('the registered matcher catches both spellings, which literals would not', () => {

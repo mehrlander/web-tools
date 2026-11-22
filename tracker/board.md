@@ -5,7 +5,7 @@ _Generated from tasks/. Do not hand-edit._
 ## On deck
 - 🎫 [Split estate.js into a component per view](tasks/estate-js-split-6r3ogm.md) · L
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
-- 🎫 [Build the lineup, the form for choosing one of several working options](tasks/lineup-choice-form-9vz5w0.md) · L (awaiting: sign-off on the mark's entry in docs/favicons/README.md; the forms README's naming of the lineup waits on documentation call bb564bb3-lineup-forms (web-tools #1151))
+- 🎫 [Build the lineup, the form for choosing one of several working options](tasks/lineup-choice-form-9vz5w0.md) · L (awaiting: sign-off on the mark's entry in docs/favicons/README.md (scope item 4), not yet drafted)
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Move the Repos grid into Map › Reach](tasks/repos-grid-into-map-reach-1eheiq.md) · L
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M

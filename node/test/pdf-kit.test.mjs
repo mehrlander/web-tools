@@ -90,6 +90,10 @@ test('joinCollinear merges a dotted leader into one rule', () => {
   assert.equal(joined[0].x2, 129);
 });
 
+test('joinCollinear merges segments overlapping at the join distance', () => {
+  assert.equal(pdf.geom.joinCollinear([hline(700, 0, 50), hline(700, 40, 100)], 'h', { join: 3 }).length, 1);
+});
+
 test('joinCollinear keeps a genuine gap apart', () => {
   const joined = pdf.geom.joinCollinear([hline(100, 50, 100), hline(100, 200, 300)], 'h', { join: 3 });
   assert.equal(joined.length, 2);
@@ -549,6 +553,12 @@ test('a header with a label per column is split along the body rules', () => {
   // Off, the header is the one wide cell the rules describe.
   const [off] = pdf.lattice.grids(headerLines(), [...header, ...BODY], { infer: false });
   assert.deepEqual(plain(off.matrix[0]), ['Agency FTE Amount', 'Agency FTE Amount', 'Agency FTE Amount']);
+});
+
+test('a header label bleeding 0.3pt over a body rule still splits, by the default pad', () => {
+  const header = [item('Agency', 110, 705, 90.3), item('FTE', 210, 705, 20), item('Amount', 310, 705, 40)];
+  const [t] = pdf.lattice.grids(headerLines(), [...header, ...BODY]);
+  assert.deepEqual(plain(t.matrix[0]), ['Agency', 'FTE', 'Amount']);
 });
 
 test('a genuine spanning header is left whole', () => {

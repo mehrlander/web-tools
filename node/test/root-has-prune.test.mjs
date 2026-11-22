@@ -23,6 +23,11 @@ test('split cuts at top-level commas only', () => {
   assert.deepEqual(RootHasPrune.split(':is(.a, .b) > .c, [title="x,y"]'), [':is(.a, .b) > .c', '[title="x,y"]']);
 });
 
+test('split and strip honor a backslash-escaped quote inside an attribute value', () => {
+  assert.deepEqual(RootHasPrune.split('[title="a\\"],b"], .c'), ['[title="a\\"],b"]', '.c']);
+  assert.equal(RootHasPrune.strip('[title="a\\"b"],:root:has(.drawer-toggle:checked)'), '[title="a\\"b"]');
+});
+
 test('strip keeps every alternative that is not anchored on :root:has()', () => {
   assert.equal(RootHasPrune.strip(':root,:root:has(input.theme-controller[value=light]:checked),[data-theme=light]'),
     ':root, [data-theme=light]');
