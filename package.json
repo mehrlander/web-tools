@@ -51,6 +51,7 @@
     "sunset": "python3 python/sunset-scan.py --all",
     "code-scan": "python3 python/unclaimed-code.py lib python node",
     "doc-placement": "python3 python/doc-placement.py .",
+    "doc-catalog": "python3 python/doc-catalog.py ..",
     "code-shape": "python3 python/code-shape.py lib",
     "test:top-mode-live": "node node/test/top-mode-live.mjs",
     "test:probe-driver": "node node/test/probe-driver.mjs",

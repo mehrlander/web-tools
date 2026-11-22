@@ -96,6 +96,7 @@ node/test/dictate-page.mjs,behavior,"pages/dictate.html loses the words, or the 
 node/test/dictate-record.test.mjs,behavior,"Notes kept as records beside an edit: a note lost or put on the wrong paragraph when its block is edited, joined, taken back, applied or moved on GitHub, and a dictate/1 record or its markdown that says something other than the edit and its notes."
 node/test/dictate.test.mjs,behavior,"The voice buffer composes text the way the prototype established, independent of any caller, and reads the window it was handed rather than an ambient one."
 node/test/diff-tool-engine.test.mjs,behavior,"The diff engine: identical input yields only equalities, and every edit type round-trips."
+node/test/doc-catalog.test.mjs,behavior,"The catalog's path-decided codes: a README, a docs/ file, a write-once file, a dated run folder, a dated source package and a declared project each get their position, folder kind and role by path, a relative Markdown link counts as one inbound link, and a repo:path lookup prints one row with no summary."
 node/test/doc-growth-kit.test.mjs,behavior,lib/kits/doc-growth.js
 node/test/doc-index.test.mjs,behavior,"The document index breaks if a non-Markdown file is indexed, an unmoved repo is reread, an unchanged file is read again, or a capped run leaves its pending files unread on the next one."
 node/test/doc-overlap.test.mjs,gate,the Themes tab's similar-wording tables: that each match names scanned files and that its UTF-16 offsets still cut the hashed passage from every unchanged file
