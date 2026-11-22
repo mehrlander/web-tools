@@ -15,7 +15,7 @@ tab; a program is defined in
 | Forms | the standard way to show content of a kind: the standing forms in [`docs/forms/`](../../docs/forms/), the envelopes in [`docs/envelopes/`](../../docs/envelopes/README.md), and the Waiting view |
 | Resources | what a session is given to work with: the skills, agents, instructions and settings that reach it, each source listed in [`context-sources.csv`](../../docs/context-sources.csv) |
 | Automation | the hooks and scheduled jobs indexed in [`harness.csv`](../../docs/harness.csv) |
-| Skill Lab | the workshop where skills are built, starting with the exemplars in home's [`projects/skill-lab/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab), read on the [Skill Lab page](../../pages/skill-lab.html) |
+| Skill Lab | the examples skills are built from, described in home's [`projects/skill-lab/README.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/README.md) and shown on the [Skill Lab page](../../pages/skill-lab.html) |
 
 ## Processes
 
