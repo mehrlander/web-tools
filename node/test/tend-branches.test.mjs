@@ -67,3 +67,35 @@ test('each branch lands in the class the skill table names', () => {
   assert.deepEqual(novel.paths, ['b.md']);
   assert.deepEqual(out.find(r => r.branch === 'claude/new-folder').paths, ['w/README.md']);
 });
+
+test('a novel branch a finding names is covered until it is pushed again, and age skips nothing', () => {
+  const store = repo('store2', { '.web-tools.json': '{"notes":"notes"}\n', 'notes/.keep': '',
+    'state/activity.json': '{"repos":{}}', 'state/sessions.json': '{"rows":[]}' });
+  const ev = repo('ev2', { 'a.md': 'one\n' });
+  branch(ev, 'claude/named', { 'b.md': 'only here\n' });
+  // An old branch: a window keyed to the previous pass would have skipped it.
+  git(ev, 'checkout', '-q', '-b', 'claude/old', 'main');
+  write(ev, 'c.md', 'old work\n'); git(ev, 'add', '-A');
+  execFileSync('git', ['-C', ev, 'commit', '-qm', 'old'], { env: { ...env, GIT_COMMITTER_DATE: '2020-01-01T00:00:00Z' } });
+  git(ev, 'push', '-q', 'origin', 'claude/old'); git(ev, 'checkout', '-q', 'main');
+  git(ev, 'fetch', '-q', 'origin');
+  const opts = { encoding: 'utf8', env: { ...env, FINDINGS_CHECKOUTS: JSON.stringify({ 'acme/ev': ev }) }, cwd: store };
+  const f = path.join(T, 'f2.json');
+  writeFileSync(f, JSON.stringify({ kind: 'unreached', title: 'Named', subjects: ['acme/ev@claude/named'], why: 'w', next: 'n' }));
+  const id = execFileSync('python3', [path.join(repoRoot, 'skills/tend/findings.py'), '--store', path.join(store, 'notes'),
+    '--author', 'claude/test', 'add', f], opts).split(' ')[0];
+  const run = () => Object.fromEntries(JSON.parse(execFileSync('python3', [path.join(repoRoot, 'skills/tend/branches.py'),
+    '--store', path.join(store, 'notes'), '--json'], opts)).map(r => [r.branch, r]));
+
+  let rows = run();
+  assert.equal(rows['claude/old'].class, 'novel');
+  assert.equal(rows['claude/old'].covered, undefined);
+  assert.deepEqual([rows['claude/named'].covered, rows['claude/named'].moved], [id, '']);
+  // Whole seconds: push in a later second than the finding was written.
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1100);
+  git(ev, 'checkout', '-q', 'claude/named'); commit(ev, { 'b.md': 'only here\nand more\n' }, 'more');
+  git(ev, 'push', '-q', 'origin', 'claude/named'); git(ev, 'checkout', '-q', 'main'); git(ev, 'fetch', '-q', 'origin');
+  rows = run();
+  assert.equal(rows['claude/named'].covered, id);
+  assert.ok(rows['claude/named'].moved, 'a covered branch pushed after the finding is due again');
+});

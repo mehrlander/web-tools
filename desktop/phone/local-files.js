@@ -212,7 +212,6 @@
       signature=next;
       el('local-results').innerHTML=!source?`<p class="px-3 py-3 text-sm text-stone-500">${denied?'Folder access unavailable.':failed?'Could not read this folder.':'Reading files and folders…'}</p>`:(rootId==='gh'&&!current?rootRows(items):shown.map(e=>entryRow(e,null,inventory)).join(''))||`<p class="px-3 py-3 text-sm text-stone-500">${query?'No matching names in this folder.':filter!=='all'?'No '+filter+' entries in this folder.':'No visible files or folders.'}</p>`;
     }
-    if(el('repository-sync-panel'))el('repository-sync-panel').scrollTop=syncScroll;
     if(key!==undefined)[...document.querySelectorAll('[data-folder]')].find(n=>n.dataset.folder===key)?.focus({preventScroll:true});
     if(commit)[...document.querySelectorAll('[data-commit]')].find(n=>n.dataset.commit===commit)?.focus({preventScroll:true});
     if(branchFocus)[...document.querySelectorAll('[data-file-branch]')].find(n=>n.dataset.fileBranch===branchFocus)?.focus({preventScroll:true});
@@ -220,7 +219,9 @@
     if(tip){const target=[...document.querySelectorAll('[data-commit]')].find(n=>n.dataset.commit===tip);if(target)window.TitleTip?.open(target);else window.TitleTip?.close();}
     if(branchTip){const target=[...document.querySelectorAll('[data-file-branch]')].find(n=>n.dataset.fileBranch===branchTip);if(target)window.TitleTip?.open(target);else window.TitleTip?.close();}
     if(scrollPosition()!==viewport)restoreScroll(viewport);
-    window.NowRepositories.positionPanels();requestAnimationFrame(()=>window.NowRepositories.positionPanels());
+    window.NowRepositories.positionPanels();
+    if(el('repository-sync-panel'))el('repository-sync-panel').scrollTop=syncScroll;
+    requestAnimationFrame(()=>window.NowRepositories.positionPanels());
     window.NowViews?.refreshContext?.();
   }
   async function poll(){

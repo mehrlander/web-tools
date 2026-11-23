@@ -89,3 +89,16 @@ test('--new writes the required header and refuses to overwrite', t => {
   assert.equal(readFileSync(path.join(root, 'fresh/probes.csv'), 'utf8'), 'probe,date,title,question,summary\n');
   assert.equal(run(root, '--new', 'fresh').status, 1);
 });
+
+test("a declaration's status is living, measured or record", t => {
+  const root = fixture(t, GOOD);
+  const manifest = JSON.parse(readFileSync(path.join(root, '.web-tools.json'), 'utf8'));
+  manifest.research[0].status = 'measured';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  assert.equal(run(root).status, 0);
+  manifest.research[1].status = 'done';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  const r = run(root);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /research one\/README\.md has status done, not one of living, measured, record/);
+});
