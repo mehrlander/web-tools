@@ -58,6 +58,8 @@ jobs:
           python desktop/Checks/folder-explorer-checks.py
       - name: Check real Git fetch and update integration
         run: python desktop/Checks/repository-checks.py
+      - name: Check repository observation caching
+        run: python desktop/Checks/repository-cache-checks.py
       - name: Check automatic default-folder update safety
         run: python desktop/Checks/repository-sync-checks.py
       - name: Check fresh-fetch authorization and update results

@@ -279,3 +279,29 @@ test('a slug that misses refreshes the cache once and asks again', () => {
   assert.match(open, /if \(v\) this\.goAppView\(v\); else this\.goDashboard\(\)/,
     'a genuinely dead slug still lands on the estate rather than an empty frame');
 });
+
+test('goAppView keeps only the shell\'s own fragment keys and swaps in the view\'s query', () => {
+  const { shell: app, location: loc } = makeShell({ browserStore: { repo: '' } });
+  app.syncUrl = () => {};
+  const v = { key: 'me/home:b.html', repo: 'me/home', path: 'b.html', query: '' };
+  loc.hash = '#foo=1&stage=x';
+  app.goAppView(v);
+  assert.equal(app._nextHash, '#stage=x', 'the previous view\'s foo= is dropped, the shell\'s stage= survives');
+  loc.hash = '#foo=1&stage=x';
+  app.goAppView({ ...v, query: 'data=b' });
+  assert.equal(app._nextHash, '#stage=x&data=b');
+});
+
+test('a restoring syncUrl consumes _nextHash, so the next one does not replay the app view\'s fragment', () => {
+  const { shell: app, location: loc } = makeShell({ browserStore: { repo: '' } });
+  app._restoring = true;
+  loc.hash = '';
+  app.goAppView({ key: 'me/home:b.html', repo: 'me/home', path: 'b.html', query: 'data=budget' });
+  assert.equal(app._nextHash, undefined, 'syncUrl clears _nextHash even while restoring');
+  app.view = 'estate';
+  app.appView = null;
+  loc.hash = '';
+  app._restoring = false;
+  app.syncUrl();
+  assert.ok(!loc.hash.includes('data=budget') && !String(app._nextHash ?? '').includes('data=budget'));
+});
