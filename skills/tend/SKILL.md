@@ -101,9 +101,8 @@ its class:
 
 `branches.py`, beside this file, applies the table to every remote branch in
 the checkouts, old ones included. Its list names the novel and orphan branches,
-each novel one with its residue. A novel branch that a finding names as
-`owner/repo@branch` is marked covered, or marked for reassessment when it was
-pushed after that finding's last update.
+each novel one with its residue, and marks the novel ones covered or for
+reassessment as step 2 describes, by a finding's `owner/repo@branch` subject.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
 - **Find:** a novel branch not marked covered. Its residue is the lines it
