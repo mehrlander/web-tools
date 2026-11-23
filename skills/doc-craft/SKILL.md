@@ -27,6 +27,8 @@ Content should only be included where behavior depends on it. For a basic test: 
 
 ## Review
 
+Make an edit before asking about it, including one the owner raised only as a possibility: the owner approves wording on the edit's user call, described below.
+
 Check changes against the principles above, make any needed revisions, and commit them on a branch. Ask especially if new content is really needed in the given file. Do not recount details of other files or other context that a session would know where to find. Then run the `portable:peeves-critic` agent on each changed document and fix what it finds, until a run returns PASS, and say how many runs that took.
 
 Each changed document then goes to the owner as a user call of kind `documentation`, one per document, each edit with its background, its proposal and, where it fixes wrong text or poor wording, a `correct` or `clarify` note, filed with the [`user-calls`](https://github.com/mehrlander/web-tools/blob/main/skills/user-calls/SKILL.md) skill; a document the main branch does not hold yet is marked new. A call's `file` names the document on the branch that holds its edits, as `owner/repo@branch:path`, and its `base` names the ref the edits were made against, normally `main`. The chat message offers all of them in one link that opens the deck of calls on the [session page](https://github.com/mehrlander/web-tools/blob/main/pages/session.html) at the first, `pages/session.html#id=<short>&user-call=<slug>`, where `<short>` is the session id's first eight characters; the reader swipes from each call to the next.
