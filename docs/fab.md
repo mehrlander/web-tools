@@ -67,13 +67,9 @@ A LONG PRESS or right-click on the FAB opens a short menu. Every row is one line
 - **Peek**, and a **PROBE** row that arms `kits/probe.js` on the view (its corner readout of live conditions plus the trace of every popup guard decision) and takes it off again, its label carrying the state. The probe is armed in the WATCHED realm through the subject frame's own gh chain; a framed page with no loader of its own is told to use `?probe=` instead.
 - **"Paste"** puts the clipboard on the Stage: a page showing the Stage takes it in place, and any other page parks it through `kits/stage-handoff.js` and leaves for the app's Stage, which picks it up at boot.
 - **"Home"** leaves for the deployed app at the default branch: a fixed address, so it reaches the app from a toss, from a ?use= pin, and from a page that was never part of it.
-- **"Form"** sets the FAB's shape: Basic, Hide (tucked into the bottom-right corner) or Pad (arrow chevrons round it).
-- **"Walkthrough"** starts one of the page's look walkthroughs.
+- **"Form"** sets the FAB's shape: Basic, Hide or Pad. Pad puts arrow-key chevrons round it.
+- **"Walkthrough"** starts one of the page's [look walkthroughs](../skills/look-markers/SKILL.md).
 - **The page's own rows**, contributed through `menu`, the third opt-in contract beside `actions` and `toggles`, for a verb wanted BEFORE the FAB sidebar rather than inside it. The app contributes the HEADER row here, since an app view opens with no header on screen. They are read at open time, so the first long press of a page load is not an empty menu.
-
-## Corner drags, the arrow pad and the walkthrough dock
-
-A drag into the bottom-right corner tucks the FAB, and one into the bottom-left raises the arrow pad. The pad's chevrons send arrow keys to the page in view. A [look walkthrough](../skills/look-markers/SKILL.md) docks the FAB in its card, and dragging the FAB out ends the walkthrough.
 
 ## The take menu
 
@@ -81,7 +77,7 @@ A take menu sits under the render tab in every context the FAB sidebar appears i
 
 ## The bottom panel
 
-A panel along the bottom of the window holds the console and, when the menu starts Peek, Peek's readings. The sidebar's Console row opens it.
+A panel along the bottom of the window holds the console and, when the long-press menu starts [Peek](../lib/kits/peek.js), Peek's readings.
 
 ## Other controls
 
