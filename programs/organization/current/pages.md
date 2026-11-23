@@ -9,9 +9,9 @@ The estate is the owner's repositories and everything in them. This map answers 
 | [`pages.csv`](pages.csv) | the measured facts, one row per page | [`pages-map.mjs`](pages-map.mjs), from the catalogues, the app's code, the source of each page in a public repository, and GitHub's list of public repositories |
 | [`page-jobs.csv`](page-jobs.csv) | each page's standing and job, judged by hand | hand |
 
-`node programs/organization/current/pages-map.mjs` rewrites `pages.csv` and the generated blocks of this document. With `--check`, it reports what is stale instead. The check also fails when `page-jobs.csv` lacks a row for a page or breaks a rule under [Terms](#terms).
+`node programs/organization/current/pages-map.mjs` rewrites [`pages.csv`](pages.csv) and the generated blocks of this document. With `--check`, it reports what is stale instead. The check also fails when [`page-jobs.csv`](page-jobs.csv) lacks a row for a page or breaks a rule under [Terms](#terms).
 
-Either form reads two kinds of checkout beside this one:
+The script, run either way, reads two kinds of checkout beside the web-tools checkout it runs in:
 
 - [web-tools-private](https://github.com/mehrlander/web-tools-private), whose `state/configs.json` holds the app's crawl of every repository's `.web-tools.json`;
 - a clone of each other public repository that declares pages, whose page sources the script reads.
@@ -20,8 +20,8 @@ Either form reads two kinds of checkout beside this one:
 
 | Catalogue | File | Lists | The app shows it in |
 | --- | --- | --- | --- |
-| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under `pages/`, the kit demos under `lib/kits/demos/` and the skill demos | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
-| manifest | `pages` in each repository's `.web-tools.json` | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar for a page marked `appView` |
+| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/), the kit demos under [`lib/kits/demos/`](../../../lib/kits/demos/) and the skill demos, `demo.html` in a folder under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
+| manifest | `pages` in each repository's `.web-tools.json`, as in [web-tools' own](../../../.web-tools.json) | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar for a page marked `appView` |
 | landing | `projects[].landing` in each `.web-tools.json` | a project's front page | the [Project view](https://mehrlander.github.io/web-tools/app/?view=project)'s App tab |
 | tools | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
 | units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
@@ -53,7 +53,7 @@ Either form reads two kinds of checkout beside this one:
 | record | is kept for history or provenance and no longer does its job |
 <!-- /pages-map:standing -->
 
-**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make), which [the forms README](../../../docs/forms/README.md#jobs) defines. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there, and its job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make), which [the forms README](../../../docs/forms/README.md#jobs) defines. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. Its job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
 
 A **tool** is a product page whose job includes make: the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
 
