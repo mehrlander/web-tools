@@ -236,8 +236,9 @@
     if(!active||!popup)return;
     const panel=el('repositories').querySelector('[data-popup]:not([hidden])');if(!panel)return;
     panel.style.top='';panel.style.bottom='';
-    panel.style.maxHeight=Math.max(120,innerHeight-80)+'px';panel.style.overflowY='auto';
+    panel.style.overflowY='auto';
     if(popup.type==='sync'){const anchor=[...el('repositories').querySelectorAll('[data-focus]')].find(n=>n.dataset.focus===(popup.anchor||'all:sync'))||el('repositories').querySelector('[data-sync-strip]');const rect=anchor?.getBoundingClientRect();panel.style.position='fixed';panel.style.left='12px';const below=innerHeight-(rect?.bottom||60)-12,above=(rect?.top||60)-64;if(below<240&&above>below){panel.style.top='auto';panel.style.bottom=Math.max(12,innerHeight-(rect?.top||60)+4)+'px';panel.style.maxHeight=Math.max(120,above-8)+'px';}else{panel.style.top=Math.max(60,Math.min(rect?.bottom+4||60,innerHeight-140))+'px';panel.style.maxHeight=Math.max(120,innerHeight-parseFloat(panel.style.top)-12)+'px';}return;}
+    panel.style.maxHeight=Math.max(120,innerHeight-80)+'px';
     const rect=panel.getBoundingClientRect();if(rect.height&&rect.bottom>innerHeight-8){panel.style.top='auto';panel.style.bottom='100%';}
   }
   function setPopup(type,key,restore=false,metric=''){

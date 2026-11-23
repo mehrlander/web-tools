@@ -11,7 +11,7 @@ dictate/1,lib/kits/dictate-record.js,none,no,kind,lib/kits/dictate-record.js,no,
 dome/1,python/swarm/dome.py,none,no,kind,python/swarm/dome.py,yes,,"a dome run: bouts of edits landing on one paragraph, and the referee's check after each bout"
 errand,docs/manifest.md,none,no,none,lib/kits/errands.js,no,,"a request for work a session needs a browser or a person to do, and the record that closes it"
 errand-result/1,docs/manifest.md,none,no,envelope,none,no,,"an errand script's output wrapped with the errand's id, so a paste on the Stage finds its errand"
-finding,lib/kits/findings.js,none,no,none,skills/tend/findings.py,no,,"a note carrying what a tending pass concluded, and the witnesses that say when to look again"
+finding,lib/kits/findings.js,none,no,none,skills/tend/findings.py,no,,"a note carrying what a tending pass concluded, and the subjects whose changes say when to look again"
 git-change/1,node/git-change.mjs,none,no,schema,node/git-change.mjs,no,,"a committed local change as metadata and a thin Git bundle, for the Stage to verify and apply"
 idea-board,docs/idea-board.md,none,no,none,skills/design-sprint/SKILL.md,yes,,"a design sprint's eight concepts, written before any was judged, and the selection among them"
 inquiry/1,docs/envelopes/schemas/profiles/inquiry-v1.schema.json,docs/envelopes/schemas/profiles/inquiry-v1.schema.json,no,profile,none,no,,"a surface that asks its reader to fill in named boxes, with the answers posted to its reply_to"
