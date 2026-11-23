@@ -53,7 +53,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | product | is opened by a reader to do a job |
 | service | is opened by another page or a link to perform one step, and has no reader job of its own |
 | exhibit | shows a kit, component, library or skill working |
-| experiment | is a scratch page, a drop, a probe or a prototype that answers a build question |
+| experiment | is a trial page, kept under pages/scratch/ or pages/drop/ or named as a probe or prototype, that answers a question about how to build something |
 | record | is kept for history or provenance and no longer does its job |
 <!-- /pages-map:standing -->
 
@@ -63,11 +63,11 @@ A **tool** is a product page whose job includes make: the reader works on someth
 
 **Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
-**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. The script does not read the source of a page in a private repository, and leaves its cell blank.
+**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. The script does not read the source of a page in a private repository. That page's cell is blank.
 
 ## The map
 
-The first table counts pages by relation to the app and by standing. In the second, `pages` counts the pages a catalogue names, `only here` the pages no other catalogue names, and each catalogue column the pages both catalogues name.
+In the second table, `pages` counts the pages a catalogue names, `only here` the pages no other catalogue names, and each catalogue column the pages both catalogues name.
 
 <!-- pages-map:map -->
 177 pages in 11 repositories; 143 in public repositories.
