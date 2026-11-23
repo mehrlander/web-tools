@@ -29,7 +29,7 @@
 // `refused` marks an address the shot could not show because the component
 // needed a read the public-only render would not serve.
 //
-// A box is fractions of the kept image, as overlays.json's are. Not
+// A box is fractions of the kept image, as ui-unit-marks.json's are. Not
 // byte-deterministic, so no commit hook owns it: `npm run component-shots`,
 // once per session at most, with `--only <file>[,<file>]` for some.
 

@@ -3,7 +3,7 @@
 // pattern catalog (data/ui-units/README.md); the codebook beside it is Pass 2.
 //
 // A UNIT is the grain a pattern is read at: an app view, a view's tab where the
-// view declares tabs, or a page. Units are enumerated from declarations, never
+// view declares tabs, a page, or an overlay (codebook.md, "What is coded"). Units are enumerated from declarations, never
 // from a walk of the tree, so units.csv says what the apps CLAIM to show:
 //
 //   web-tools  docs/app-routes.csv (the router's rows), docs/map-tabs.csv
@@ -12,9 +12,10 @@
 //   any repo   .web-tools.json `pages[]`, where `appView: true` promotes a page
 //              into the app
 //   budget-drs app/view/app.html VIEWS (its views, and `embed` for the pages it
-//              frames), RENDER (which function draws each view), and
+//              frames), RENDER (which function draws each view),
 //              data/design/view-tabs.csv (its tabs; `switch` rows are controls
-//              inside a tab, not units)
+//              inside a tab, not units) and data/design/overlays.csv (its
+//              overlays)
 //
 // THE RING says how far a unit sits from the Web Tools app's center. No registry
 // declares it; each value rests on the declaration named in `ring_basis`:
@@ -287,6 +288,29 @@ if (has(BD, bdApp)) {
     }
     for (const t of tabs) add({ ...base, ...ring, unit: `${BD}:view/${key}/${t.tab}`, kind: 'tab',
       tab: t.tab, label: `${label}: ${t.tab}`, files: files || bdApp, attribution: 'shared' });
+  }
+
+  // Overlays (codebook.md, "What is coded"), one unit per row of the declaration.
+  const OVERLAYS = 'data/design/overlays.csv';
+  if (has(BD, OVERLAYS)) {
+    const viewKeys = new Set(entries.map(e => e.key));
+    const by = (promoted.get(`${BD}:${bdApp}`) || []).map(b => b.by).join(', ') || 'nothing';
+    for (const o of csv(BD, OVERLAYS)) {
+      const [hv, ht = ''] = o.host === '*' ? ['', ''] : o.host.split('/');
+      if (hv && !viewKeys.has(hv)) throw new Error(`${OVERLAYS}: ${o.overlay} opens over ${o.host}, which is no view`);
+      if (ht && !(tabsBy[hv] || []).some(t => t.tab === ht)) throw new Error(`${OVERLAYS}: ${o.overlay} opens over ${o.host}, which is no tab`);
+      if (!has(BD, o.drawn_in)) throw new Error(`${OVERLAYS}: ${o.overlay} is drawn in ${o.drawn_in}, which does not exist`);
+      const hostAddr = hv ? `#view=${hv}${ht ? `&tab=${ht}` : ''}` : '';
+      // Labelled by the object it draws; the host stays in view and tab. Its
+      // ring is its host's: a view of the promoted app, or the app itself for `*`.
+      const name = o.overlay.replace(/-/g, ' ');
+      add({ repo: BD, unit: `${BD}:overlay/${o.overlay}`, kind: 'overlay', host: 'budget-drs app',
+        group: meta[hv]?.kind || '', view: hv, tab: ht,
+        label: name.charAt(0).toUpperCase() + name.slice(1),
+        address: /^[?#]/.test(o.opens) ? o.opens : hostAddr,
+        app_ring: 1, ring_basis: `${OVERLAYS} in ${BD}, over ${hv ? `VIEWS.${hv}` : 'any view'} in ${BD}:${bdApp}, promoted by ${by}`,
+        files: o.drawn_in, attribution: 'declared' });
+    }
   }
 }
 
