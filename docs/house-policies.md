@@ -106,7 +106,7 @@ Common cases that are found to benefit from owner attention are set up with a fo
 
 ### Align on sight · `h:align`
 
-When names, text or structure disagree with each other or with what is true, propose a correction; do not set it aside. An alignment problem is something to fix as soon as possible.
+When you see friction in the machine, propose a correction; do not set it aside. Friction here means names, text or structure that disagree with each other or with what is true. Every session that meets it pays a small cost until it is fixed.
 
 - Propose a rename for every place the name appears, including links to it in our own repos.
 - Propose clearer wording wherever unclear wording appears, including wording in code.
