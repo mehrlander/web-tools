@@ -8,7 +8,7 @@ Content governs how the owner's writing and pages read. The files the content pr
 | --- | --- |
 | Writing | the prose rules in [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md) and the approval of documentation wording under [doc-craft](../../skills/doc-craft/SKILL.md) |
 | Documents | each document's words and edits over time, in [`data/doc-growth/`](../../data/doc-growth/) |
-| Pages | how a page looks, in the [html-style](../../skills/html-style/SKILL.md) skill, and what a page is built from: the UI codebook in [`data/ui-units/`](../../data/ui-units/codebook.md), which names each page's parts and the layout its main region takes, and the browser modules in [`lib/kits/`](../../lib/kits/), indexed in [`kits.csv`](../../docs/kits.csv). Observations about page design that are not yet rules collect in the Lists view's [UI insights](https://mehrlander.github.io/web-tools/app/?view=lists&tab=ui-insights) list |
+| Pages | how a page looks, in the [html-style](../../skills/html-style/SKILL.md) skill, and what a page is built from. The UI codebook in [`data/ui-units/`](../../data/ui-units/codebook.md) names each page's parts and the layout its main region takes. The browser modules in [`lib/kits/`](../../lib/kits/) are indexed in [`kits.csv`](../../docs/kits.csv). Observations about page design that are not yet rules collect in the Lists view's [UI insights](https://mehrlander.github.io/web-tools/app/?view=lists&tab=ui-insights) list |
 
 ## Processes
 
