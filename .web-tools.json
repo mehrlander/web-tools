@@ -219,6 +219,9 @@
         "node/test/map-test-observations.test.mjs",
         "data/tests/reach.json"
       ],
+      "measures": [
+        "mehrlander/web-tools-private@background:data/tests/latest.json"
+      ],
       "reviewers": [
         "portable:owner-proxy",
         "portable:peeves-critic"

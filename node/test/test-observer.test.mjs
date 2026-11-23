@@ -153,10 +153,38 @@ test('failed optional module resolution cannot look like complete empty reach', 
   }
 });
 
+test('path reads and ESM loading do not make internal descriptors opaque', t => {
+  const f = fixture(t);
+  writeFileSync(path.join(f.root, 'input.txt'), 'hello');
+  const r = run(f, `
+    import assert from 'node:assert/strict';
+    import fs from 'node:fs';
+    assert.equal(fs.readFileSync('input.txt').toString(), 'hello');
+    assert.equal(fs.readFileSync(new URL('./input.txt', import.meta.url), 'hex'), '68656c6c6f');
+  `, { testRunner: true });
+  assert.equal(r.status, 0, r.stderr);
+  const [row] = rows(f);
+  assert.ok(row.files.includes('input.txt'));
+  assert.equal(row.opaque.includes('filesystem-descriptor'), false);
+});
+
 test('direct descriptor reads are explicitly opaque', t => {
   const f = fixture(t);
   writeFileSync(path.join(f.root, 'input.txt'), 'hello');
   const r = run(f, `import fs from 'node:fs'; const fd = fs.openSync('input.txt', 'r'); const b = Buffer.alloc(5); fs.readSync(fd, b, 0, 5, 0); fs.closeSync(fd); if (b.toString() !== 'hello') throw new Error('wrong read');`);
+  assert.equal(r.status, 0, r.stderr);
+  assert.ok(rows(f)[0].opaque.includes('filesystem-descriptor'));
+});
+
+test('an unrelated descriptor read in path-read options remains opaque', t => {
+  const f = fixture(t);
+  writeFileSync(path.join(f.root, 'input.txt'), 'hello');
+  const r = run(f, `
+    import fs from 'node:fs';
+    const fd = fs.openSync('input.txt', 'r');
+    fs.readFileSync('input.txt', { get flag() { fs.readSync(fd, Buffer.alloc(1), 0, 1, 0); return 'r'; } });
+    fs.closeSync(fd);
+  `);
   assert.equal(r.status, 0, r.stderr);
   assert.ok(rows(f)[0].opaque.includes('filesystem-descriptor'));
 });

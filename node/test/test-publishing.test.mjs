@@ -4,7 +4,7 @@ import { publishRun, publishReach, reachSnapshot, baselineEligible, runLocation,
 import { markdownSummary } from '../testing/summary.mjs';
 
 const record = (id = '1', date = '2026-11-23T10:00:00Z') => ({
-  schema: 'web-tools-test-run/1', source: { checkout_sha: 'a'.repeat(40), dirty: false },
+  schema: 'web-tools-test-run/1', source: { repo: 'mehrlander/web-tools', checkout_sha: 'a'.repeat(40), dirty: false },
   runtime: { node: '22.23.0', platform: 'linux', arch: 'x64', concurrency: 2, dependency_fingerprint: 'f'.repeat(64) },
   run: { id, attempt: '1', event: 'push' }, mode: 'full', complete: true, exit_code: 0,
   finished_at: date, wall_ms: 200, sum_process_wall_ms: 350,
@@ -47,7 +47,7 @@ test('an older capture is retained without rolling latest or baseline backwards'
 });
 
 test('failed, partial, selected and dirty runs cannot replace the selection baseline', async () => {
-  for (const update of [{ exit_code: 1 }, { complete: false }, { mode: 'selected' }, { source: { checkout_sha: 'a'.repeat(40), dirty: true } }]) {
+  for (const update of [{ exit_code: 1 }, { complete: false }, { mode: 'selected' }, { source: { ...record().source, dirty: true } }]) {
     const run = { ...record(), ...update }, held = store();
     assert.equal(baselineEligible(run), false);
     const result = await publishRun(run, held);
@@ -126,7 +126,7 @@ test('a late rerun of older source cannot replace a newer source baseline', asyn
   const held = store('main');
   await publishReach(record(), held);
   const request = async (method, file, data) => method === 'COMPARE' ? { status: 'behind' } : held.request(method, file, data);
-  const older = { ...record('3', '2026-11-25T10:00:00Z'), source: { checkout_sha: 'b'.repeat(40), dirty: false } };
+  const older = { ...record('3', '2026-11-25T10:00:00Z'), source: { ...record().source, checkout_sha: 'b'.repeat(40) } };
   assert.equal((await publishReach(older, { request })).published, false);
 });
 
@@ -141,4 +141,35 @@ test('large captured records read blob bytes when the Contents API omits inline 
   const read = await request('GET', 'data/tests/reach.json', { ref: 'background' });
   assert.equal(JSON.parse(Buffer.from(read.content, 'base64').toString()).retained, true);
   assert.match(calls[1], /git\/blobs\//);
+});
+
+test('private baseline promotion compares commits in the public source repository', async () => {
+  const held = store();
+  await publishRun(record(), held);
+  let compared = null;
+  const request = async (method, file, data) => {
+    if (method === 'COMPARE') { compared = { file, repository: data.repository }; return { status: 'ahead' }; }
+    return held.request(method, file, data);
+  };
+  const next = { ...record('2', '2026-11-24T10:00:00Z'), source: { ...record().source, checkout_sha: 'b'.repeat(40) } };
+  assert.equal((await publishRun(next, { request })).baseline, true);
+  assert.deepEqual(compared, { file: `${'a'.repeat(40)}...${'b'.repeat(40)}`, repository: 'mehrlander/web-tools' });
+});
+
+test('GitHub adapter separates private contents from allowlisted source comparisons', async () => {
+  const urls = [];
+  const request = githubContents({ token: 'fake', repository: 'mehrlander/web-tools-private', fetchImpl: async url => {
+    urls.push(String(url));
+    return { ok: true, json: async () => ({ status: 'ahead' }) };
+  } });
+  await request('GET', 'data/tests/reach.json', { ref: 'background' });
+  await request('COMPARE', `${'a'.repeat(40)}...${'b'.repeat(40)}`, { repository: 'mehrlander/web-tools' });
+  assert.match(urls[0], /repos\/mehrlander\/web-tools-private\/contents\/data\/tests\/reach\.json/);
+  assert.match(urls[1], /repos\/mehrlander\/web-tools\/compare\//);
+  await assert.rejects(request('COMPARE', 'unused', { repository: 'other/repository' }), /Unsupported comparison/);
+  const held = store();
+  await assert.rejects(publishRun({ ...record(), source: { ...record().source, repo: 'other/repository' } }, held), /Unsupported publication/);
+  await assert.rejects(publishReach({ ...record(), source: { ...record().source, repo: 'other/repository' } }, held), /Unsupported publication/);
+  assert.equal(held.writes.length, 0);
+  assert.equal(urls.length, 2);
 });

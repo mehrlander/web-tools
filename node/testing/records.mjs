@@ -123,9 +123,11 @@ export function repositoryName(remote) {
 }
 
 export function gitSource(root, base = null) {
+  const env = Object.fromEntries(Object.entries(process.env).filter(([name]) =>
+    !/^GIT_(?:DIR|WORK_TREE|INDEX_FILE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|PREFIX|NAMESPACE|CEILING_DIRECTORIES)$/i.test(name)));
   const git = args => {
-    const result = spawnSync('git', ['-C', root, ...args], {
-      encoding: 'utf8', windowsHide: true, env: { ...process.env, GIT_OPTIONAL_LOCKS: '0' },
+    const result = spawnSync('git', ['-C', root, '-c', 'core.fsmonitor=false', ...args], {
+      encoding: 'utf8', windowsHide: true, timeout: 30000, env: { ...env, GIT_OPTIONAL_LOCKS: '0' },
     });
     return result.status === 0 ? result.stdout.trim() : null;
   };

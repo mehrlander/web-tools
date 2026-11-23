@@ -17,6 +17,12 @@ Reach for the lightest tool that proves the thing:
 - **static traversal only** → cheerio / linkedom / a Python parser (table at
   the end)
 
+## Observed test selection: the work loop pilot
+
+`npm run test:diff -- --list` prints checks selected from observed file reads, with the baseline and each selection reason. `npm run test:diff` runs the picks. Gates, changed tests and tests with opaque or missing observations run conservatively; an incompatible baseline or an unexplained changed path runs the full suite. Full `npm run preflight` remains required before a pull request.
+
+`npm run test:observe` runs the full suite with dependency and elapsed-time observations. A clean, passing, complete full run seeds an ignored local baseline; selected runs cannot replace that baseline. The runner retains local records under `node/.test-observations/`. Public reach observations have no per-run costs, and a different runtime or dependency fingerprint can require a new local baseline. Prefer observations collected on an already needed full run. The [Testing program](../../programs/testing/README.md) owns the pilot's measures and adoption decision.
+
 ## npm run shot: real pixels from the working tree
 
 ```bash

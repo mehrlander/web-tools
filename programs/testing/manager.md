@@ -20,6 +20,14 @@ Return one line for each expected check leg on the head commit:
 
 Name any of the three sources you could not read.
 
+## Cost and selection
+
+The caller names a repository, revision or changed paths and the decision the timing evidence should inform. Start from the charter's M1 to M3 measures and the [selection pilot](../../tracker/tasks/test-selection-by-reach-p2xtc5.md). Read the captured run's source, runtime, dependency fingerprint, concurrency, mode, exit status and observation completeness before comparing costs.
+
+Use the public [reach snapshot](../../data/tests/reach.json) for observed dependency lookup and the [private dated run records](https://github.com/mehrlander/web-tools-private/tree/background/data/tests/runs) for costs. For a local selection, inspect `npm run test:diff -- --list`; the command prints its baseline, picks and reasons. Report full fallback, gates, opaque tests and missing evidence explicitly. Keep suite wall time, runner preparation and accumulated process elapsed time separate. Local history under `node/.test-observations/runs/` covers commands through that runner only; ordinary full runs and historical session minutes are not comprehensively recorded.
+
+Return the decision, the comparable observations, their limits and one proposed experiment. Use an existing full run for the candidate comparison when possible. Do not infer a safe omission from a source reference, a passing test or a missing observation. Full verification remains the gate during the pilot.
+
 ## Coverage
 
 The question is which automated checks guard a named file, page, kit or component, and where each check runs. The caller names the repository and the paths; ask for the missing inputs if the question omits them. Three sources answer the question:

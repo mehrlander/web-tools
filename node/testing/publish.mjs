@@ -8,6 +8,13 @@ import { planSelection } from './select.mjs';
 const encode = value => Buffer.from(`${JSON.stringify(value, null, 2)}\n`).toString('base64');
 const decode = value => JSON.parse(Buffer.from(value.content.replace(/\s/g, ''), 'base64').toString('utf8'));
 const trailer = '\n\nCo-Authored-By: Codex <codex@openai.com>';
+const SOURCE_REPOSITORY = 'mehrlander/web-tools';
+
+function publicationSource(record) {
+  if (record?.source?.repo !== SOURCE_REPOSITORY)
+    throw new Error('Unsupported publication source repository');
+  return record.source.repo;
+}
 
 export function runLocation(record) {
   if (record?.schema !== RUN_SCHEMA || !/^\d+$/.test(String(record.run?.id)) ||
@@ -43,6 +50,7 @@ export function reachSnapshot(record) {
 }
 
 export async function publishReach(record, { request, branch = 'main' }) {
+  const sourceRepository = publicationSource(record);
   if (!baselineEligible(record)) return { published: false, reason: 'Run is not eligible as a baseline' };
   const snapshot = reachSnapshot(record), file = 'data/tests/reach.json';
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -53,7 +61,7 @@ export async function publishReach(record, { request, branch = 'main' }) {
       const held = decode(current);
       let sourceAdvanced = false;
       if (held.source?.checkout_sha && held.source.checkout_sha !== snapshot.source.checkout_sha) {
-        const comparison = await request('COMPARE', `${held.source.checkout_sha}...${snapshot.source.checkout_sha}`, {});
+        const comparison = await request('COMPARE', `${held.source.checkout_sha}...${snapshot.source.checkout_sha}`, { repository: sourceRepository });
         if (comparison.status !== 'ahead') return { published: false, reason: 'The source does not advance the retained baseline' };
         sourceAdvanced = true;
       }
@@ -73,6 +81,7 @@ export async function publishReach(record, { request, branch = 'main' }) {
 // The caller supplies the Contents API adapter. Captures are immutable; only
 // latest pointers are replaced, with SHA checks and a bounded retry on races.
 export async function publishRun(record, { request, branch = 'background' }) {
+  const sourceRepository = publicationSource(record);
   const capturePath = runLocation(record);
   const get = async file => {
     try { return await request('GET', file, { ref: branch }); }
@@ -87,7 +96,7 @@ export async function publishRun(record, { request, branch = 'background' }) {
         if (immutable) throw new Error(`Refusing to alter captured run ${file}`);
         let sourceAdvanced = false;
         if (baseline && held.source?.checkout_sha && held.source.checkout_sha !== value.source.checkout_sha) {
-          const comparison = await request('COMPARE', `${held.source.checkout_sha}...${value.source.checkout_sha}`, {});
+          const comparison = await request('COMPARE', `${held.source.checkout_sha}...${value.source.checkout_sha}`, { repository: sourceRepository });
           if (comparison.status !== 'ahead') return false;
           sourceAdvanced = true;
         }
@@ -116,7 +125,12 @@ export function githubContents({ token, repository = 'mehrlander/web-tools-priva
   if (!/^[\w.-]+\/[\w.-]+$/.test(repository)) throw new Error('Invalid destination repository');
   return async (method, file, data) => {
     const comparison = method === 'COMPARE';
-    const url = new URL(`https://api.github.com/repos/${repository}/${comparison ? 'compare/' + encodeURIComponent(file) : 'contents/' + file.split('/').map(encodeURIComponent).join('/')}`);
+    // Contents belong to the capture store. Commit ancestry belongs to the
+    // source repository; public source commits do not exist in the private store.
+    if (comparison && data.repository !== SOURCE_REPOSITORY)
+      throw new Error('Unsupported comparison source repository');
+    const targetRepository = comparison ? data.repository : repository;
+    const url = new URL(`https://api.github.com/repos/${targetRepository}/${comparison ? 'compare/' + encodeURIComponent(file) : 'contents/' + file.split('/').map(encodeURIComponent).join('/')}`);
     if (method === 'GET') url.searchParams.set('ref', data.ref);
     const response = await fetchImpl(url, {
       method: comparison ? 'GET' : method, headers: { authorization: `Bearer ${token}`, accept: 'application/vnd.github+json',

@@ -91,7 +91,7 @@ jobs:
     # in_progress and, with no timeout here, it would have run to GitHub's
     # six-hour default before reporting. Ten minutes turns six wasted hours into
     # a fast red, and a red is what a hung suite should be.
-    timeout-minutes: 10
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && (inputs.preflight || inputs.observe) && 20 || 10 }}
     steps:
       - uses: actions/checkout@v5
 

@@ -24,6 +24,7 @@ if (output && path.isAbsolute(output) && entry && /\.test\.mjs$/.test(entry) && 
   const mkdir = original.mkdirSync;
   const realpath = original.realpathSync;
   let observing = false;
+  let synchronousRead = null;
 
   // Node's callback APIs carry symbol metadata for util.promisify. Retaining
   // those descriptors keeps exists/read/execFile return shapes unchanged.
@@ -131,11 +132,19 @@ if (output && path.isAbsolute(output) && entry && /\.test\.mjs$/.test(entry) && 
           return Reflect.apply(callback, this, values);
         };
       }
+      const previousRead = synchronousRead;
+      const readContext = name === 'readFileSync' && typeof observedValue === 'string';
+      if (readContext) synchronousRead = { path: observedValue, fd: null };
       try {
         const answer = Reflect.apply(fn, this, args);
+        if (name === 'openSync' && synchronousRead && typeof observedValue === 'string' &&
+            path.relative(synchronousRead.path, observedValue) === '' && Number.isInteger(answer)) {
+          synchronousRead.fd = answer;
+        }
         if (track && (name.endsWith('Sync') || name === 'existsSync')) result(observedValue, name, answer);
         return answer;
       } catch (error) { if (track) missing(observedValue, error); throw error; }
+      finally { if (readContext) synchronousRead = previousRead; }
     };
     // realpath's native implementation is a separate public entry point.
     if (typeof fn.native === 'function') {
@@ -166,7 +175,11 @@ if (output && path.isAbsolute(output) && entry && /\.test\.mjs$/.test(entry) && 
     const fn = original[name];
     if (!fn) continue;
     const wrapped = function (...args) {
-      if (!observing) sets.opaque.add('filesystem-descriptor');
+      // Node's ESM loader reads source through readFileSync without an
+      // encoding. Accept only the descriptor that call opened for its known
+      // path, and only during that synchronous call. Keep arbitrary user
+      // descriptors opaque; no descriptor identity survives a later close/reuse.
+      if (!observing && (!synchronousRead || args[0] !== synchronousRead.fd)) sets.opaque.add('filesystem-descriptor');
       return Reflect.apply(fn, this, args);
     };
     fs[name] = preserveSymbols(fn, wrapped, (custom, receiver, args) => {

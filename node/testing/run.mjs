@@ -7,8 +7,67 @@ import { spawn } from 'node:child_process';
 import { parseCsv } from '../build/registries-load.mjs';
 import { planSelection, changesSince, testFiles } from './select.mjs';
 import { collectObservations, buildRunRecord, dependencyFingerprint, gitSource, writeRecord } from './records.mjs';
+import { baselineEligible } from './publish.mjs';
 
 const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+
+const pathKey = value => process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value);
+
+export function createOwnedTemp(prefix) {
+  const parent = fs.realpathSync(os.tmpdir());
+  const directory = fs.mkdtempSync(path.join(parent, prefix));
+  const marker = randomUUID();
+  fs.writeFileSync(path.join(directory, '.test-run-owner'), marker, { flag: 'wx' });
+  const identity = fs.lstatSync(directory);
+  return { directory, parent, real: fs.realpathSync(directory), marker, dev: identity.dev, ino: identity.ino };
+}
+
+export function removeOwnedTemp(owned) {
+  if (!owned) return true;
+  try {
+    const current = fs.lstatSync(owned.directory);
+    const marker = () => fs.lstatSync(path.join(owned.directory, '.test-run-owner'));
+    // A child can replace its temporary root with a junction. Never traverse
+    // a replacement, even when the replacement still has the expected name.
+    if (!current.isDirectory() || current.isSymbolicLink() || current.dev !== owned.dev || current.ino !== owned.ino ||
+        pathKey(fs.realpathSync(owned.directory)) !== pathKey(owned.real) ||
+        pathKey(fs.realpathSync(path.dirname(owned.directory))) !== pathKey(owned.parent) ||
+        path.dirname(pathKey(owned.directory)) !== pathKey(owned.parent) ||
+        !marker().isFile() || marker().isSymbolicLink() ||
+        fs.readFileSync(path.join(owned.directory, '.test-run-owner'), 'utf8') !== owned.marker) {
+      console.warn('Test runner retained a temporary directory whose ownership changed.');
+      return false;
+    }
+    fs.rmSync(owned.directory, { recursive: true, force: true });
+    return true;
+  } catch (error) {
+    if (error.code === 'ENOENT') return true;
+    console.warn(`Test runner could not clean its temporary directory: ${error.message}`);
+    return false;
+  }
+}
+
+export function childProfile(environment = process.env) {
+  const owned = createOwnedTemp('wtp-');
+  const home = path.join(owned.directory, 'home');
+  const locations = {
+    HOME: home, USERPROFILE: home,
+    APPDATA: path.join(home, 'AppData/Roaming'), LOCALAPPDATA: path.join(home, 'AppData/Local'),
+    XDG_CONFIG_HOME: path.join(home, '.config'), CLAUDE_CONFIG_DIR: path.join(home, '.claude'),
+  };
+  try {
+    for (const directory of new Set(Object.values(locations))) fs.mkdirSync(directory, { recursive: true });
+    const globalConfig = path.join(owned.directory, 'gitconfig');
+    fs.writeFileSync(globalConfig, '[user]\n\tname = Test Runner\n\temail = test-runner@example.invalid\n');
+    const env = { ...environment };
+    const replaced = new Set([...Object.keys(locations), 'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_CONFIG_NOSYSTEM',
+      'GIT_TERMINAL_PROMPT', 'GCM_INTERACTIVE'].map(key => key.toLowerCase()));
+    for (const key of Object.keys(env)) if (replaced.has(key.toLowerCase())) delete env[key];
+    Object.assign(env, locations, { GIT_CONFIG_GLOBAL: globalConfig, GIT_CONFIG_NOSYSTEM: '1',
+      GIT_TERMINAL_PROMPT: '0', GCM_INTERACTIVE: 'Never' });
+    return { owned, env };
+  } catch (error) { removeOwnedTemp(owned); throw error; }
+}
 
 export function parseArguments(argv) {
   const options = { all: false, list: false, observe: false,
@@ -95,7 +154,9 @@ export async function main(argv = process.argv.slice(2)) {
   let snapshot = null, snapshotError = null;
   const shadow = options.all && options.observe && !options.list;
   if (!options.all || shadow) {
-    try { snapshot = JSON.parse(fs.readFileSync(path.resolve(root, options.snapshot || 'data/tests/reach.json'), 'utf8')); }
+    const localBaseline = 'node/.test-observations/baseline.json';
+    const baselinePath = options.snapshot || (fs.existsSync(path.join(root, localBaseline)) ? localBaseline : 'data/tests/reach.json');
+    try { snapshot = JSON.parse(fs.readFileSync(path.resolve(root, baselinePath), 'utf8')); }
     catch (error) { snapshotError = error.code === 'ENOENT' ? 'no observation baseline' : `unreadable observation baseline: ${error.message}`; }
   }
   let plan;
@@ -112,11 +173,14 @@ export async function main(argv = process.argv.slice(2)) {
   const selectionWallMs = Math.round(performance.now());
   const source = baseSource || gitSource(root, options.base || null);
   const startedAt = new Date().toISOString(), start = performance.now();
-  const rawDirectory = options.observe ? fs.mkdtempSync(path.join(os.tmpdir(), 'web-tools-test-observations-')) : null;
+  const raw = options.observe ? createOwnedTemp('wto-') : null;
+  const rawDirectory = raw?.directory || null;
+  let profile = null;
   let exitCode = 0, signal = null, spawnError = null;
   try {
     if (plan.tests.length) {
-      const env = { ...process.env };
+      profile = childProfile();
+      const env = profile.env;
       delete env.WEB_TOOLS_TEST_OBSERVATIONS;
       if (rawDirectory) {
         env.WEB_TOOLS_TEST_OBSERVATIONS = rawDirectory;
@@ -152,17 +216,22 @@ export async function main(argv = process.argv.slice(2)) {
     record.selection_wall_ms = selectionWallMs;
     record.preparation_wall_ms = Math.round(start);
     record.total_wall_ms = Math.round(performance.now());
+    record.profile_isolation = profile ? 'temporary' : 'not-needed';
     const output = path.resolve(root, options.out || 'node/.test-observations/run.json');
     if (!options.out) {
       const identifier = /^[A-Za-z0-9][A-Za-z0-9._-]{0,149}$/.test(record.run.id) ? record.run.id : randomUUID();
       writeRecord(path.join(root, 'node/.test-observations/runs', `${identifier}.json`), record);
     }
     writeRecord(output, record);
+    if (options.observe && baselineEligible(record)) {
+      writeRecord(path.join(root, 'node/.test-observations/baseline.json'), record);
+    }
     console.log(`Captured ${observations.length} worker observations for ${record.tests.length} test files in ${output}; ${(record.wall_ms / 1000).toFixed(2)}s wall, ${(record.sum_process_wall_ms / 1000).toFixed(2)}s aggregate process elapsed; ${record.complete ? 'complete' : 'incomplete'} observations; exit ${exitCode}.`);
     if (candidateSelection) console.log(`Shadow selection: ${candidateSelection.selected}/${candidateSelection.total}, ${candidateSelection.reason}; ${record.candidate_sum_process_wall_ms === null ? 'unavailable' : `${(record.candidate_sum_process_wall_ms / 1000).toFixed(2)}s`} aggregate process elapsed in the selected workers; the full suite ran.`);
     return { exitCode, signal, record, plan };
   } finally {
-    if (rawDirectory) fs.rmSync(rawDirectory, { recursive: true, force: true });
+    removeOwnedTemp(profile?.owned);
+    removeOwnedTemp(raw);
   }
 }
 

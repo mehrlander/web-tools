@@ -5,12 +5,15 @@ import path from 'node:path';
 import os from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import * as nodeModule from 'node:module';
 import { collectObservations, buildRunRecord, dependencyFingerprint, gitSource, writeRecord, relativePath, repositoryName } from '../testing/records.mjs';
-import { boundSelection } from '../testing/run.mjs';
+import { boundSelection, childProfile, createOwnedTemp, removeOwnedTemp } from '../testing/run.mjs';
 
 const cli = fileURLToPath(new URL('../testing/run.mjs', import.meta.url));
 const observer = fileURLToPath(new URL('../testing/observe.cjs', import.meta.url));
 const workerPath = 'node/test/a.test.mjs';
+const environmentUnchanged = before => Object.keys(before).length === Object.keys(process.env).length &&
+  Object.entries(before).every(([key, value]) => process.env[key] === value);
 const observation = (extra = {}) => ({ schema: 'web-tools-test-observation/1', path: workerPath,
   pid: 123, started_at: '2026-11-23T00:00:00Z', finished_at: '2026-11-23T00:00:01Z',
   elapsed_ms: 1000, exit_code: 0, complete: true,
@@ -137,13 +140,88 @@ function fixture(t, failing = false) {
   return { directory, root, git };
 }
 
-function invoke(root, args) {
-  const env = { ...process.env };
+function invoke(root, args, overrides = {}) {
+  const env = { ...process.env, ...overrides };
   delete env.NODE_TEST_CONTEXT;
   delete env.WEB_TOOLS_TEST_OBSERVATIONS;
   return spawnSync(process.execPath, [cli, '--root', root, '--concurrency', '1', ...args],
-    { env, encoding: 'utf8', timeout: 90000, windowsHide: true });
+    { env, encoding: 'utf8', timeout: process.platform === 'win32' ? 180000 : 90000, windowsHide: true });
 }
+
+test('temporary child profiles leave the parent environment and replaced cleanup roots untouched', t => {
+  const parent = { ...process.env }, profile = childProfile(parent);
+  t.after(() => removeOwnedTemp(profile.owned));
+  for (const key of ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'XDG_CONFIG_HOME', 'CLAUDE_CONFIG_DIR', 'GIT_CONFIG_GLOBAL']) {
+    assert.equal(path.relative(profile.owned.directory, profile.env[key]).startsWith('..'), false, key);
+    assert.notEqual(profile.env[key], parent[key], key);
+  }
+  const envPath = Object.keys(parent).find(key => key.toLowerCase() === 'path');
+  assert.equal(profile.env[envPath], parent[envPath]);
+  assert.equal(profile.env.npm_execpath, parent.npm_execpath);
+  assert.equal(profile.env.GIT_TERMINAL_PROMPT, '0');
+  assert.equal(profile.env.GCM_INTERACTIVE, 'Never');
+  assert.equal(environmentUnchanged(parent), true, 'parent environment is unchanged');
+
+  const outside = box(t), sentinel = path.join(outside, 'keep.txt');
+  fs.writeFileSync(sentinel, 'outside stays');
+  const replaced = createOwnedTemp('wtr-');
+  assert.equal(removeOwnedTemp(replaced), true);
+  fs.symlinkSync(outside, replaced.directory, process.platform === 'win32' ? 'junction' : 'dir');
+  t.after(() => fs.unlinkSync(replaced.directory));
+  assert.equal(removeOwnedTemp(replaced), false);
+  assert.equal(fs.readFileSync(sentinel, 'utf8'), 'outside stays');
+});
+
+test('Git source provenance ignores inherited checkout and index overrides', t => {
+  const f = fixture(t), expected = f.git(['rev-parse', 'HEAD']);
+  const overrides = { GIT_DIR: path.join(f.directory, 'wrong.git'), GIT_WORK_TREE: f.directory,
+    GIT_INDEX_FILE: path.join(f.directory, 'wrong-index'), GIT_COMMON_DIR: path.join(f.directory, 'wrong-common') };
+  const previous = Object.fromEntries(Object.keys(overrides).map(key => [key, process.env[key]]));
+  try {
+    Object.assign(process.env, overrides);
+    const source = gitSource(f.root);
+    assert.equal(source.checkout_sha, expected);
+    assert.equal(source.dirty, false);
+  } finally {
+    for (const [key, value] of Object.entries(previous)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+});
+
+test('CLI fixtures write USERPROFILE settings only inside the owned child profile', t => {
+  const directory = box(t), root = path.join(directory, 'repo'), original = path.join(directory, 'original-profile');
+  fs.mkdirSync(path.join(root, 'node/test'), { recursive: true });
+  fs.mkdirSync(path.join(original, '.claude'), { recursive: true });
+  const sentinel = path.join(original, '.claude/settings.json'), probe = path.join(directory, 'profile-probe.json');
+  fs.writeFileSync(sentinel, 'original settings');
+  fs.writeFileSync(path.join(root, 'node/test/runtime-command.cjs'), '');
+  fs.writeFileSync(path.join(root, workerPath), `
+import fs from 'node:fs'; import path from 'node:path'; import test from 'node:test';
+test('profile write', () => {
+  const target = path.join(process.env.USERPROFILE, '.claude/settings.json');
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  fs.writeFileSync(target, 'fixture settings');
+  fs.writeFileSync(process.env.PROFILE_PROBE_OUT, JSON.stringify({ target,
+    home: process.env.HOME, userprofile: process.env.USERPROFILE,
+    config: process.env.CLAUDE_CONFIG_DIR, git: fs.readFileSync(process.env.GIT_CONFIG_GLOBAL, 'utf8') }));
+});
+`);
+  const before = { ...process.env }, output = path.join(directory, 'run.json');
+  const result = invoke(root, ['--all', '--out', output], { HOME: original, USERPROFILE: original,
+    CLAUDE_CONFIG_DIR: path.join(original, '.claude'), PROFILE_PROBE_OUT: probe });
+  assert.equal(result.status, 0, result.stdout + result.stderr);
+  assert.equal(fs.readFileSync(sentinel, 'utf8'), 'original settings');
+  const observed = JSON.parse(fs.readFileSync(probe));
+  assert.notEqual(observed.userprofile, original);
+  assert.equal(observed.home, observed.userprofile);
+  assert.equal(observed.config, path.join(observed.userprofile, '.claude'));
+  assert.match(observed.git, /test-runner@example.invalid/);
+  assert.equal(fs.existsSync(observed.home), false, 'owned profile was cleaned after the run');
+  assert.equal(JSON.parse(fs.readFileSync(output)).profile_isolation, 'temporary');
+  assert.equal(environmentUnchanged(before), true, 'parent environment is unchanged');
+});
 
 test('CLI rejects incompatible reach and missing registries before attempting Git', t => {
   const directory = box(t), root = path.join(directory, 'repo'), snapshotFile = path.join(directory, 'reach.json');
@@ -232,4 +310,49 @@ test('CLI selects only observed readers, preserves failure status, and retains l
   assert.equal(history.length, 1);
   assert.deepEqual(JSON.parse(fs.readFileSync(path.join(f.root, 'node/.test-observations/runs', history[0]))), selected);
   assert.equal(fs.readFileSync(snapshotFile, 'utf8'), before);
+});
+
+test('CLI retains and reuses a clean local full baseline without promoting a selected run', {
+  skip: typeof nodeModule.registerHooks !== 'function' && 'Module observations need module.registerHooks',
+}, t => {
+  const f = fixture(t), baselinePath = path.join(f.root, 'node/.test-observations/baseline.json');
+  fs.mkdirSync(path.join(f.root, 'data/tests'), { recursive: true });
+  const publicSnapshot = path.join(f.root, 'data/tests/reach.json');
+  fs.writeFileSync(publicSnapshot, '{"schema":"incompatible-public-snapshot"}\n');
+  for (const name of ['a', 'b']) {
+    fs.writeFileSync(path.join(f.root, `node/test/${name}.test.mjs`), `
+import fs from 'node:fs'; import test from 'node:test';
+test('observed ${name}', () => fs.readFileSync(new URL('../../lib/${name}.js', import.meta.url), 'utf8'));
+`);
+  }
+  f.git(['add', '.']);
+  f.git(['-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'observe real fixture inputs']);
+  const publicBytes = fs.readFileSync(publicSnapshot, 'utf8');
+  const localRun = { GITHUB_RUN_ID: '', GITHUB_RUN_ATTEMPT: '', GITHUB_EVENT_NAME: 'local-fixture' };
+  const full = invoke(f.root, ['--all', '--observe'], localRun);
+  assert.equal(full.status, 0, full.stdout + full.stderr);
+  const baselineBytes = fs.readFileSync(baselinePath, 'utf8'), baseline = JSON.parse(baselineBytes);
+  assert.equal(baseline.mode, 'full');
+  assert.equal(baseline.complete, true);
+  assert.equal(baseline.source.dirty, false);
+  assert.equal(baseline.tests.length, 2);
+  for (const field of ['selection_wall_ms', 'preparation_wall_ms', 'wall_ms', 'total_wall_ms']) {
+    assert.equal(Number.isFinite(baseline[field]) && baseline[field] >= 0, true, `${field} is a nonnegative duration`);
+  }
+  assert.equal(baseline.selection_wall_ms <= baseline.preparation_wall_ms, true);
+  assert.equal(baseline.preparation_wall_ms + baseline.wall_ms <= baseline.total_wall_ms + 1, true);
+  assert.equal(Date.parse(baseline.invoked_at) <= Date.parse(baseline.started_at), true);
+  assert.equal(Date.parse(baseline.started_at) <= Date.parse(baseline.finished_at), true);
+
+  fs.writeFileSync(path.join(f.root, 'lib/a.js'), 'changed');
+  const selectedResult = invoke(f.root, ['--observe'], localRun);
+  assert.equal(selectedResult.status, 0, selectedResult.stdout + selectedResult.stderr);
+  const selected = JSON.parse(fs.readFileSync(path.join(f.root, 'node/.test-observations/run.json')));
+  assert.equal(selected.mode, 'selected', 'the ignored baseline takes precedence over the incompatible public snapshot');
+  assert.equal(selected.complete, true);
+  assert.deepEqual(selected.tests.map(row => row.path), [workerPath]);
+  assert.equal(selected.selection.source_sha, baseline.source.checkout_sha);
+  assert.equal(fs.readFileSync(baselinePath, 'utf8'), baselineBytes, 'selected observations do not replace the full baseline');
+  assert.equal(fs.readFileSync(publicSnapshot, 'utf8'), publicBytes);
+  assert.equal(fs.readdirSync(path.join(f.root, 'node/.test-observations/runs')).length, 2);
 });
