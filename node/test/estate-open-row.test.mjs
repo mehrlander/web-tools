@@ -148,10 +148,12 @@ test('a session row and a branch tile under it carry the mark too', async () => 
   data.sessionRows_ = [window.RepoSessionsCache.summarize(rec(), 'sha1')];
   await Alpine.nextTick();
   const card = () => doc.querySelector('[data-session-node]:not([data-session-node^="stub"])');
-  const tile = () => [...doc.querySelectorAll('[x-data*="siblings"][data-part="item"]')]
-    .find(el => named(el, 'feat/a'));
+  // The branch is one line under the session, named in its label: the line
+  // shows what the branch is (its PR title or newest subject), not its name.
+  const tile = () => [...doc.querySelectorAll('[data-branch-line]')]
+    .find(el => (el.getAttribute('aria-label') || '').endsWith('/feat/a'));
   assert.ok(card(), 'the session is listed');
-  assert.ok(tile(), 'with the branch it worked as a tile inside it');
+  assert.ok(tile(), 'with the branch it worked as a line inside it');
   assert.equal(card().hasAttribute('aria-current'), false);
 
   // The marks are read off which row the deck holds, so the state alone is
@@ -170,6 +172,44 @@ test('a session row and a branch tile under it carry the mark too', async () => 
   await Alpine.nextTick();
   assert.equal(tile().getAttribute('aria-current'), 'true', 'a branch deck marks the tile for that branch');
   assert.match(tile().className, /border-2/);
+  data.detail = null;
+  data.sessionRows_ = [];
+  shell.view = 'branches';
+  await Alpine.nextTick();
+});
+
+test('a branch line opens the branch panel-tip, which draws the whole tile', async () => {
+  seed();
+  shell.view = 'sessions';
+  data.sessionTab = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionRows_ = [window.RepoSessionsCache.summarize(rec(), 'sha1')];
+  await Alpine.nextTick();
+  const line = [...doc.querySelectorAll('[data-branch-line]')]
+    .find(el => (el.getAttribute('aria-label') || '').endsWith('/feat/a'));
+  assert.ok(line, 'the branch is one line under its session');
+  assert.ok(line.textContent.includes('work a'), 'saying what the branch is');
+  assert.equal(line.querySelectorAll('button, a').length, 0, 'with no controls of its own');
+  const settle = async () => { await new Promise(r => setTimeout(r, 0)); await Alpine.nextTick(); };
+
+  line.click();
+  await settle();
+  assert.equal(data.branchTip?.key, 'me/tools/feat/a');
+  assert.equal(data.branchTip.pinned, true, 'a click pins it');
+  const tip = doc.querySelector('[data-branch-tip]');
+  assert.ok(named(tip, 'feat/a'), 'the panel names the branch');
+  assert.ok(tip.querySelector('[aria-label="GitHub links for feat/a"]'), 'and carries the tile\'s controls');
+
+  line.click();
+  await settle();
+  assert.equal(data.branchTip, null, 'a second click on the same line closes it');
+
+  line.click();
+  await settle();
+  data.detail = { rows: [{ repo: 'me/tools', name: 'feat/a' }], i: 0 };
+  await settle();
+  assert.equal(data.branchTip, null, 'opening the branch deck closes it');
   data.detail = null;
   data.sessionRows_ = [];
   shell.view = 'branches';
