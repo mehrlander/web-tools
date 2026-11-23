@@ -15,14 +15,14 @@ A catalogue here is a file that lists pages; each is under [Catalogues](#catalog
 
 [`pages.csv`](pages.csv) holds the measured facts, one row per page. [`page-jobs.csv`](page-jobs.csv) holds each page's standing and job, judged by hand.
 
-[`pages-map.mjs`](pages-map.mjs) rewrites [`pages.csv`](pages.csv) and the generated blocks of this document; `--check` reports what is stale and any row of [`page-jobs.csv`](page-jobs.csv) that breaks a rule under [Terms](#terms). Its header names the checkouts it reads.
+[`pages-map.mjs`](pages-map.mjs) rewrites [`pages.csv`](pages.csv) and the generated blocks of this document; `--check` reports what is stale and any row of [`page-jobs.csv`](page-jobs.csv) that breaks a rule under [Terms](#terms).
 
 ## Catalogues
 
 | Catalogue | File | Lists |
 | --- | --- | --- |
 | gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/); every page under [`lib/kits/demos/`](../../../lib/kits/demos/); and each skill's `demo.html` under [`skills/`](../../../skills/) |
-| manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md), as in [web-tools' own manifest](../../../.web-tools.json) | the pages a repository declares, its own or another repository's |
+| manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md) | the pages a repository declares, its own or another repository's |
 | landing | `projects[].landing` in each [`.web-tools.json`](../../../docs/manifest.md) | a project's front page |
 | utilities | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities |
 | units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs |
