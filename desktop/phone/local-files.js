@@ -194,6 +194,7 @@
   function results(){
     if(!active||!el('local-results'))return;
     const viewport=scrollPosition(),focus=document.activeElement,key=focus?.dataset.folder,commit=focus?.dataset.commit,branchFocus=focus?.dataset.fileBranch,toolFocus=focus?.dataset.focus,tip=document.querySelector('[data-commit][aria-describedby="wt-title-tip"]')?.dataset.commit,branchTip=document.querySelector('[data-file-branch][aria-describedby="wt-title-tip"]')?.dataset.fileBranch;
+    const syncScroll=el('repository-sync-panel')?.scrollTop||0;
     const inventory=denied?undefined:localInventory(),source=denied?undefined:inventory||listing,items=source?.entries||[],shown=items.filter(e=>(filter==='all'||e.gitState===filter)&&e.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
     const filters=el('file-filters');filters.hidden=!current||!items.some(e=>e.gitState);
     for(const button of filters.querySelectorAll('button')){const selected=button.dataset.fileFilter===filter;button.setAttribute('aria-pressed',String(selected));button.classList.toggle('bg-white',selected);button.classList.toggle('shadow-sm',selected);}
@@ -204,16 +205,18 @@
     const root=listing?.rootName||'gh',parts=current?current.split('/'):[];
     el('local-breadcrumb').innerHTML=`<button data-folder="" class="min-h-9 shrink-0 font-medium text-emerald-800" ${!parts.length?'aria-current="location"':''}>${folder}<span>${escape(root)}</span></button>`+parts.map((p,i)=>`<span aria-hidden="true" class="text-stone-400">/</span><button data-folder="${escape(parts.slice(0,i+1).join('/'))}" ${i===parts.length-1?'aria-current="location"':''} class="min-h-9 min-w-0 break-all text-left ${i===parts.length-1?'font-medium text-stone-800':'text-emerald-800'}">${escape(p)}</button>`).join('');
     el('local-context').innerHTML=branchLine(checkouts().find(c=>c.name===current));
+    if(el('repository-sync'))el('repository-sync').innerHTML=rootId==='gh'&&!current?window.NowRepositories.syncStrip():'';
     el('folder-actions').innerHTML=rootId==='gh'?(current?window.NowRepositories.tools(checkouts().find(c=>c.name===current.split('/')[0])):window.NowRepositories.rootTools()):'';
     const next=JSON.stringify([source,filter,query,failed,denied,[...expanded],[...searchCollapsed],window.NowRepositories.version()]);
     if(next!==signature){
       signature=next;
       el('local-results').innerHTML=!source?`<p class="px-3 py-3 text-sm text-stone-500">${denied?'Folder access unavailable.':failed?'Could not read this folder.':'Reading files and folders…'}</p>`:(rootId==='gh'&&!current?rootRows(items):shown.map(e=>entryRow(e,null,inventory)).join(''))||`<p class="px-3 py-3 text-sm text-stone-500">${query?'No matching names in this folder.':filter!=='all'?'No '+filter+' entries in this folder.':'No visible files or folders.'}</p>`;
     }
+    if(el('repository-sync-panel'))el('repository-sync-panel').scrollTop=syncScroll;
     if(key!==undefined)[...document.querySelectorAll('[data-folder]')].find(n=>n.dataset.folder===key)?.focus({preventScroll:true});
     if(commit)[...document.querySelectorAll('[data-commit]')].find(n=>n.dataset.commit===commit)?.focus({preventScroll:true});
     if(branchFocus)[...document.querySelectorAll('[data-file-branch]')].find(n=>n.dataset.fileBranch===branchFocus)?.focus({preventScroll:true});
-    if(toolFocus)[...document.querySelectorAll('[data-focus]')].find(n=>n.dataset.focus===toolFocus&&!n.disabled)?.focus({preventScroll:true});
+    if(toolFocus){const target=[...document.querySelectorAll('[data-focus]')].find(n=>n.dataset.focus===toolFocus&&!n.disabled);(target||((toolFocus.includes(':sync')||toolFocus.startsWith('sync:'))&&el('repository-sync-panel')?document.querySelector('[data-sync-strip]'):null))?.focus({preventScroll:true});}
     if(tip){const target=[...document.querySelectorAll('[data-commit]')].find(n=>n.dataset.commit===tip);if(target)window.TitleTip?.open(target);else window.TitleTip?.close();}
     if(branchTip){const target=[...document.querySelectorAll('[data-file-branch]')].find(n=>n.dataset.fileBranch===branchTip);if(target)window.TitleTip?.open(target);else window.TitleTip?.close();}
     if(scrollPosition()!==viewport)restoreScroll(viewport);
@@ -245,7 +248,7 @@
       if(openedFile){contentShell();return;}
       const saved=folderStates.get(cacheKey(rootId,path));filter=saved?.filter||'all';query=saved?.query||'';
       listing=cache.get(cacheKey(rootId,path));
-      el('repositories').innerHTML=`${rootTabs()}${panelStart()}<div class="border-b border-stone-200 bg-white px-3 pb-2"><div class="flex min-w-0 items-start"><nav id="local-breadcrumb" aria-label="Folder path" class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-xs [&>button]:inline-flex [&>button]:items-center [&>button]:gap-1.5"></nav><div id="folder-actions" class="-mr-3 shrink-0"></div></div><div id="local-context"></div><div class="flex items-center gap-2"><input data-local-search aria-label="Find in this folder" type="search" placeholder="Find in this folder" class="h-8 min-w-0 flex-1 rounded-md border border-stone-200 bg-stone-50 px-2 text-base"><span id="local-observed" class="shrink-0 text-[10px] text-stone-500"></span></div><div id="file-filters" hidden class="mt-1.5 flex rounded-lg bg-stone-200 p-0.5" role="group" aria-label="Git file status">${['all','tracked','untracked','ignored'].map(k=>`<button data-file-filter="${k}" aria-pressed="${k===filter}" class="min-h-7 flex-1 rounded-md px-1.5 text-xs">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div><p id="local-notice" class="empty:hidden pt-1 text-[11px] text-amber-800"></p></div><div id="local-results"></div></section>`;
+      el('repositories').innerHTML=`${rootTabs()}${panelStart()}<div class="border-b border-stone-200 bg-white px-3 pb-2"><div class="flex min-w-0 items-start"><nav id="local-breadcrumb" aria-label="Folder path" class="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-xs [&>button]:inline-flex [&>button]:items-center [&>button]:gap-1.5"></nav><div id="folder-actions" class="-mr-3 shrink-0"></div></div><div id="local-context"></div><div class="flex items-center gap-2"><input data-local-search aria-label="Find in this folder" type="search" placeholder="Find in this folder" class="h-8 min-w-0 flex-1 rounded-md border border-stone-200 bg-stone-50 px-2 text-base"><span id="local-observed" class="shrink-0 text-[10px] text-stone-500"></span></div><div id="file-filters" hidden class="mt-1.5 flex rounded-lg bg-stone-200 p-0.5" role="group" aria-label="Git file status">${['all','tracked','untracked','ignored'].map(k=>`<button data-file-filter="${k}" aria-pressed="${k===filter}" class="min-h-7 flex-1 rounded-md px-1.5 text-xs">${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div><p id="local-notice" class="empty:hidden pt-1 text-[11px] text-amber-800"></p><div id="repository-sync"></div></div><div id="local-results"></div></section>`;
       el('repositories').querySelector('[data-local-search]').value=query;
       results();poll();
     }else if(openedFile){document.title=openedFile.split('/').at(-1)+' | Files | Web Tools';}
