@@ -70,7 +70,7 @@ A **tool** is a product page whose job includes make. In the make job, the reade
 
 **Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
-**names_private** applies to a page in a public repository; for a page in a private repository it is blank, since the script does not read that source. It lists the private repositories the page's source names as `owner/repo`. It reads `none` when the source names none.
+**names_private** applies to a page in a public repository. For a page in a private repository it is blank. The script does not read that page's source. It lists the private repositories the page's source names as `owner/repo`. It reads `none` when the source names none.
 
 A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names.
 
