@@ -28,7 +28,7 @@ public sealed class ClaudeUsageClient(HttpClient http, string credentialsPath, s
             var access = oauth?["accessToken"]?.GetValue<string>();
             var refresh = oauth?["refreshToken"]?.GetValue<string>();
             if (string.IsNullOrEmpty(access) && string.IsNullOrEmpty(refresh)) {
-                await Status("signin_required", "Sign in to Claude Code on this laptop to connect usage.", now, stop);
+                await Status("signin_required", "Sign in to Claude Code on the Lenovo to connect usage.", now, stop);
                 return;
             }
             var expiry = oauth?["expiresAt"]?.GetValue<long>() ?? 0;
@@ -47,7 +47,7 @@ public sealed class ClaudeUsageClient(HttpClient http, string credentialsPath, s
                 }
                 if (!response.IsSuccessStatusCode) {
                     await Status(response.StatusCode == HttpStatusCode.Unauthorized ? "signin_required" : "unavailable",
-                        response.StatusCode == HttpStatusCode.Unauthorized ? "Claude sign-in has expired. Sign in again on this laptop." : "Claude account usage is temporarily unavailable.", now, stop);
+                        response.StatusCode == HttpStatusCode.Unauthorized ? "Claude sign-in has expired. Sign in again on the Lenovo." : "Claude account usage is temporarily unavailable.", now, stop);
                     return;
                 }
                 using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync(stop));
@@ -59,7 +59,7 @@ public sealed class ClaudeUsageClient(HttpClient http, string credentialsPath, s
             } finally { retry?.Dispose(); }
         } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or HttpRequestException or InvalidOperationException or OperationCanceledException) {
             if (!stop.IsCancellationRequested)
-                await Status("unavailable", "Claude account usage is unavailable. Check the laptop's Claude sign-in.", now, stop);
+                await Status("unavailable", "Claude account usage is unavailable. Check the Lenovo's Claude sign-in.", now, stop);
         }
     }
 

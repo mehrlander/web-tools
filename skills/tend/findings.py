@@ -473,7 +473,7 @@ def candidates(store_repo):
             if (idle or 0) >= 30:
                 add_c("sinking", [loc], f"idle {idle}d, {p.get('behindBy')} commits behind")
             if p["head"].startswith(NON_CLAUDE) and not p.get("draft") and (idle or 0) >= 3:
-                add_c("unreviewed-laptop", [loc], f"{p['head'].split('/')[0]} PR marked ready, idle {idle}d")
+                add_c("unreviewed-lenovo", [loc], f"{p['head'].split('/')[0]} PR marked ready, idle {idle}d")
     return out, act
 
 

@@ -15,7 +15,7 @@ const c={key,name:'project',branch:'feature/work',changed:2,untracked:1,conflict
 const other={key:otherKey,name:'project-other',branch:'other',changed:0,untracked:0,conflicts:0,tracked:comp('no-upstream',null,null,null),main:comp('incomplete-history',null,null,'main')};
 const repo={key:repoKey,name:'fixture/project',url:'https://github.com/fixture/project',checkedAt:at,notice:null,checkouts:[c,other]};
 c.upstream='origin/main';c.branchStatus={state:'open',number:4,url:'https://github.com/fixture/project/pull/4',title:'Review <local> work',checkedAt:at,pullRequestState:'open'};
-const data={schemaVersion:1,machineName:'Laptop',observedAt:at,refreshing:[],repositories:[repo]};
+const data={schemaVersion:1,machineName:'Lenovo',observedAt:at,refreshing:[],repositories:[repo]};
 const listing=path=>({schemaVersion:1,rootName:'repos',path,state:'ready',observedAt:at,partial:false,notice:null,entries:(path?['exports','node_modules']:['project','project-other','ordinary']).map(name=>({name,kind:'folder',gitState:path?'ignored':null,bytes:null,modifiedAt:at,role:null}))});
 w.setTimeout=(fn,delay)=>{timers.set(++id,{fn,delay});return id;};w.clearTimeout=k=>timers.delete(k);
 Object.defineProperty(w,'scrollY',{get:()=>top});w.scrollTo=(_x,y)=>{top=y;};w.AbortController=AbortController;

@@ -4,7 +4,7 @@ using System.Management;
 
 namespace WebTools.Desktop;
 
-public static class LaptopSignals
+public static class LenovoSignals
 {
     public static string Outbox(string id) => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "session-topics", "errand-output", id);
 

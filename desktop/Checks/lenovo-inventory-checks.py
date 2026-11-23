@@ -14,7 +14,7 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'worker'))
-import laptop_inventory as inventory
+import lenovo_inventory as inventory
 
 
 class Fixture(unittest.TestCase):
@@ -194,7 +194,7 @@ class MetadataChecks(Fixture):
                    GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='Never')
         result = subprocess.run([sys.executable, str(Path(inventory.__file__).with_name('repositories.py')),
                                  '--root', str(self.root), '--state', str(self.base / 'state'),
-                                 '--publish-laptop-files'], capture_output=True, env=env, timeout=45)
+                                 '--publish-lenovo-files'], capture_output=True, env=env, timeout=45)
         self.assertEqual(result.returncode, 0)
         value = json.loads(result.stdout)
         self.assertEqual(value.pop('activity'), {'state': 'unavailable'})
@@ -206,7 +206,7 @@ class MetadataChecks(Fixture):
     def test_cli_publication_and_fetch_modes_are_exclusive(self):
         result = subprocess.run([sys.executable, str(Path(inventory.__file__).with_name('repositories.py')),
                                  '--root', str(self.root), '--state', str(self.base / 'state'),
-                                 '--local-files', '--publish-laptop-files'], capture_output=True, timeout=45)
+                                 '--local-files', '--publish-lenovo-files'], capture_output=True, timeout=45)
         self.assertEqual(result.returncode, 2)
 
 

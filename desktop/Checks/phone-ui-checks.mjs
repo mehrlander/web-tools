@@ -15,15 +15,15 @@ w.scrollTo=(x,y)=>{pageTop=typeof x==='object'?x.top:y;};
 w.AbortController=AbortController;
 const timers=new Map();let timerId=0;
 w.setTimeout=(fn,delay)=>{timers.set(++timerId,{fn,delay});return timerId;};w.clearTimeout=id=>timers.delete(id);
-const item=(key,state,provider='Gemini')=>({key,id:key,kind:'errand',provider,location:'Laptop',title:key,state,detail:'',at:now,createdAt:now,needsAttention:false,isNew:false,url:null});
-let snapshot={schemaVersion:1,machineName:'Fixture laptop',observedAt:now,sources:{queueAvailable:true,recordsConnected:true,recordsSyncedAt:now,workerState:'detected',cloudCapturedAt:now,notices:[]},items:[
+const item=(key,state,provider='Gemini')=>({key,id:key,kind:'errand',provider,location:'Lenovo',title:key,state,detail:'',at:now,createdAt:now,needsAttention:false,isNew:false,url:null});
+let snapshot={schemaVersion:1,machineName:'Fixture Lenovo',observedAt:now,sources:{queueAvailable:true,recordsConnected:true,recordsSyncedAt:now,workerState:'detected',cloudCapturedAt:now,notices:[]},items:[
  {...item('session:Codex:local','working','Codex'),id:'local',kind:'session',title:'Working <img src=x onerror=alert(1)>',detail:'**Checking** the queue',work:{through:now,agents:2,members:['child'],segments:[{id:'one',headline:'Current work',summary:'Reduced spacing and checked navigation.',at:now,generatedAt:now,evidence:['2 file edits']}] }},
  {...item('errand:second','queued'),id:'second',createdAt:earlier(20)}, {...item('errand:first','queued'),id:'first',createdAt:earlier(90)},
  item('accepted','claimed'),{...item('failed','failed'),needsAttention:true},
  {...item('cloud:cloud','idle','Claude'),id:'cloud',kind:'cloud',location:'Cloud',title:'Cloud work',url:'https://mehrlander.github.io/web-tools/app/?view=sessions&session=cloud',sessionUrl:'https://claude.ai/code/session_fixture',turn:{prompt:'Please inspect the queue.',response:'**A fresh reply** <b>untrusted</b>',startedAt:earlier(60),updatedAt:now,lastTool:'Read'},checkpoint:{summary:'An older checkpoint',headline:'Prior work',at:earlier(300),turns:[{turn:1,headline:'Result',summary:'Finished the work',files:2,pushes:1,agents:1}],links:[{label:'home #72',url:'https://github.com/mehrlander/home/pull/72'},{label:'bad',url:'javascript:alert(1)'}]}},
  {...item('result','complete'),title:'A complete result',url:'javascript:alert(1)'}, {...item('quiet','quiet','Codex'),kind:'session'},
  {...item('declined','declined'),title:'An unanswered request'}, {...item('cloud:unknown','unknown','Claude'),kind:'cloud',title:'A recorded session'}
-],changes:[{key:'archived',id:'change-one',provider:'Claude',title:'Removed from current feed',state:'working',at:earlier(40),detail:'Historical update',location:'Cloud'},{key:'session:Codex:child',id:'child',provider:'Codex',title:'Delegated child',state:'working',at:now,detail:'Child update',location:'Laptop'}],events:[{id:'event',sessionId:'cloud',provider:'Claude',at:earlier(20),state:'working',detail:'Read the changed files'}],usage:[]};
+],changes:[{key:'archived',id:'change-one',provider:'Claude',title:'Removed from current feed',state:'working',at:earlier(40),detail:'Historical update',location:'Cloud'},{key:'session:Codex:child',id:'child',provider:'Codex',title:'Delegated child',state:'working',at:now,detail:'Child update',location:'Lenovo'}],events:[{id:'event',sessionId:'cloud',provider:'Claude',at:earlier(20),state:'working',detail:'Read the changed files'}],usage:[]};
 w.fetch=async(path,options={})=>{fetches++;lastHeaders=options.headers;if(offline)throw Error('Offline');if(denied)return{ok:false,status:403};if(path==='/api/v1/sync/retry'){syncPosts++;lastSyncOptions=options;if(syncHold)await new Promise(resolve=>{syncRelease=resolve;});return{ok:syncStatus===202,status:syncStatus,json:async()=>({accepted:syncStatus===202,retryAfterSeconds:15})};}if(path.startsWith('/api/v1/results/')){replyFetches++;return{ok:true,json:async()=>({reply:'Result <script>alert(1)</script>'})};}return{ok:true,status:200,headers:{get:()=> 'etag'},json:async()=>structuredClone(snapshot)};};
 for(const path of ['../../lib/kits/claude-mark.js','../../lib/kits/assistant-mark.js','../../lib/kits/panel-tip.js','../shared/phone-info.js','../shared/now-shared.js','../shared/usage-view.js','../shared/recent-usage.js','../../node_modules/marked/lib/marked.umd.js','../../node_modules/dompurify/dist/purify.min.js','../phone/reading.js','../phone/views.js','../phone/phone.js'])w.eval(read(path));
 const css=doc.createElement('style');css.textContent=read('../phone/phone-ui.css');doc.head.append(css);
@@ -123,11 +123,11 @@ clearDetail();w.NowPhone.openSession('declined');await flush();
 check(doc.querySelector('#detail [data-reply]')&&doc.querySelector('#detail').textContent.includes('Declined')&&replyFetches===2,
  'Declined requests retain their recorded result in the focused reader without implying completion or failure.');
 offline=true;await refresh();
-check(doc.querySelector('#detail-connection').textContent.includes('Laptop unreachable')&&doc.querySelector('#detail [data-reply]'),'Offline detail reading retains the result with an explicit unreachable state.');
+check(doc.querySelector('#detail-connection').textContent.includes('Lenovo unreachable')&&doc.querySelector('#detail [data-reply]'),'Offline detail reading retains the result with an explicit unreachable state.');
 offline=false;snapshot.observedAt=earlier(60);await refresh();
 check(doc.querySelector('#connection').textContent.includes('Activity paused'),'A responding server with old observations is not labeled live.');
-snapshot.observedAt=new Date().toISOString();await refresh();check(doc.querySelector('#connection').textContent.includes('Laptop live'),'Fresh observations recover automatically.');
-clearDetail();denied=true;await refresh();check(doc.querySelector('#connection').textContent.includes('Access unavailable'),'Access denial remains distinct from an ordinary unreachable laptop.');denied=false;await refresh();
+snapshot.observedAt=new Date().toISOString();await refresh();check(doc.querySelector('#connection').textContent.includes('Lenovo live'),'Fresh observations recover automatically.');
+clearDetail();denied=true;await refresh();check(doc.querySelector('#connection').textContent.includes('Access unavailable'),'Access denial remains distinct from an ordinary unreachable Lenovo.');denied=false;await refresh();
 check(w.localStorage.getItem('web-tools-now-snapshot')?.includes('Please inspect'),'The complete observation snapshot is retained for offline use.');
 let archive={available:true,observedAt:now,sessions:[{id:'cloud',provider:'claude',agentSessionId:'session_fixture',title:'Cloud work',sessionUrl:'https://claude.ai/code/session_fixture',usageAt:now,contextTokens:500000,inputTokens:10,outputTokens:3000,cacheReadTokens:20,cacheWriteTokens:30,measuredSteps:1,reloads:0},{id:'missing',provider:'claude',title:'Only in usage metadata',usageAt:now,contextTokens:800000,inputTokens:1,outputTokens:0,cacheReadTokens:2,cacheWriteTokens:3}]};
 let forwarded,usageRefreshes=0;
@@ -361,7 +361,7 @@ for(const seconds of [16,36]) {
   snapshot.observedAt=earlier(seconds);await refresh();
   const retry=doc.querySelector('[data-sync-retry]');
   retry.dispatchEvent(new w.MouseEvent('click',{bubbles:true}));await flush();
-  check(retry.disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh laptop observation before retrying.'
+  check(retry.disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh Lenovo observation before retrying.'
     &&!doc.querySelector('#detail [role=status]').textContent.includes('Reconnect')&&syncPosts===postsBeforeStale,
     'A connected '+seconds+'-second-old observation waits for fresh data and cannot send a retry POST, even through a synthetic click.');
 }
@@ -379,11 +379,11 @@ w.Date.now=()=>clientNow()+40000;snapshot.observedAt=new Date(Date.now()+40000).
 check(syncPosts===3&&doc.querySelector('#detail [role=status]').textContent.includes('wait briefly')&&doc.querySelector('[data-sync-retry]').disabled,
  'Rate-limited retries preserve the server cooldown with clear feedback.');
 w.Date.now=clientNow;snapshot.observedAt=earlier(30);await refresh();
-check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh laptop observation before retrying.',
+check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('#detail [role=status]').textContent==='Wait for a fresh Lenovo observation before retrying.',
   'A stale observation takes priority over feedback from an earlier retry request.');
 w.Date.now=clientNow;snapshot.observedAt=new Date().toISOString();offline=true;await refresh();
 check(doc.querySelector('[data-sync-retry]').disabled&&doc.querySelector('[data-sync-feed=sessions]').textContent.includes('Saved observation')
-  &&doc.querySelector('#detail [role=status]').textContent==='Reconnect to the laptop to request a refresh.',
+  &&doc.querySelector('#detail [role=status]').textContent==='Reconnect to the Lenovo to request a refresh.',
  'Offline connection status qualifies saved feed observations and disables actions without replaying writes.');
 offline=false;await refresh();clearDetail();doc.querySelector('#notice [data-sync-status=sessions]').focus();
 for(const value of Object.values(snapshot.sources.sync)){value.state='ok';value.errorCode=null;value.succeededAt=new Date().toISOString();}await refresh();

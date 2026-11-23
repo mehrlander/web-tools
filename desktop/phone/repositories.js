@@ -79,7 +79,7 @@
     if(!active)return;
     el('connection').textContent=denied?'Access unavailable':fresh()?'Live':data?'Saved':failed?'Offline':'Connecting…';
     el('connection').removeAttribute('title');
-    el('connection').setAttribute('aria-label',fresh()?'Connected to '+(data.machineName||'the laptop'):data?'Saved laptop observation from '+stamp(data.observedAt):el('connection').textContent);
+    el('connection').setAttribute('aria-label',fresh()?'Connected to '+(data.machineName||'the Lenovo'):data?'Saved Lenovo observation from '+stamp(data.observedAt):el('connection').textContent);
   }
   function comparison(value,key,compact=false){
     const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),update=mainSyncDetail(repo,checkout),upstream=checkout?.upstream?.startsWith('origin/')?checkout.upstream.slice(7):'',age=checkAge(repo)+(repo?.notice?' '+repo.notice:'')+(upstream&&upstream!==value?.branch?' Configured upstream: GitHub '+upstream+'.':'')+(update?.folder?' '+update.text:'');

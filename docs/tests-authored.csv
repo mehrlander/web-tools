@@ -515,7 +515,7 @@ node/test/waiting-answer.test.mjs,behavior,"Answering a call in the Waiting view
 node/test/wake-quiet-hint.test.mjs,behavior,"The wake hint in both directions: echoes and green rollups are told to stay silent, and a failing check or unknown kind never is."
 node/test/warn-governing-docs.test.mjs,behavior,"The edit-time documentation warning in both directions: a document in a governed place warns, and research the repo declares in .web-tools.json, the file or its declared folder, stays silent."
 node/test/webkit-reload-isolate.mjs,behavior,"Which ingredient of top mode WebKit's page death at a reload after Back needs: the launcher's document.write, the page write, the reload before Back, the app, or the reload itself."
-node/test/windows-names.test.mjs,behavior,"A tracked path Windows refuses (a character in <>:""\\|?*, a trailing dot or space, or a reserved device name), which fails every checkout of this repo on the laptop."
+node/test/windows-names.test.mjs,behavior,"A tracked path Windows refuses (a character in <>:""\\|?*, a trailing dot or space, or a reserved device name), which fails every checkout of this repo on the Lenovo."
 node/test/word-select-touch.mjs,behavior,"Word selection survives touch input, which no jsdom event can reproduce."
 node/test/workbench-storage.test.mjs,behavior,"The transform workbench's saved tabs survive a storage-key rename: formerKey moves them to the new key once and deletes the old entry, and a key already holding tabs is never overwritten."
 node/test/wring.test.mjs,behavior,"The grammar round-trips: the induced start rule regenerates the stream, reconstruction leaves $ patterns in slot values verbatim, and template selection matches brute force."

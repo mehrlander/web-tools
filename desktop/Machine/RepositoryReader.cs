@@ -99,7 +99,7 @@ public sealed class RepositoryReader
         foreach (var arg in new[] { "-u", Path.Combine(AppContext.BaseDirectory, "worker", "repositories.py"),
             "--root", UserSettings.Load().RepositoriesRoot, "--state", UserSettings.DataDirectory }) start.ArgumentList.Add(arg);
         if (files) start.ArgumentList.Add("--local-files");
-        if (publish) start.ArgumentList.Add("--publish-laptop-files");
+        if (publish) start.ArgumentList.Add("--publish-lenovo-files");
         if (key is not null) {
             start.ArgumentList.Add("--fetch"); start.ArgumentList.Add(key);
             if (updateMain) start.ArgumentList.Add("--update-main");

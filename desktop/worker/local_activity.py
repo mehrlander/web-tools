@@ -17,7 +17,7 @@ import subprocess
 import tempfile
 import time
 
-import laptop_inventory as inventory
+import lenovo_inventory as inventory
 import local_sessions
 import repositories
 
@@ -136,7 +136,7 @@ def build(root, state, profile, legacy=True, limit=1024):
         if row['store'] not in stores or stores[row['store']]['stashes'] is None:
             stores[row['store']] = {'id': row['store'], 'repo': row['repo'], 'stashes': row.pop('stashes')}
         else: row.pop('stashes')
-    return {'schema': 1, 'observedAt': stamp(), 'machine': os.environ.get('COMPUTERNAME', 'Laptop'),
+    return {'schema': 1, 'observedAt': stamp(), 'machine': os.environ.get('COMPUTERNAME', 'Lenovo'),
             'coverage': {'complete': complete, 'roots': [r[0] for r in roots], 'sessions': coverage},
             'checkouts': rows, 'stores': list(stores.values()), 'standalone': loose,
             'sessions': [{'id': r['short'], 'provider': r['assistant'], 'title': r['title'],

@@ -31,7 +31,7 @@ render([{...provider,source:'<img src=x onerror=alert(1)>',windows:[{...row,labe
 check(!doc.querySelector('img,script') && doc.querySelector('[data-usage-trend]'),'Source labels are escaped while observations render a trend.');
 render([{...provider,status:'available',windows:[],notice:'No active quota windows reported by Claude.'}]);
 check(doc.querySelector('[data-usage-provider=claude]').textContent.includes('No limits reported') && !doc.querySelector('[role=progressbar]'),'A connected account with no reported limits is distinct from missing sign-in.');
-render([{...provider,status:'stale',notice:'Claude sign-in has expired. Sign in again on this laptop.'}]);
+render([{...provider,status:'stale',notice:'Claude sign-in has expired. Sign in again on the Lenovo.'}]);
 check(doc.querySelector('[data-usage-provider=claude]').textContent.includes('sign-in has expired'),'A retained reading also exposes the action needed to restore its connection.');
 render([{...provider,windows:[{...row,history:[{at:'2027-01-15T04:00:00Z',usedPercent:80,resetsAt:'2027-01-15T03:00:00Z'},{at:'2027-01-15T04:30:00Z',usedPercent:20,resetsAt:reset}]}]}]);
 check(!doc.querySelector('[data-usage-trend]'),'A trend never connects observations across different reset windows.');
