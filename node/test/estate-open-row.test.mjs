@@ -167,11 +167,13 @@ test('a session row and a branch tile under it carry the mark too', async () => 
   assert.equal(card().hasAttribute('aria-current'), false);
 
   assert.equal(tile().hasAttribute('aria-current'), false);
-  assert.match(tile().className, /(^|\s)border(\s|$)/, 'a shut tile keeps its hairline');
+  assert.ok(tile().parentElement.className.includes('divide-y'),
+    'the lines are one list, divided by hairlines, not a box each');
+  assert.doesNotMatch(tile().className, /ring-2/, 'an unmarked line carries no ring');
   data.detail = { rows: [{ repo: 'me/tools', name: 'feat/a' }], i: 0 };
   await Alpine.nextTick();
-  assert.equal(tile().getAttribute('aria-current'), 'true', 'a branch deck marks the tile for that branch');
-  assert.match(tile().className, /border-2/);
+  assert.equal(tile().getAttribute('aria-current'), 'true', 'a branch deck marks the line for that branch');
+  assert.match(tile().className, /ring-2 ring-inset/);
   data.detail = null;
   data.sessionRows_ = [];
   shell.view = 'branches';
