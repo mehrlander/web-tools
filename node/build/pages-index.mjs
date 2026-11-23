@@ -12,7 +12,9 @@
 // This is a *catalog* generator, not part of the load -> build -> bake -> export
 // code pipeline (node/README.md). It resolves no dependency graph; it walks the
 // pages/ tree and reads each page's <title>. The card previews come from
-// pages/thumbs/*.png, generated separately by node/build/pages-shots.mjs.
+// web-tools-private's thumbs/, written by node/build/pages-shots.mjs and read
+// with the viewer's token, since a page can show private data. A card with no
+// token, or no shot, shows its placeholder.
 //
 // Run it whenever pages are added, removed, or retitled (and pages-shots when a
 // page's look changes). Page blurbs live in NOTES below — edit them here.
@@ -21,6 +23,7 @@ import { readFile, writeFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { writeCsv } from './registries-load.mjs';
 import { repoRoot } from '../repo-root.mjs';
+import { SHOT_REPO, pageShot } from './shot-store.mjs';
 
 // Fixed here so a regeneration cannot reorder the file.
 const PAGE_COLS = ['top', 'group', 'label', 'title', 'href', 'thumb', 'code', 'note'];
@@ -151,6 +154,7 @@ for (const src of SOURCES) {
       href: src.href(f),
       viewUrl: src.view(f),
       codeUrl: src.code(f),
+      src: `${src.dir}/${f.split(path.sep).join('/')}`,
     });
   }
 }
@@ -197,15 +201,15 @@ function buildMarkdown() {
 // by directory so the root pages lead and the nested folders (demos/, stories/,
 // drop/, …) and the external kit-demos fall into labeled sections — mirroring
 // README.md. The location chips key off each group's top-level segment. Item
-// hrefs/thumbs are relative to pages/; consumers a level deeper (the app)
-// rebase with a '../' prefix.
+// hrefs are relative to pages/; consumers a level deeper (the app) rebase with
+// a '../' prefix. An item's thumb is its shot's path in web-tools-private.
 function buildGroups() {
   const toItem = m => ({
     href: m.href,
     label: m.name,
     title: m.title,
     note: m.note,
-    thumb: `thumbs/${m.rel.replace(/\.html$/, '.png')}`,
+    thumb: pageShot(m.src),
     code: m.codeUrl,
   });
   const groupsMap = new Map();
@@ -273,7 +277,7 @@ function buildHtml() {
     Browser-based tools and demos. Cards show
     <a href="${BLOB}/node/build/pages-shots.mjs" target="_blank"
        class="underline decoration-dotted underline-offset-2 hover:text-base-content/80">screenshots pre-rendered headless</a>
-    (<code class="text-xs">npm run pages-shots</code>); toggle each to a
+    (<code class="text-xs">npm run pages-shots</code>) to a signed-in reader; toggle each to a
     <span class="font-medium">live</span> preview or the <span class="font-medium">source</span>.
   </p>
 
@@ -305,14 +309,15 @@ function buildHtml() {
       </h2>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <template x-for="p in g.items" :key="p.href">
-          <div data-at="card" class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden">
+          <div data-at="card" class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden"
+               x-init="watchShot($el, p)">
 
         <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden">
           <a :href="p.href" x-show="p.view==='shot'" class="block w-full h-full">
-            <img :src="p.thumb" :alt="p.label" loading="lazy"
-                 class="w-full h-full object-cover object-top"
-                 @error="p.shotMissing = true" x-show="!p.shotMissing">
-            <div x-show="p.shotMissing"
+            <template x-if="p.img">
+              <img :src="p.img" :alt="p.label" class="w-full h-full object-cover object-top">
+            </template>
+            <div x-show="!p.img"
                  class="w-full h-full flex items-center justify-center text-base-content/30 text-xs gap-1">
               <i class="ph ph-image-broken"></i> no screenshot
             </div>
@@ -369,12 +374,18 @@ function buildHtml() {
 <script>
 function index(){
   const PAGE_GROUPS = ${JSON.stringify(groups, null, 2).replace(/</g, '\\u003c')};
+  // The shots are kept in ${SHOT_REPO} (node/build/shot-store.mjs), since a
+  // page can show private data. A card reads its own as it nears the viewport,
+  // with the viewer's token; with no token, or no shot, it keeps its placeholder.
+  // The client stays outside Alpine's reactive state, which would wrap it.
+  let store = null;
+  const token = () => { try { return window.TOKEN || window.ghAuth?.resolve?.() || ''; } catch { return ''; } };
   return {
     filter: 'main',
     q: '',
     groups: PAGE_GROUPS.map(g => ({
       ...g,
-      items: g.items.map(p => ({ ...p, view: 'shot', source: '', shotMissing: false })),
+      items: g.items.map(p => ({ ...p, view: 'shot', source: '', img: '' })),
     })),
     // Boot from the URL (?filter=<chip>&q=<text>) and mirror changes back into
     // it, so a filtered view is a shareable deep link.
@@ -424,6 +435,22 @@ function index(){
         .map(g => ({ ...g, items: g.items.filter(p =>
           (p.label + ' ' + (p.title || '') + ' ' + (p.note || '')).toLowerCase().includes(q)) }))
         .filter(g => g.items.length);
+    },
+    watchShot(el, p){
+      if (p.img || !p.thumb || !window.GH || !token()) return;
+      const io = new IntersectionObserver((seen) => {
+        if (!seen.some(e => e.isIntersecting)) return;
+        io.disconnect();
+        this.loadShot(p);
+      }, { rootMargin: '600px' });
+      io.observe(el);
+    },
+    async loadShot(p){
+      try {
+        store ||= new window.GH({ token: token(), repo: '${SHOT_REPO}', ref: 'main' });
+        const d = await store.req('contents/' + p.thumb + '?ref=main');
+        if (d && d.content) p.img = 'data:image/png;base64,' + d.content.replace(/\\s/g, '');
+      } catch { /* no shot: the card keeps its placeholder */ }
     },
     async show(p, v){
       p.view = v;

@@ -9712,7 +9712,10 @@ function gallery(){
       this.loaded = false;
       if (isDefault){
         // web-tools: the generated page catalog. Live preview is the deployed
-        // page at ?use=main; thumbnails are the committed shots. Flat since
+        // page at ?use=main; a row's thumb names its shot in the registry's
+        // thumbs/ (node/build/shot-store.mjs), read under a token by loadThumbs,
+        // since a page can show private data. With no token a card keeps its
+        // no-screenshot face. Flat since
         // 2026-08-16, so the grouping the gallery renders is rebuilt here from
         // each row's own `top` and `group` rather than arriving as nesting.
         try {
@@ -9724,13 +9727,14 @@ function gallery(){
             g.items.push({
               ...p,
               href: REBASE + p.href,
-              thumb: REBASE + p.thumb,
+              thumb: '', shot: p.thumb,
               live: REBASE + p.href + '?use=main',
               repo, path: null,
-              view: 'shot', source: '', shotMissing: false,
+              view: 'shot', source: '', shotMissing: true,
             });
           }
           this.groups = [...byGroup.values()];
+          this.loadThumbs(this.groups.flatMap(g => g.items));
         } catch(e){
           this._loadKey = null;
           notify('Could not load the pages catalog: ' + (e?.message || e));
@@ -9807,7 +9811,7 @@ function gallery(){
       if (!shell?.hasToken?.() || !window.GH) return;
       const reg = new window.GH({ token: window.TOKEN, repo: shell.REGISTRY_REPO, ref: 'main' });
       await Promise.all(items.map(async it => {
-        const rel = catalogThumbPath(it.repo, it.path, it.query);
+        const rel = it.shot || catalogThumbPath(it.repo, it.path, it.query);
         try {
           const data = await reg.req('contents/' + rel + '?ref=main');
           if (data && data.content) {

@@ -15,7 +15,7 @@
 //   2. it OPENS in the image mode, over the host's blanket defaultMode
 //      ('raw' in the app's file view), which is what `exclusive` buys
 //
-// The subject is pages/thumbs/toss-render.png, a real tracked PNG, read
+// The subject is docs/favicons/web-tools-icon-3d.png, a real tracked PNG, read
 // through the working-tree stand-in for the contents API.
 //
 // Exits nonzero on any failure. Not part of `npm test` (needs a browser).
@@ -28,7 +28,7 @@ import { resolveCdn, typeFor } from '../render/cdn.mjs';
 import { repoRoot as root } from '../repo-root.mjs';
 import { launch as launchChromium } from '../render/chromium.mjs';
 
-const IMG = 'pages/thumbs/toss-render.png';
+const IMG = 'docs/favicons/web-tools-icon-3d.png';
 
 const failures = [];
 const ok = (name, cond, detail = '') => {
