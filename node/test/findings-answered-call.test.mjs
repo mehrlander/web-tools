@@ -1,7 +1,7 @@
 // findings.py check on an answer finding whose user call the owner closed:
-// the answer the finding waited on has arrived, so the finding is due again
-// though no witness moved. On 2026-10-25, 41 of 51 open findings named a call
-// closed weeks earlier, and check flagged none of them.
+// the call is one of its subjects, so the commit that closed it names the
+// finding as changed since its last assessment.
+
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
@@ -41,18 +41,17 @@ test('an open finding is due again once the user call it names is answered', () 
   writeFileSync(f, JSON.stringify({ kind: 'answer', title: 'Merge waits on the owner',
     subjects: ['acme/store#1', 'acme/store:' + CALL], why: 'Only the owner merges.', next: 'On Merge, a session merges #1.' }));
   py('add', f);
-  const answered = () => JSON.parse(py('check', '--json'))[0].verdicts.filter(v => v.ref === 'acme/store:' + CALL);
+  const answered = () => JSON.parse(py('check', '--json'))[0].moved.filter(m => m.subject === 'acme/store:' + CALL);
 
   // The control: an open call leaves the finding as it was assessed.
   assert.deepEqual(answered(), []);
 
   // note.py commits onto origin/main without touching the working tree.
   git('-C', work, 'merge', '-q', '--ff-only', 'origin/main');
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1100);
   const later = new Date(Date.now() + 60_000).toISOString();
   writeFileSync(path.join(work, CALL), call({ at: later, answer: 'Merge' }));
   git('-C', work, 'commit', '-qam', 'answer'); git('-C', work, 'push', '-q', 'origin', 'main');
-  const [v] = answered();
-  assert.equal(v?.verdict, 'changed');
-  assert.match(v.detail, /^answered \d{4}-\d\d-\d\d: Merge$/);
-  assert.match(py('check'), /REASSESS/);
+  assert.equal(answered().length, 1);
+  assert.match(py('check'), /CHANGED[\s\S]*acme\/store:user-calls\/s1-merge\.json/);
 });

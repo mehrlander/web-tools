@@ -554,11 +554,11 @@ export function resolveCdn(rawUrl, repoRoot, ref, headers = {}) {
 
   // --- The estate's evidence, from git, when a render asks for it ---------
   //
-  // SHOT_GIT_API=1 answers the reads a finding's witnesses need (branch tip,
-  // compare, pull request state, contents at a ref with git's object shas)
-  // from origin's refs in the sibling checkouts. Off by default: the rules
-  // above serve the working tree so a render shows uncommitted work, and a
-  // witness check needs the recorded objects. tending-findings.mjs sets it.
+  // SHOT_GIT_API=1 answers GitHub API reads (branch tip, compare, pull
+  // request state, contents at a ref with git's object shas) from origin's
+  // refs in the sibling checkouts. Off by default: the rules above serve the
+  // working tree so a render shows uncommitted work. tending-findings.mjs,
+  // map-views.mjs and app-waiting.mjs set it.
   //
   // SHOT_GIT_API=siblings answers them for the other repositories only, and
   // this checkout's uncommitted code still runs.
