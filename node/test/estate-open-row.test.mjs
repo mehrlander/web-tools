@@ -283,6 +283,32 @@ test('the guide peek reads the PR body and shows its guide section alone', async
   window.GuideRender = saved.GR;
 });
 
+test('a session row\'s controls agree: the hand on every button, one popup per hover', async () => {
+  // Tailwind 4 gives a plain button the arrow, and a link the hand, so a row
+  // mixing the two showed both; and a count that opens a card on hover while
+  // also carrying a title-tip raised two popups at once (2026-11-23).
+  seed();
+  shell.view = 'sessions';
+  data.sessionTab = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionRows_ = [window.RepoSessionsCache.summarize(rec(), 'sha1')];
+  await Alpine.nextTick();
+  const card = doc.querySelector('[data-session-node]:not([data-session-node^="stub"])');
+  const buttons = [...card.querySelectorAll('button')];
+  assert.ok(buttons.length > 3, 'the row has its controls');
+  assert.deepEqual(buttons.filter(b => !b.classList.contains('cursor-pointer')).map(b => b.outerHTML.slice(0, 90)), [],
+    'every button shows the hand');
+  assert.ok([...card.querySelectorAll('button')].some(el => el.hasAttribute('@mouseenter')),
+    'the hover openers are readable in the DOM, so the next check has something to check');
+  const both = [...card.querySelectorAll('[data-title-tip]')].filter(el => el.hasAttribute('@mouseenter'));
+  assert.deepEqual(both.map(el => el.outerHTML.slice(0, 90)), [],
+    'nothing opens a card on hover and carries a title-tip as well');
+  data.sessionRows_ = [];
+  shell.view = 'branches';
+  await Alpine.nextTick();
+});
+
 const key = (k, target = doc.body, opts = {}) => {
   const e = new window.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...opts });
   target.dispatchEvent(e);
