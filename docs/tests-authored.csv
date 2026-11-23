@@ -294,6 +294,7 @@ node/test/programs-manifest.test.mjs,gate,"A programs declaration names a charte
 node/test/prompt-link.test.mjs,behavior,"The minter going quiet about what it could not carry: a prompt truncated mid-sentence instead of refused, a branch silently absent from a multi-repo link, or a bare checkout name emitted as a repositories value that preselects nothing while looking like it had."
 node/test/properties-registry.test.mjs,gate,"The declaration table of docs/registries.md: every governed registry holds exactly its key plus declared properties, computed declarations name real derivers, and no target x property pair has two owners within a registry."
 node/test/proposals-view.test.mjs,behavior,The proposals view lists only what is still pending.
+node/test/public-shots-guard.test.mjs,behavior,
 node/test/python-ls-files-z.test.mjs,behavior,"A Python script listing tracked files without -z, so a non-ASCII path (fifteen in web-tools-private) reaches it quoted and escaped instead of as the name on disk."
 node/test/quick-find.test.mjs,behavior,"The sidebar finder's lanes each resolve to their documented destination, so a typed prefix cannot quietly start matching something else."
 node/test/read-aloud-deck.test.mjs,behavior,"Two callbacks pointing at each other with no flag between them: the voice moves the deck and a swipe re-points the voice. Each echo has to find its side already correct, or the deck oscillates and the reader cannot swipe out of it."
