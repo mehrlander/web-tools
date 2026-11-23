@@ -13,10 +13,10 @@ summary) is missing or a row leaves one empty; when two rows share an id or an
 id is not lowercase letters, digits and hyphens; when a date, the day the
 inquiry began, is not YYYY-MM-DD, or a dated id or path names another date than
 its row's; when a path names nothing in the folder; when a dated file or folder
-beside the registry is named by no row's path; when a standing is not worked,
-mixed, failed or open; and when a status is not living, measured or record. A
-declared folder with no probes.csv is counted and passes. Any research
-declaration whose status is not one of those three fails too.
+beside the registry is named by no row's path; and when a standing is not worked,
+mixed, failed or open. A declared folder with no probes.csv is counted and
+passes. Any research declaration whose status is not living, measured or
+record fails.
 
 Ported on 2026-11-10 from home's projects/budget-drs/data/design/tools/
 verify-probes.py, whose registry passes unchanged.
@@ -85,9 +85,6 @@ def check(folder):
         standing = (r.get("standing") or "").strip()
         if standing and standing not in STANDING:
             errs.append(f"{at}: standing {standing} is not one of {', '.join(sorted(STANDING))}")
-        status = (r.get("status") or "").strip()
-        if status and status not in STATUS:
-            errs.append(f"{at}: status {status} is not one of {', '.join(sorted(STATUS))}")
     for p in sorted(folder.iterdir()):
         if DATED.match(p.name) and p.name not in named:
             errs.append(f"{p.name} is a dated probe that no row's path names")

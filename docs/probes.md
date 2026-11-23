@@ -13,7 +13,15 @@ The folder's README links the term probes to this file and says only what is par
 
 ## Status
 
-A probe is not closed by default. Its status takes the docs catalog's [vocabulary](README.md): `living`, corrected in place and kept correct; `measured`, dated observations corrected by re-probing; or `record`, which preserves a moment, is marked `edit=write-once` in `.gitattributes`, and is corrected by a note. The declaration's `status` states it for the declared account, and a registry row's `status` states it for one probe. The date in a probe's name records when the inquiry began, not when it closed. A probe that is no longer maintained is archived, moved to an `archive/` folder, which is not the same as a record.
+A probe's status, from the docs catalog's [vocabulary](README.md), says how its write-up is kept:
+
+- `living`: corrected in place, and kept correct.
+- `measured`: dated observations, corrected by re-probing.
+- `record`: preserves a moment. [`.gitattributes`](../.gitattributes) marks it `edit=write-once`, and a note corrects it.
+
+A [research declaration](manifest.md#research-declarations)'s `status` field holds the status of the probe or folder the declaration names.
+
+A probe that is no longer maintained, as distinct from a record, is archived: moved to an [`archive/`](../archive/) folder.
 
 ## Sources
 
@@ -28,7 +36,7 @@ Required in every row:
 | Column | Holds |
 | --- | --- |
 | `probe` | The id: lowercase letters, digits and hyphens, unique in the registry. A write-up's id is its name without `.md`. |
-| `date` | The date the inquiry began, `YYYY-MM-DD`. |
+| `date` | When the inquiry began, `YYYY-MM-DD`. A dated id or path begins with the same date. |
 | `title` | A short topical name, for lists. |
 | `question` | What the probe asks. |
 | `summary` | Its findings, in a sentence or two. |
@@ -38,8 +46,7 @@ Read when present:
 | Column | Holds |
 | --- | --- |
 | `path` | The write-up, relative to the folder: a file, or a file inside a probe's folder. |
-| `standing` | How the probe stands: `worked`, `mixed`, `failed` or `open`. |
-| `status` | `living`, `measured` or `record`, as under [Status](#status). |
+| `standing` | What the probe has found so far: `worked`, `mixed`, `failed` or `open`. |
 | `tags` | Terms a search might use, separated by `;`. |
 | `bundle` | The source bundle holding the documents the probe cites, as a path. |
 
