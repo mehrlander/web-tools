@@ -9,32 +9,24 @@ This map answers four questions about the estate's HTML pages:
 3. Is it public, and does its source name a private repository?
 4. Which catalogues list it?
 
-A catalogue here is a file that lists pages; each is under [Catalogues](#catalogues). The map covers every page that at least one of them names. The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists the HTML files that none of them names.
+A catalogue here is a file that lists pages; each is under [Catalogues](#catalogues). The map covers every page that at least one of them names.
 
 ## Files
 
-| File | Holds | Written by |
-| --- | --- | --- |
-| [`pages.csv`](pages.csv) | the measured facts, one row per page | [`pages-map.mjs`](pages-map.mjs), from the catalogues, the app's code, the source of each page in a public repository, and GitHub's list of public repositories |
-| [`page-jobs.csv`](page-jobs.csv) | each page's standing and job | hand |
+[`pages.csv`](pages.csv) holds the measured facts, one row per page. [`page-jobs.csv`](page-jobs.csv) holds each page's standing and job, judged by hand.
 
-Run as `node programs/organization/current/pages-map.mjs`, [`pages-map.mjs`](pages-map.mjs) rewrites [`pages.csv`](pages.csv) and the generated blocks of this document. With `--check`, it reports what is stale instead. The check also fails when [`page-jobs.csv`](page-jobs.csv) lacks a row for a page or breaks a rule under [Terms](#terms).
-
-The script, run either way, reads two kinds of checkout beside the web-tools checkout it runs in:
-
-- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) holds the app's copy of every repository's [`.web-tools.json`](../../../docs/manifest.md);
-- a clone of each other public repository that declares pages, whose page sources the script reads.
+`node programs/organization/current/pages-map.mjs` rewrites [`pages.csv`](pages.csv) and the generated blocks of this document; `--check` reports what is stale and any row of [`page-jobs.csv`](page-jobs.csv) that breaks a rule under [Terms](#terms). Either form needs [web-tools-private](https://github.com/mehrlander/web-tools-private) cloned beside this checkout, and a clone of each other public repository that declares pages.
 
 ## Catalogues
 
-| Catalogue | File | Lists | The app shows it in |
-| --- | --- | --- | --- |
-| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/); every page under [`lib/kits/demos/`](../../../lib/kits/demos/); and each skill's `demo.html` under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
-| manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md), as in [web-tools' own manifest](../../../.web-tools.json) | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar, for an entry that sets the app-view flag [`appView`](../../../docs/manifest-fields.csv) |
-| landing | `projects[].landing` in each [`.web-tools.json`](../../../docs/manifest.md) | a project's front page | the [Project view](https://mehrlander.github.io/web-tools/app/?view=project)'s App tab |
-| utilities | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
-| units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
-| forms | [`docs/forms/README.md`](../../../docs/forms/README.md) | the pages it names as forms | the Map view's [Forms tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=forms) |
+| Catalogue | File | Lists |
+| --- | --- | --- |
+| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/); every page under [`lib/kits/demos/`](../../../lib/kits/demos/); and each skill's `demo.html` under [`skills/`](../../../skills/) |
+| manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md), as in [web-tools' own manifest](../../../.web-tools.json) | the pages a repository declares, its own or another repository's |
+| landing | `projects[].landing` in each [`.web-tools.json`](../../../docs/manifest.md) | a project's front page |
+| utilities | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons |
+| units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs |
+| forms | [`docs/forms/README.md`](../../../docs/forms/README.md) | the pages it names as forms |
 
 ## Terms
 
@@ -62,17 +54,13 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | record | is kept for history or provenance and no longer does its job |
 <!-- /pages-map:standing -->
 
-**Job** takes the values that [`codes.csv`](../../../data/ui-units/codes.csv) lists on its `job` axis. [The forms README](../../../docs/forms/README.md#jobs) defines them. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. [`page-jobs.csv`](page-jobs.csv) leaves that page's job blank.
+**Job** takes the values [the forms README](../../../docs/forms/README.md#jobs) defines. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there, and [`page-jobs.csv`](page-jobs.csv) leaves it blank.
 
-The `basis` column of [`page-jobs.csv`](page-jobs.csv) names what the judgment of standing and job read: the page's source, the manifest's or gallery's note, or the page's name alone.
+A **tool** is a product page whose job includes make.
 
-A **tool** is a product page whose job includes make. In the make job, the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
+**Visibility** is whether the page's repository is public.
 
-**Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
-
-**names_private** is a column for pages in public repositories. For such a page, the column lists the private repositories that the page's source names as `owner/repo`. It holds `none` when the source names no private repository. For a page in a private repository, the column is blank. The script does not read that page's source.
-
-A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names.
+**names_private** lists the private repositories a public page's source names, or `none`. A page that names none may still read a private repository with the reader's token, as [`branch.html`](../../../pages/branch.html) does.
 
 ## The map
 
