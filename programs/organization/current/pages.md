@@ -1,6 +1,10 @@
 # The estate's pages
 
-The estate is the owner's repositories and everything in them. This map answers four questions about the estate's HTML pages: what each page is and whether it is a tool, how it relates to the Web Tools app, whether it is public and whether its source names a private repository, and which catalogues list it. A catalogue here is a file that lists pages; the six are under [Catalogues](#catalogues). The map covers every page that at least one of them names. An HTML file that no catalogue names is outside the map; the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists those.
+The estate is the owner's repositories and everything in them.
+
+This map answers four questions about the estate's HTML pages: what each page is and whether it is a tool, how it relates to the Web Tools app, whether it is public and whether its source names a private repository, and which catalogues list it.
+
+A catalogue here is a file that lists pages; the six are under [Catalogues](#catalogues). The map covers every page that at least one of them names. An HTML file that no catalogue names is outside the map; the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists those.
 
 ## Files
 
@@ -13,7 +17,7 @@ The estate is the owner's repositories and everything in them. This map answers 
 
 The script, run either way, reads two kinds of checkout beside the web-tools checkout it runs in:
 
-- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose `state/configs.json` holds the app's crawl of every repository's `.web-tools.json`;
+- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) holds the app's crawl of every repository's `.web-tools.json`;
 - a clone of each other public repository that declares pages, whose page sources the script reads.
 
 ## Catalogues
@@ -23,7 +27,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/), the kit demos under [`lib/kits/demos/`](../../../lib/kits/demos/) and the skill demos, `demo.html` in a folder under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
 | manifest | `pages` in each repository's `.web-tools.json`, as in [web-tools' own](../../../.web-tools.json) | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar for a page marked `appView` |
 | landing | `projects[].landing` in each `.web-tools.json` | a project's front page | the [Project view](https://mehrlander.github.io/web-tools/app/?view=project)'s App tab |
-| tools | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
+| utilities | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
 | units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
 | forms | [`docs/forms/README.md`](../../../docs/forms/README.md) | the pages it names as forms | the Map view's [Forms tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=forms) |
 
@@ -53,7 +57,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | record | is kept for history or provenance and no longer does its job |
 <!-- /pages-map:standing -->
 
-**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make), which [the forms README](../../../docs/forms/README.md#jobs) defines. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. Its job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make). [The forms README](../../../docs/forms/README.md#jobs) defines them. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. That page's job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
 
 A **tool** is a product page whose job includes make: the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
 
@@ -74,12 +78,12 @@ A **tool** is a product page whose job includes make: the reader works on someth
 | linked | 12 | 1 | 2 | 2 | 0 | 17 |
 | standalone | 60 | 1 | 40 | 34 | 4 | 139 |
 
-| Catalogue | pages | only here | gallery | manifest | landing | tools | units | forms |
+| Catalogue | pages | only here | gallery | manifest | landing | utilities | units | forms |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | gallery | 123 | 94 | 123 | 12 | 2 | 5 | 20 | 7 |
 | manifest | 64 | 51 | 12 | 64 | 3 | 0 | 7 | 1 |
 | landing | 5 | 2 | 2 | 3 | 5 | 0 | 1 | 0 |
-| tools | 5 | 0 | 5 | 0 | 0 | 5 | 2 | 0 |
+| utilities | 5 | 0 | 5 | 0 | 0 | 5 | 2 | 0 |
 | units | 20 | 0 | 20 | 7 | 1 | 2 | 20 | 6 |
 | forms | 7 | 0 | 7 | 1 | 0 | 0 | 6 | 7 |
 

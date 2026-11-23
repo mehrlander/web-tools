@@ -85,7 +85,7 @@ mehrlander/web-tools:pages/cat-map.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/chat-results.html,public,gallery;units,,standalone,0,none
 mehrlander/web-tools:pages/citations.html,public,gallery;manifest,wa-bills,linked,1,web-tools-private
 mehrlander/web-tools:pages/compactions.html,public,gallery;manifest,web-tools-private,linked,2,none
-mehrlander/web-tools:pages/compression-helper.html,public,gallery;tools,,standalone,0,none
+mehrlander/web-tools:pages/compression-helper.html,public,gallery;utilities,,standalone,0,none
 mehrlander/web-tools:pages/console-playground.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/data-view.html,public,gallery,,linked,1,none
 mehrlander/web-tools:pages/delivery.html,public,gallery,,standalone,0,none
@@ -101,7 +101,7 @@ mehrlander/web-tools:pages/demos/vanilla-bundle-demo.html,public,gallery,,standa
 mehrlander/web-tools:pages/demos/wring-dom.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/demos/wring-text.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/dictate.html,public,gallery;units,,linked,4,web-tools-private;home
-mehrlander/web-tools:pages/diff-tool.html,public,gallery;tools;units,,linked,2,none
+mehrlander/web-tools:pages/diff-tool.html,public,gallery;utilities;units,,linked,2,none
 mehrlander/web-tools:pages/doc-growth.html,public,gallery;manifest,web-tools,linked,1,web-tools-private
 mehrlander/web-tools:pages/drop/at-file-nav.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/drop/cm6-editor.html,public,gallery,,standalone,0,none
@@ -159,13 +159,13 @@ mehrlander/web-tools:pages/shortcut-edit.html,public,gallery;manifest;units,shor
 mehrlander/web-tools:pages/shortcut-log.html,public,gallery;manifest;units,shortcut-tools,view,0,web-tools-private
 mehrlander/web-tools:pages/shortcut-run.html,public,gallery,,linked,1,none
 mehrlander/web-tools:pages/shortcuts.html,public,gallery;manifest;units,shortcut-tools,view,0,web-tools-private
-mehrlander/web-tools:pages/shorter.html,public,gallery;tools;units,,standalone,0,none
+mehrlander/web-tools:pages/shorter.html,public,gallery;utilities;units,,standalone,0,none
 mehrlander/web-tools:pages/skill-lab.html,public,gallery;manifest;landing,home;web-tools,view,1,home
 mehrlander/web-tools:pages/stories/bookmarklets-story.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/swarm.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/text-lab.html,public,gallery;manifest;landing;units,home;web-tools,view,4,home
-mehrlander/web-tools:pages/toss-render.html,public,gallery;tools,,framed,12,budget-drs
-mehrlander/web-tools:pages/transform.html,public,gallery;tools,,standalone,0,none
+mehrlander/web-tools:pages/toss-render.html,public,gallery;utilities,,framed,12,budget-drs
+mehrlander/web-tools:pages/transform.html,public,gallery;utilities,,standalone,0,none
 mehrlander/web-tools:pages/user-call.html,public,gallery;units,,linked,2,none
 mehrlander/web-tools:pages/walkthrough.html,public,gallery,,standalone,0,none
 mehrlander/web-tools:pages/word-select.html,public,gallery,,standalone,0,none

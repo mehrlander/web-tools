@@ -388,7 +388,7 @@ formats,envelope,recorded,,value,column,yes,yes;no,,label,"whether the format be
 formats,route,recorded,,none,column,yes,,routes-routes,locator,the toss route that renders the format; blank where none does
 formats,gloss,recorded,,value,column,yes,,,value,what one document of the format carries
 pages-map,visibility,computed,programs/organization/current/pages-map.mjs,value,column,yes,public;private,,label,"whether the page's repository is public, from GitHub's repository search"
-pages-map,catalogues,computed,programs/organization/current/pages-map.mjs,counted,list,no,gallery;manifest;landing;tools;units;forms,,label,the catalogues that name the page; blank for none
+pages-map,catalogues,computed,programs/organization/current/pages-map.mjs,counted,list,no,gallery;manifest;landing;utilities;units;forms,,label,the catalogues that name the page; blank for none
 pages-map,declared_by,computed,programs/organization/current/pages-map.mjs,counted,list,no,,,label,the repositories whose .web-tools.json declares the page under `pages` or as a project's landing
 pages-map,app,computed,programs/organization/current/pages-map.mjs,value,column,yes,view;full-app;framed;linked;standalone,,label,"how the page relates to the Web Tools app, the first value that holds"
 pages-map,linked_from,computed,programs/organization/current/pages-map.mjs,value,column,yes,,,value,"the number of files in app/index.html and lib/ whose code lines, comment lines and demo folders excepted, name the page"

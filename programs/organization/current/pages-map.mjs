@@ -54,7 +54,7 @@ const add = (page, cat) => {
 for (const r of csvAt(path.join(hub, 'pages/pages.csv'))) {
   add(at(HUB, r.code.replace(`https://github.com/${HUB}/blob/main/`, '')), 'gallery');
 }
-for (const r of csvAt(path.join(hub, 'docs/tools.csv'))) add(at(HUB, r.path), 'tools');
+for (const r of csvAt(path.join(hub, 'docs/tools.csv'))) add(at(HUB, r.path), 'utilities');
 for (const r of csvAt(path.join(hub, 'data/ui-units/coded.csv'))) {
   const m = r.unit.match(/^web-tools:(pages\/.+\.html)$/);
   if (m) add(at(HUB, m[1]), 'units');
@@ -133,7 +133,7 @@ const namesPrivate = page => {
 };
 
 // ---- the rows ----------------------------------------------------------------
-const CAT_ORDER = ['gallery', 'manifest', 'landing', 'tools', 'units', 'forms'];
+const CAT_ORDER = ['gallery', 'manifest', 'landing', 'utilities', 'units', 'forms'];
 const rows = [...pages.keys()].sort().map(page => {
   const e = pages.get(page);
   const n = linkedFrom(page);
