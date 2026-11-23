@@ -197,7 +197,8 @@ test('a branch line opens the branch panel-tip, which draws the whole tile', asy
   assert.ok(line, 'the branch is one line under its session');
   assert.ok(line.textContent.trim().startsWith('tools'), 'led by the repo, as a PR citation is');
   assert.ok(line.textContent.includes('work a'), 'then saying what the branch is');
-  assert.equal(line.querySelectorAll('button, a').length, 0, 'with no controls of its own');
+  assert.equal(line.querySelectorAll('button:not([data-branch-mark]), a').length, 0,
+    'with no control of its own but the state mark');
   const settle = async () => { await new Promise(r => setTimeout(r, 0)); await Alpine.nextTick(); };
 
   line.click();
@@ -218,6 +219,32 @@ test('a branch line opens the branch panel-tip, which draws the whole tile', asy
   await settle();
   assert.equal(data.branchTip, null, 'opening the branch deck closes it');
   data.detail = null;
+  data.sessionRows_ = [];
+  shell.view = 'branches';
+  await Alpine.nextTick();
+});
+
+test('a branch line\'s state mark names the state and opens the PR guide', async () => {
+  seed();
+  shell.view = 'sessions';
+  data.sessionTab = 'list';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionRows_ = [window.RepoSessionsCache.summarize(rec(), 'sha1')];
+  await Alpine.nextTick();
+  const line = [...doc.querySelectorAll('[data-branch-line]')]
+    .find(el => (el.getAttribute('aria-label') || '').endsWith('/feat/a'));
+  const mark = line.querySelector('[data-branch-mark]');
+  assert.ok(mark, 'the mark is a control of its own');
+  assert.match(mark.getAttribute('data-title-tip'), /Click for its guide\.$/, 'with a title-tip of its own');
+  let asked = null;
+  const real = data.openBranchDetail;
+  data.openBranchDetail = function(row){ asked = { name: row.name, pane: this._openFiles?.pane }; };
+  mark.click();
+  data.openBranchDetail = real;
+  data._openFiles = null;
+  assert.deepEqual(asked, { name: 'feat/a', pane: 'guide' }, 'its tap opens the branch on its Guide pane');
+  assert.equal(data.branchTip, null, 'and leaves the line\'s panel shut');
   data.sessionRows_ = [];
   shell.view = 'branches';
   await Alpine.nextTick();
