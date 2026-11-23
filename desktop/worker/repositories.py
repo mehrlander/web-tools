@@ -13,6 +13,7 @@ import subprocess
 from urllib.parse import urlsplit
 
 from repository_process import run_bounded
+from repository_cache import discover_cached, load_comparisons, save_comparisons, load_legacy, MAX_COMMITS
 
 
 def stamp():
@@ -23,7 +24,7 @@ def key(value):
     return hashlib.sha256(value.encode('utf-8')).hexdigest()[:24]
 
 
-def git(path, *args, timeout=8, strip=True):
+def git(path, *args, timeout=20, strip=True):
     redirects = {'GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR', 'GIT_OBJECT_DIRECTORY',
                  'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_CEILING_DIRECTORIES', 'GIT_NAMESPACE',
                  'GIT_PREFIX', 'GIT_SUPER_PREFIX', 'GIT_REPLACE_REF_BASE', 'GIT_EXEC_PATH'}
@@ -69,8 +70,11 @@ def discover(root, folders=None):
         return []
     def identify(path):
         name = github_name(git(path, 'config', '--get', 'remote.origin.url'))
-        common = git(path, 'rev-parse', '--path-format=absolute', '--git-common-dir')
-        return {'path': path, 'repo': name, 'common': common or str(path), 'key': key(name.lower() if name else str(path.resolve()).lower())}
+        layout = git(path, 'rev-parse', '--path-format=absolute', '--git-common-dir', '--absolute-git-dir')
+        parts = layout.splitlines() if layout else []
+        common = parts[0] if parts else str(path)
+        return {'path': path, 'repo': name, 'common': common, 'gitdir': parts[1] if len(parts) == 2 else None,
+                'key': key(name.lower() if name else str(path.resolve()).lower())}
     with ThreadPoolExecutor(max_workers=4) as pool:
         return list(pool.map(identify, paths))
 
@@ -78,10 +82,12 @@ def discover(root, folders=None):
 def local_status(entry, activity=False):
     path = entry['path']
     details = ('--ignored=matching', '--show-stash') if activity else ()
-    status = git(path, 'status', '--porcelain=v2', '--branch', '--untracked-files=all', *details, timeout=12)
     row = {'key': key(str(path.resolve()).lower()), 'name': path.name[:256], 'branch': '', 'upstream': None,
            'changed': None, 'untracked': None, 'conflicts': None, 'head': None}
     if activity: row.update(ignored=None, stashes=None)
+    if entry.get('_snapshotUnavailable') is True:
+        return row
+    status = git(path, 'status', '--porcelain=v2', '--branch', '--untracked-files=all', *details, timeout=30)
     if status is None:
         return row
     row.update(changed=0, untracked=0, conflicts=0)
@@ -236,7 +242,7 @@ def compare(entry, row, branch, source, cache):
         result['state'] = 'incomplete-history' if git(entry['path'], 'rev-parse', '--is-shallow-repository') == 'true' else 'unrelated-history'
     else:
         counts = git(entry['path'], 'rev-list', '--left-right', '--count', head + '...' + tip)
-        if counts and re.fullmatch(r'\d+\s+\d+', counts):
+        if counts and re.fullmatch(r'\d{1,10}\s+\d{1,10}', counts) and all(int(value) <= MAX_COMMITS for value in counts.split()):
             ahead, behind = map(int, counts.split())
             result.update(ahead=ahead, behind=behind, state='diverged' if ahead and behind else 'ahead' if ahead else 'behind' if behind else 'current')
         else:
@@ -304,20 +310,25 @@ def failed_main_sync(entries, source, reason):
 
 
 def snapshot(root, state):
-    entries = discover(root)
-    cache_path = state / 'repository-comparisons.json'
-    try:
-        cache = json.loads(cache_path.read_text(encoding='utf-8'))
-        if not isinstance(cache, dict): cache = {}
-    except (OSError, ValueError):
-        cache = {}
+    entries = discover_cached(root, state, discover)
+    legacy = load_legacy(state)
     def observe(entry):
         row = local_status(entry)
+        cache = load_comparisons(state, row['key'], legacy)
         source = read_source(state, entry['key'])
-        row['tracked'] = compare(entry, row, tracking_branch(row, source), source, cache)
-        row['main'] = compare(entry, row, source.get('defaultBranch'), source, cache) if source.get('defaultBranch') else {
-            'branch': None, 'state': 'not-checked', 'ahead': None, 'behind': None}
-        row['branchStatus'] = branch_status(entry, row, source, cache)
+        if entry.get('_snapshotUnavailable') is True:
+            row['tracked'] = {'branch': None, 'state': 'unavailable', 'ahead': None, 'behind': None}
+            row['main'] = {'branch': None, 'state': 'unavailable', 'ahead': None, 'behind': None}
+            row['branchStatus'] = {'state': 'unknown', 'url': None, 'number': None, 'title': None,
+                                   'pullRequestState': None, 'checkedAt': None}
+        else:
+            row['tracked'] = compare(entry, row, tracking_branch(row, source), source, cache)
+            row['main'] = compare(entry, row, source.get('defaultBranch'), source, cache) if source.get('defaultBranch') else {
+                'branch': None, 'state': 'not-checked', 'ahead': None, 'behind': None}
+            row['branchStatus'] = branch_status(entry, row, source, cache)
+        keys = {'branch:' + row['key'], row['key'] + ':' + key(tracking_branch(row, source) or ''),
+                row['key'] + ':' + key(source.get('defaultBranch') or '')}
+        save_comparisons(state, row['key'], {name: cache[name] for name in keys if name in cache})
         return entry, row, source
     groups, sources = {}, {}
     with ThreadPoolExecutor(max_workers=4) as pool:
@@ -332,18 +343,26 @@ def snapshot(root, state):
         group['mainSync'] = main_sync_observation(sources[repo_key], group['checkouts'])
         for row in group['checkouts']:
             row.pop('head', None)
-    state.mkdir(parents=True, exist_ok=True)
-    temporary = cache_path.with_suffix('.tmp')
-    temporary.write_text(json.dumps(dict(list(cache.items())[-1024:])), encoding='utf-8')
-    temporary.replace(cache_path)
     return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Laptop'), 'observedAt': stamp(),
             'repositories': sorted(groups.values(), key=lambda g: g['name'].lower()), 'refreshing': [],
             'notice': None if root.is_dir() else 'Repositories folder unavailable.'}
 
 
 def fetch_repository(root, state, repo_key, folders=None, *, update_main=False):
+    if not isinstance(repo_key, str) or not re.fullmatch(r'[0-9a-f]{24}', repo_key):
+        return False
     entries = [entry for entry in discover(root, folders) if entry['key'] == repo_key and entry['repo']]
     if not entries:
+        if update_main:
+            source = read_source(state, repo_key)
+            previous = source.get('mainSync')
+            previous = previous if isinstance(previous, dict) else {}
+            at = stamp()
+            source['attemptedAt'] = at
+            source['mainSync'] = {'state': 'failed', 'reason': 'git-unavailable', 'folder': None,
+                                  'checkedAt': at, 'updatedAt': previous.get('updatedAt')}
+            source.pop('mainSyncBasis', None)
+            write_source(state, repo_key, source)
         return False
     source = read_source(state, repo_key)
     source['attemptedAt'] = stamp()

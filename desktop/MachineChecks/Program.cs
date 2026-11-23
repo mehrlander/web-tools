@@ -36,4 +36,73 @@ if (OperatingSystem.IsWindows()) {
         "The production resolver reads the Windows Downloads location without creating or reading its files.");
 }
 
-Console.WriteLine($"{checks} file root checks passed.");
+bool Busy(RepositoryRefreshSchedule value, params string[] keys) =>
+    value.BusyKeys.ToHashSet(StringComparer.Ordinal).SetEquals(keys);
+
+var keyA = new string('a', 24);
+var keyB = new string('b', 24);
+var schedule = new RepositoryRefreshSchedule();
+Check(schedule.TryQueue(keyA) && !schedule.TryQueue(keyA),
+    "A queued repository rejects a duplicate request.");
+Check(schedule.CaptureCompleted().Count == 0,
+    "A scan cannot acknowledge a request that has not completed.");
+schedule.Complete(keyA);
+Check(!schedule.TryQueue(keyA) && Busy(schedule, keyA),
+    "A completed fetch stays busy until its observation is published.");
+Check(schedule.TryQueue(keyB),
+    "One fetch awaiting publication does not block another repository request.");
+var scanStart = schedule.CaptureCompleted();
+Check(scanStart.Count == 1 && scanStart.ContainsKey(keyA),
+    "A scan captures only the fetches completed before that scan starts.");
+schedule.Complete(keyB);
+Check(schedule.CaptureCompleted().Count == 2,
+    "Another repository can finish before the prior completion is published.");
+Check(scanStart.Count == 1 && !scanStart.ContainsKey(keyB),
+    "Later fetch completions do not change an earlier scan capture.");
+Check(Busy(schedule, keyA, keyB) && !schedule.TryQueue(keyA) && !schedule.TryQueue(keyB),
+    "An unpublished or failed scan capture leaves completed requests busy.");
+schedule.Published(scanStart);
+Check(Busy(schedule, keyB),
+    "Publication clears only completions captured at that scan's start.");
+Check(schedule.TryQueue(keyA),
+    "A successfully published repository accepts its next request.");
+schedule.Published(scanStart);
+Check(Busy(schedule, keyA, keyB) && !schedule.CaptureCompleted().ContainsKey(keyA),
+    "An old publication cannot clear a newly queued request for the same repository.");
+schedule.Complete(keyA);
+var newer = schedule.CaptureCompleted();
+Check(newer[keyA] > scanStart[keyA],
+    "A later fetch completion retains a newer generation after an earlier publication.");
+schedule.Published(scanStart);
+Check(Busy(schedule, keyA, keyB),
+    "An old publication cannot clear a newer completion for the same repository.");
+schedule.Published(newer);
+Check(Busy(schedule) && schedule.TryQueue(keyA) && schedule.TryQueue(keyB),
+    "Publishing the captured generations releases both repositories for later requests.");
+
+var wakeSchedule = new RepositoryRefreshSchedule();
+Check(wakeSchedule.TryQueue(keyA) && wakeSchedule.TryQueue(keyB),
+    "Independent repository requests can share the scan wake mechanism.");
+wakeSchedule.Complete(keyA);
+wakeSchedule.Complete(keyB);
+var wake = wakeSchedule.WaitForScan(TimeSpan.FromMinutes(1), CancellationToken.None);
+await wake.WaitAsync(TimeSpan.FromSeconds(5));
+Check(wake.IsCompletedSuccessfully,
+    "A burst of fetch completions wakes the next repository scan.");
+using var stopWaiting = new CancellationTokenSource();
+var pendingWake = wakeSchedule.WaitForScan(TimeSpan.FromMinutes(1), stopWaiting.Token);
+Check(!pendingWake.IsCompleted,
+    "A completion burst is coalesced into one wake rather than repeated scans.");
+stopWaiting.Cancel();
+var canceled = false;
+try { await pendingWake.WaitAsync(TimeSpan.FromSeconds(5)); }
+catch (OperationCanceledException) when (stopWaiting.IsCancellationRequested) { canceled = true; }
+Check(canceled,
+    "Explicit cancellation stops a pending scan wait without repository I/O.");
+
+var cadence = new RepositoryRefreshSchedule().WaitForScan(TimeSpan.Zero, CancellationToken.None);
+await cadence.WaitAsync(TimeSpan.FromSeconds(5));
+Check(cadence.IsCompletedSuccessfully,
+    "The periodic scan interval still completes when no fetch supplies a wake.");
+
+Console.WriteLine($"{checks} file root and repository refresh checks passed.");
