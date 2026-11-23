@@ -20,19 +20,16 @@ has assessed the codes.
 | `coded.csv` | one unit coded against the codebook; `coder` names the pass that coded it | readers (Pass 2), merged at synthesis |
 | [`codebook.md`](codebook.md) | the coding instrument: fields, rules, and the decisions behind the codes | authored |
 | `instances.csv` | one unit loaded to check what its markup declares: the code declared and coded, the parts found, whether the code's behavior held, and the slots found, missing and stray (codebook, "Slots") | `node/build/ui-instances.mjs` |
-| `shots.csv` | one unit whose screenshot needs more than its address: a query, a scenario script (stand-in rows for a pane that needs a token), a click, a focus other than its host's, or a `region` narrower than its host's; `shot` is `no-script` where the script reads a private repository, so the check runs it and the public shot does not | authored |
-| `thumbs/` | each unit's desktop and phone shot as a JPEG thumbnail, cropped from the topmost slot; `thumbs.csv` naming them with the focus each crop used; `ui-unit-marks.json` with the boxes of each shot's slots and components, and the Map draws those boxes over that shot | `node/build/ui-shots.mjs` |
-| `thumbs/component-*` | each component that names where the app shows it (`docs/components.csv`, `seen_at`), shot at that address uncropped, and `component-shots.json` with each component's box in each shot | `node/build/component-shots.mjs` |
+| `shots.csv` | one unit whose screenshot needs more than its address: a query, a scenario script (stand-in rows for a pane that needs a token), a click, a focus other than its host's, or a `region` narrower than its host's; `shot` is `no-script` where the script reads a private repository, so the check runs it and the shot does not | authored |
 
 Regenerate the snapshot with `npm run ui-units -- --write --date <date>`, from a checkout that has `home` and `budget-drs` beside it. Without `--write` it prints counts. Add `--store public` to write only the tables here, or `--store home` to write only home's. The names are stable so the Map can read them without listing the folder; git holds the earlier snapshots.
 
-The shots are taken by `npm run ui-shots`, once per session at most, like
-`pages/thumbs/`: they are not byte-deterministic, so no commit hook owns them.
-home's units are shot into web-tools-private's `thumbs/mehrlander/home/ui-units/`,
-the private registry's store for shots of private repos' pages. A public unit's
-shot reads only the sibling checkouts named in `PUBLIC_SIBLINGS`
-(`node/build/ui-recipes.mjs`), and the render shim answers any other as
-missing, so add a repository there only once it is public.
+The shots are kept in web-tools-private, since a unit can show private data:
+this repo's units' in `thumbs/mehrlander/web-tools/ui-units/`, home's in
+`thumbs/mehrlander/home/ui-units/`, each folder's README saying what it holds.
+`npm run ui-shots` and `node node/build/component-shots.mjs` take them, once per
+session at most: they are not byte-deterministic, so no commit hook owns them.
+The Map reads them under a token.
 
 **The public and private halves are split by visibility.** Rows whose unit lives in this repo are written here. Rows for home's own pages, for budget-drs's own pages and for everything the budget-drs app draws or frames go to home's `data/ui-units/`. That store keeps private file names out of public source. The 2026-10-06 snapshot holds 158 units here and 65 in home, and 57 and 45 of them are coded. Units in other repositories, such as shortcut-tools' own pages, are counted by the script and written nowhere.
 
