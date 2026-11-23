@@ -14,15 +14,15 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 **What the map shows.** The gallery, [`pages/pages.csv`](../../../pages/pages.csv), lists all 123 HTML files under [`pages/`](../../../pages/), [`lib/kits/demos/`](../../../lib/kits/demos/) and the `demo.html` files in the folders under [`skills/`](../../../skills/). Of those, 46 are products. The rest are exhibits, experiments, services and one record.
 
-**Recommended.** Let the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) and [`pages/index.html`](../../../pages/index.html) filter by standing and show the products first. The pages' standing would come from [`page-jobs.csv`](../current/page-jobs.csv), which [`registries.csv`](../../../docs/registries.csv) declares as a registry. The gallery's generator rewrites its own file whole. It would overwrite a judgment written there by hand.
+**Recommended.** Let the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) and [`pages/index.html`](../../../pages/index.html) filter by standing and show the products first. The pages' standing would come from [`page-jobs.csv`](../current/page-jobs.csv), which [`registries.csv`](../../../docs/registries.csv) declares as a registry. Standing stays out of `pages/pages.csv` because the gallery's generator rewrites that file whole and would overwrite any judgment written in it by hand.
 
 **The alternative.** Leave the gallery in path order.
 
 ## 3. Give every page its job in one place
 
-**What the map shows.** [`coded.csv`](../../../data/ui-units/coded.csv), which the [Content program](../../content/README.md) keeps, records the jobs of 20 of the map's 177 pages, coding each page's parts for the [UI codebook](../../../data/ui-units/codebook.md). [`page-jobs.csv`](../current/page-jobs.csv) judges the rest. For 36 of those pages, the judgment read only a one-line note or the page's name, as the `basis` column of [`page-jobs.csv`](../current/page-jobs.csv) records.
+**What the map shows.** The [Content program](../../content/README.md) keeps [`coded.csv`](../../../data/ui-units/coded.csv), which codes pages for the [UI codebook](../../../data/ui-units/codebook.md). It records the jobs of 20 of the map's 177 pages. [`page-jobs.csv`](../current/page-jobs.csv) judges the rest. For 36 of those pages, the judgment read only a one-line note or the page's name, as the `basis` column of [`page-jobs.csv`](../current/page-jobs.csv) records.
 
-**Recommended.** Code each web-tools product page in [`coded.csv`](../../../data/ui-units/coded.csv) until every one has a row, and leave other repositories' pages in [`page-jobs.csv`](../current/page-jobs.csv). Every row of [`coded.csv`](../../../data/ui-units/coded.csv) describes a web-tools page or view. When [`coded.csv`](../../../data/ui-units/coded.csv) codes a page, blank its job in [`page-jobs.csv`](../current/page-jobs.csv); [`pages-map.mjs --check`](../current/pages-map.mjs) fails until that is done.
+**Recommended.** Code each web-tools product page in [`coded.csv`](../../../data/ui-units/coded.csv) until every one has a row, and leave other repositories' pages in [`page-jobs.csv`](../current/page-jobs.csv). Every row of [`coded.csv`](../../../data/ui-units/coded.csv) describes a web-tools page or view. When [`coded.csv`](../../../data/ui-units/coded.csv) codes a page, blank its job in [`page-jobs.csv`](../current/page-jobs.csv); [`pages-map.mjs --check`](../current/pages-map.mjs) fails until the job is blanked.
 
 **The alternative.** Keep the jobs of uncoded pages in [`page-jobs.csv`](../current/page-jobs.csv) indefinitely.
 
