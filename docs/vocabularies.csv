@@ -14,6 +14,7 @@ harness,layer,node,,Node files at the folder root,
 harness,layer,node/build,,"generators: snapshot a page or the lib into an offline artifact, or restamp a committed registry",
 harness,layer,node/render,,"exercise a page headlessly: the jsdom logic render, the Chromium pixel render, and their shared CDN resolver",
 harness,layer,node/render/scenarios,,interaction drivers for npm run shot --script: each steers one page into one state before the pixels are taken,
+harness,layer,node/testing,,test observation and selection tools,
 properties,column_primitive,id,,"identifies its row, so other rows and files address it by this value; unique within the registry",docs/favicons/primitives/id.svg
 properties,column_primitive,label,,"drawn from a set and shared across rows, and the sharing is what makes it a class",docs/favicons/primitives/label.svg
 properties,column_primitive,locator,,"resolves to a target outside the row: a path, a URL, or a key into another registry",docs/favicons/primitives/locator.svg

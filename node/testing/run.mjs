@@ -2,14 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { repoRoot as defaultRoot } from '../repo-root.mjs';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { parseCsv } from '../build/registries-load.mjs';
 import { planSelection, changesSince, testFiles } from './select.mjs';
 import { collectObservations, buildRunRecord, dependencyFingerprint, gitSource, writeRecord } from './records.mjs';
 import { baselineEligible } from './publish.mjs';
-
-const defaultRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 const pathKey = value => process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value);
 
