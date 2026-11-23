@@ -9,7 +9,7 @@ This map answers four questions about the estate's HTML pages:
 3. Is it public, and does its source name a private repository?
 4. Which catalogues list it?
 
-A catalogue here is a file that lists pages; the six are under [Catalogues](#catalogues). The map covers every page that at least one of them names. The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists the HTML files that none of them names.
+A catalogue here is a file that lists pages; each is under [Catalogues](#catalogues). The map covers every page that at least one of them names. The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists the HTML files that none of them names.
 
 ## Files
 
@@ -30,7 +30,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | Catalogue | File | Lists | The app shows it in |
 | --- | --- | --- | --- |
 | gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/); every page under [`lib/kits/demos/`](../../../lib/kits/demos/); and each skill's `demo.html` under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
-| manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md), as in [web-tools' own manifest](../../../.web-tools.json) | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar for a page whose entry sets [`appView`](../../../docs/manifest-fields.csv), the flag that makes it an app view |
+| manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md), as in [web-tools' own manifest](../../../.web-tools.json) | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar, for an entry that sets the app-view flag [`appView`](../../../docs/manifest-fields.csv) |
 | landing | `projects[].landing` in each [`.web-tools.json`](../../../docs/manifest.md) | a project's front page | the [Project view](https://mehrlander.github.io/web-tools/app/?view=project)'s App tab |
 | utilities | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
 | units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
@@ -70,7 +70,7 @@ A **tool** is a product page whose job includes make. In the make job, the reade
 
 **Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
-**names_private** is a column for pages in public repositories. For such a page, the column lists the private repositories that the page's source names as `owner/repo`, or holds `none` when the source names none. For a page in a private repository, the column is blank. The script does not read that page's source.
+**names_private** is a column for pages in public repositories. For such a page, the column lists the private repositories that the page's source names as `owner/repo`. It holds `none` when the source names no private repository. For a page in a private repository, the column is blank. The script does not read that page's source.
 
 A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names.
 
