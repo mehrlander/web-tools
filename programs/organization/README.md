@@ -12,7 +12,7 @@ It keeps the files that describe the owner's repositories and record the work do
 | Registries | the registries declared in [`registries.csv`](../../docs/registries.csv), under the model in [`registries.md`](../../docs/registries.md), with their columns in [`properties.csv`](../../docs/properties.csv) |
 | Session records and chats | the record of each Claude Code session and the archive of exported chats, read in the [Sessions](https://mehrlander.github.io/web-tools/app/?view=sessions) and [Chats](https://mehrlander.github.io/web-tools/app/?view=chats) views |
 | Trackers | each repository's task tracker, written to the schema in [`TRACKER.md`](../../docs/TRACKER.md) |
-| Maps | current-state maps in [`current/`](current/), each checked against its data, and proposals to change them in [`future/`](future/). The first covers [the estate's pages](current/pages.md) |
+| Maps | current-state maps in [`current/`](current/), each checked against its data, and proposals to change them in [`future/`](future/). The first map covers [the estate's pages](current/pages.md) |
 
 ## Processes
 
