@@ -14,6 +14,6 @@ When you notice names, text or structure that disagree with each other or with w
 - Fix unclear or inconsistent wording where you meet it, including text held in code.
 - When alignment cannot finish in this session, say so and make it the next step.
 
-The caution in [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives) against improvements addressing hypothetical problems is meant for new guards, rules and channels, such as a check added after a session errs once.
+The caution in [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives) against improvements addressing hypothetical problems is meant for new guards, rules and channels. One example is a check added after a session errs once.
 
 **Backed by:** the peeves [P38, Unfinished work](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#unfinished-work--p38), [P65, Compatibility clutter](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#compatibility-clutter--p65) and [P12, One name per thing](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#one-name-per-thing--p12).
