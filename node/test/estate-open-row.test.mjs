@@ -203,7 +203,7 @@ test('a branch line opens the branch panel-tip, which draws the whole tile', asy
 
   line.click();
   await settle();
-  assert.equal(data.branchTip?.key, 'me/tools/feat/a');
+  assert.equal(data.branchTip?.key, 'tile:me/tools/feat/a');
   assert.equal(data.branchTip.pinned, true, 'a click pins it');
   const tip = doc.querySelector('[data-branch-tip]');
   assert.ok(named(tip, 'feat/a'), 'the panel names the branch');
@@ -224,7 +224,7 @@ test('a branch line opens the branch panel-tip, which draws the whole tile', asy
   await Alpine.nextTick();
 });
 
-test('a branch line\'s state mark names the state and opens the PR guide', async () => {
+test('a branch line\'s state mark goes to the PR guide on a click, and peeks on a tap', async () => {
   seed();
   shell.view = 'sessions';
   data.sessionTab = 'list';
@@ -236,18 +236,51 @@ test('a branch line\'s state mark names the state and opens the PR guide', async
     .find(el => (el.getAttribute('aria-label') || '').endsWith('/feat/a'));
   const mark = line.querySelector('[data-branch-mark]');
   assert.ok(mark, 'the mark is a control of its own');
-  assert.match(mark.getAttribute('data-title-tip'), /Click for the PR guide\.$/, 'with a title-tip of its own');
   let asked = null;
   const real = data.openBranchDetail;
   data.openBranchDetail = function(row){ asked = { name: row.name, pane: this._openFiles?.pane }; };
+  shell.finePointer = true;
   mark.click();
   data.openBranchDetail = real;
   data._openFiles = null;
-  assert.deepEqual(asked, { name: 'feat/a', pane: 'guide' }, 'its tap opens the branch on its Guide pane');
-  assert.equal(data.branchTip, null, 'and leaves the line\'s panel shut');
+  assert.deepEqual(asked, { name: 'feat/a', pane: 'guide' }, 'a click opens the branch on its Guide pane');
+  assert.equal(data.branchTip, null, 'and opens no panel');
+  shell.finePointer = false;
+  mark.click();
+  await new Promise(r => setTimeout(r, 0));
+  await Alpine.nextTick();
+  assert.equal(data.branchTip?.kind, 'guide', 'where nothing hovers, a tap is the peek');
+  assert.equal(data.branchTip.pinned, true);
+  data.closeBranchTip();
+  delete shell.finePointer;
   data.sessionRows_ = [];
   shell.view = 'branches';
   await Alpine.nextTick();
+});
+
+test('the guide peek reads the PR body and shows its guide section alone', async () => {
+  const saved = { BB: window.BranchBrief, GR: window.GuideRender };
+  window.BranchBrief = { readGuide: async () => ({ pulls: [{ number: 7,
+    body: 'lead\n[//]: # (guide)\n## What this PR does\nIt does X.\n[//]: # (/guide)\nfooter' }] }) };
+  window.GuideRender = { needMarked: async () => {}, bodyClass: () => 'guide-body',
+                         render: (md) => ({ html: '<p>' + md + ' <a href="x">f</a></p>', targets: [] }) };
+  const row = { repo: 'me/tools', name: 'feat/a', pr: { number: 7, title: 't', draft: true } };
+  const el = doc.createElement('button');
+  doc.body.appendChild(el);
+  data.showBranchTip(row, [], el, true, 'guide');
+  await new Promise(r => setTimeout(r, 0));
+  await Alpine.nextTick();
+  assert.equal(data.branchTip.kind, 'guide');
+  assert.equal(data.branchTip.guide.state, 'ready');
+  assert.match(data.branchTip.guide.html, /It does X\./);
+  assert.doesNotMatch(data.branchTip.guide.html, /footer|lead/, 'the guide section alone');
+  assert.match(data.branchTip.guide.html, /target="_blank"/, 'its links open in a new tab');
+  const peek = doc.querySelector('[data-guide-peek]');
+  assert.ok(peek && /Open guide/.test(peek.textContent), 'with a way through to the Guide pane');
+  data.closeBranchTip();
+  el.remove();
+  window.BranchBrief = saved.BB;
+  window.GuideRender = saved.GR;
 });
 
 const key = (k, target = doc.body, opts = {}) => {
