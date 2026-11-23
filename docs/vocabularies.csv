@@ -193,7 +193,7 @@ pages-map,app,standalone,Standalone,meets none of these: the app reaches it only
 page-jobs,standing,product,Product,is opened by a reader to do a job,
 page-jobs,standing,service,Service,"is opened by another page or a link to perform one step, and has no reader job of its own",
 page-jobs,standing,exhibit,Exhibit,"shows a kit, component, library or skill working",
-page-jobs,standing,experiment,Experiment,"is a trial page, kept under pages/scratch/ or pages/drop/ or named as a probe or prototype, that answers a question about how to build something",
+page-jobs,standing,experiment,Experiment,"is a trial page, kept under pages/scratch/ or pages/drop/ or named as a probe or prototype, that answers a question about how to build a page, a kit or a component",
 page-jobs,standing,record,Record,is kept for history or provenance and no longer does its job,
 page-jobs,basis,source,Source,the judgment read the page's source,
 page-jobs,basis,note,Note,the judgment read only the note a manifest or the gallery gives the page,
