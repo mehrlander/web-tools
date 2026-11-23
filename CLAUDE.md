@@ -19,7 +19,7 @@ rule: where no link reaches a change, say so and send a headless screenshot.
 
 ## Per-session refresh: thumbnails
 
-Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit them in web-tools-private, which keeps every screenshot this repo makes ([`node/build/shot-store.mjs`](node/build/shot-store.mjs)). Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
+Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit them in [web-tools-private](https://github.com/mehrlander/web-tools-private). That repository keeps every screenshot this repo makes ([`node/build/shot-store.mjs`](node/build/shot-store.mjs)). Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
 
 ## Guide-PR support: platform auto-create is on
 
