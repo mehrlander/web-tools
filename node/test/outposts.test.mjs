@@ -57,7 +57,7 @@ test('the hook is silent where no account has synced, and waits no more than fiv
   const home = mkdtempSync(path.join(os.tmpdir(), 'outposts-home-'));
   try {
     const t0 = Date.now();
-    const out = execFileSync('python3', [TOOL, '--hook'], { input: '{}', encoding: 'utf8', env: { ...process.env, HOME: home } });
+    const out = execFileSync('python3', [TOOL, '--hook'], { input: '{}', encoding: 'utf8', env: { ...process.env, HOME: home, USERPROFILE: home } });
     assert.equal(out, '');
     assert.ok(Date.now() - t0 < 8000, 'a session with no account sync pays the appear wait, not the full one');
   } finally { rmSync(home, { recursive: true, force: true }); }
