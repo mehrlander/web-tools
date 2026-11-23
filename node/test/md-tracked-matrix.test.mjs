@@ -371,3 +371,29 @@ test('a list item\'s last line cut to a stray marker: the cards revert with no e
   assert.deepEqual(out, []);
   assert.equal(runs.length, 2);
 });
+
+// Reached by the walk over skills/doc-craft/SKILL.md on 2026-11-17: a list
+// item's text carried onto the heading after the list left a stray marker,
+// and taking back the heading's card, then the marker's, left a blank line
+// inside the tight list.
+test('a list item\'s text carried onto the heading below: the cards revert with no blank line in the list', () => {
+  const base = 'Lead.\n\n- **One**: first words.\n- **Two**: second words here.\n\n## Next\n\nBody.\n';
+  const { out, runs } = checkAgainst(base, 'Lead.\n\n- **One**: first words.\n- **\n\n## Two**: second words here. Next\n\nBody.\n');
+  assert.deepEqual(out, []);
+  assert.ok(runs.length >= 2);
+});
+
+// Reached by the walk over skills/doc-craft/SKILL.md on 2026-11-20: a list
+// item's words carried below the heading after the list, and a sentence
+// carried into the stub they left, as a paragraph. The stub and the paragraph
+// are one card, tight under the item above, with a blank line below; taken
+// out, it took that blank line, and after the removed item had gone back on
+// the line after the paragraph, the item's first character with it.
+test('a run tight under a list item, with a blank line below, reverts without the blank line below it', () => {
+  const base = 'Lead.\n\n- **One**: first words.\n- **Two**: check the links.\n\n## Next\n\nBody ends. Keep wrapping fixed always.\n';
+  const text = 'Lead.\n\n- **One**: first words.\n- **\n\nKeep wrapping fixed always.\n\n## Next\n\nTwo**: check the links.\n\nBody ends.\n';
+  const { out, runs } = checkAgainst(base, text);
+  assert.deepEqual(out, [], 'every card reverted, the removed item keeps its first character');
+  assert.equal(mdDiff.revert(base, text, runs[0]), 'Lead.\n\n- **One**: first words.\n\n## Next\n\nTwo**: check the links.\n\nBody ends.\n',
+    'the run alone leaves the heading its blank line');
+});

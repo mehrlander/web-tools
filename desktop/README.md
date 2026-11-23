@@ -204,7 +204,9 @@ The adapter disables redirects, bounds responses and omits native errors. Unavai
 
 Files groups working folders by repository at the configured root, showing each repository's default-branch folder first when available. An icon/count control reveals secondary work folders; Other files holds remaining root entries. Search includes collapsed folders. Top-level rows on the default branch omit branch labels and zero commit counts; their repository icon opens the folder name, branch, comparison and check time. Other Git working folders retain branch labels. The companion reads branch, working-file and commit differences every ten seconds. Named branches compare with the same-named GitHub branch when present, otherwise their configured GitHub upstream. Touch or keyboard focus on an arrow or warning symbol identifies the comparison branch, any different configured upstream, condition and GitHub check time. Comparisons that cannot establish counts use a warning symbol. The branch icon opens the observed PR state or inclusion in the GitHub default branch; a merged PR with unverified local inclusion remains flagged for review. Detached working folders compare with the GitHub default branch and are identified as snapshots when their commits are verified in that history. PR observations refresh with GitHub checks and retain their own last-successful time.
 
-The companion fetches on startup and every five minutes. The root refresh icon checks all GitHub repositories; working folders with a GitHub origin have a vertical menu offering Check GitHub and Open on GitHub. The GitHub link selects the comparison branch when available. Fetches use explicit remote-tracking destinations, skip tags, pruning, submodules and automatic maintenance, and leave the working branch, index and files unchanged. Failed checks retain their previous successful time and a notice in the comparison tooltip. The phone polls every three seconds while the view is visible and disables check controls when its observation is stale or offline. Fetch reads GitHub changes; pull integrates changes into a working branch. Working folder synchronization offers fetch only. Git credentials, full filesystem paths, file contents and raw Git diagnostics stay outside the phone projection.
+The companion fetches on startup and every five minutes. After a successful background fetch, the companion can fast-forward an eligible inactive default-branch folder to the fetched commit. Active, dirty, locked or divergent folders stay unchanged. Keep active work in isolated work folders so the local default-branch folder remains available for background updates. The repository icon and matching folder's arrow detail show the automatic update result, any blocked reason and its own check time; the repository icon turns amber when an update is blocked or fails.
+
+The root refresh icon checks all GitHub repositories; working folders with a GitHub origin have a vertical menu offering Check GitHub and Open on GitHub. These manual checks remain fetch-only. The GitHub link selects the comparison branch when available. Fetches use explicit remote-tracking destinations, skip tags, pruning, submodules and automatic maintenance, and leave the working branch, index and files unchanged. Failed checks retain their previous successful time and a notice in the comparison tooltip. The phone polls every three seconds while the view is visible and disables check controls when its observation is stale or offline. Git credentials, full filesystem paths and raw Git diagnostics stay outside the phone projection.
 
 The companion inventories ignored and untracked entries on a separate loop from Git comparisons, waiting a minute after each completed scan. Local status icons show compact counts for changed tracked files, untracked files and ignored inventory entries; their panels retain exact counts, conflicts and inventory shortcuts. The explorer has breadcrumbs, search and All, Tracked, Untracked and Ignored filters. All lists immediate children; a Tracked folder contains tracked files. Ignored and Untracked also surface nested entries from the bounded local inventory, retaining measured folder sizes and file counts. Listings skip links and Git administrative entries and label incomplete scans. Folder listings refresh separately while visible, preserving search, focus and reading position. The root and last visited listings remain locally available when offline. File contents and file-changing actions are unavailable.
 
@@ -231,6 +233,22 @@ keeps eight days and sends at most sixty points per current window to the phone.
 A trend begins with observed readings, without reconstructing past consumption.
 Expired or stale readings remain labeled; passing a reset never supplies an
 assumed zero.
+
+`worker/session_usage.py` projects recent Claude cloud `usage/1` extracts from one
+revision of the existing private checkout. The projection keeps session identity,
+last measured input context, call time and session-to-date token/cache counters.
+Prompt text, replies and raw transcripts are excluded. The private Usage calendar
+joins these measurements to Claude activity in its fixed one-hour cache-window list,
+ordered by context size. Each compact row switches to the matching session in Now
+and shows the last recorded context token count. Context size is not cumulative
+spend; recent activity and prior cache reads do not establish a reusable cache or
+its expiry time. Missing sizes remain unknown, and saved measurements retain their
+observation time. Extracts cover the main conversation and update after turns finish.
+Now session metadata can show the recorded output-token count with a coins icon,
+matching the Web Tools session headline. Tapping the count shows fresh input,
+cache reads, cache writes, output and last measured context separately. These
+counts cover recorded main-conversation calls and do not measure subscription
+allowance consumption. Unsupported session sources omit the badge.
 
 Codex uses the signed-in CLI's documented `account/rateLimits/read` app-server
 method. The CLI manages its own authentication. Each reported bucket and period
@@ -316,10 +334,8 @@ The reader fetches the private checkout's `background` branch. It reads requests
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
-The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant, not continued execution or the machine running Codex or Claude. The Gemini worker card counts only Gemini errands.
-The latest eighty request filenames and every unresolved request are available;
-the list shows forty matching entries at once. Recent activity remains visible
-as the feed updates, without an acknowledgement step.
+The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant; `run.venue` distinguishes laptop and cloud execution. A claim does not establish continued execution. The Gemini worker card counts only Gemini errands.
+The phone's Errands view filters by assistant and separates Waiting (oldest first), Taken on (claims and arriving replies), and Results. The read-only `/api/v1/errands` projection includes every open errand and the eighty latest results by update time; Now keeps its one-day result horizon. Selected results read Gemini's `data.reply` or the other agents' `data.report`, falling back to the result message. Request notes remain outside the phone API. The Now shortcut and title dropdown open Errands without initiating work.
 
 The worker's record contract lives in the private repo's
 [`errands/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md).

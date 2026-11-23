@@ -7,6 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🗂️</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../../lib/kits/title-tip.js"></script>
 
 <!--
   guides/code-layers.html — the decision document behind the lib/ reorganisation.
@@ -292,7 +293,7 @@
                 <td class="mono text-xs break-all">
                   <a :href="blob(r.path)" target="_blank" rel="noopener" x-text="r.base"></a>
                   <span x-show="r.nul" class="badge badge-error badge-xs ml-1"
-                        title="contains a NUL byte; invisible to grep">NUL</span>
+                        data-title-tip="contains a NUL byte; invisible to grep">NUL</span>
                 </td>
                 <td class="mono text-xs break-all text-base-content/80" x-text="r.attachShort"></td>
                 <td class="text-xs">

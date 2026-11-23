@@ -37,6 +37,123 @@ function fixture(t) {
   return { box, root };
 }
 
+function unmerged(root, rel, left, right) {
+  const hashes = [left, right].map(input => execFileSync('git', ['hash-object', '-w', '--stdin'],
+    { cwd: root, input, encoding: 'utf8' }).trim());
+  const input = `0 ${'0'.repeat(hashes[0].length)}\t${rel}\n`
+    + hashes.map((hash, i) => `100644 ${hash} ${i + 2}\t${rel}\n`).join('');
+  execFileSync('git', ['update-index', '--index-info'], { cwd: root, input, encoding: 'utf8' });
+}
+
+test('census reads indexed CSV blobs in two Git children as the population grows', t => {
+  const { root } = fixture(t);
+  const probe = `
+import contextlib, io, json, runpy, subprocess, sys
+from unittest.mock import patch
+script, root = sys.argv[1:]
+scope = runpy.run_path(script)
+original = subprocess.Popen
+commands = []
+def counted(command, *args, **kwargs):
+    if command[0] == 'git':
+        commands.append(command)
+    return original(command, *args, **kwargs)
+sys.argv = [script, '--root', root]
+with patch('subprocess.Popen', side_effect=counted), contextlib.redirect_stdout(io.StringIO()):
+    scope['main']()
+print(json.dumps(commands))
+`;
+  const countedGenerate = () => JSON.parse(execFileSync(python, ['-c', probe, script, root],
+    { cwd: repoRoot, encoding: 'utf8' }));
+  const sample = 'name,value\nfirst,1\nsecond,2\n';
+  writeFileSync(path.join(root, 'café space.csv'), sample);
+  writeFileSync(path.join(root, 'empty.csv'), '');
+  git(root, 'add', 'café space.csv', 'empty.csv');
+  const first = countedGenerate();
+  assert.deepEqual(rows(root).find(r => r.path === 'café space.csv'),
+    { path: 'café space.csv', rows: '2', columns: '2', bytes: String(Buffer.byteLength(sample)),
+      headers: '["name","value"]' });
+  assert.equal(Number(rows(root).find(r => r.path === 'empty.csv').bytes), 0);
+
+  const added = Array.from({ length: 4 }, (_, i) => `extra-${i}.csv`);
+  for (const rel of added) writeFileSync(path.join(root, rel), 'column\nvalue\n');
+  git(root, 'add', ...added);
+  const second = countedGenerate();
+  assert.equal(rows(root).length, 7, 'the census includes every source and itself');
+  assert.deepEqual([first.length, second.length], [2, 2],
+    'reading more source CSVs must not start a Git process for each blob');
+});
+
+test('unresolved source CSV index stages fail without overwriting the census', t => {
+  const { root } = fixture(t);
+  const before = generate(root);
+  writeFileSync(path.join(root, 'source.csv'), 'column\nvalue\n');
+  unmerged(root, 'source.csv', 'column\nleft\n', 'column\nright\n');
+  const r = run(root);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /source\.csv/);
+  assert.deepEqual(readFileSync(path.join(root, output)), before);
+});
+
+test('unresolved census output index stages can be regenerated from resolved sources', t => {
+  const { root } = fixture(t);
+  writeFileSync(path.join(root, 'source.csv'), 'column\nvalue\n');
+  git(root, 'add', 'source.csv');
+  const before = generate(root);
+  unmerged(root, output, before, 'path,rows,columns,bytes,headers\n');
+  writeFileSync(path.join(root, output), 'stale census\n');
+  assert.deepEqual(generate(root), before, 'the derived output does not need its conflicted index blobs');
+});
+
+test('a missing indexed source blob fails without overwriting the census', t => {
+  const { root } = fixture(t);
+  const before = generate(root);
+  writeFileSync(path.join(root, 'source.csv'), 'column\nvalue\n');
+  // Hash without -w so this is a valid object name whose blob is absent.
+  const missing = execFileSync('git', ['hash-object', '--stdin'],
+    { cwd: root, input: 'an absent source blob\n', encoding: 'utf8' }).trim();
+  git(root, 'update-index', '--add', '--cacheinfo', '100644', missing, 'source.csv');
+  const r = run(root);
+  assert.notEqual(r.status, 0);
+  assert.deepEqual(readFileSync(path.join(root, output)), before);
+});
+
+test('a truncated batch response preserves the census and reaps the reader', t => {
+  const { root } = fixture(t);
+  const before = generate(root);
+  writeFileSync(path.join(root, 'source.csv'), 'column\nvalue\n');
+  git(root, 'add', 'source.csv');
+  const probe = `
+import contextlib, io, json, runpy, subprocess, sys
+from unittest.mock import patch
+script, root = sys.argv[1:]
+scope = runpy.run_path(script)
+original = subprocess.Popen
+children = []
+partial = "import sys; oid=sys.stdin.buffer.readline().strip(); sys.stdout.buffer.write(oid + b' blob 8' + bytes([10]) + b'xx'); sys.stdout.buffer.flush()"
+def truncated(command, *args, **kwargs):
+    if command == ['git', 'cat-file', '--batch']:
+        child = original([sys.executable, '-c', partial], *args, **kwargs)
+        children.append(child)
+        return child
+    return original(command, *args, **kwargs)
+sys.argv = [script, '--root', root]
+try:
+    with patch('subprocess.Popen', side_effect=truncated), contextlib.redirect_stdout(io.StringIO()):
+        scope['main']()
+except ValueError as error:
+    failure = str(error)
+else:
+    raise AssertionError('a truncated blob must fail')
+print(json.dumps({'failure': failure, 'returncodes': [child.returncode for child in children]}))
+`;
+  const result = JSON.parse(execFileSync(python, ['-c', probe, script, root],
+    { cwd: repoRoot, encoding: 'utf8' }));
+  assert.match(result.failure, /incomplete Git blob response: source\.csv/);
+  assert.deepEqual(result.returncodes, [0], 'the context waits for the delegated child before propagating failure');
+  assert.deepEqual(readFileSync(path.join(root, output)), before);
+});
+
 test('the committed hub census is the repeatable tracked-CSV population', () => {
   const r = run(repoRoot, '--check');
   assert.equal(r.status, 0, r.stderr || r.error?.message);
@@ -160,7 +277,8 @@ test('census output rejects traversal, absolute and Windows drive paths before w
   const { box, root } = fixture(t);
   const outside = path.join(box, 'outside.csv');
   writeFileSync(outside, 'sentinel\n');
-  for (const census of ['../outside.csv', outside.replaceAll('\\', '/'), 'C:/outside.csv', 'C:outside.csv']) {
+  for (const census of ['../outside.csv', outside.replaceAll('\\', '/'), 'C:/outside.csv', 'C:outside.csv',
+    '..\\outside.csv', 'data\\csv-census.csv', 'a\nb.csv', 'a\rb.csv']) {
     declare(root, census);
     const r = run(root);
     assert.notEqual(r.status, 0, `accepted ${census}`);
@@ -204,9 +322,12 @@ test('census output rejects a file symlink even when its target is inside the ch
 test('the full refresh hook repairs and stages a census in a clean checkout', t => {
   const { box, root } = fixture(t);
   mkdirSync(path.join(root, 'python'));
-  mkdirSync(path.join(root, '.githooks'));
   copyFileSync(script, path.join(root, 'python/csv-census.py'));
-  copyFileSync(path.join(repoRoot, '.githooks/pre-commit'), path.join(root, '.githooks/pre-commit'));
+  for (const f of ['.githooks/pre-commit', 'docs/commit-rules.csv', 'node/build/commit-rules.mjs',
+    'node/build/registries-load.mjs', 'node/build/kit-shim.mjs', 'node/repo-root.mjs', 'lib/kits/csv.js']) {
+    mkdirSync(path.dirname(path.join(root, f)), { recursive: true });
+    copyFileSync(path.join(repoRoot, f), path.join(root, f));
+  }
   generate(root);
   writeFileSync(path.join(root, output), 'path,rows,columns,bytes,headers\n');
   git(root, 'add', '.');
@@ -214,8 +335,8 @@ test('the full refresh hook repairs and stages a census in a clean checkout', t 
     '-c', 'commit.gpgsign=false', 'commit', '-qm', 'stale census fixture');
   assert.equal(git(root, 'status', '--porcelain'), '');
 
-  // Other generator legs belong to their own tests; this fixture exercises
-  // the actual full hook and census script with those npm commands as no-ops.
+  // Other rules belong to their own tests; this fixture exercises the actual
+  // full hook and census script with those npm commands as no-ops.
   const bin = path.join(box, 'bin');
   mkdirSync(bin);
   const pythonExe = execFileSync(python, ['-c', 'import sys; print(sys.executable)'], { encoding: 'utf8' })

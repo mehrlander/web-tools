@@ -3,6 +3,8 @@ from collections import Counter
 import os
 from pathlib import Path
 import re
+import shlex
+import shutil
 import stat
 import subprocess
 import time
@@ -24,9 +26,12 @@ def git(repository, *args, data=None, allowed=(0,)):
     env = dict(os.environ)
     for name in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR'):
         env.pop(name, None)
-    env.update(GIT_OPTIONAL_LOCKS='0', GIT_TERMINAL_PROMPT='0', GIT_NO_LAZY_FETCH='1', GCM_INTERACTIVE='Never')
+    env.update(GIT_OPTIONAL_LOCKS='0', GIT_TERMINAL_PROMPT='0', GIT_NO_LAZY_FETCH='1', GCM_INTERACTIVE='Never', GH_PROMPT_DISABLED='1')
+    gh = shutil.which('gh') if args and args[0] in ('fetch', 'push', 'ls-remote') else None
+    authentication = ['-c', 'credential.helper=', '-c',
+                      'credential.helper=!' + shlex.quote(gh.replace('\\', '/')) + ' auth git-credential'] if gh else []
     result = subprocess.run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.longpaths=true',
-                             '-c', 'maintenance.auto=false', '-C', str(repository), *args],
+                             '-c', 'maintenance.auto=false', *authentication, '-C', str(repository), *args],
                             input=data, capture_output=True, env=env, timeout=120)
     if result.returncode not in allowed:
         # Git diagnostics can carry credential-helper details and machine paths.

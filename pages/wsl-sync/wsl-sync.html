@@ -57,7 +57,7 @@
     </div>
 
     <!-- Primary analytical view: the curated summary table is the product. -->
-    <button @click="setMode('summary')" title="Curated pension-bill summary — the primary view"
+    <button @click="setMode('summary')" data-title-tip="Curated pension-bill summary — the primary view"
         class="btn btn-sm gap-1.5 rounded-lg font-bold ml-1"
         :class="view.mode==='summary' ? 'btn-primary shadow-sm' : 'btn-ghost text-base-content/80'">
         <i class="ph-bold ph-table"></i> Summary
@@ -68,7 +68,7 @@
         <span class="text-[10px] font-bold uppercase tracking-wider text-base-content/40 select-none">Sources</span>
         <div class="join">
             <template x-for="m in modes.filter(x => x !== 'summary')" :key="m">
-                <button @click="setMode(m)" :title="'Raw ' + m + ' view'"
+                <button @click="setMode(m)" :data-title-tip="'Raw ' + m + ' view'"
                     class="btn btn-xs join-item font-semibold"
                     :class="view.mode===m ? 'btn-neutral' : 'btn-ghost text-base-content/50'"
                     x-text="m[0].toUpperCase()+m.slice(1)"></button>
@@ -76,7 +76,7 @@
         </div>
     </div>
 
-    <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer pl-3 border-l border-base-300" title="Enable if direct fetches fail due to CORS">
+    <label class="flex items-center gap-1.5 text-xs font-bold cursor-pointer pl-3 border-l border-base-300" data-title-tip="Enable if direct fetches fail due to CORS">
         <input type="checkbox" x-model="view.pasteMode" class="toggle toggle-xs toggle-warning">
         <span class="text-base-content/70">Paste mode</span>
     </label>
@@ -131,7 +131,7 @@
                 </div>
             </template>
             <button @click="copyOut()" class="btn btn-ghost btn-sm gap-1"><i class="ph-bold ph-copy"></i> Copy</button>
-            <button @click="clearData()" class="btn btn-ghost btn-sm gap-1" title="Clear current dataset"><i class="ph-bold ph-trash"></i> Clear</button>
+            <button @click="clearData()" class="btn btn-ghost btn-sm gap-1" data-title-tip="Clear current dataset"><i class="ph-bold ph-trash"></i> Clear</button>
         </div>
     </div>
     <div class="flex-1 flex min-h-0">
@@ -462,7 +462,7 @@ function syncApp() {
                     const nums = value.split(' / ');
                     const links = nums.map((num, i) => {
                         const histCt = (store.history[num] || []).length;
-                        const badge = histCt ? `<span style="position:absolute;top:0;right:0;transform:translate(70%,-55%)" class="text-[10px] leading-none font-mono font-bold text-sky-600" title="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</span>` : '';
+                        const badge = histCt ? `<span style="position:absolute;top:0;right:0;transform:translate(70%,-55%)" class="text-[10px] leading-none font-mono font-bold text-sky-600" data-title-tip="${histCt} recorded history action${histCt === 1 ? '' : 's'} for bill ${num}">${histCt}</span>` : '';
                         const sep = i ? `<span class="opacity-30 mx-1 font-normal">/</span>` : '';
                         return `${sep}<span style="position:relative;display:inline-block">${badge}<a href="https://app.leg.wa.gov/billsummary?BillNumber=${num}&Year=2025" target="_blank" class="link link-primary font-bold">${num}</a></span>`;
                     }).join('');

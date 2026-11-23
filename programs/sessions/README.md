@@ -13,14 +13,23 @@ tab; a program is defined in
 | Reply | what a reply hands over: its closing state, caption and links, stated in [`CONVERSATION.md`](../../docs/CONVERSATION.md) |
 | Showing | the link that makes a thing openable, stated in [`showing.md`](../../docs/showing.md) |
 | Forms | the standard way to show content of a kind: the standing forms in [`docs/forms/`](../../docs/forms/), the envelopes in [`docs/envelopes/`](../../docs/envelopes/README.md), and the Waiting view |
-| Delivery | the skills, agents and conventions the `portable` plugin brings into a session, stated in [`MARKETPLACE.md`](../../docs/MARKETPLACE.md) |
+| Resources | what a session is given to work with: the skills, agents, instructions and settings that reach it, each source listed in [`context-sources.csv`](../../docs/context-sources.csv) |
 | Automation | the hooks and scheduled jobs indexed in [`harness.csv`](../../docs/harness.csv) |
+| Skill Lab | the examples skills are built from, described in home's [`projects/skill-lab/README.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/README.md) and shown on the [Skill Lab page](../../pages/skill-lab.html) |
+
+## Processes
+
+A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+
+| Process | Starts when |
+| --- | --- |
+| Open calls | the owner or a session asks which user calls and stalled handovers are waiting on the owner or hold an unmerged answer |
 
 ## Measures
 
 | Area | Measure | Working means |
 | --- | --- | --- |
-| Reply | web-tools-private `state/closings.json` on the `background` branch: the closing state each turn ends on, by day | the share of Choice needed closings falls, while Direction needed and Ready to assess take the replies whose next step is unclear |
+| Reply | web-tools-private `state/closings.json` on the `background` branch: the closing state each turn ends on, by day | the share of Choice needed closings falls, and a reply whose path is already clear closes on Ready to continue |
 | Showing | web-tools-private `state/render-links.json` on the `background` branch: each day's turns that changed a page, sorted by what a reply after the edit gave | every turn that changed a page hands over a render link to it, or says why none reaches and sends a screenshot |
 | Forms | none yet; a candidate is the share of form pages classified in the UI codebook (`data/ui-units/`) | a form met mid-session is recognizable by its kind |
 

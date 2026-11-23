@@ -1,7 +1,7 @@
-// The Sessions pane's Table lens: the grain control, what each grain counts,
+// The Sessions pane's Table tab: the grain control, what each grain counts,
 // and the columns the reader can reach.
 //
-// The lens exists because the pane had no sort at all: three chip rows over 344
+// The tab exists because the pane had no sort at all: three chip rows over 344
 // session records and 434 branch rows, which is a query problem rather than a
 // scrolling one. What it adds that no chip row can is a GRAIN: sessions,
 // branches, or one row per session-and-branch pair. The pair grain is the
@@ -17,7 +17,7 @@
 // so mountTable is deliberately not exercised.
 //
 // SCOPE IS THE ONLY CHIP THE TABLE OBEYS. Repo and state moved into columns
-// when the lens moved to Tabulator, and their chip rows are hidden under it, so
+// when the tab moved to Tabulator, and their chip rows are hidden under it, so
 // a grain reading them anyway would be a filter with no control on screen.
 
 import test from 'node:test';
@@ -52,11 +52,11 @@ window.__shell = {
   refreshConfigCache() {},
   refreshActivity() {},
   // The address half, as app/index.html implements it: the shell holds the
-  // lens and the grain because the URL is the shell's to own.
-  sessionLens: '',
+  // tab and the grain because the URL is the shell's to own.
+  sessionTab: '',
   sessionGrain: '',
-  goSessionLens(lens, grain){
-    if (lens !== undefined) this.sessionLens = lens || '';
+  goSessionTab(tab, grain){
+    if (tab !== undefined) this.sessionTab = tab || '';
     if (grain !== undefined) this.sessionGrain = grain || '';
   },
 };
@@ -69,7 +69,7 @@ const Alpine = await startAlpine(window, [
   'lib/kits/surface.js',
   // The list pane renders these fixture rows too, and it reaches BranchStatus
   // for each row's lifespan. Without it the mount logs an expression error that
-  // has nothing to do with the lens under test.
+  // has nothing to do with the tab under test.
   'lib/kits/branch-status.js',
   'lib/kits/closing-state.js',
   'lib/alpineComponents/estate.js',
@@ -78,16 +78,16 @@ const Alpine = await startAlpine(window, [
 const data = Alpine.$data(window.document.getElementById('es'));
 
 test('Discussion controls follow record grains without changing the selected mode', () => {
-  data.sessionLens = 'table';
+  data.sessionTab = 'table';
   data.sessionGrain = 'branch';
-  assert.equal(data.sessionDiscussionLens, false);
+  assert.equal(data.sessionDiscussionTab, false);
   assert.equal(data.sessionGrain, 'branch');
   data.sessionGrain = 'edge';
-  assert.equal(data.sessionDiscussionLens, true);
+  assert.equal(data.sessionDiscussionTab, true);
   data.sessionGrain = 'session';
-  assert.equal(data.sessionDiscussionLens, true);
-  data.sessionLens = 'list';
-  assert.equal(data.sessionDiscussionLens, true);
+  assert.equal(data.sessionDiscussionTab, true);
+  data.sessionTab = 'list';
+  assert.equal(data.sessionDiscussionTab, true);
 });
 
 // Two sessions, one of them across two repos, so the pair grain is genuinely
@@ -147,7 +147,7 @@ test('the session grain folds one flat row per record, scope-filtered only', () 
   assert.equal(first.state, 'merged');
   assert.ok(first._row, 'the original rides through for the deck the row opens');
 
-  // The repo chip is hidden under this lens, so setting it must not narrow.
+  // The repo chip is hidden under this tab, so setting it must not narrow.
   data.sessionRepoFilter = 'web-tools';
   assert.equal(data.grainRows.length, 2, 'a hidden chip is not a filter');
   data.sessionRepoFilter = '';
@@ -173,10 +173,23 @@ test('the count names its unit, because a pair count read as a session count is 
   data.sessionGrain = 'branch';
   assert.equal(data.tableCount, '1 branch');
   assert.match(data.GRAINS.map(g => g.units).join(' '), /branches/);
+  // A narrowed table says how many of how many, in the same unit.
+  data.sessionGrain = 'edge';
+  data.tabulator = {};
+  data.tableShown = 1;
+  assert.equal(data.tableCount, '1 of 3 pairs');
+  data.tabulator = null;
+  data.tableShown = 0;
   data.sessionGrain = 'session';
 });
 
-test('every column carries a filter, which is the reason this lens is a library', () => {
+test('reading the column set does not seed the store, because the getter runs during render', () => {
+  data.tableCols_ = null;
+  assert.ok(data.tableCols.length > 0);
+  assert.equal(data.tableCols_, null);
+});
+
+test('every column carries a filter, which is the reason this tab is a library', () => {
   for (const g of ['session', 'branch', 'edge']) {
     data.sessionGrain = g;
     for (const c of data.tableColumns)
@@ -244,33 +257,33 @@ test('a column set survives a trip through another grain', () => {
   assert.ok(data.tableCols.includes('files'), 'remembered per grain, not reseeded');
 });
 
-test('the lens and the grain are addressable, and their defaults stay out of the address', () => {
-  // The render link for this pane opened it on the List lens twice while the
+test('the tab and the grain are addressable, and their defaults stay out of the address', () => {
+  // The render link for this pane opened it on the List tab twice while the
   // table was the thing under review, so the reply had to end "now tap Table".
-  // Setting the lens must move the shell's copy, which is what the URL is
+  // Setting the tab must move the shell's copy, which is what the URL is
   // stamped from; setting only the component's own leaves it unlinkable while
   // looking, from inside the pane, as though it worked.
   const shell = window.__shell;
-  data.setLens('table');
-  assert.equal(data.sessionLens, 'table');
-  assert.equal(shell.sessionLens, 'table');
+  data.setSessionTab('table');
+  assert.equal(data.sessionTab, 'table');
+  assert.equal(shell.sessionTab, 'table');
   data.setGrain('edge');
   assert.equal(data.sessionGrain, 'edge');
   assert.equal(shell.sessionGrain, 'edge');
-  // A grain change must not disturb the lens, and the reverse.
-  assert.equal(shell.sessionLens, 'table');
-  data.setLens('list');
+  // A grain change must not disturb the tab, and the reverse.
+  assert.equal(shell.sessionTab, 'table');
+  data.setSessionTab('list');
   assert.equal(shell.sessionGrain, 'edge');
-  data.setLens('table');
+  data.setSessionTab('table');
   data.setGrain('session');
 });
 
 // ── The two ends of the late-rows fault ─────────────────────────────────────
 // The pane opened reading `0 of 40 sessions` under the empty-state line while
 // the scope chips beside it counted 40, and filled only when the reader
-// switched grain and switched back. The mount effect tracks the lens, the grain
+// switched grain and switched back. The mount effect tracks the tab, the grain
 // and the scope; mountTable runs inside $nextTick, so nothing it reads is a
-// dependency and the rows are not one. In the app the address supplies the lens
+// dependency and the rows are not one. In the app the address supplies the tab
 // at boot and the caches land a fetch later, so the first mount is regularly
 // against an empty list. Two things have to hold, and they fail independently.
 test('rows landing after the mount reach a built table, and not by rebuilding it', () => {
@@ -353,7 +366,7 @@ test('a repo is a glyph it declares, and the tap that names it is not a navigati
 });
 
 test('a repo\'s tone colours its mark, and the table\'s state colour replaces it', async () => {
-  // The Table lens already spends a glyph's colour on what became of the work
+  // The Table tab already spends a glyph's colour on what became of the work
   // (REPO_STATE_CLASS), so there the state wins and the tone does not show;
   // everywhere else the tone is the repo's own. The hub's drawn mark for the
   // repo is asked for first; this hub has none, so the glyph draws once the
@@ -380,7 +393,9 @@ test('past four repos the overflow is counted, not clipped', () => {
   // 60px of every row on 3% of them; clipping silently would make the cell lie
   // about what a session touched.
   const cell = data.repoIconCell('a b c d e f');
-  assert.equal((cell.match(/<i /g) || []).length, 4, 'four glyphs drawn');
+  // These repos declare no mark and have no parent, so each is its first
+  // letter in a dashed ring (repoMarkHtml).
+  assert.equal((cell.match(/border-dashed/g) || []).length, 4, 'four marks drawn');
   assert.match(cell, />\+2</, 'and the rest counted');
   assert.match(cell, /data-title-tip="e, f"/, 'the counter names who it stands for');
   assert.ok(!data.repoIconCell('a b c d').includes('+'), 'exactly four needs no counter');
@@ -544,11 +559,29 @@ test('the last column cannot be turned off', () => {
   assert.equal(data.tableCols.length, 1, 'a table with no columns has no way back');
 });
 
-test('the branch grain answers the scope off the branch\'s own clock, and Failed is not a window it can answer', () => {
+test('the branch grain answers the scope off the branch\'s own clock', () => {
   data.sessionGrain = 'branch';
   data.sessionScope = 'day';
   assert.equal(data.grainRows.length, 1, 'the branch committed yesterday');
-  data.sessionScope = 'failed';
-  assert.equal(data.grainRows.length, 1, 'shown rather than emptied under a scope about sessions');
   data.sessionScope = 'all';
+});
+
+// A session another Claude session launched carries the robot after its name,
+// the mark the List tab gives it, at both grains whose rows are sessions; a
+// session the owner started carries none. Read through the column's own
+// formatter, since Tabulator, which calls it, needs a layout this suite lacks.
+test('the name cell marks a launched session, and only a launched one', () => {
+  const cell = (row, title) => ({ getValue: () => title,
+    getRow: () => ({ getData: () => ({ _row: row, id: row.id }) }) });
+  const name = data.nameColumn().formatter;
+  const launched = { id: 'bot00001', launched: true };
+  const own = { id: 'own00001' };
+  for (const title of ['A named session', '']) {
+    const marked = name(cell(launched, title));
+    assert.match(marked, /data-session-launched-mark/);
+    assert.match(marked, /ph-robot/);
+    assert.match(marked, /data-title-tip="Launched by another Claude session"/);
+    assert.doesNotMatch(name(cell(own, title)), /ph-robot/, 'an owner session is not marked');
+  }
+  assert.ok(name(cell(launched, '')).includes('bot00001'), 'an unnamed row still shows its id');
 });

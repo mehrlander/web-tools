@@ -82,6 +82,11 @@ test('the kits registry matches lib/kits/', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'kits-index --check failed');
 });
 
+test('the components registry matches lib/alpineComponents/', () => {
+  const r = check(['node/build/components-index.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'components-index --check failed');
+});
+
 test('docs/examples/allotment-ledger.xlsx matches its generator', () => {
   // A .xlsx is a ZIP and a diff cannot show what changed inside one, so the
   // check is the only thing standing between the committed sample and a

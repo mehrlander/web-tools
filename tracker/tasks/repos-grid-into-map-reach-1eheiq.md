@@ -52,7 +52,7 @@ What the move involves, measured at `8293c466`:
 - `docs/APP.md`: the header sentence and "Select a repo in Repos"
 - `lib/alpineComponents/estate.js`, `lib/alpineComponents/map.js`: where the grid lives
 - `data/ui-units/`: the Map units' recoding waits on this move, since it changes the same units
-- `tracker/tasks/stranded-titles-panel-or-drop-o6hqom.md`, `tracker/tasks/registry-authored-derived-split-v3qm2x.md`: open tasks that also touch `estate.js`
+- `tracker/tasks/stranded-titles-panel-or-drop-o6hqom.md` (done 2026-11-16), `tracker/tasks/registry-authored-derived-split-v3qm2x.md` (done 2026-10-23): tasks that also touched `estate.js`
 - PR #945: the two-door regroup this completes
 
 ## Done when
@@ -64,3 +64,5 @@ the suite passes, the nav-stop gate included.
 
 ## Progress log
 - 2026-10-19: filed at the owner's direction after a tend pass (2026-10-18) found the half-step fails the nav-stop gate; Repos stays in the header meanwhile. Next: extract the grid from `estate.js` into its own component.
+- 2026-11-16: the owner chose "component first" (session b805c26a): this move waits on estate-js-split-6r3ogm extracting the grid into its own component, and then mounts that component in Map › Reach. The routing plan above is out of date, since #1091 removed ?view=routes; replan the routing when this starts.
+- 2026-11-19: Related no longer calls stranded-titles-panel-or-drop-o6hqom and registry-authored-derived-split-v3qm2x open; both are done. (tend pass, session b2664d00)

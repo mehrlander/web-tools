@@ -10,7 +10,7 @@
 // UNTIL 2026-09-11 NOTHING HELD THEM. Three places said otherwise: both
 // surfacing rows in docs/docs.csv named "vendored copy byte-gated
 // (portable-manifest.test.mjs)", node/README.md's refresh table listed a `cp`
-// leg, and portable-manifest.test.mjs itself carried a comment about the
+// step, and portable-manifest.test.mjs itself carried a comment about the
 // failure mode of an ungated copy directly above a test that checks link
 // targets instead. The copies happened to be identical, which is the only
 // reason the claim was never caught being false. Adding a third traveling doc
@@ -27,7 +27,9 @@ import { repoRoot } from '../repo-root.mjs';
 // Every doc that ships inside the default skill. A doc added here must also be
 // linked as an absolute hub URL unless its target travels too: the
 // SHIPPED_TOGETHER check in portable-manifest.test.mjs holds that separately.
-export const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md'];
+// acronyms.md is not a doc the default skill loads; it rides here because
+// skills/hooks/acronym-hint.py reads it from the plugin.
+export const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md', 'acronyms.md'];
 
 const src = (name) => path.join(repoRoot, 'docs', name);
 const dst = (name) => path.join(repoRoot, 'skills', 'default', name);

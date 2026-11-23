@@ -6,7 +6,7 @@ messages, pull request bodies, tracker tasks, and chat replies alike. Local
 
 ---
 
-Qualified writing is clear and precise. No em dashes: use colons, commas, semicolons, parentheses, or new sentences.
+Qualified writing is clear and precise. No em dashes outside quotations: use colons, commas, semicolons, parentheses, or new sentences.
 
 ## Perspective
 
@@ -26,5 +26,12 @@ Qualified writing is clear and precise. No em dashes: use colons, commas, semico
 ## Accuracy
 
 5. **Scope.** Consider claiming less. Overstatement raises qualms and shifts attention from the argument. A narrower claim often clarifies and solidifies the whole. Use stronger claims when the conclusion rests on prevalence. In every case, stay within the evidence.
-6. **Verdicts.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows.
+6. **Verdicts.** Report what a source says and what was observed, not a verdict on either. Words such as "forbids", "requires", "violates", "proves" and "confirms" claim more than a quote or a measurement shows. When you restate a source, keep its qualifiers, and mark your own inferences and groupings as yours.
    *Not:* The test proves the fix works. *But:* The test passes after the fix.
+   *Not:* The owner decided to drop the tab. *But:* The owner said the tab "might not be needed".
+
+## Instructions
+
+7. **Conditions and actions.** Write a rule as a condition and an action, with the actor as the subject. State the condition by naming the cases that meet it, and use verbs the actor performs.
+   *Not:* A wake that leaves the reader nothing new gets no reply. *But:* Reply to a wake when it brings a merge, a failing check or a review comment.
+   *Not:* A kit that wants Alpine reactivity gets a component wrapper. *But:* When a kit needs Alpine reactivity, wrap it in a component.

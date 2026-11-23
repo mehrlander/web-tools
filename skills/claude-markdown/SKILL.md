@@ -25,6 +25,7 @@ Reference only. Read before writing such a reply.
 - **Lists:** each item carries paragraph margin, and nesting compounds it. Tables and fenced blocks stay tight.
 - **Tables:** a cell trims leading space, nbsp and tab; a code span, U+2800 or a visible glyph holds an indent. `<br>` breaks a line in a cell. A fenced block cannot sit in a cell, and a code span there has no copy button. The header row renders bold and keeps its height when empty.
 - **Fenced blocks:** each has a copy button, copies raw text, and applies no Markdown. The language name after the opening backticks picks the coloring: `diff` colors `+` and `-` lines and leaves the file header and `@@` lines plain; `markdown` colors heading lines (blue on desktop, red on the phone) and colors bracketed text green when `()` follows, inside a heading too; an unknown name gives plain text.
+- **Joins and spacing** ([probe](https://github.com/mehrlander/web-tools/blob/main/research/2026-11-20-caption-marker.md), 2026-11-20, client not recorded): put a space between code spans meant to show as separate pills. Do not rely on a no-break or em space for width in prose, or on a symbol outside common fonts, such as 🗨, to take the link color.
 - **Unicode letters:** bold and italic letters (𝗯𝗼𝗹𝗱, 𝘪𝘵𝘢𝘭𝘪𝘤) render anywhere, blocks included, but search, copy targets and screen readers do not read them as letters. A combining strikethrough lands one character to the right.
 
 ## Extending

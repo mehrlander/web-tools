@@ -63,8 +63,8 @@
                 <span class="text-[10px] opacity-60" x-text="new Date(v.committed_at).toLocaleString()"></span>
               </div>
               <div class="flex gap-2">
-                <input type="radio" name="from" :value="v.version" x-model="diff.from" class="radio radio-xs radio-warning" title="Compare From" @click.stop>
-                <input type="radio" name="to" :value="v.version" x-model="diff.to" class="radio radio-xs radio-error" title="Compare To" @click.stop>
+                <input type="radio" name="from" :value="v.version" x-model="diff.from" class="radio radio-xs radio-warning" data-title-tip="Compare From" @click.stop>
+                <input type="radio" name="to" :value="v.version" x-model="diff.to" class="radio radio-xs radio-error" data-title-tip="Compare To" @click.stop>
               </div>
             </li>
           </template>

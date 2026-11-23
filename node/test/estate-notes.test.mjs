@@ -8,7 +8,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
 
 const REGISTRY = 'me/registry';
 const NOTES = 'notes/notes.jsonl';
@@ -55,6 +55,7 @@ const { window, problems } = makeWindow({
 });
 window.TOKEN = 'tkn';
 window.GH = FakeGH;
+window.scrollTo = () => {}; // jsdom has no scrolling; adopting opens the Repos form above the row.
 window.__shell = {
   REGISTRY_REPO: REGISTRY, DEFAULT_REPO: 'me/tools', quickLinks: [],
   hasToken: () => true, _authState: 'auth', refreshConfigCache() {}, refreshActivity() {},
@@ -62,6 +63,7 @@ window.__shell = {
 };
 
 const Alpine = await startAlpine(window, [
+  'lib/vanilla-bundle.js',
   'lib/alpine-bundle.js',
   'lib/kits/surface.js',
   'lib/kits/repo-address.js',
@@ -92,6 +94,8 @@ test('a reply sits under its note, and the about field filters by prefix', async
   assert.equal(data.noteFor('na')[0].rows.map(n => n.id + n.depth).join(' '), 'na0 nb1', "the reply is in its note's card");
   data.noteAbout = 'o/r';
   assert.equal(data.noteList.map(n => n.id).join(' '), 'na');
+  data.noteAbout = 'repo';
+  assert.equal(data.noteList.length, 0, 'the filter matches a prefix, not a substring');
 });
 
 test('adding a note appends one line signed by the login, addressed by the about field', async () => {
@@ -278,4 +282,22 @@ test('a note just added is the picked note when the chosen chip lets it into the
   await data.addNote();
   assert.equal(data.noteOpen, 'n3');
   data.noteAbout = ''; data.noteKind = '';
+});
+
+test('a Lists note still saves after entering a repository note, adding and adopting', async () => {
+  data.openAdd();
+  data.addName = 'me/new-repo';
+  const input = window.document.querySelector('input[placeholder="note (optional)"]');
+  input.value = 'A repository card note';
+  input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await tick();
+  await data.addRepo();
+  data.adoptUnfiled({ repo: 'me/another-repo' });
+  data.noteAbout = 'me/new-repo';
+  data.noteDraft = 'A separate Lists note';
+  await data.addNote();
+  const last = JSON.parse(FILE.text.trim().split('\n').at(-1));
+  assert.equal(last.about, 'me/new-repo');
+  assert.equal(last.text, 'A separate Lists note');
+  assert.equal(data.noteDraft, '');
 });

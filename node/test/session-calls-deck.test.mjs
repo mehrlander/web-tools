@@ -6,7 +6,8 @@
 // Driven over a fake GH holding one session with five calls: two open
 // documentation calls, one closed, one answered, and an open decision. The
 // address names an open documentation call, as doc-craft's one link does, and
-// the answers arrive after the calls, as they can over the network.
+// the answers arrive after the calls, as they can over the network. Two more
+// addresses name a call that no longer waits, which the deck skips.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -92,4 +93,34 @@ test('a closed call tapped on the Calls tab opens with the open ones of its kind
   data().openCalls(data().calls.findIndex((c) => c.slug === 'done'));
   assert.deepEqual(decks[0].questions, ['readme?', 'claude-md?', 'done?'], 'the Calls tab lists open calls first');
   assert.equal(decks[0].start, 2);
+});
+
+// A further mount in the same window, at another address. The caption's ✍️
+// names the call that waited in the session's own copy of the store, so by
+// the time the owner opens the link the call may already be answered.
+const mountAt = (slug) => {
+  window.location.hash = 'id=c0ffee01&user-call=' + slug;
+  const el = window.document.createElement('div');
+  el.setAttribute('x-data', 'sessionBrief(window.__slide)');
+  window.document.body.append(el);
+  Alpine.initTree(el);
+  return () => Alpine.$data(el);
+};
+
+test('an address naming an answered call opens the deck at the first one still waiting', async () => {
+  decks.length = 0;
+  mountAt('answered');
+  assert.ok(await until(() => decks.length > 0), 'a deck opens');
+  assert.deepEqual(decks, [{ count: 2, start: 0, title: 'Calls', questions: ['readme?', 'claude-md?'] }],
+    'the answered call is left out, as it is from any deck it was not tapped into');
+});
+
+test('with none of its kind waiting, the address lands on the Calls tab and opens no deck', async () => {
+  decks.length = 0;
+  for (const slug of ['readme', 'claude-md']) CALLS['user-calls/c0ffee01-' + slug + '.json'].status = 'closed';
+  const d = mountAt('readme');
+  assert.ok(await until(() => d().asked === 'calls'), 'the Calls tab is asked for');
+  await tick(20);
+  assert.equal(d().pane, 'calls');
+  assert.deepEqual(decks, [], 'the open decision is another kind, so no deck opens for it');
 });

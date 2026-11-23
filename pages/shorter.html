@@ -116,7 +116,7 @@
     </div>
     <button class="badge badge-sm gap-1 shrink-0 mt-1 cursor-default"
             :class="{'badge-ghost':model.status==='idle','badge-warning':model.status==='loading','badge-success':model.status==='ready','badge-error':model.status==='error'}"
-            :title="model.status==='error' ? model.error : 'Local model runs in your browser; it loads only when you use ✨'">
+            :data-title-tip="model.status==='error' ? model.error : 'Local model runs in your browser; it loads only when you use ✨'">
       <i class="ph" :class="{'ph-circle-dashed':model.status==='idle','ph-spinner-gap animate-spin':model.status==='loading','ph-check-circle':model.status==='ready','ph-warning-circle':model.status==='error'}"></i>
       <span x-text="modelLabel()"></span>
     </button>
@@ -201,7 +201,7 @@
            with no incidental whitespace; the only whitespace in the flow is
            the segment text itself. -->
       <article class="review rounded-box border border-base-300 bg-base-100 p-5 sm:p-6"
-        ><template x-for="seg in segments" :key="seg.id"><span class="seg" :class="segClass(seg) + (activeId===seg.id ? ' seg-active' : '')" @click="seg.kind==='edit' && openPop(seg, $event)"><template x-if="!isEmpty(seg)"><span x-text="selectedText(seg)"></span></template><template x-if="isEmpty(seg)"><span class="seg-empty"><i class="ph ph-dots-three-outline"></i></span></template><template x-if="seg.kind==='equal' && seg.text.trim()"><button class="seg-spark" title="Rewrite this sentence with the local model" @click.stop="shorten(seg, $event)"><i class="ph ph-sparkle"></i></button></template><template x-if="seg.busy"><span class="loading loading-dots loading-xs align-middle text-primary"></span></template></span></template></article>
+        ><template x-for="seg in segments" :key="seg.id"><span class="seg" :class="segClass(seg) + (activeId===seg.id ? ' seg-active' : '')" @click="seg.kind==='edit' && openPop(seg, $event)"><template x-if="!isEmpty(seg)"><span x-text="selectedText(seg)"></span></template><template x-if="isEmpty(seg)"><span class="seg-empty"><i class="ph ph-dots-three-outline"></i></span></template><template x-if="seg.kind==='equal' && seg.text.trim()"><button class="seg-spark" data-title-tip="Rewrite this sentence with the local model" @click.stop="shorten(seg, $event)"><i class="ph ph-sparkle"></i></button></template><template x-if="seg.busy"><span class="loading loading-dots loading-xs align-middle text-primary"></span></template></span></template></article>
     </div>
   </template>
 

@@ -1,0 +1,25 @@
+{
+ "schema": "usage/1",
+ "session": "bbbb0002-0000-4000-8000-000000000002",
+ "short": "bbbb0002",
+ "day": "2026-11-02",
+ "agent_session": "https://claude.ai/code/session_fixture_2",
+ "opening_ask": "A made-up session on the dearer model: still warm, compacted twice.",
+ "harness_cost": null,
+ "last_step_at": "2026-11-04T09:45:00.000Z",
+ "context_now": 500000,
+ "last_step_model": "claude-fable-5-2",
+ "prompts": [
+  {"at": "2026-11-02T09:00:00.000Z", "index": 0, "steps": 70, "context": 900000, "reloads": 2, "models": {"claude-fable-5-2": {"output": 100000, "cache_read": 20000000, "cache_write_1h": 1000000, "cache_write_5m": 200000, "reload_written": 600000, "reload_write_1h": 400000, "reload_write_5m": 200000}}},
+  {"at": "2026-11-04T09:40:00.000Z", "index": 1, "steps": 5, "context": 500000, "reloads": 0, "models": {"claude-fable-5-2": {"output": 2000, "cache_read": 1000000}}}
+ ],
+ "unowned": null,
+ "compactions": [
+  {"at": "2026-11-03T15:00:00.000Z", "chars": 30000, "context_before": 900000, "context_after": 150000, "trigger": "auto", "gap_ms": 4000000, "steps_after": 10, "reloads_after": 1, "model": "claude-fable-5-2", "write_1h": 150000, "write_5m": 0},
+  {"at": "2026-11-04T09:44:00.000Z", "chars": 20000, "context_before": 500000, "context_after": null, "trigger": "manual", "gap_ms": 60000, "steps_after": 0, "reloads_after": 0}
+ ],
+ "idle_reloads": [
+  {"at": "2026-11-02T13:00:00.000Z", "gap_ms": 7200000, "ender": "session", "model": "claude-fable-5-2", "write_1h": 400000, "write_5m": 0},
+  {"at": "2026-11-03T16:00:00.000Z", "gap_ms": 18000000, "ender": "pr", "model": "claude-fable-5-2", "write_1h": 0, "write_5m": 200000}
+ ]
+}

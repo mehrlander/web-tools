@@ -1,7 +1,9 @@
 ---
 id: expanding-rows-and-modals-kits-1r7is4
 title: Decide a shared component for expanding rows, and replace the Idea board and ACFR modals
-status: backlog
+status: done
+closed: 2026-11-16
+resolution: superseded
 opened: 2026-10-25
 size: M
 ---
@@ -69,3 +71,4 @@ Either a shared expanding-row component exists and the units that fit it use it,
 - 2026-10-30: owner's direction on the modal half. Idea board's Brief dialog goes, replaced by another form (proposed: a Brief card at the head of the list and strip, mirroring the Selection card at its end). Spend: ACFR's printed page opens in the deck takeover, the standard for documents (proposed: the same section across FY2019 to FY2025, opening at the tapped year, as budget-drs's Benefits view does in `benefits.js:339`). FN Explorer's side drawer does not read as a modal in the shots, so it stays as it is. Dictate's bottom sheets are a special case and stay. sheet-modal's fate is not decided. With these, the modal half is two changes, one in web-tools and one in home, and the done-when line above should be rewritten to name them when the work is claimed.
 - 2026-10-30: modal half delivered for review: mehrlander/web-tools#1164 (Idea board's brief as the first card of the list and strip) and mehrlander/home#899 (ACFR's printed pages as a deck of seven years, docked at lg), both on branch `claude/admiring-lovelace-5e00sf`, each with its UI-units row re-coded. Title, the modal bullet, the work and the done-when reframed to the owner's direction. sheet-modal's fate stays undecided; the expanding-rows half is untouched.
 - 2026-10-30: modal half merged: mehrlander/web-tools#1164 (95938ce9) and mehrlander/home#899 (239e2e21), CI and the laptop's verify-artifacts green. Of the four modal units, Idea board and Spend: ACFR no longer open a dialog; Dictate and FN Explorer stay by the owner's decision. sheet-modal's fate is still undecided. What remains of this task is the expanding-rows half.
+- 2026-11-16: refinement close (session b805c26a, owner's go): the modal half shipped (#1164, home#899), and html-style rule 12 (#1302) now says to avoid modal dialogs and accordions, so a shared expanding-row component is no longer the goal. Converting the 28 rows to rule-12 forms would be a new sweep.

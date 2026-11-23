@@ -82,9 +82,122 @@ test('blocks ignore leading and trailing blank lines', () => {
   assert.deepEqual(mdDiff.blocks(''), []);
 });
 
+// A CSV has no blank line, so without `rows` it is one block and one changed
+// cell is a change to the whole file.
+test('rows makes each line of a CSV a block, and a changed cell one change', () => {
+  const csv = 'path,subject\ndocs/a.md,"the first, quoted"\ndocs/b.md,the second\n';
+  assert.equal(mdDiff.blocks(csv).length, 1, 'by blank lines the file is one block');
+  const rows = mdDiff.blocks(csv, { rows: true });
+  assert.deepEqual(rows.map((b) => b.text), ['path,subject', 'docs/a.md,"the first, quoted"', 'docs/b.md,the second']);
+  for (const b of rows) assert.equal(csv.slice(b.start, b.start + b.text.length), b.text, 'offsets index the file');
+  const next = csv.replace('the second', 'the other');
+  const changed = mdDiff.align(csv, next, { rows: true }).filter((s) => s.kind !== 'same');
+  assert.equal(changed.length, 1);
+  assert.equal(changed[0].old, 'docs/b.md,the second');
+  assert.equal(changed[0].new, 'docs/b.md,the other');
+});
+
+// ── Frontmatter ─────────────────────────────────────────────────────────────
+// Leading frontmatter is a block per property, so a change to one field is a
+// change to that field alone, and the title under the closing fence is a
+// block of its own though no blank line parts them. skills/user-calls/
+// user-call.py splits the same way (node/test/user-call-script.test.mjs
+// holds the two to each other).
+
+const FRONT = '---\ntitle: "The pool"\nstatus: current\nsummary: "Account 447 took in $94.1M, and DRS spent it."\n---\n# The pool\n\nBody text.\n';
+
+test('frontmatter is a block per fence and per property, and the heading under it is its own block', () => {
+  const bs = mdDiff.blocks(FRONT);
+  assert.deepEqual(bs.map((b) => b.text),
+    ['---', 'title: "The pool"', 'status: current', 'summary: "Account 447 took in $94.1M, and DRS spent it."', '---', '# The pool', 'Body text.']);
+  assert.deepEqual(bs.map((b) => !!b.front), [true, true, true, true, true, false, false]);
+  for (const b of bs) assert.equal(FRONT.slice(b.start, b.start + b.text.length), b.text, 'offsets index the file');
+  const nested = mdDiff.blocks('---\ntags:\n  - a\n  - b\nname: x\n---\n\n# H\n').map((b) => b.text);
+  assert.deepEqual(nested, ['---', 'tags:\n  - a\n  - b', 'name: x', '---', '# H'], 'a property keeps its indented lines');
+});
+
+test('a document without frontmatter splits as before', () => {
+  for (const [md, want] of [
+    ['---\n\nA rule opens this one.\n\n---\n# H\n', ['---', 'A rule opens this one.', '---\n# H']],
+    ['---\nNo key here.\n---\n# H\n', ['---\nNo key here.\n---\n# H']],
+    ['---\ntitle: never closed\n# H\n', ['---\ntitle: never closed\n# H']],
+    ['# H\n\ntitle: "T"\n---\n', ['# H', 'title: "T"\n---']],
+  ]) {
+    const bs = mdDiff.blocks(md);
+    assert.deepEqual(bs.map((b) => b.text), want, JSON.stringify(md));
+    assert.ok(bs.every((b) => !('front' in b)), 'no block is frontmatter');
+  }
+});
+
+test('a summary-only change is one change, the summary property alone, both sides frontmatter', () => {
+  const next = FRONT.replace('$94.1M, and DRS spent it.', '$94.1M. DRS spent it all.');
+  const chg = mdDiff.changes(FRONT, next);
+  assert.equal(chg.length, 1);
+  assert.equal(chg[0].old, 'summary: "Account 447 took in $94.1M, and DRS spent it."');
+  assert.equal(chg[0].new, 'summary: "Account 447 took in $94.1M. DRS spent it all."');
+  assert.deepEqual(chg[0].front, { old: true, new: true });
+  assert.equal(mdDiff.revert(FRONT, next, chg[0]), FRONT, 'taking it back restores the file');
+});
+
+test('adding or removing a property reverts exactly, with or without `items`', () => {
+  const added = FRONT.replace('status: current\n', 'status: current\nowner: DRS\n');
+  const removed = FRONT.replace('status: current\n', '');
+  const bare = FRONT.replace(/^---[\s\S]*?\n---\n/, '');
+  for (const opts of [{}, { items: true }]) {
+    for (const next of [added, removed, bare]) {
+      const runs = mdDiff.groups(FRONT, next, opts).filter(Array.isArray);
+      let back = next;
+      for (let i = runs.length - 1; i >= 0; i--) back = mdDiff.revert(FRONT, back, runs[i]);
+      assert.equal(back, FRONT, `${JSON.stringify(opts)} ${JSON.stringify(next.slice(0, 60))}`);
+    }
+  }
+});
+
+test('frontmatter renders as one band of fields, each key beside its value without quotes, and the word diff marks the value', async () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  const next = FRONT.replace('$94.1M, and DRS spent it.', '$94.1M. DRS spent it all.');
+  await mdDiff.render(host, FRONT, next, { group: true });
+  assert.equal(host.querySelector('hr'), null, 'no fence renders as a rule');
+  assert.equal(host.querySelector('h2'), null, 'no field becomes a setext heading');
+  const bands = host.querySelectorAll(':scope > [data-md-front-band]');
+  assert.equal(bands.length, 1, 'the fields, changed or not, share one band');
+  const band = bands[0];
+  assert.ok(band.classList.contains('bg-base-200') && band.classList.contains('rounded-lg'), 'a gray band with rounded ends');
+  assert.equal(host.querySelector(':scope > [data-md-front]'), null, 'no field stands outside it');
+  assert.equal(band.nextElementSibling.querySelector('h1').textContent, 'The pool', 'the title follows the band');
+  const fields = [...band.querySelectorAll(':scope > [data-md-front]:not(.hidden)')];
+  assert.deepEqual(fields.map((f) => f.firstChild.firstChild.textContent), ['title', 'status'], 'the unchanged fields, labelled');
+  assert.equal(fields[0].firstChild.lastChild.textContent, 'The pool', 'the value without its quotes');
+  assert.match(fields[0].firstChild.className, /\bgrid\b.*grid-cols-\[6rem_minmax\(0,1fr\)\]/, 'the key and its value are one row');
+  assert.equal(band.querySelectorAll(':scope > [data-md-front].hidden').length, 2, 'the fences draw nothing');
+  const boxes = host.querySelectorAll('.md-diff-change');
+  assert.equal(boxes.length, 1, 'one container, for the summary');
+  const box = boxes[0];
+  assert.equal(box.parentElement, band, 'the edit sits on the band');
+  const inline = [...box.querySelectorAll('[data-md-front]')].find((f) => f.querySelector('.md-diff-ins'));
+  assert.ok(inline, 'the inline reading is drawn as a field');
+  const [label, value] = inline.firstChild.children;
+  assert.equal(label.textContent, 'summary');
+  assert.equal(label.querySelector('ins, del'), null, 'the key carries no mark');
+  assert.match(value.textContent, /^Account 447 took in \$94\.1M/);
+  assert.ok(!value.textContent.includes('"'), 'no quote is drawn');
+  assert.deepEqual([...value.querySelectorAll('.md-diff-del')].map((d) => d.textContent.trim()), [', and']);
+  assert.ok([...value.querySelectorAll('.md-diff-ins')].some((d) => /all/.test(d.textContent)));
+  host.remove();
+});
+
+test('a document without frontmatter draws no band', async () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  await mdDiff.render(host, '# H\n\ntitle: "T"\n\nBody.\n', '# H\n\ntitle: "U"\n\nBody.\n');
+  assert.equal(host.querySelector('[data-md-front-band], [data-md-front]'), null);
+  host.remove();
+});
+
 // ── Alignment ───────────────────────────────────────────────────────────────
 
-const DOC = ['# Title', '', 'Alpha stands first.', '', 'Beta follows.', '', 'Gamma last.'].join('\n');
+const DOC =['# Title', '', 'Alpha stands first.', '', 'Beta follows.', '', 'Gamma last.'].join('\n');
 
 test('an unchanged document has no changes', () => {
   const seq = mdDiff.align(DOC, DOC);

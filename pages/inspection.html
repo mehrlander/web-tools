@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inspection</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<!--
+  inspection.html: the inspection form (docs/envelopes/inspection.md). The
+  owner sees what an AI process made from its input, output by output, and
+  any note (and verdict, where the payload declares verdicts) is appended
+  beside the payload for the session that asked.
+
+    ?src=owner/repo[@ref]:path   a committed inspection/1 payload, read and saved
+                                 through the viewer's token (also #src=)
+    #gz=<base64url>              a gzipped payload carried in the link
+    (neither)                    the embedded sample
+
+  A list of runs beside, or over, a strip of their cards, a run's outputs its
+  row's tabs and places in its card (html-style rule 11, linked-swiper's
+  sub-items as places), and under both the selected output with its note. The
+  card's door opens the same cards as a deck, each holding its output. A card
+  is the run's input, scrolled to the passage its output rests on; each turn's
+  label is a badge at the start of its words, and runs of quiet turns, which
+  no output rests on, fold into one row as a diff folds unchanged lines. A
+  move to another output of the run stays on the card: the input glides to
+  that output's passage. Every passage carries its output's number, as on the
+  output's tab, in a disc on its top-left corner that takes no room in the
+  line; the card's own are tinted primary, the others quieter, and a tap on
+  one goes to it. A passage and its tab light together (rule 16).
+-->
+<script type="module">
+  const use = new URLSearchParams(location.search).get('use');
+  if (use) {
+    const r = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${use}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`?use=${use}: could not fetch the bundle (HTTP ${r.status})`);
+    const url = URL.createObjectURL(new Blob([await r.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  await gh.load('kits/gz-payload.js');
+  await gh.load('kits/swipe-deck.js');
+  await gh.load('kits/title-tip.js');
+  await gh.load('kits/linked-swiper.js');
+  await gh.load('alpineComponents/user-call-form.js');
+
+  const esc = window.esc;
+  const $ = id => document.getElementById(id);
+
+  // The sample: two of the house style's rules, as a preference flagger
+  // might have read them.
+  const SAMPLE = (() => {
+    const run = (id, title, blocks, flags) => ({
+      id, title, meta: `${blocks.length} rules`,
+      source: { blocks: blocks.map(([bid, label, text]) => ({ id: bid, label, text })) },
+      outputs: flags.map(([oid, bid, quote, tag, text]) => {
+        const t = blocks.find(b => b[0] === bid)[2], s = t.indexOf(quote);
+        return { id: oid, text, tag, anchor: { block: bid, start: s, end: s + quote.length } };
+      }),
+    });
+    return {
+      kind: 'inspection/1', title: 'Sample inspection', question: 'Is the flagged sentence a standing preference, with this stance?',
+      verdicts: [
+        { verdict: 'right', label: 'Right', gloss: 'a standing preference, with the stance the flag gives it', icon: 'ph-check', tone: 'success' },
+        { verdict: 'wrong', label: 'Wrong', gloss: 'not a standing preference', icon: 'ph-x', tone: 'error' },
+        { verdict: 'stance', label: 'Flip', gloss: 'a standing preference, with the opposite stance', icon: 'ph-arrows-left-right', tone: 'warning' },
+      ],
+      tags: [{ tag: 'like', label: 'like', icon: 'ph-thumbs-up' }, { tag: 'dislike', label: 'dislike', icon: 'ph-thumbs-down' }],
+      runs: [
+        run('rules-1-2', 'House style, rules 1 and 2', [
+          ['r1', 'Rule 1', 'No stat cards. A row of tiles, each a label over a big number, spends the page\'s best space on figures with no comparison, baseline, denominator, or movement. Show a count with the content or controls that give it context.'],
+          ['r2', 'Rule 2', 'No explanatory prose. GitHub doesn\'t explain and neither should we. Use structure, labels, and controls to show relationships.'],
+        ], [
+          ['r1.1', 'r1', 'No stat cards.', 'dislike', 'stat cards'],
+          ['r1.2', 'r1', 'Show a count with the content or controls that give it context.', 'like', 'counts shown with their context'],
+          ['r2.1', 'r2', 'GitHub doesn\'t explain and neither should we.', 'like', 'GitHub\'s way of explaining'],
+        ]),
+        run('rules-9-15', 'House style, rules 9 and 15', [
+          ['r9', 'Rule 9', 'Use color to communicate. Color carries information, not decoration. Where most items are ordinary, leave them neutral and color the ones that differ.'],
+          ['r15', 'Rule 15', 'Keep the layout stable. Reserve space for scrollbars and content of varying lengths.'],
+        ], [
+          ['r9.1', 'r9', 'Color carries information, not decoration.', 'like', 'color that carries information'],
+          ['r15.1', 'r15', 'Keep the layout stable.', 'like', 'a layout that holds still'],
+        ]),
+      ],
+    };
+  })();
+
+  const TONE = {
+    success: { btn: 'btn-success', mark: 'bg-success/30', bar: 'bg-success', tag: 'border-success/60 bg-success/35', text: 'text-success' },
+    error: { btn: 'btn-error', mark: 'bg-error/25', bar: 'bg-error', tag: 'border-error/60 bg-error/30', text: 'text-error' },
+    warning: { btn: 'btn-warning', mark: 'bg-warning/40', bar: 'bg-warning', tag: 'border-warning/70 bg-warning/45', text: 'text-warning' },
+    info: { btn: 'btn-info', mark: 'bg-info/25', bar: 'bg-info', tag: 'border-info/60 bg-info/30', text: 'text-info' },
+    neutral: { btn: 'btn-neutral', mark: 'bg-base-content/20', bar: 'bg-base-content/50', tag: 'border-base-300 bg-base-100', text: 'text-base-content/60' },
+  };
+  // A tag's colour: its own tone, else its stance's; any other tag is neutral.
+  const STANCE = { like: 'success', dislike: 'error' };
+  const toneOf = o => P.tagOf[o.tag]?.tone || STANCE[o.tag];
+  const hueOf = o => TONE[toneOf(o)] && toneOf(o) !== 'neutral' ? toneOf(o) : 'base-content';
+  // A passage's fill, in its output's tag's tone (hueOf), by its place in its
+  // output (adopt) and whose it is: the card's own output's deeper, another's
+  // lighter; the own output's number disc is primary (badgeTone). An output's
+  // only passage and the first of several are filled; the first of several and
+  // each later one carry a line at the foot, so a later one is the line alone.
+  // A passage under the pointer, and its counterparts, deepen (data-hot).
+  const fillOf = (mine, role, c) => {
+    const [f, h, g, l] = mine ? [40, 55, 20, 100] : [25, 38, 15, 70];
+    const line = `shadow-[inset_0_-1.5px_0_color-mix(in_oklab,var(--color-${c})_${l}%,transparent)]`;
+    return role === 'again' ? `bg-transparent data-hot:bg-${c}/${g} ${line}` : `bg-${c}/${f} data-hot:bg-${c}/${h}${role === 'first' ? ' ' + line : ''}`;
+  };
+  // A passage's number: a 14px disc on its top-left corner, out of the line,
+  // between the caps under it and the line over it. The input pane's leading
+  // (INPUT) and the gap between turns (TURN.gap) leave it that room, in the
+  // strip and in the deck.
+  const BADGE = 'grid h-3.5 min-w-3.5 cursor-pointer place-items-center rounded-full border px-[2px] font-mono text-[11px] leading-none font-semibold tabular-nums';
+  const DISCS = 'absolute -top-[9px] -left-[9px] flex gap-px select-none';
+  const INPUT = { strip: 'leading-7.5', deck: 'leading-8.5' };
+  // A turn: its label's number, bold in the folds' grey at three quarters of
+  // the words' size, raised to sit centred on their capitals, 6px before
+  // them, the whole label in its tip; a disc of a passage that starts the
+  // words sits close over the number's corner. Turns are parted by a gap; a
+  // run of quiet ones is a fold, an outlined tag and a dashed rule, that opens
+  // in place.
+  // A turn's tag: the number its label ends with, else the whole label.
+  const turnNo = b => (b.label || b.id).match(/(\d+)$/)?.[1] ?? (b.label || b.id);
+  const TURN = {
+    gap: 'space-y-2',
+    badge: 'inline-block relative -top-[0.18em] mr-1.5 text-[0.75em] font-bold tabular-nums text-base-content/80',
+    fold: 'group flex w-full cursor-pointer items-center gap-1.5',
+    chip: 'inline-flex shrink-0 items-center gap-1 rounded-sm border border-base-content/30 h-[18px] px-1.5 text-xs leading-none font-medium tabular-nums text-base-content/80 group-hover:border-base-content/60 group-hover:text-base-content',
+    rule: 'flex-1 border-t border-dashed border-base-content/25 group-hover:border-base-content/50',
+  };
+  // A dot under a tab's number marks an output that carries a note, leaving
+  // the tab's fill to its stance or verdict.
+  const NOTED = 'after:absolute after:bottom-0.5 after:left-1/2 after:size-1 after:-translate-x-1/2 after:rounded-full after:bg-current';
+  // The page's corner button sits over the foot of the output's panel.
+  const FAB_ROOM = 'mr-16';
+  // A tab under the pointer, or whose passage is.
+  const HOT = ['ring-1', 'ring-primary'];
+
+  // ── the payload ─────────────────────────────────────────────────────────
+  const srcSpec = window.UrlParams.get('src') || '';
+  const gz = window.UrlParams.get('gz') || '';
+  const src = srcSpec ? window.RepoAddress.parse(srcSpec) : null;
+  const S = { p: null, err: '', saving: false, saveErr: '', savedAt: 0, savedN: 0, target: null };
+  const cur = new Map(), saved = new Map();
+  const keyOf = (run, out) => run + '|' + out;
+
+  // Offsets arrive in code points; a JS string counts UTF-16 units.
+  const u16 = (t, cp) => { let i = 0; for (let n = 0; n < cp && i < t.length; n++) i += t.codePointAt(i) > 0xffff ? 2 : 1; return i; };
+  function adopt(p) {
+    for (const r of p.runs) {
+      r.blockOf = Object.fromEntries(r.source.blocks.map(b => [b.id, b]));
+      const order = Object.fromEntries(r.source.blocks.map((b, i) => [b.id, i]));
+      for (const o of r.outputs) {
+        // An output's anchors in document order; two in one block that only
+        // white space parts read as one passage, with one number.
+        o.spans = (o.anchors || (o.anchor ? [o.anchor] : [])).flatMap(a => {
+          const b = r.blockOf[a.block];
+          return b && Number.isInteger(a.start) && Number.isInteger(a.end) ? [{ block: a.block, at: [u16(b.text, a.start), u16(b.text, a.end)] }] : [];
+        }).sort((x, y) => order[x.block] - order[y.block] || x.at[0] - y.at[0]).reduce((acc, s) => {
+          const q = acc[acc.length - 1];
+          if (q?.block === s.block && s.at[0] >= q.at[0] && !/\S/.test(r.blockOf[s.block].text.slice(q.at[1], s.at[0]))) q.at[1] = Math.max(q.at[1], s.at[1]);
+          else acc.push(s);
+          return acc;
+        }, []);
+        // A passage's place in its output: alone, first of several, or later.
+        o.spans.forEach((s, i) => { s.role = o.spans.length === 1 ? 'single' : i ? 'again' : 'first'; });
+      }
+      // The blocks some output rests on, with a span or as a whole; the
+      // rest are quiet.
+      r.loud = new Set(r.outputs.flatMap(o => (o.anchors || (o.anchor ? [o.anchor] : [])).map(a => a.block)));
+    }
+    p.verdictOf = Object.fromEntries((p.verdicts || []).map(v => [v.verdict, v]));
+    p.tagOf = Object.fromEntries((p.tags || []).map(t => [t.tag, t]));
+    // The tags' one width, so every output's text starts at one edge (rule 15).
+    p.tagCh = Math.max(0, ...p.runs.flatMap(r => r.outputs.map(o => (p.tagOf[o.tag]?.label || o.tag || '').length)));
+    // Whether any output has flair, which then shares the note's row.
+    p.flairy = p.runs.some(r => r.outputs.some(o => o.flair?.length));
+    return p;
+  }
+
+  function targetOf(p) {
+    const a = p.answers && window.RepoAddress.parse(p.answers);
+    if (a) return a;
+    if (!src) return null;
+    return { repo: src.repo, ref: src.ref, path: p.answers || src.path.replace(/\.json$/, '') + '.answers.jsonl' };
+  }
+  const client = t => new window.GH({ token: window.TOKEN, repo: t.repo, ...(t.ref ? { ref: t.ref } : {}) });
+
+  async function readAnswers() {
+    if (!S.target) return;
+    try {
+      const text = (await client(S.target).get(S.target.path, window.GH.FRESH)).text;
+      for (const l of text.split('\n')) {
+        if (!l.trim()) continue;
+        const e = JSON.parse(l);
+        if (e.run != null && e.output != null) saved.set(keyOf(e.run, e.output), { verdict: e.verdict || '', note: e.note || '' });
+      }
+    } catch (e) { if (e?.status !== 404) S.saveErr = 'Could not read the answers: ' + (e?.message || e); }
+  }
+
+  // Unsaved verdicts are kept in this browser until they are saved.
+  const DRAFT = 'inspection:draft:' + (srcSpec || (gz ? 'gz:' + gz.slice(0, 40) : 'sample'));
+  const draft = () => { try { return JSON.parse(localStorage.getItem(DRAFT) || '{}'); } catch { return {}; } };
+  const keepDraft = () => {
+    const d = {};
+    for (const k of dirtyKeys()) d[k] = cur.get(k);
+    try { Object.keys(d).length ? localStorage.setItem(DRAFT, JSON.stringify(d)) : localStorage.removeItem(DRAFT); } catch {}
+  };
+
+  const stateOf = k => cur.get(k) || saved.get(k) || { verdict: '', note: '' };
+  const same = (a, b) => (a?.verdict || '') === (b?.verdict || '') && (a?.note || '').trim() === (b?.note || '').trim();
+  const dirtyKeys = () => [...cur.keys()].filter(k => !same(cur.get(k), saved.get(k)));
+
+  try {
+    if (gz) S.p = JSON.parse(await window.GzPayload.decode(gz));
+    else if (src) S.p = JSON.parse((await client(src).get(src.path)).text);
+    else S.p = SAMPLE;
+    if (S.p?.kind !== 'inspection/1') throw new Error('not an inspection/1 payload');
+    adopt(S.p);
+    S.target = targetOf(S.p);
+    await readAnswers();
+    for (const [k, v] of Object.entries(draft())) cur.set(k, v);
+  } catch (e) {
+    S.err = (src ? 'Could not read ' + srcSpec : 'Could not read the payload') + ': ' + (e?.message || e)
+      + (src && !window.TOKEN ? '. It needs your GitHub token.' : '');
+  }
+
+  // ── drawing ─────────────────────────────────────────────────────────────
+  const P = S.p;
+  const runs = () => P.runs;
+  const runOf = id => P.runs.find(r => r.id === id);
+  const outOf = (run, out) => runOf(run)?.outputs.find(o => o.id === out) || null;
+  const tone = v => TONE[P.verdictOf[v]?.tone] || TONE.neutral;
+  // A badge's colours: primary on the card's own output, as its tab and the
+  // head's pill are, else its verdict's, as the stance tag takes its stance's.
+  // A later passage's badge is the same colour in outline.
+  const badgeTone = (run, out, own, role) => {
+    const v = !own && stateOf(keyOf(run, out)).verdict;
+    if (role === 'again') return own ? 'border-primary bg-base-100 text-primary'
+      : v ? tone(v).tag.split(' ')[0] + ' bg-base-100 text-base-content' : 'border-base-content/50 bg-base-100 text-base-content/75';
+    if (own) return 'border-primary bg-primary text-primary-content';
+    return v ? tone(v).tag + ' text-base-content' : 'border-transparent bg-base-content/55 text-base-100';
+  };
+  // Verdicts are optional: without them an output takes a note alone, and
+  // nothing counts what is judged.
+  const judged = !!P?.verdicts?.length;
+  const doneOf = r => r.outputs.filter(o => stateOf(keyOf(r.id, o.id)).verdict).length;
+  const countOf = r => doneOf(r) + '/' + r.outputs.length;
+  const noted = (run, out) => !!stateOf(keyOf(run, out)).note?.trim();
+  let swiper = null;
+
+  // An output's flair: a quiet badge each, leading the note's row, its tip
+  // saying what the label marks.
+  const flairHTML = o => (o.flair || []).map(f => `<span class="badge badge-sm badge-ghost shrink-0 cursor-pointer gap-1 font-normal text-base-content/75" data-title-tip="${esc(f.tip || f.label)}">`
+    + `${f.icon ? `<i class="ph ${esc(f.icon)}"></i>` : ''}${esc(f.label)}</span>`).join('');
+
+  // A row: the run's title over its meta, its outputs' tabs (the kit draws
+  // them in data-ls-tabs) and, with verdicts, how many have one.
+  function rowHTML(r) {
+    return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
+      class="flex cursor-pointer flex-col border-b border-base-200 px-2.5 py-1 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+      <span class="truncate font-medium" data-title-tip="${esc(r.title)}">${esc(r.title)}</span>
+      <div class="flex min-h-7 items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-ls-tabs></span>
+        ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div></div>`;
+  }
+
+  // The tag starts the statement's first line, so a narrow panel's wrapped
+  // lines return to its left edge; a wide one hangs the statement beside it.
+  function tagHTML(o, big) {
+    if (!o.tag) return '';
+    const t = P.tagOf[o.tag] || { label: o.tag }, tn = TONE[toneOf(o)] || TONE.neutral;
+    // A tag with an icon is the icon alone, filled in its tone; its tip names it.
+    if (t.icon) return `<span class="mr-1.5 inline-flex shrink-0 cursor-pointer align-[-0.15em] @lg:mr-0 @lg:h-[1lh] @lg:items-center" data-title-tip="${esc(t.label || o.tag)}">`
+      + `<i class="ph-fill ${esc(t.icon)} ${tn.text} text-[1.15em]"></i></span>`;
+    return `<span class="badge badge-sm ${tn.tag} mr-2 @lg:mr-0 ${big ? '@lg:mt-1.5' : '@lg:mt-1'} shrink-0 justify-start gap-1 font-normal" style="min-width:calc(${P.tagCh}ch + 1.75rem)">${esc(t.label || o.tag)}</span>`;
+  }
+
+  // A passage's tip: its outputs' numbers, stances and first words.
+  const opening = s => s.length > 72 ? s.slice(0, 72).replace(/\s+\S*$/, '') + '…' : s;
+  function tipOf(r, on) {
+    const name = o => [r.outputs.indexOf(o) + 1, o.tag && (P.tagOf[o.tag]?.label || o.tag)].filter(Boolean).join(' · ');
+    if (on.length === 1) return ` data-title-tip-lead="Output ${esc(name(on[0]))}" data-title-tip="${esc(opening(on[0].text))}"`;
+    return ` data-title-tip="${esc(on.map(o => `${name(o)}: ${opening(o.text)}`).join('\n'))}"`;
+  }
+
+  // The output's flair, the verdict buttons where the payload has verdicts,
+  // and the note, on one row; the note drops to its own line when the row
+  // leaves it too little. Under both panes the row stands beside the words
+  // once there is room, as wide for every output (rule 15).
+  function controls(r, o, under) {
+    const s = stateOf(keyOf(r.id, o.id)), flair = flairHTML(o);
+    const beside = !under ? '' : (judged ? P.flairy ? '@3xl:w-[34rem]' : '@3xl:w-[28rem]' : P.flairy ? '@3xl:w-96' : '@3xl:w-80') + ' @3xl:flex-none';
+    return `<div class="flex flex-wrap items-center gap-2 ${under ? FAB_ROOM + ' ' + beside : ''}">
+      ${flair ? `<span class="flex shrink-0 gap-1">${flair}</span>` : ''}
+      ${judged ? `<div class="join shrink-0" role="radiogroup" aria-label="Verdict">${P.verdicts.map(v => {
+        const on = s.verdict === v.verdict;
+        return `<button type="button" role="radio" aria-checked="${on}" data-verdict="${esc(v.verdict)}" data-title-tip="${esc(v.gloss || v.label)}"
+          class="btn btn-sm join-item gap-1 px-2.5 ${on ? tone(v.verdict).btn : 'border-base-300 bg-base-100 font-normal'}">${v.icon ? `<i class="ph ${esc(v.icon)}"></i>` : ''}${esc(v.label || v.verdict)}</button>`;
+      }).join('')}</div>` : ''}
+      <input data-note value="${esc(s.note)}" placeholder="Note" aria-label="Note" class="input input-sm min-w-0 flex-1 basis-40 max-sm:text-base">
+    </div>`;
+  }
+
+  // A block's text with each anchored span marked; overlapping spans split
+  // into runs that carry every output resting on them. A passage's opening
+  // run carries its output's number. A run the card's own output rests on
+  // takes the deeper fill and that output's place and tone; any other run
+  // takes the most prominent place among the outputs on it, and the tone of
+  // the output that holds it. The own output's first
+  // passage's opening run is data-first, where place() scrolls.
+  function marked(r, b, own) {
+    const spans = r.outputs.flatMap(o => o.spans.filter(s => s.block === b.id).map(s => ({ o, at: s.at, role: s.role })));
+    const first = own?.spans[0];
+    const cuts = [...new Set([0, b.text.length, ...spans.flatMap(s => s.at)])].sort((x, y) => x - y);
+    let h = '';
+    for (let i = 0; i + 1 < cuts.length; i++) {
+      const [a, z] = [cuts[i], cuts[i + 1]], over = spans.filter(s => s.at[0] <= a && s.at[1] >= z), on = [...new Set(over.map(s => s.o))];
+      const t = esc(b.text.slice(a, z));
+      if (!on.length) { h += t; continue; }
+      const mine = !!own && on.includes(own);
+      const pick = mine ? over.filter(s => s.o === own) : over;
+      const role = ['first', 'single', 'again'].find(x => pick.some(s => s.role === x));
+      const hue = hueOf(pick.find(s => s.role === role).o);
+      const top = mine && first.block === b.id && first.at[0] === a;
+      const nums = spans.filter(s => s.at[0] === a).map(({ o, role }) =>
+        `<span data-badge="${esc(o.id)}" data-role="${role}" class="${BADGE} ${badgeTone(r.id, o.id, o === own, role)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
+      h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} tabindex="-1"`
+        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
+    }
+    return h;
+  }
+
+  // An output: its number, as on its passages and its tab, its tag, its
+  // words, the producer's note from an icon after the words, and its flair
+  // with the owner's controls. The words fit, up to a few lines that then scroll,
+  // so the input gives up no more room than an output needs. Under the panes
+  // (under) the controls stand beside the words when there is room.
+  function outHTML(r, o, big, under) {
+    const num = `<span class="mr-1.5 inline-flex shrink-0 align-[0.1em] @lg:mr-0 @lg:h-[1lh] @lg:items-center">`
+      + `<span class="badge badge-primary badge-sm px-1.5 font-mono font-medium tabular-nums">${r.outputs.indexOf(o) + 1}</span></span>`;
+    return `<div data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}" class="flex flex-col gap-2 ${under ? '@3xl:flex-row @3xl:items-start @3xl:gap-4' : ''}">
+        <div data-words class="max-h-[4lh] min-w-0 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] data-more:mask-b-from-75% ${under ? '@3xl:flex-1' : 'max-sm:max-h-[6lh]'}">
+          <p class="font-semibold @lg:flex @lg:items-start @lg:gap-2">${num}${tagHTML(o, big)}<span class="@lg:min-w-0">${esc(o.text)}${o.note
+            ? ` <i class="ph ph-info cursor-pointer align-[-0.125em] font-normal text-base-content/50" data-title-tip-lead="Producer's note" data-title-tip="${esc(o.note)}"></i>` : ''}</span></p>
+        </div>
+        ${controls(r, o, under)}
+      </div>`;
+  }
+
+  // A run of quiet turns as one row: its first and last labels, as "Turns
+  // 8–12" where they share a word.
+  const rangeOf = bs => {
+    const [a, z] = [bs[0], bs[bs.length - 1]].map(b => b.label || b.id), re = /^(\p{L}+) (\d+)$/u;
+    const [m, n] = [re.exec(a), re.exec(z)];
+    return m && n && m[1] === n[1] ? `${m[1]}s ${m[2]}–${n[2]}` : `${a} – ${z}`;
+  };
+  // The open folds, by run and first block, kept through redraws.
+  const opened = new Set();
+  const turnHTML = (r, b, own, pad) => `
+      <section data-block="${esc(b.id)}" class="${pad}">
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]"><span class="${TURN.badge}" data-title-tip="${esc(b.label || b.id)}">${esc(turnNo(b))}</span>${marked(r, b, own)}</p>
+      </section>`;
+  // A run's turns, each run of two or more quiet ones folded unless opened.
+  function turnsHTML(r, own, pad) {
+    let h = '', quiet = [];
+    const flush = () => {
+      if (quiet.length > 1 && !opened.has(r.id + '|' + quiet[0].id))
+        h += `<div class="${pad}"><button type="button" data-fold="${esc(quiet[0].id)}" class="${TURN.fold}"><span class="${TURN.chip}"><i class="ph ph-arrows-out-line-vertical"></i>${esc(rangeOf(quiet))}</span><span class="${TURN.rule}"></span></button></div>`;
+      else h += quiet.map(b => turnHTML(r, b, own, pad)).join('');
+      quiet = [];
+    };
+    for (const b of r.source.blocks) {
+      if (!r.loud.has(b.id)) { quiet.push(b); continue; }
+      flush();
+      h += turnHTML(r, b, own, pad);
+    }
+    flush();
+    return h;
+  }
+
+  // A card: the run's input, and in the deck the output under it on a panel
+  // of its own; in the strip the output stands under both panes (paintOut).
+  // place() scrolls the input to the output's passage.
+  function cardHTML(r, o, big) {
+    const pad = big ? 'px-4' : 'px-3.5';
+    // The seam is the card head's (linked-swiper), on the panel's top edge.
+    const panel = `flex-none border-t border-base-200 ${pad} py-2`;
+    const out = !big ? '' : !o ? `<p class="${panel} text-base-content/60">No outputs.</p>`
+      : `<div class="${panel} @container">${outHTML(r, o, big, false)}</div>`;
+    // A tap in the input moves to an output, whose words the panel then
+    // shows, so it opens no tip there; a hover does.
+    return `<div data-scope="${esc(r.id)}" data-flag="${esc(o?.id || '')}" data-pad="${pad}" class="flex h-full min-h-0 flex-col ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
+      <div data-pane="in" data-title-tip-tap="none" class="min-h-0 flex-1 overflow-y-auto overscroll-contain ${big ? INPUT.deck : INPUT.strip} ${TURN.gap} py-1.5 [scrollbar-gutter:stable]">${turnsHTML(r, o, pad)}</div>${out}</div>`;
+  }
+
+  // The selected output, under the list and the card.
+  function paintOut(run, out) {
+    const el = $('out'), r = runOf(run), o = outOf(run, out) || r?.outputs[0];
+    if (!el || !r) return;
+    el.innerHTML = o ? outHTML(r, o, false, true) : `<p class="text-base-content/60">No outputs.</p>`;
+    const words = el.querySelector('[data-words]');
+    if (words) sized.observe(words);
+  }
+
+  // The output's passage a third of the way down the input, once the card
+  // has a height.
+  function place(el, smooth, tries = 8) {
+    requestAnimationFrame(() => {
+      const pane = el.querySelector('[data-pane="in"]'), at = pane?.querySelector('mark[data-first]') || pane?.querySelector('mark[data-cur]');
+      if (!at) return;
+      if (!pane.clientHeight) { if (tries) place(el, smooth, tries - 1); return; }
+      const top = at.getBoundingClientRect().top - pane.getBoundingClientRect().top + pane.scrollTop;
+      pane.scrollTo({ top: Math.max(0, top - pane.clientHeight / 3), behavior: smooth ? 'smooth' : 'instant' });
+    });
+  }
+
+  // A card already showing the run keeps its input where it was and glides.
+  function fill(el, r, o, big) {
+    const was = el.querySelector(':scope > [data-scope]');
+    const y = was?.dataset.scope === r.id ? was.querySelector('[data-pane="in"]').scrollTop : null;
+    el.innerHTML = cardHTML(r, o, big);
+    if (y != null) el.querySelector('[data-pane="in"]').scrollTop = y;
+    place(el, y != null);
+    const words = el.querySelector('[data-words]');
+    if (words) sized.observe(words);
+  }
+
+  // An output's words fade at their foot while more of them lies below.
+  const more = w => w.toggleAttribute('data-more', w.scrollTop + w.clientHeight < w.scrollHeight - 1);
+  const sized = new ResizeObserver(es => { for (const e of es) e.target.isConnected ? more(e.target) : sized.unobserve(e.target); });
+  document.addEventListener('scroll', e => { if (e.target.matches?.('[data-words]')) more(e.target); }, true);
+
+  // ── lighting counterparts (rule 16) ─────────────────────────────────────
+  // A passage, its output's other passages and its tab in the list light
+  // together: a passage's fill deepens, a tab is ringed.
+  let hot = [], hotKey = '';
+  const light = (el, on) => { if (el.matches('mark')) el.toggleAttribute('data-hot', on); else for (const c of HOT) el.classList.toggle(c, on); };
+  document.addEventListener('pointerover', e => {
+    if (!P) return;
+    const t = e.target instanceof Element ? e.target : null;
+    const m = t?.closest('mark[data-outs]'), tab = !m && t?.closest('#list [data-ls-sub]');
+    const run = m ? m.dataset.run : tab ? tab.closest('[data-run]')?.dataset.run : '';
+    const outs = run ? (m ? m.dataset.outs.split(' ') : [tab.dataset.lsSub]) : [];
+    const k = run ? run + '|' + outs.join(' ') : '';
+    // A card drawn again under a still pointer holds new passages to light.
+    if (k === hotKey && hot.every(el => el.isConnected)) return;
+    for (const el of hot) light(el, false);
+    hotKey = k; hot = [];
+    if (!run) return;
+    const R = CSS.escape(run);
+    for (const x of document.querySelectorAll(`mark[data-run="${R}"]`))
+      if (x.dataset.outs.split(' ').some(o => outs.includes(o))) hot.push(x);
+    for (const o of outs) hot.push(...$('list').querySelectorAll(`[data-run="${R}"] [data-ls-sub="${CSS.escape(o)}"]`));
+    for (const el of hot) light(el, true);
+  });
+
+  // Where a tap on a passage goes: its first output, or on the card's own
+  // passage the next output that shares it.
+  const nextOut = m => {
+    const outs = m.dataset.outs.split(' '), i = outs.indexOf(m.closest('[data-flag]')?.dataset.flag);
+    return i < 0 ? outs[0] : outs.length > 1 ? outs[(i + 1) % outs.length] : null;
+  };
+
+  // ── verdicts and notes ──────────────────────────────────────────────────
+  function paintItem(run, out) {
+    const k = keyOf(run, out), s = stateOf(k);
+    for (const it of document.querySelectorAll(`[data-item="${CSS.escape(k)}"]`)) {
+      for (const b of it.querySelectorAll('[data-verdict]')) {
+        const on = s.verdict === b.dataset.verdict;
+        b.setAttribute('aria-checked', String(on));
+        Object.values(TONE).forEach(t => b.classList.remove(t.btn));
+        ['border-base-300', 'bg-base-100', 'font-normal'].forEach(c => b.classList.toggle(c, !on));
+        if (on) b.classList.add(tone(b.dataset.verdict).btn);
+      }
+    }
+    for (const b of document.querySelectorAll(`mark[data-run="${CSS.escape(run)}"] [data-badge="${CSS.escape(out)}"]`))
+      b.className = BADGE + ' ' + badgeTone(run, out, b.closest('[data-flag]')?.dataset.flag === out, b.dataset.role);
+    const count = $('list')?.querySelector(`[data-run="${CSS.escape(run)}"] [data-count]`);
+    if (count) count.textContent = countOf(runOf(run));
+    swiper?.tabs(run);
+  }
+
+  // A fold opens in place, in every card of its run that shows it.
+  function openFold(f) {
+    const card = f.closest('[data-scope]'), r = runOf(card.dataset.scope), id = f.dataset.fold;
+    opened.add(r.id + '|' + id);
+    for (const g of document.querySelectorAll(`[data-scope="${CSS.escape(r.id)}"] [data-fold="${CSS.escape(id)}"]`)) {
+      const pad = g.closest('[data-scope]').dataset.pad, at = r.source.blocks.findIndex(b => b.id === id);
+      const bs = [];
+      for (let i = at; i < r.source.blocks.length && !r.loud.has(r.source.blocks[i].id); i++) bs.push(r.source.blocks[i]);
+      g.parentElement.outerHTML = bs.map(b => turnHTML(r, b, null, pad)).join('');
+    }
+  }
+
+  function setState(run, out, patch) {
+    const k = keyOf(run, out);
+    cur.set(k, { ...stateOf(k), ...patch });
+    keepDraft();
+    paintHead();
+  }
+
+  async function save() {
+    const keys = dirtyKeys();
+    if (!keys.length || !S.target || S.saving) return;
+    S.saving = true; S.saveErr = ''; paintHead();
+    try {
+      const at = new Date().toISOString();
+      const entries = keys.map(k => {
+        const [run, output] = k.split('|'), s = cur.get(k);
+        return { at: s.at || at, run, output, verdict: s.verdict || null, note: (s.note || '').trim() };
+      });
+      await window.UserCallForm.postAnswer({ repo: S.target.repo, ref: S.target.ref || 'main', path: S.target.path, entries });
+      for (const k of keys) saved.set(k, { verdict: cur.get(k).verdict || '', note: (cur.get(k).note || '').trim() });
+      S.savedAt = Date.now(); S.savedN = keys.length;
+      keepDraft();
+    } catch (e) {
+      S.saveErr = 'Not saved: ' + (e?.message || e) + (window.TOKEN ? '' : '. It needs your GitHub token.');
+    }
+    S.saving = false; paintHead();
+  }
+
+  const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + 'm ago' : Math.round(m / 60) + 'h ago'; };
+  function paintHead() {
+    const head = $('head');
+    if (!P) { head.innerHTML = `<h1 class="text-lg font-semibold">Inspection</h1>`; return; }
+    const total = P.runs.reduce((a, r) => a + r.outputs.length, 0);
+    const done = P.runs.reduce((a, r) => a + doneOf(r), 0);
+    const n = dirtyKeys().length;
+    const status = S.saveErr ? `<span class="min-w-0 truncate text-sm text-error" data-title-tip="${esc(S.saveErr)}">${esc(S.saveErr)}</span>`
+      : !S.target ? `<span class="text-sm text-base-content/60">Kept in this browser</span>`
+      : S.savedAt && !n ? `<span class="text-sm text-base-content/60">Saved ${S.savedN} · ${ago(S.savedAt)}</span>` : '';
+    head.innerHTML = `
+      <div class="flex min-w-0 flex-1 items-center gap-2">
+        <i class="ph ph-list-checks shrink-0 text-xl text-primary"></i>
+        <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Inspection')}">${esc(P.title || 'Inspection')}</h1>
+        ${judged ? `<span class="min-w-[7ch] shrink-0 font-mono text-xs tabular-nums text-base-content/60">${done}/${total}</span>` : ''}
+      </div>
+      <div class="flex min-w-0 items-center gap-2">${status}
+        ${S.target ? `<button type="button" id="save" class="btn btn-sm btn-primary min-w-[6.5rem] shrink-0 gap-1" ${n && !S.saving ? '' : 'disabled'}>
+          <i class="ph ph-floppy-disk"></i><span>${S.saving ? 'Saving' : n ? 'Save ' + n : 'Save'}</span></button>` : ''}
+      </div>
+      ${P.question ? `<p class="w-full text-sm text-base-content/70">${esc(P.question)}</p>` : ''}`;
+  }
+
+  // ── mount ───────────────────────────────────────────────────────────────
+  paintHead();
+  if (!P) {
+    $('root').innerHTML = `<p class="p-2 text-error">${esc(S.err)}</p>`;
+  } else {
+    // The list and the card, side by side or stacked, and under both the
+    // selected output, the width of the page.
+    $('root').innerHTML = `<div id="panes"><div id="list" role="listbox" aria-label="Runs" class="[scrollbar-gutter:stable]"></div><div id="card"></div></div>
+      <section id="out" aria-label="Output" class="@container flex-none rounded-lg border border-base-300 bg-base-100 px-3.5 py-2"></section>`;
+    const list = $('list');
+    list.innerHTML = runs().map(rowHTML).join('');
+    let sel = (() => { const h = window.UrlParams.get('run'); return runOf(h) ? h : runs()[0]?.id; })();
+    let selOut = null, deck = null;
+
+    // The deck holds the strip's cards, in the strip's order.
+    const named = c => {
+      const r = runOf(c.id);
+      return { title: r.title, subtitle: [c.n > 1 ? `output ${c.j + 1} of ${c.n}` : '', r.meta].filter(Boolean).join(' · ') };
+    };
+    const openDeck = () => {
+      const cards = swiper.slides();
+      const start = Math.max(0, cards.findIndex(c => c.id === sel && (c.sub ?? null) === selOut));
+      deck = swipeDeck.open({
+        count: cards.length, start, ...named(cards[start]), icon: 'ph-list-checks',
+        slideScroll: false, innerClass: 'h-full w-full min-w-0',
+        index: i => ({ ...named(cards[i]), group: cards[i].id }),
+        card: i => cards[i].id,
+        render: (i, slide) => { const c = cards[i]; fill(slide, runOf(c.id), outOf(c.id, c.sub), true); },
+        onSlide: i => {
+          const c = cards[i], n = named(c);
+          sel = c.id; selOut = c.sub ?? null;
+          deck?.setTitle(n.title); deck?.setSubtitle(n.subtitle);
+          swiper.show(c.id, c.sub);
+          paintOut(sel, selOut);
+        },
+        onClose: () => { deck = null; },
+      });
+    };
+    // To an output: in the deck when the tap was in it, else in the strip.
+    const go = (run, out, inDeck) => {
+      if (inDeck && deck) deck.deck.go(swiper.slides().findIndex(c => c.id === run && c.sub === out), 'instant');
+      else swiper.pick(run, 'api', out);
+    };
+
+    swiper = linkedSwiper.attach({
+      root: $('panes'), list, card: $('card'), key: 'run', noun: 'output', subNoun: 'output',
+      ids: () => runs().map(r => r.id), sel: () => sel,
+      subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut,
+      // A tab: filled in its verdict's tone where the payload has verdicts,
+      // else in its output's stance (hueOf), as its passages are; the open
+      // tab stays primary. A dot under the number marks a note.
+      tab: (id, out, j, n) => {
+        const o = outOf(id, out), v = stateOf(keyOf(id, out)).verdict, nt = noted(id, out);
+        return {
+          cls: [judged ? v && tone(v).mark : TONE[hueOf(o)]?.mark, nt && NOTED].filter(Boolean).join(' '),
+          aria: [`Output ${j + 1} of ${n}`, o.tag && (P.tagOf[o.tag]?.label || o.tag), v && (P.verdictOf[v]?.label || v), nt && 'noted'].filter(Boolean).join(', '),
+        };
+      },
+      // Room for a run's meta beside six tabs, and its count where verdicts
+      // are counted (rule 15).
+      wide: judged ? 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]' : 'grid-cols-[minmax(0,340px)_minmax(0,1fr)]',
+      listMax: 'max-h-[40dvh]', slideScroll: false, innerClass: 'h-full w-full min-w-0',
+      name: id => ({ title: runOf(id).title }),
+      places: true,
+      body: (id, el, out) => fill(el, runOf(id), outOf(id, out), false),
+      onPick: (id, via, out) => { sel = id; selOut = out ?? null; paintOut(sel, selOut); },
+      deck: openDeck,
+    });
+    paintOut(sel, selOut);
+
+    document.addEventListener('click', e => {
+      if (e.target.closest('#save')) return save();
+      const f = e.target.closest('[data-fold]');
+      if (f) return openFold(f);
+      const v = e.target.closest('[data-verdict]'), item = e.target.closest('[data-item]');
+      if (v && item) {
+        const [run, out] = item.dataset.item.split('|');
+        setState(run, out, { verdict: stateOf(keyOf(run, out)).verdict === v.dataset.verdict ? '' : v.dataset.verdict, at: new Date().toISOString() });
+        paintItem(run, out);
+        return;
+      }
+      // A badge goes to its own output; the rest of a passage as nextOut says.
+      const m = e.target.closest('mark[data-outs]'), b = m && e.target.closest('[data-badge]');
+      const to = m && (b && b.dataset.badge !== m.closest('[data-flag]')?.dataset.flag ? b.dataset.badge : nextOut(m));
+      if (to) go(m.dataset.run, to, !!deck?.el.contains(m));
+    });
+
+    document.addEventListener('input', e => {
+      const n = e.target.closest('[data-note]'), item = n && n.closest('[data-item]');
+      if (!item) return;
+      const [run, out] = item.dataset.item.split('|');
+      setState(run, out, { note: n.value });
+      for (const other of document.querySelectorAll(`[data-item="${CSS.escape(item.dataset.item)}"] [data-note]`))
+        if (other !== n) other.value = n.value;
+      // A tab marks an output that carries a note, changed in place as the
+      // note is typed.
+      for (const t of list.querySelectorAll(`[data-run="${CSS.escape(run)}"] [data-ls-sub="${CSS.escape(out)}"]`)) {
+        const on = noted(run, out);
+        for (const c of NOTED.split(' ')) t.classList.toggle(c, on);
+        t.setAttribute('aria-label', t.getAttribute('aria-label').replace(/, noted$/, '') + (on ? ', noted' : ''));
+      }
+    });
+  }
+</script>
+</head>
+<body class="flex h-dvh flex-col gap-2.5 bg-base-200 p-3 max-sm:p-2">
+  <header id="head" class="flex flex-none flex-wrap items-center gap-x-3 gap-y-0.5 px-1"></header>
+  <main id="root" class="flex min-h-0 flex-auto flex-col gap-2.5"><span class="loading loading-dots loading-md m-auto text-base-content/40"></span></main>
+</body>
+</html>

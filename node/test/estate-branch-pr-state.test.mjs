@@ -243,6 +243,15 @@ test('inside the index reach an unmatched branch really has no PR', () => {
   assert.equal(data.branchState(row('scratch')), 'nopr');
 });
 
+test('a branch dated exactly at the reach is still inside it', () => {
+  seed({
+    branches: [{ name: 'edge', group: 'active', date: '2026-08-01T00:00:00Z' }],
+    branchPRs: [{ head: 'other', number: 1, state: 'merged', draft: false, count: 1 }],
+    prReach: '2026-08-01T00:00:00Z',
+  });
+  assert.equal(data.branchState(row('edge')), 'nopr');
+});
+
 test('past the reach it says it does not know, rather than "no PR"', () => {
   seed({
     branches: [{ name: 'ancient', group: 'landed', date: '2026-05-01T00:00:00Z' }],
@@ -338,7 +347,7 @@ test('the card badge counts what the chip counts, from one derivation', () => {
 });
 
 test('the badge opens the pane already narrowed to what it counted', () => {
-  // Branches is its own pane again (it spent 2026-08-19 to 2026-08-23 as a lens
+  // Branches is its own pane again (it spent 2026-08-19 to 2026-08-23 as a tab
   // of Sessions), so the jump navigates to it. The scope and repo narrowing are
   // the invariant either way: a badge that counts two abandoned branches has to
   // open on those two.

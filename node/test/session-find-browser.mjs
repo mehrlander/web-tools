@@ -71,8 +71,8 @@ try {
   browser = await launchChromium({ args: ['--no-sandbox', '--ignore-certificate-errors'],
     ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
       ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {}) });
-  for (const [width, theme] of [[1280, 'winter'], [390, 'winter'], [320, 'dark']]) {
-    console.log(`\n${width}px / ${theme}`);
+  for (const width of [1280, 390, 320]) {
+    console.log(`\n${width}px`);
     const context = await browser.newContext({ viewport: { width, height: 900 },
       permissions: ['clipboard-read', 'clipboard-write'] });
     const page = await context.newPage();
@@ -95,7 +95,6 @@ try {
     await page.goto(url, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelectorAll('[data-session-match]').length === 3,
       { timeout: 30000 });
-    await page.evaluate(theme => document.documentElement.dataset.theme = theme, theme);
     const input = page.getByRole('searchbox', { name: 'Find in conversation', exact: true });
     const state = () => page.evaluate(() => {
       const el = document.querySelector('#mount > div');
@@ -113,7 +112,7 @@ try {
       await page.locator('[data-session-match="2"]').innerText().then(t => t.includes('Matches:') && t.includes('cobalt'))
       && await page.locator('[data-session-match="5"]').innerText().then(t => t.includes('Assistant') && t.includes('orchard')));
     await input.scrollIntoViewIfNeeded();
-    await page.screenshot({ path: path.join(shots, `session-find-${width}-${theme}.png`), fullPage: true });
+    await page.screenshot({ path: path.join(shots, `session-find-${width}.png`), fullPage: true });
     const before = await overflow();
     ok('search fits the viewport', before.document <= width + 1 && before.results <= before.resultBox + 1,
       JSON.stringify(before));

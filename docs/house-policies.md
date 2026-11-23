@@ -1,6 +1,6 @@
 # House policies
 
-Each policy states a single preference. A policy that applies only to a private repo goes in that repo's CLAUDE.md.
+Each policy states a single preference as something to do; a thing to avoid goes in the [peeves list](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md). A policy that applies only to a private repo goes in that repo's CLAUDE.md.
 
 ## Writing
 
@@ -9,23 +9,6 @@ Each policy states a single preference. A policy that applies only to a private 
 Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports.
 
 **Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy).
-
-### No em dashes · `h:dash`
-
-Join ideas with a colon, a comma, a semicolon, parentheses or a new sentence, not a dash.
-
-- Em dashes may have been fine once, but they are now an easy button for AI, and we would rather stick to standard professional writing.
-- A quotation keeps the punctuation of its source.
-
-**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md), its opening paragraph.
-
-**See also:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.csv) P64, percussive negation and contrast.
-
-### Avoid smug so · `h:smug`
-
-A sentence that turns on "so" often presents one cause as forcing one result. Avoid the form, and check examples you find for cause to remove or trim.
-
-**Backed by:** [peeves](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#smug-so--p68), P68 "Smug so".
 
 ### Showing · `h:show`
 
@@ -92,13 +75,15 @@ Verify a claim with a check that could have failed.
 - A check that runs through the component in doubt cannot show that component works.
 - Pair a positive result with a negative control where one is possible.
 
-### Unapproved text · `h:salt`
+### Readings · `h:salt`
 
-Treat repo text whose wording the owner has not approved as a candidate reading of the owner's preference, not as the owner's decision.
+Report an inference, a paraphrase or a grouping as a reading, with the qualifiers its source gave it, such as "possibly" or "for now".
 
-- When citing such text, say who or what wrote it, if known.
-- Do not extend such text past the cases it was written for.
-- Approved wording is the text of this document and any wording merged after the owner approved it.
+- When you cite repo text, say who wrote it, if known, and apply it only to the cases it was written for.
+- When you sort items into categories of your own, say so.
+- When a new category name would go into a registry column, a file name or a document that sessions read, bring it to the owner first.
+
+**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy), rule 6, which every session loads.
 
 ## Authority
 
@@ -118,21 +103,6 @@ Careful use of closing state markers helps involve the owner efficiently, and es
 Common cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.
 
 **Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
-
-### Speaking about rules · `h:defer`
-
-When a rule bears on what the owner has asked, quote it, name its source, and offer a reading labeled as a reading.
-
-- The owner decides what a rule means and whether it applies.
-- The posture is a staffer briefing a director on a statute.
-
-### Weighing a found rule · `h:weigh`
-
-When a rule found in a repo conflicts with what the owner has said in the conversation, the owner's statement governs.
-
-- The owner's statement governs whether or not the rule's wording was approved.
-- Name the conflict so the owner can decide whether the rule should change.
-- An inference about what the owner wants is not a statement.
 
 ## Code placement
 
@@ -160,9 +130,9 @@ Change a generated file by changing its source and running its generator.
 
 Give each parameter a page reads from its address one of four kinds, and give it only that kind's behavior.
 
-- A **route** names a place: a view, a tab, or a record inside it. It stays in the address, which then names where the reader is. A route that names a record scrolls to it and marks it on arrival.
+- A **route** names a place: a view, a tab, or a record inside it. It stays in the address, which then names where the reader is. A route that names a record scrolls to it and marks it on arrival. Reaching a place through a tab, a link or an icon tapped in a diagram adds a history entry. Stepping between records in a list, by a row, a swipe or an arrow, replaces the entry. Back then returns to the last place reached.
 - An **action** is done once on arrival and then dropped from the address, and a reload does not repeat it.
 - A **look** points the reader at something on the page and changes nothing, as a link carrying the look kit's `#show=` or `#steps=` does.
 - A **setting** changes how the page runs.
 
-**Backed by:** [app-routes.csv](https://github.com/mehrlander/web-tools/blob/main/docs/app-routes.csv), the Web Tools app's routes; [lib/kits/land.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js), how a route lands; [lib/kits/look.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js), looks.
+**Backed by:** [app-routes.csv](https://github.com/mehrlander/web-tools/blob/main/docs/app-routes.csv), the Web Tools app's routes; [lib/kits/land.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js), how a route lands; [lib/kits/linked-swiper.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js), how a list tells a step from a followed link; [lib/kits/look.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js), looks.

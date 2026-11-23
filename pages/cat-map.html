@@ -42,7 +42,7 @@ if (/(^|[#&])poster=1(&|$)/.test(location.hash)) document.documentElement.setAtt
 document.addEventListener('alpine:init', () => {
   const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
   const tokenNow = () => window.TOKEN || window.ghAuth?.resolve() || '';
-  const DIR = '../research/category-mapping/';
+  const DIR = 'cat-map/';
   // The committed answers, one pill each.
   const ANSWERS = [['Collections', DIR + 'collections.json'], ['Timing', DIR + 'timing.json']];
 
@@ -98,8 +98,8 @@ document.addEventListener('alpine:init', () => {
   <template x-if="A">
     <article class="px-6 sm:px-10 py-8 sm:py-10 grid gap-8 sm:gap-9">
       <div class="grid gap-3">
-        <h1 class="text-3xl sm:text-[44px] leading-tight font-bold text-balance" x-text="A.title"></h1>
-        <p class="text-lg sm:text-[22px] leading-7 sm:leading-8 text-base-content/70 text-balance" x-text="A.lede"></p>
+        <h1 class="text-3xl sm:text-[44px] leading-tight font-bold" x-text="A.title"></h1>
+        <p class="text-lg sm:text-[22px] leading-7 sm:leading-8 text-base-content/70" x-text="A.lede"></p>
       </div>
 
       <template x-if="A.grid">
@@ -107,21 +107,21 @@ document.addEventListener('alpine:init', () => {
         <div class="grid gap-2 [grid-template-columns:var(--cols)] sm:[grid-template-columns:7.5rem_var(--cols)]" :style="`--cols: repeat(${A.grid.across.values.length}, minmax(0, 1fr))`">
           <div class="hidden sm:block"></div>
           <template x-for="v in A.grid.across.values" :key="v.label">
-            <div class="px-2 sm:px-3 pb-1 text-base sm:text-lg font-semibold text-balance" x-text="v.label"></div>
+            <div class="px-2 sm:px-3 pb-1 text-base sm:text-lg font-semibold" x-text="v.label"></div>
           </template>
           <template x-for="(row, i) in A.grid.cells" :key="i">
             <div class="contents">
-              <div class="[grid-column:1/-1] sm:[grid-column:auto] pt-3 sm:pt-4 sm:pr-2 text-base sm:text-lg font-semibold sm:text-right text-balance" x-text="A.grid.down.values[i].label"></div>
+              <div class="[grid-column:1/-1] sm:[grid-column:auto] pt-3 sm:pt-4 sm:pr-2 text-base sm:text-lg font-semibold sm:text-right" x-text="A.grid.down.values[i].label"></div>
               <template x-for="(c, j) in row" :key="j">
                 <div class="rounded-2xl p-3 sm:p-4 grid content-start gap-1.5" :class="c.word ? 'bg-primary/10' : c.impossible ? 'bg-[repeating-linear-gradient(45deg,transparent_0_6px,rgba(0,0,0,0.05)_6px_12px)]' : 'border-2 border-dashed border-base-300'">
                   <div class="leading-none" :class="c.word ? 'text-2xl sm:text-[32px] font-bold text-primary' : 'text-xl sm:text-[26px] italic text-base-content/50'" x-text="c.word || (c.impossible ? 'impossible' : 'no word yet')"></div>
-                  <div class="text-base sm:text-lg leading-6 text-pretty" x-text="c.gloss"></div>
+                  <div class="text-base sm:text-lg leading-6" x-text="c.gloss"></div>
                   <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(c.examples)"></div>
                 </div>
               </template>
             </div>
           </template>
-          <p x-show="A.grid.note" class="[grid-column:1/-1] sm:[grid-column:2/-1] pt-1 text-base text-base-content/70 text-pretty" x-text="A.grid.note"></p>
+          <p x-show="A.grid.note" class="[grid-column:1/-1] sm:[grid-column:2/-1] pt-1 text-base text-base-content/70" x-text="A.grid.note"></p>
         </div>
       </template>
 
@@ -131,7 +131,7 @@ document.addEventListener('alpine:init', () => {
           <template x-for="w in A.add || []" :key="w.word">
             <div class="rounded-2xl border border-base-300 p-4 grid content-start gap-1">
               <div class="flex items-center gap-2 text-xl sm:text-[24px] font-bold"><i class="ph text-primary" :class="'ph-' + (w.icon || 'plus')"></i><span x-text="w.word"></span></div>
-              <div class="text-base sm:text-lg leading-6 text-pretty" x-text="w.gloss"></div>
+              <div class="text-base sm:text-lg leading-6" x-text="w.gloss"></div>
               <div class="font-mono text-sm sm:text-base leading-5 sm:leading-6 [overflow-wrap:anywhere]" x-html="ex(w.examples)"></div>
             </div>
           </template>
@@ -143,9 +143,9 @@ document.addEventListener('alpine:init', () => {
         <div class="grid gap-4">
           <template x-for="(n, k) in A.renames || []" :key="k">
             <div class="grid gap-0.5 text-base sm:text-lg leading-6">
-              <div class="text-pretty"><span x-text="names(n.things) + ', now called '"></span><span class="text-error line-through" x-text="n.from"></span></div>
+              <div><span x-text="names(n.things) + ', now called '"></span><span class="text-error line-through" x-text="n.from"></span></div>
               <div class="flex items-baseline gap-2"><i class="ph ph-arrow-right text-base-content/40"></i><span class="font-semibold" x-text="n.becomes"></span></div>
-              <div x-show="!poster" class="text-base-content/60 text-pretty" x-text="n.why"></div>
+              <div x-show="!poster" class="text-base-content/60" x-text="n.why"></div>
             </div>
           </template>
         </div>
@@ -155,12 +155,12 @@ document.addEventListener('alpine:init', () => {
         <h2 class="text-xl sm:text-[26px] font-bold" x-text="count(A.open, 'call') + ' for you'"></h2>
         <ol class="grid gap-2 list-decimal pl-7 text-base sm:text-lg leading-7">
           <template x-for="(o, k) in A.open || []" :key="k">
-            <li class="text-pretty"><span class="font-semibold" x-text="o.question"></span><span x-show="o.recommend" x-text="' Recommended: ' + o.recommend + '.'"></span> <span x-show="!poster" class="text-base-content/60" x-text="o.why"></span></li>
+            <li><span class="font-semibold" x-text="o.question"></span><span x-show="o.recommend" x-text="' Recommended: ' + o.recommend + '.'"></span> <span x-show="!poster" class="text-base-content/60" x-text="o.why"></span></li>
           </template>
         </ol>
       </div>
 
-      <p x-show="A.by" class="pt-4 border-t border-base-300 text-sm sm:text-base leading-6 text-base-content/60 text-pretty" x-text="A.by"></p>
+      <p x-show="A.by" class="pt-4 border-t border-base-300 text-sm sm:text-base leading-6 text-base-content/60" x-text="A.by"></p>
     </article>
   </template>
 </div>

@@ -9,20 +9,22 @@ public sealed class FolderReader
     private readonly JsonSerializerOptions json = new(JsonSerializerDefaults.Web);
     private readonly Dictionary<string, (DateTimeOffset At, FolderSnapshot Value)> cache = [];
 
-    public async Task<(int Status, FolderSnapshot? Value)> Read(string path, CancellationToken stop)
+    public Task<(int Status, FolderSnapshot? Value)> Read(string path, CancellationToken stop) => Read("gh", path, stop);
+
+    public async Task<(int Status, FolderSnapshot? Value)> Read(string rootId, string path, CancellationToken stop)
     {
-        if (path.Length > 1024 || path.Contains('\\') || path.Split('/').Length > 32
-            || path.Length > 0 && path.Split('/').Any(p => p.Length == 0 || p != p.TrimEnd(' ', '.') || p is "." or ".."
-                || p.Equals(".git", StringComparison.OrdinalIgnoreCase) || p.Contains(':') || p.Any(char.IsControl)))
-            return (400, null);
-        lock (cache) if (cache.TryGetValue(path, out var prior) && DateTimeOffset.UtcNow - prior.At < TimeSpan.FromSeconds(8))
+        if (!FileRoots.TryGet(rootId, out var root) || !FileRoots.ValidPath(path)) return (400, null);
+        var status = FileRoots.Resolve(root, path, file: false, out _);
+        if (status != 200) return (status, null);
+        var key = rootId + ":" + root.FullPath + ":" + path;
+        lock (cache) if (cache.TryGetValue(key, out var prior) && DateTimeOffset.UtcNow - prior.At < TimeSpan.FromSeconds(8))
             return (200, prior.Value);
         if (!await slots.WaitAsync(0, stop)) return (429, null);
         try {
             var start = new ProcessStartInfo("python") { UseShellExecute = false, CreateNoWindow = true,
                 RedirectStandardOutput = true, RedirectStandardError = true };
             foreach (var arg in new[] { "-u", Path.Combine(AppContext.BaseDirectory, "worker", "folder_explorer.py"),
-                "--root", UserSettings.Load().RepositoriesRoot, "--path=" + path }) start.ArgumentList.Add(arg);
+                "--root", root.FullPath, "--path=" + path }) start.ArgumentList.Add(arg);
             start.Environment["PYTHONIOENCODING"] = "utf-8";
             using var process = Process.Start(start);
             if (process is null) return (503, null);
@@ -39,7 +41,7 @@ public sealed class FolderReader
             if (value.State != "ready") return (value.State switch { "invalid" => 400, "blocked" => 403, "missing" => 404, _ => 503 }, null);
             lock (cache) {
                 if (cache.Count >= 24) cache.Remove(cache.MinBy(p => p.Value.At).Key);
-                cache[path] = (DateTimeOffset.UtcNow, value);
+                cache[key] = (DateTimeOffset.UtcNow, value);
             }
             return (200, value);
         } catch (Exception e) when (e is IOException or JsonException or System.ComponentModel.Win32Exception or OperationCanceledException) {

@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="night">
+<html lang="en" data-theme="winter">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>kits demos</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../title-tip.js"></script>
 <!-- Tells Tailwind these names are colours, so an opacity modifier on one
      generates under a variant. This page does not reach gh-boot, which does the
      same for every page that does; python/dead-opacity.py holds the two in step. -->
@@ -36,7 +37,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/annotate.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -49,7 +50,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/cm6.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -62,7 +63,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/compression.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -75,7 +76,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/dictate.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -88,7 +89,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/dock-split.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -101,7 +102,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/export.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -114,7 +115,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/io.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -127,7 +128,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -140,7 +141,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -153,7 +154,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/messaging.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -166,7 +167,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -179,7 +180,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/peek.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -192,7 +193,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/persistence.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -205,7 +206,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/read-aloud.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -218,7 +219,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/row-menu.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -231,7 +232,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/source-peek.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -244,7 +245,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/swipe-deck.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>
@@ -257,7 +258,7 @@
       </div>
       <a href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/xlsx.js"
          class="ml-auto text-base-content/20 hover:text-base-content/50 transition-colors shrink-0 mt-0.5"
-         title="View kit source on GitHub" target="_blank">
+         data-title-tip="View kit source on GitHub" target="_blank">
         <i class="ph ph-code text-sm"></i>
       </a>
     </li>

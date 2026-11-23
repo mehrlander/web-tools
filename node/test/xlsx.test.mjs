@@ -174,6 +174,9 @@ test('analyze: sparse row keeps the gap instead of compacting columns', () => {
   const result = xlsxKit.analyze(buildParts());
   const [row] = xlsxKit.sheetRows(result.xl.sheets.sheet1);
   assert.deepEqual(Object.keys(row), ['Row', 'A', 'C']); // no 'B'
+  // The DOM parse path must keep the gap too.
+  const [d] = xlsxKit.sheetRows(xlsxKit.analyze(buildParts(), { dom: true }).xl.sheets.sheet1);
+  assert.deepEqual(Object.keys(d), ['Row', 'A', 'C']);
 });
 
 test('analyze: cell/style/formula/merged-cell counts on sheet2', () => {
@@ -758,6 +761,58 @@ test('sheetLayout: an empty sheet says so rather than drawing a grid of nothing'
   assert.deepEqual(out.rows, []);
 });
 
+// Row groups (Data > Group): rows 2-6 at level 1 with rows 3-4 nested at
+// level 2 and folded, then a separate level-1 group at rows 9-10, folded whole.
+const outlineSheet = (pr = '') => `<?xml version="1.0"?><worksheet xmlns="ws">${pr}<sheetData>
+  <row r="1"><c r="A1"><v>1</v></c></row>
+  <row r="2" outlineLevel="1"><c r="A2"><v>2</v></c></row>
+  <row r="3" outlineLevel="2" hidden="1"><c r="A3"><v>3</v></c></row>
+  <row r="4" outlineLevel="2" hidden="1"><c r="A4"><v>4</v></c></row>
+  <row r="5" outlineLevel="1" collapsed="1"><c r="A5"><v>5</v></c></row>
+  <row r="6" outlineLevel="1"><c r="A6"><v>6</v></c></row>
+  <row r="7"><c r="A7"><v>7</v></c></row>
+  <row r="8" hidden="1"><c r="A8"><v>8</v></c></row>
+  <row r="9" outlineLevel="1" hidden="1"><c r="A9"><v>9</v></c></row>
+  <row r="10" outlineLevel="1" hidden="1"><c r="A10"><v>10</v></c></row>
+  <row r="11" collapsed="1"><c r="A11"><v>11</v></c></row>
+</sheetData></worksheet>`;
+const outlineLayout = (pr) => {
+  const parts = formParts().map(([p, x]) => p === 'xl/worksheets/sheet1.xml' ? [p, outlineSheet(pr)] : [p, x]);
+  const { xl } = xlsxKit.analyze(parts);
+  return xlsxKit.sheetLayout(xl.sheets.sheet1, xl);
+};
+
+test('sheetLayout: a folded row group keeps its rows, marked, and a plainly hidden row is still dropped', () => {
+  const out = outlineLayout();
+  assert.deepEqual(out.rows.map(r => r.row), [1, 2, 3, 4, 5, 6, 7, 9, 10, 11],
+    'row 8 is hidden outside any group and is dropped; rows 3, 4, 9 and 10 are folded and kept');
+  const at = (n) => out.rows.find(r => r.row === n);
+  assert.deepEqual([at(3).level, at(3).hidden], [2, true]);
+  assert.deepEqual([at(6).level, at(6).hidden], [1, false]);
+  assert.deepEqual([at(7).level, at(7).hidden], [0, false]);
+});
+
+test('sheetLayout: row groups nest by level, and a group is collapsed when all its rows are hidden', () => {
+  const { outline } = outlineLayout();
+  assert.equal(outline.levels, 2);
+  assert.equal(outline.summaryBelow, true, 'Excel\'s default when the sheet says nothing');
+  assert.deepEqual(outline.groups, [
+    { level: 1, r1: 2, r2: 6, summary: 7, collapsed: false },
+    { level: 1, r1: 9, r2: 10, summary: 11, collapsed: true },
+    { level: 2, r1: 3, r2: 4, summary: 5, collapsed: true },
+  ]);
+});
+
+test('sheetLayout: summaryBelow="0" puts each group\'s summary row above it', () => {
+  const { outline } = outlineLayout('<sheetPr><outlinePr summaryBelow="0"/></sheetPr>');
+  assert.equal(outline.summaryBelow, false);
+  assert.deepEqual(outline.groups.map(g => g.summary), [1, 8, 2]);
+});
+
+test('sheetLayout: a sheet with no row groups has no outline', () => {
+  assert.equal(xlsxKit.sheetLayout(formXl().sheets.sheet1, formXl()).outline, null);
+});
+
 test('number formats: the codes a budget workbook actually carries', () => {
   const at = (code, value) => xlsxKit.formatValue(String(value), { kind: xlsxKit.formatKind(code, 0), code });
   assert.equal(at('#,##0', 1234.5), '1,235', 'no decimal places means rounded, as Excel draws it');
@@ -773,6 +828,12 @@ test('number formats: the codes a budget workbook actually carries', () => {
   assert.equal(at('#,##0;[Red](#,##0)', -1234), '(1,234)');
   // A zero section is its own answer.
   assert.equal(at('#,##0;(#,##0);"-"', 0), '-');
+  // A comma after the last digit place scales by a thousand and is not
+  // printed, also where the code groups too.
+  assert.equal(at('#,##0.0,,', 489775265.23), '489.8');
+  assert.equal(at('#,##0,', 489775265.23), '489,775');
+  assert.equal(at('0.0,,"M"', 2500000), '2.5M');
+  assert.equal(at('0,', 1234), '1');
 });
 
 test('number formats: literals, padding and fill characters', () => {

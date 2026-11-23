@@ -2,6 +2,7 @@
 id: retire-shell-name-the-parts-r152bt
 title: Retire `shell`, and name the parts instead of the collection
 status: backlog
+errand: claude-2026-11-16-ecaf24
 project: app
 opened: 2026-08-15
 size: M
@@ -129,3 +130,6 @@ third value, so that half is settled and this note no longer asks it.
   force-show.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
 - 2026-10-07: Decided. The spelling is `?header=0|1`, as recommended (user call 2708d02c-web-tools-answers).
+- 2026-11-16: the first PR (split ?shell= into ?header= and ?sidebar=, ?shell= kept as a sunset alias) went out as Claude errand claude-2026-11-16-ecaf24 (session b805c26a, owner's go); the errand leaves the task open for the two later PRs.
+- 2026-11-16: Step 1 is in draft [web-tools#1335](https://github.com/mehrlander/web-tools/pull/1335): `?header=0|1` and `?sidebar=0|1` replace the preset, and `?shell=` reads as an alias behind `SUNSET(2027-02-01)`. Steps 2 to 4 (`window.__app`, the prose senses, the check) remain for the two later PRs.
+- 2026-11-19: step 1 merged: web-tools#1335 (720b91361, 2026-11-17). Steps 2 to 4 remain; `__shell` still appears 14 times in `app/index.html`. (tend pass, session b2664d00)

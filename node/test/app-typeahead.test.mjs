@@ -45,9 +45,9 @@ function wired({ box = null, viewBoxes = [], sidebarOpen = true, showSidebar = t
   // to know which one it is in.
   for (const b of [box, ...viewBoxes]) if (b) b.doc = doc;
   doc.activeElement = null;
-  doc.getElementById = (id) => (id === 'quick-find-box' ? box : null);
+  doc.getElementById = (id) => (id === 'quick-find-input' ? box : null);
   doc.querySelector = (sel) => (sel === 'dialog[open]' && dialogOpen ? {} : null);
-  doc.querySelectorAll = (sel) => (sel === '[data-find-box]' ? viewBoxes : []);
+  doc.querySelectorAll = (sel) => (sel === '[data-find-input]' ? viewBoxes : []);
   if (deck) win.swipeDeck = { stack: Array(deck).fill({}) };
   // Getters on the shell object, so the router's reads answer to the case.
   Object.defineProperty(shell, 'showSidebar', { get: () => showSidebar });
@@ -196,15 +196,15 @@ test('the id the router names is the id the finder carries', () => {
   // own since the router took `/` over, so a rename here fails silently in the
   // app: the box is simply never found.
   const finder = readFileSync(path.join(repoRoot, 'lib/alpineComponents/quick-find.js'), 'utf8');
-  assert.match(finder, /<input x-ref="box" id="quick-find-box"/,
+  assert.match(finder, /<input x-ref="box" id="quick-find-input"/,
     'quick-find must keep the id wireAppTypeahead looks up');
-  assert.match(shellSource, /getElementById\('quick-find-box'\)/,
+  assert.match(shellSource, /getElementById\('quick-find-input'\)/,
     'and the router must look up the id quick-find carries');
   assert.doesNotMatch(finder, /addEventListener\('keydown'/,
     'one owner: quick-find must not register a key listener beside the router');
 });
 
-// Which boxes wear data-find-box, held BOTH ways: a declared box that lost its
+// Which boxes wear data-find-input, held BOTH ways: a declared box that lost its
 // attribute fails, and an undeclared file that grew one fails too. The second
 // direction is the one worth having. The attribute is for a VIEW's own primary
 // search, over the content that view is showing, and only one view is on screen
@@ -241,7 +241,7 @@ const DECLARED = [
 test('every declared view search box carries the attribute', () => {
   for (const [rel, what, n] of DECLARED) {
     const src = readFileSync(path.join(repoRoot, rel), 'utf8');
-    const found = (src.match(/<input\b[^>]*\bdata-find-box\b/g) || []).length;
+    const found = (src.match(/<input\b[^>]*\bdata-find-input\b/g) || []).length;
     assert.equal(found, n, `${rel} should declare ${n} (${what}), found ${found}`);
   }
 });
@@ -257,12 +257,12 @@ test('and nothing else does', () => {
       if (e.isDirectory()) { if (e.name !== 'node_modules') walk(full); continue; }
       if (!/\.(js|html)$/.test(e.name)) continue;
       // The ATTRIBUTE on an input, not the name: the router's own source and
-      // comments say `data-find-box` several times and declare nothing.
-      if (/<input\b[^>]*\bdata-find-box\b/.test(readFileSync(full, 'utf8')))
+      // comments say `data-find-input` several times and declare nothing.
+      if (/<input\b[^>]*\bdata-find-input\b/.test(readFileSync(full, 'utf8')))
         hits.push(path.relative(repoRoot, full).split(path.sep).join('/'));
     }
   };
   roots.forEach(r => walk(path.join(repoRoot, r)));
   assert.deepEqual(hits.sort(), DECLARED.map(d => d[0]).sort(),
-    'a file grew data-find-box without being declared above; read the rule there first');
+    'a file grew data-find-input without being declared above; read the rule there first');
 });

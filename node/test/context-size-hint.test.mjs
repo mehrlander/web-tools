@@ -61,12 +61,32 @@ test('the first crossing speaks once, with the size rounded to the thousand', ()
   } finally { s.done(); }
 });
 
+test('a size exactly at the threshold speaks, since band 0 starts there', () => {
+  const s = scratch();
+  try {
+    assert.match(context(s.run([prompt, reply(400_000)])), /about 400,000 tokens/);
+    assert.match(context(s.run([reply(100_000)], { CONTEXT_HINT_TOKENS: '100000' }, 'sess-2')), /about 100,000/);
+  } finally { s.done(); }
+});
+
 test('falling below the threshold resets it, so the next crossing speaks again', () => {
   const s = scratch();
   try {
     assert.match(context(s.run([reply(650_000)])), /about 650,000/);
     assert.equal(s.run([reply(650_000), reply(80_000)]), '', 'after a compaction');
     assert.match(context(s.run([reply(420_000)])), /about 420,000/);
+  } finally { s.done(); }
+});
+
+test('a zero-usage notice in the model\'s place is skipped, so it clears no band', () => {
+  const s = scratch();
+  try {
+    const notice = JSON.stringify({ type: 'assistant', isSidechain: false,
+      message: { role: 'assistant', model: '<synthetic>', content: [{ type: 'text', text: 'rate limited' }],
+        usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 0 } } });
+    assert.match(context(s.run([reply(450_000)])), /about 450,000/);
+    assert.equal(s.run([reply(450_000), notice]), '', 'the band stays announced');
+    assert.equal(s.run([reply(450_000), notice, reply(460_000)]), '', 'so the same band is not announced again');
   } finally { s.done(); }
 });
 

@@ -55,16 +55,61 @@ class CloudActivityChecks(unittest.TestCase):
         start = activity.capture(self.payload, self.env, self.now)
         self.assertEqual(self.read(start)["state"], "working")
         self.assertEqual(self.read(start)["agent"], "https://claude.ai/code/session_0123456789abcdefghijklmn")
+        started_at = self.read(start)["startedAt"]
         tool = dict(self.payload, hook_event_name="PreToolUse", tool_name="Read", tool_input={"path":"private/secret"})
-        self.assertIsNone(activity.capture(tool, self.env, self.now + dt.timedelta(seconds=2)))
-        signal = activity.capture(tool, self.env, self.now + dt.timedelta(seconds=31))
+        signal = activity.capture(tool, self.env, self.now + dt.timedelta(seconds=2))
         self.assertEqual(self.read(signal)["lastTool"], "Read")
+        self.assertEqual(self.read(signal)["updatedAt"], (self.now + dt.timedelta(seconds=2)).isoformat(timespec="microseconds"))
         self.assertNotIn("private/secret", json.dumps(self.read(signal)))
-        stop = activity.capture(dict(self.payload, hook_event_name="Stop", last_assistant_message="Ready"), self.env, self.now + dt.timedelta(seconds=32))
+        self.assertIsNone(activity.capture(tool, self.env, self.now + dt.timedelta(seconds=3)))
+        self.assertIsNone(activity.capture(tool, self.env, self.now + dt.timedelta(seconds=31)))
+        self.assertIsNotNone(activity.capture(tool, self.env, self.now + dt.timedelta(seconds=32)))
+        stop = activity.capture(dict(self.payload, hook_event_name="Stop", last_assistant_message="Ready"), self.env, self.now + dt.timedelta(seconds=33))
         self.assertEqual(self.read(stop)["state"], "idle")
         self.assertEqual(self.read(stop)["response"], "Ready")
         self.assertEqual(self.read(stop)["prompt"], "Inspect the queue")
-        self.assertEqual(self.read(stop)["startedAt"], self.read(start)["startedAt"])
+        self.assertEqual(self.read(stop)["startedAt"], started_at)
+
+    def test_meaningful_tool_changes_bypass_repeat_throttle_without_blank_noise(self):
+        staged = activity.capture(self.payload, self.env, self.now)
+        tool = dict(self.payload, hook_event_name="PreToolUse", tool_name="")
+        self.assertIsNone(activity.capture(tool, self.env, self.now + dt.timedelta(seconds=1)))
+        for second, name in ((2, "Read"), (3, "Bash"), (4, "Write")):
+            staged = activity.capture(dict(tool, tool_name=name), self.env, self.now + dt.timedelta(seconds=second))
+            self.assertEqual(self.read(staged)["lastTool"], name)
+        current = self.read(staged)
+        for second, name in ((5, "Write"), (6, "bad tool"), (40, "")):
+            self.assertIsNone(activity.capture(dict(tool, tool_name=name), self.env, self.now + dt.timedelta(seconds=second)))
+            self.assertEqual(self.read(staged), current)
+
+    def test_tool_reporting_keeps_main_actor_isolation(self):
+        staged = activity.capture(self.payload, self.env, self.now)
+        tool = dict(self.payload, hook_event_name="PreToolUse", tool_name="Read")
+        staged = activity.capture(tool, self.env, self.now + dt.timedelta(seconds=1))
+        current = self.read(staged)
+        self.assertIsNone(activity.capture(dict(tool, agent_id="delegated-agent", tool_name="Bash"), self.env,
+                                           self.now + dt.timedelta(seconds=2)))
+        self.assertEqual(self.read(staged), current)
+        other = dict(self.env, CLAUDE_CODE_REMOTE_SESSION_ID="cse_zzzzzzzzzzzzzzzzzzzzzzzz")
+        staged = activity.capture(tool, other, self.now + dt.timedelta(seconds=2))
+        self.assertEqual(self.read(staged)["agent"], "https://claude.ai/code/session_zzzzzzzzzzzzzzzzzzzzzzzz")
+        self.assertEqual(self.read(staged)["lastTool"], "Read")
+        self.assertEqual(self.read(staged)["prompt"], "", "another actor cannot inherit the prior prompt")
+        self.assertNotEqual(self.read(staged)["startedAt"], current["startedAt"])
+
+    def test_stale_changed_tool_cannot_backdate_a_stopped_or_new_turn(self):
+        activity.capture(self.payload, self.env, self.now)
+        staged = activity.capture(dict(self.payload, hook_event_name="Stop", last_assistant_message="Done"),
+                                  self.env, self.now + dt.timedelta(seconds=8))
+        stopped = self.read(staged)
+        tool = dict(self.payload, hook_event_name="PreToolUse", tool_name="Bash")
+        for second in (7, 8):
+            self.assertIsNone(activity.capture(tool, self.env, self.now + dt.timedelta(seconds=second)))
+            self.assertEqual(self.read(staged), stopped)
+        staged = activity.capture(dict(self.payload, prompt="Next turn"), self.env, self.now + dt.timedelta(seconds=10))
+        current = self.read(staged)
+        self.assertIsNone(activity.capture(tool, self.env, self.now + dt.timedelta(seconds=9)))
+        self.assertEqual(self.read(staged), current)
 
     def test_inert_local_missing_store_and_subagent(self):
         self.assertIsNone(activity.capture(self.payload, dict(self.env, CLAUDE_CODE_REMOTE_SESSION_ID="")))
@@ -93,6 +138,12 @@ class CloudActivityChecks(unittest.TestCase):
         self.assertEqual(self.read(staged)["lastTool"], "Read")
         self.assertEqual(self.read(staged)["state"], "working")
         self.assertNotIn("Private result", json.dumps(self.read(staged)))
+
+    def test_recovered_prompt_is_bounded(self):
+        transcript = self.root / (self.payload["session_id"] + ".jsonl")
+        transcript.write_text(json.dumps({"type":"user", "message":{"role":"user", "content":"z" * 5000}}), encoding="utf-8")
+        staged = activity.capture(dict(self.payload, hook_event_name="PreToolUse", tool_name="Read", transcript_path=str(transcript)), self.env, self.now)
+        self.assertEqual(len(self.read(staged)["prompt"]), 2000)
 
     def test_git_publish_preserves_checkout_and_rejects_late_start(self):
         before = (self.git("rev-parse", "HEAD"), self.git("status", "--porcelain"), self.git("write-tree"))
@@ -193,6 +244,23 @@ class CloudActivityChecks(unittest.TestCase):
         activity.publish(*second, expected_at=second_at, coalesce_sec=0.01)
         target = "sessions/activity/" + self.now.strftime("%Y-%m-%d") + "/aabbccdd.json"
         self.assertEqual(json.loads(self.git("show", "origin/background:" + target))["state"], "idle")
+
+    def test_rapid_tool_changes_coalesce_to_only_the_latest_publication(self):
+        staged = activity.capture(self.payload, self.env, self.now)
+        prompt_at = self.read(staged)["updatedAt"]
+        tool = dict(self.payload, hook_event_name="PreToolUse", tool_name="Read")
+        staged = activity.capture(tool, self.env, self.now + dt.timedelta(seconds=1))
+        read_at = self.read(staged)["updatedAt"]
+        staged = activity.capture(dict(tool, tool_name="Bash"), self.env, self.now + dt.timedelta(seconds=2))
+        bash_at = self.read(staged)["updatedAt"]
+        count_before = int(self.git("rev-list", "--count", "origin/background"))
+        activity.publish(*staged, expected_at=prompt_at, coalesce_sec=0.01)
+        activity.publish(*staged, expected_at=read_at, coalesce_sec=0.01)
+        self.assertEqual(int(self.git("rev-list", "--count", "origin/background")), count_before)
+        activity.publish(*staged, expected_at=bash_at, coalesce_sec=0.01)
+        target = "sessions/activity/" + self.now.strftime("%Y-%m-%d") + "/aabbccdd.json"
+        self.assertEqual(json.loads(self.git("show", "origin/background:" + target))["lastTool"], "Bash")
+        self.assertEqual(int(self.git("rev-list", "--count", "origin/background")), count_before + 1)
 
 
 if __name__ == "__main__":

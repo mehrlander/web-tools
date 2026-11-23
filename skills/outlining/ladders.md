@@ -53,8 +53,30 @@ one of another genre leaves a fifth to a half.
 | `open` | what remains unknown or undone | A gap, a next step not yet taken. |
 | `pointer` | where more lives | A link or reference with nothing else asserted. |
 
-Reference documents, definitions and how a tool or format behaves, have no
-ladder yet; `definition` and `behavior` are its candidate core rungs.
+## Reference: documents that define terms or formats, or state how a tool behaves
+
+| Rung | The claim says |
+| --- | --- |
+| `scope` | what the subject, dataset or document covers and leaves out |
+| `definition` | what a named term, class, metric or code value means |
+| `form` | the shape, grammar, schema, layout or mapping of an artifact at rest |
+| `behavior` | what a tool, parser, checker, view or measure computes or renders when it works |
+| `limit` | where a form or behavior fails, stops, needs a precondition, misses a case or is unbuilt |
+| `example` | a concrete instance, sample string or worked case |
+| `rationale` | why an artifact or design choice is shaped as it is |
+| `pointer` | where more lives, with nothing else asserted |
+
+Three tests separate a Reference claim from its neighbours:
+
+- **Practice:** a predicate a reader can obey or break is Practice (`rule`,
+  `condition` or `procedure`). One that states how a file or command is built
+  or behaves is Reference, even in the second person.
+- **Inquiry:** a predicate whose truth rests on a dated run or sample is
+  Inquiry. A standing property of a system, concept or convention is Reference.
+  A conceptual explanation is Reference too: its claims place on `definition`,
+  `form`, `limit` and `rationale`.
+- **Page:** a claim the Page ladder would put on `not-page` belongs on a
+  Reference rung.
 
 ## Reading the rung counts
 

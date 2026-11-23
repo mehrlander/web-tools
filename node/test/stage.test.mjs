@@ -1597,6 +1597,21 @@ test('a deposit is ONE commit, refs and pasted files together', async () => {
     'the per-file write paths are not used, which is what made a deposit N commits');
 });
 
+test('two refs of one repo stay separate groups, and each file is read at its own ref', async () => {
+  reset();
+  calls.length = 0;
+  store.stage = [
+    { repo: 'me/a', ref: 'main', path: 'x.md' },
+    { repo: 'me/a', ref: 'dev', path: 'y.md' },
+  ];
+  assert.deepEqual(plain_(data.groups.map(g => g.key)), ['me/a@main', 'me/a@dev']);
+  data.destSpec = 'me/dest:pkg';
+  await data.send();               // arm
+  await data.send();               // deposit
+  const reads = calls.filter(c => c.kind === 'getRaw').map(c => c.ref + ':' + c.path);
+  assert.deepEqual(reads.sort(), ['dev:y.md', 'main:x.md']);
+});
+
 test('a real deposit preserves empty repository, text and binary files beside nonempty files', async () => {
   reset();
   const previousGh = store.gh;
@@ -2018,7 +2033,7 @@ test('diffHandoff builds the Diff page address from the staged pair', () => {
   ];
   data.diffA = 0; data.diffB = 1;
   const u = new URL(data.diffHandoff);
-  assert.match(u.pathname, /\/diff-tool\.html$/, 'points at the Diff page');
+  assert.match(u.pathname, /\/pages\/diff-tool\.html$/, 'points at the Diff page, which lives under pages/');
   assert.equal(u.searchParams.get('a'), 'me/a:lib/x.js');
   assert.equal(u.searchParams.get('b'), 'me/b@feat/y:docs/z.md');
 

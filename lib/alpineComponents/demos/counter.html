@@ -1,0 +1,20 @@
+<!-- Setups for counter (../counter.js), mounted by the component stage
+     (index.html?c=counter). The component holds a number and three methods
+     and draws nothing; the markup is the host's. -->
+
+<template data-setup="A host's own buttons">
+  <div x-data="counter()" class="flex items-center gap-3 rounded-lg border border-base-300 p-3">
+    <button @click="dec()" class="btn btn-square">−</button>
+    <span class="w-14 text-center font-mono text-xl tabular-nums" x-text="count"></span>
+    <button @click="inc()" class="btn btn-square">+</button>
+    <button @click="reset()" class="btn btn-ghost ml-auto">Reset</button>
+  </div>
+</template>
+
+<template data-setup="Counting by five">
+  <div x-data="counter()" x-init="step = 5" class="flex items-center gap-3 rounded-lg border border-base-300 p-3">
+    <button @click="dec()" class="btn btn-square">−5</button>
+    <span class="w-14 text-center font-mono text-xl tabular-nums" x-text="count"></span>
+    <button @click="inc()" class="btn btn-square">+5</button>
+  </div>
+</template>

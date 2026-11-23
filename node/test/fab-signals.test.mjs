@@ -25,7 +25,7 @@ const start = fab.indexOf(`'Note the selected text' : 'Web-tools panel'`);
 const end = fab.indexOf(`<!-- The launcher's second gesture`);
 const markup = fab.slice(start, end);
 const live = rows.filter(r => r.status === 'live');
-const CORNER = { 'top-right': /-top-[\d.]+ -right-[\d.]+/, 'bottom-right': /-bottom-[\d.]+ -right-[\d.]+/ };
+const CORNER = { 'top-right': /-top-[\d.]+ -right-[\d.]+/, 'bottom-right': /-bottom-[\d.]+ -right-[\d.]+/, 'top-left': /-top-[\d.]+ -left-[\d.]+/ };
 
 test('the FAB markup is where the gate looks for it', () => {
   assert.ok(start > 0 && end > start, 'the FAB button and the menu after it are both found in fab.js');
@@ -44,7 +44,7 @@ test('a live glyph or badge is drawn where its row says', () => {
     if (!CORNER[r.part]) continue;
     // The badge's own element: the nearest opening tag before its icon that
     // places something in a corner.
-    const tag = markup.slice(0, at).split(/<(?=div|button)/).reverse().find(t => /-right-/.test(t)) || '';
+    const tag = markup.slice(0, at).split(/<(?=div|button)/).reverse().find(t => /-right-|-left-/.test(t)) || '';
     assert.match(tag, CORNER[r.part], `${r.key}: its badge sits in the ${r.part} corner`);
     assert.ok(tag.includes('bg-' + r.tone), `${r.key}: its badge is drawn in ${r.tone}`);
   }
@@ -52,7 +52,22 @@ test('a live glyph or badge is drawn where its row says', () => {
 
 test('a live tint is a colour the FAB wears', () => {
   for (const r of live.filter(r => r.part === 'tint'))
-    assert.ok(markup.includes(`var(--color-${r.tone})_10%,var(--color-base-100))] border-${r.tone}/20`), `${r.key}: the FAB is tinted ${r.tone} at rest`);
+    assert.match(markup, new RegExp(`var\\(--color-${r.tone}\\)_\\d+%,var\\(--color-base-100\\)\\)\\] border-${r.tone}/\\d+ hover:`), `${r.key}: the FAB is tinted ${r.tone} at rest`);
+});
+
+test('the glyph and the selection ring follow the tint', () => {
+  const at = markup.indexOf('<i class="text-2xl');
+  const glyph = markup.slice(at, markup.indexOf('</i>', at));
+  assert.ok(at > 0, 'the glyph element is found');
+  // Drawn in the tone, or in a mix taken from it (the off-branch glyph is the
+  // warning colour deepened toward the text colour, so it reads on a light page).
+  const drawnIn = (tone) => glyph.includes(`'text-${tone}`) || glyph.includes(`text-[color-mix(in_oklab,var(--color-${tone})`);
+  for (const r of live.filter(r => r.part === 'glyph' && r.tone !== 'tint'))
+    assert.ok(drawnIn(r.tone), `${r.key}: the glyph is drawn in ${r.tone}`);
+  for (const r of live.filter(r => r.part === 'tint')) {
+    assert.ok(drawnIn(r.tone), `${r.key}: the glyph follows the ${r.tone} tint`);
+    assert.ok(markup.includes(`ring-[var(--color-${r.tone})]`), `${r.key}: the selection ring follows the ${r.tone} tint`);
+  }
 });
 
 test('a glyph or badge names a mark that exists, and a tint names none', () => {

@@ -164,3 +164,20 @@ test('stubs include @version, versioned @require, and auto-update storage loader
 });
 
 
+
+test('each stub pins the same ref as its body and both of its auto-update fetches', () => {
+  for (const stub of stubs) {
+    const lib = stub.replace('.user.js', '');
+    const src = fs.readFileSync(path.join(ROOT, 'userscripts', stub), 'utf8');
+    const body = fs.readFileSync(path.join(ROOT, 'userscripts', 'lib', `${lib}.js`), 'utf8');
+    const req = src.match(new RegExp(
+      `^// @require\\s+https://raw\\.githubusercontent\\.com/mehrlander/web-tools/([^/]+)/userscripts/lib/${lib}\\.js`, 'm'));
+    assert.ok(req, `${stub}: @require does not match the raw web-tools URL shape`);
+    assert.equal(req[1], body.match(REF)[1], `${stub}: @require ref differs from the body's REF`);
+    for (const f of [`builds\\.json`, `lib/${lib}\\.js`]) {
+      const m = src.match(new RegExp(`https://raw\\.githubusercontent\\.com/mehrlander/web-tools/([^/]+)/userscripts/${f}`));
+      assert.ok(m, `${stub}: no auto-update fetch of ${f}`);
+      assert.equal(m[1], req[1], `${stub}: auto-update fetch of ${f} reads a different ref than @require`);
+    }
+  }
+});

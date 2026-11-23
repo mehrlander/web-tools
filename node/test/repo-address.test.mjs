@@ -37,6 +37,11 @@ test('an address parses into repo, ref, and path', () => {
     { repo: 'me.dash-repo/a.b-c', ref: '', path: 'x/y/z.json' }, 'dots and hyphens on both halves');
 });
 
+test('surrounding whitespace is trimmed before an address is parsed', () => {
+  assert.deepEqual({...RA.parse('  me/proj@feat/x:docs/a.md  ')}, { repo: 'me/proj', ref: 'feat/x', path: 'docs/a.md' });
+  assert.equal(RA.parse('me/proj:a.md ').path, 'a.md', 'a trailing space is not part of the path');
+});
+
 test('a missing ref is unspecified, not a guess', () => {
   assert.equal(RA.parse('me/proj:a.md').ref, '', "'' lets the contents API resolve the default branch");
   assert.equal(RA.ref(RA.parse('me/proj:a.md')), '', 'no fallback asked for, none invented');

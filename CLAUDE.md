@@ -19,7 +19,7 @@ rule: where no link reaches a change, say so and send a headless screenshot.
 
 ## Per-session refresh: thumbnails
 
-Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
+Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit them in [web-tools-private](https://github.com/mehrlander/web-tools-private). Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
 
 ## Guide-PR support: platform auto-create is on
 
@@ -31,13 +31,17 @@ The account's Claude Code web settings ("Create pull requests automatically" wit
 
 The `gh.load` chain it replaces is the repo's default, not a legacy path. [`docs/loader.md`](docs/loader.md) is the only statement of the contract a file must honor to be loadable that way, plus the timing invariants the boot sequence depends on. Read it before adding a file to `lib/` or changing how a page boots. Which folder the file belongs in is answered in [`docs/code-layers.md`](docs/code-layers.md) and measured by `npm run code-scan`.
 
-Every **deterministic** derived artifact is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it regenerates and stages, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) lists the legs, the order they run in, and why that order matters.
+Every **deterministic** generated file is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it runs the rules in [`docs/commit-rules.csv`](docs/commit-rules.csv), which regenerate and stage, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) says what a rule is and why their order matters.
 
-Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception (see "Per-session refresh" above).
+Don't hand-edit a file the hook writes; edit the source and let the hook refresh it.
 
 **Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).
 
-**Verification stays independent.** Setup never regenerates tracked artifacts, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. Repair hook-owned output with `npm run artifacts:refresh`, then run any additional command the test names. A local merge that restamps its combined index pauses for the gated `git -c core.editor=true merge --continue` path.
+**Verification stays independent.** Setup does not rewrite a generated file, and API, MCP, or server-side writes cannot run local hooks. [`node/test/derived-artifacts.test.mjs`](node/test/derived-artifacts.test.mjs) therefore checks every generator under `npm test`. [The refresh model](node/README.md#the-refresh-model) says what refreshes `main`. To repair generated files:
+
+- on a branch, check it out locally, run `npm run artifacts:refresh` and `npm test`, run any further command the test names, then commit and push;
+- before a server merge, merge the current base into the branch locally, run `npm test`, and push;
+- after a local merge that regenerates files, run the `git -c core.editor=true merge --continue` it prints.
 
 [`.github/workflows/test.yml`](.github/workflows/test.yml) runs `npm test` on every pull request and reports it as a check on the PR, so the test speaks even when no session runs the suite. `page-measures.yml` also runs on pull requests that touch a page and gives advisory output only, so a red result is not expected or intended. The suite is browser-free by construction (`node --test` globs `node/test/**/*.test.mjs`, and every Playwright-driven check is named without `.test.`), so keep it that way or the runner grows a browser install. `package-lock.json` is gitignored, so CI resolves dependency ranges fresh on each run and a green check is not a claim about a pinned tree.
 

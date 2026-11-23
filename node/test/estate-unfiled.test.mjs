@@ -21,7 +21,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
 
 let CONFIGS = { repos: {} };
 const asCache = (map) => ({
@@ -33,6 +33,7 @@ const asCache = (map) => ({
 let ACCOUNT = [];
 // Every .web-tools.json write this suite provokes: [repo, config, message].
 let WRITES = [];
+let SAVE_ERROR = null;
 
 class FakeGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
@@ -46,7 +47,10 @@ class FakeGH {
     }
     throw new Error('404');
   }
-  async save(name, obj, message) { WRITES.push([this.repo, obj, message]); }
+  async save(name, obj, message) {
+    if (SAVE_ERROR) throw SAVE_ERROR;
+    WRITES.push([this.repo, obj, message]);
+  }
   async ls() { throw new Error('404'); }
   async req(path) {
     if (path.startsWith('/repos/')) return { default_branch: 'main', description: '', private: true, pushed_at: '' };
@@ -71,6 +75,7 @@ window.__shell = {
 };
 
 const Alpine = await startAlpine(window, [
+  'lib/vanilla-bundle.js',
   'lib/alpine-bundle.js',
   'lib/kits/surface.js',
   'lib/alpineComponents/estate.js',
@@ -110,6 +115,59 @@ const groups = () => plain_(data.unfiledSections.map(s => [s.key, s.items.map(r 
 
 test('mounts with no startup warnings or errors', () => {
   assert.deepEqual(problems, []);
+});
+
+test('adding directly with no optional note writes the repository config', async () => {
+  await loadWith();
+  WRITES = [];
+  data.openAdd('new group');
+  data.addName = 'me/new';
+  await data.addRepo();
+  assert.deepEqual(plain_(WRITES.map(([repo, config]) => [repo, config])),
+    [['me/new', { estate: true, group: 'new group' }]]);
+  assert.equal(data.addOpen, false);
+  assert.equal(typeof data.addNote, 'function', 'adding a repository preserves the Lists note action');
+});
+
+test('the optional note input writes a trimmed note without replacing the Lists action', async () => {
+  WRITES = [];
+  data.openAdd();
+  data.addName = 'me/with-note';
+  const input = window.document.querySelector('input[placeholder="note (optional)"]');
+  input.value = '  Why this repository belongs.  ';
+  input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await tick();
+  await data.addRepo();
+  assert.deepEqual(plain_(WRITES.map(([repo, config]) => [repo, config])),
+    [['me/with-note', { estate: true, note: 'Why this repository belongs.' }]]);
+  await tick();
+  assert.equal(input.value, '', 'a successful add clears the optional note');
+  assert.equal(typeof data.addNote, 'function', 'typing and clearing the repository note preserves the Lists action');
+});
+
+test('a failed repository add keeps the form and optional note available for retry', async () => {
+  WRITES = [];
+  data.openAdd();
+  data.addName = 'me/retry';
+  const input = window.document.querySelector('input[placeholder="note (optional)"]');
+  input.value = 'Keep this draft';
+  input.dispatchEvent(new window.Event('input', { bubbles: true }));
+  await tick();
+  SAVE_ERROR = new Error('write refused');
+  try {
+    await data.addRepo();
+    await tick();
+    assert.deepEqual(WRITES, []);
+    assert.equal(data.addOpen, true);
+    assert.equal(data.addName, 'me/retry');
+    assert.equal(input.value, 'Keep this draft');
+    assert.equal(data.adding, false);
+  } finally {
+    SAVE_ERROR = null;
+    input.value = '';
+    input.dispatchEvent(new window.Event('input', { bubbles: true }));
+    data.addOpen = false;
+  }
 });
 
 test('the three groups: undecided first, both settled groups after, empty ones dropped', async () => {
@@ -192,12 +250,26 @@ test('the optimistic move survives the reload it triggers, then retires itself',
   assert.equal(data.unfiledMoved['me/older'], undefined, 'and has handed off to the config');
 });
 
+test('the optimistic move survives a reload for a repo that already has a config, until it says optout', async () => {
+  const prior = { ...CONFIG_MAP, 'me/older': { note: 'keep me' } };
+  await loadWith(prior);
+  const row = () => data.unfiledRepos.find(r => r.repo === 'me/older');
+  await data.setAside(row());
+
+  // The cache is still behind: the config exists but does not yet say optout.
+  await loadWith(prior);
+  assert.equal(data.unfiledState(row()), 'aside');
+  assert.equal(data.unfiledMoved['me/older'], 'aside', 'a config without optout does not retire the override');
+  delete data.unfiledMoved['me/older'];   // the override is shared state; leave it as found
+});
+
 test('adopt prefills the one add form rather than writing a second way', async () => {
   await loadWith();
   WRITES = [];
   data.adoptUnfiled(data.unfiledRepos.find(r => r.repo === 'me/recent'));
   assert.equal(data.addOpen, true);
   assert.equal(data.addName, 'me/recent');
+  assert.equal(typeof data.addNote, 'function', 'adoption preserves the Lists note action');
   assert.deepEqual(WRITES, [], 'adopt itself writes nothing; the form does');
 });
 

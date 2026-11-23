@@ -290,7 +290,7 @@
             <button class="relative flex flex-col items-center gap-1 rounded-box border bg-base-100 p-1.5 text-center lg:gap-1.5 lg:p-2"
               :class="sel[p][0] === gi ? 'border-[var(--color-primary)]' : 'border-[var(--color-base-300)]'" @click="card(p, gi)">
               <img :src="show(p, g.items[rep(p, gi)] || g.items[0])" alt="" class="block size-10 lg:size-11">
-              <span class="text-xs font-medium leading-tight text-balance" x-text="g.name"></span>
+              <span class="text-xs font-medium leading-tight" x-text="g.name"></span>
               <span class="font-mono text-xs text-base-content/50" x-text="g.items.length"></span>
               <span x-show="groupNew(g)" class="absolute top-1 left-1.5 rounded-full bg-primary px-1 text-[0.625rem] font-semibold leading-4 text-primary-content">New</span>
               <span x-show="g.items.some(it => isFav(p, it))" class="absolute top-1 right-1.5 text-xs text-amber-500" x-text="'★' + g.items.filter(it => isFav(p, it)).length"></span>

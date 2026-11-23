@@ -1,4 +1,4 @@
-// The Sessions pane's Table lens, seeded so the token-gated pane renders and
+// The Sessions pane's Table tab, seeded so the token-gated pane renders and
 // the columns take realistic widths.
 //
 //   node node/render/screenshot.mjs app/index.html --query view=sessions \
@@ -28,7 +28,7 @@ const privateRoot = path.resolve(here, '..', '..', '..', '..', 'web-tools-privat
 const KEEP = ['id', 'day', 'started', 'ended', 'mins', 'ask', 'state', 'repos',
               'branches', 'exchanges', 'calls', 'failures', 'filesTotal', 'title', 'v'];
 
-// The invented set: small, and shaped like the cases the lens has to draw.
+// The invented set: small, and shaped like the cases the tab has to draw.
 const INVENTED = {
   rows: [
     { id: 'aaa11111', day: '2026-09-07', started: '2026-09-07T09:00:00Z', ended: '2026-09-07T11:30:00Z',
@@ -117,7 +117,7 @@ function fromPrivate() {
 }
 
 // LATE=1 REPRODUCES THE ORDER THE APP ACTUALLY BOOTS IN, which is the one
-// order this scenario could not previously reach. The lens and grain come off
+// order this scenario could not previously reach. The tab and grain come off
 // the address and are set immediately; the caches are a fetch and land a beat
 // later. Seeding rows first, as the default path does, mounts a table that has
 // its data already and so cannot show the fault it was built to catch: the
@@ -147,7 +147,7 @@ export default async (page) => {
     }
     d.sessionsLoading = false;
     d.tab = 'sessions';
-    d.sessionLens = 'table';
+    d.sessionTab = 'table';
     d.sessionScope = 'all';
     d.sessionGrain = grain;
     for (const c of cols) d.toggleCol(c);

@@ -48,7 +48,7 @@ await tick(6);
 const el = window.document.getElementById('reader');
 const data = () => Alpine.$data(el);
 
-test('a supplied search finds source passages without changing the host address at mount', () => {
+test('a supplied search finds source passages without changing the host address at mount', async () => {
   assert.deepEqual(problems, []);
   assert.equal(data().findResult.hits.length, 2);
   assert.equal(data().findResult.total, 4);
@@ -57,17 +57,23 @@ test('a supplied search finds source passages without changing the host address 
   assert.equal(outlines, 0, 'active search must not construct a hidden outline');
   assert.equal(data().findResult.allTerms, true);
   assert.deepEqual(changed, []);
-  assert.equal(el.querySelectorAll('[data-session-match]').length, 2);
-  assert.match(el.textContent, /Matches: launch/);
-  assert.match(el.textContent, /Matches: budget/);
-  assert.equal(el.querySelector('[data-session-find] img'), null, 'captured markup stays text');
-  assert.match(el.querySelector('[data-session-find]').textContent, /<img src=x/);
+  // The full view filters its Turns tab (session-head.test.mjs); the passages
+  // are the compact reader's, where literal markup stays text.
+  assert.equal(data().pane, 'turns');
+  assert.equal(el.querySelector('[data-session-find]'), null, 'no list of passages outside the compact reader');
+  const { box } = await compactReader();
+  assert.equal(box.querySelectorAll('[data-session-match]').length, 2);
+  assert.match(box.textContent, /Matches: launch/);
+  assert.match(box.textContent, /Matches: budget/);
+  assert.equal(box.querySelector('[data-session-find] img'), null, 'captured markup stays text');
+  assert.match(box.querySelector('[data-session-find]').textContent, /<img src=x/);
+  Alpine.destroyTree(box); box.remove();
 });
 
 test('a match opens its actual deck card and next/previous wrap within matches', async () => {
-  const d = data();
+  const { box, d } = await compactReader();
   const expected = d.findResult.hits[1].card;
-  const buttons = el.querySelectorAll('[data-session-match] button[aria-label^="Read exchange"]');
+  const buttons = box.querySelectorAll('[data-session-match] button[aria-label^="Read exchange"]');
   buttons[1].click();
   await tick(2);
   assert.equal(opens.at(-1).start, expected);
@@ -76,31 +82,27 @@ test('a match opens its actual deck card and next/previous wrap within matches',
   assert.equal(d.findAt, 0);
   d.stepFind(-1);
   assert.equal(d.findAt, 1);
+  Alpine.destroyTree(box); box.remove();
 });
 
-test('search updates and clear notify only actual query changes and restore the outline', async () => {
+test('search updates and clear notify only actual query changes, and no outline is built outside the compact reader', async () => {
   const d = data();
   d.findText = 'missing'; d.runFind();
   await tick(2);
   assert.equal(d.findResult.hits.length, 0);
-  assert.match(el.textContent, /No matching captured exchanges/);
+  assert.match(el.textContent, /No matching turns/);
   d.runFind();
   assert.deepEqual(changed, ['missing']);
   d.clearFind();
   await tick(3);
   assert.equal(d.findQuery, '');
   assert.deepEqual(changed, ['missing', '']);
-  assert.equal(outlines, 1, 'clearing builds the outline when it first becomes visible');
+  assert.equal(outlines, 0, 'Turns took the outline in');
+  assert.equal(d.pane, 'turns', 'the search leaves the reader on Turns');
   assert.deepEqual(matches.slice(1), [
     { exchanges: 0, passages: 0, occurrences: 0, matchedTerms: [], allTerms: false },
     { exchanges: 0, passages: 0, occurrences: 0, matchedTerms: [], allTerms: false },
   ]);
-  // Alpine's x-show schedules its DOM update in requestAnimationFrame, which
-  // can be later than a few zero-delay ticks under the full parallel suite.
-  for (let i = 0; i < 30 && el.querySelector('[x-ref="outline"]').style.display === 'none'; i++) {
-    await new Promise(resolve => setTimeout(resolve, 20));
-  }
-  assert.notEqual(el.querySelector('[x-ref="outline"]').style.display, 'none');
 });
 
 test('exchange links retain the mounted subject, exact card, query and preview version', async () => {
@@ -253,4 +255,10 @@ test('exact badges wait for the record read and report its captured discussion',
   assert.equal(d.outlineBuilt, false);
   Alpine.destroyTree(box); box.remove();
   assert.deepEqual(problems, []);
+});
+
+test('a passage is cut around the match even when lowercasing lengthens the text before it', () => {
+  const rec = { ...record, replies: [{ at: at(2), text: 'İ'.repeat(100) + ' the needle sits here ' + 'z'.repeat(50) }] };
+  const hit = window.sessionRender.find(rec, 'needle').hits[0];
+  assert.match(hit.passages[0].text, /needle/);
 });

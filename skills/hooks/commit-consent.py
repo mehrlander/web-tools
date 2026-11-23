@@ -54,86 +54,31 @@ Exit 0 to allow, 1 to reject with the prompt on stderr.
 
 from __future__ import annotations
 
-import csv
 import json
 import os
 import re
 import subprocess
 import sys
 
-# Written freely by design, and named here rather than inferred. chron/ and the
-# dump trays are records, tracker/tasks/ has its own trigger above, and a blog
-# post is nobody's governing statement.
-FREE = ("chron/", "blog/", "dump/")
-FALLBACK_GLOBS = ("docs/**/*.md", "*.md", "skills/**/*.md", ".claude/skills/**/*.md")
-ALWAYS = ("CLAUDE.md", "SKILL.md", "AGENTS.md")
+# What counts as documentation is governing-docs.py beside this file, the one
+# test the edit-time warning and the session caption also ask, read here from
+# the index rather than the working tree. It already leaves out what has no
+# wording to approve: chron/, the dump trays, tracker/tasks/ (which has its own
+# trigger above), declared research, and a generated file, which this gate first
+# stopped on its own commit when docs/README.md had just been rewritten from
+# docs/docs.csv. A gate that stops a generator is the fastest way to teach a
+# session that the answer is --no-verify.
+def engine():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "governing_docs", os.path.join(os.path.dirname(os.path.abspath(__file__)), "governing-docs.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def git(root, *args):
     return subprocess.run(["git", "-C", root, *args], capture_output=True, text=True).stdout
-
-
-def doc_globs(root):
-    """The repo's own declared retrieval sources where it has them, else the
-    shapes documentation takes here. Reading the registry keeps one repo's idea
-    of what counts as documentation in one place."""
-    reg = next((c for c in (os.path.join(root, d, "file-retrieval/sources.csv") for d in ("skills", ".claude/skills")) if os.path.exists(c)), "")
-    if os.path.exists(reg):
-        with open(reg, newline="") as fh:
-            globs = [r["glob"] for r in csv.DictReader(fh) if r["glob"].endswith(".md")]
-        if globs:
-            return globs
-    return list(FALLBACK_GLOBS)
-
-
-# A generated file is not authored language, so there is nothing to have
-# approved and nobody to quote. Found by running this gate on its own first
-# commit, which stopped on docs/README.md: a file the commit hook had just
-# rewritten from docs/docs.csv three lines earlier. A gate that stops a
-# generator is the fastest way to teach a session that the answer is
-# --no-verify.
-GENERATED = re.compile(r"generated\b.*\b(from|by)\b|do not hand-edit", re.I)
-
-
-# DECLARED RESEARCH IS NOT DOCUMENTATION. A repository lists its research in
-# .web-tools.json (`research`, one entry per path), and docs/CONSTELLATION.md
-# files research outside documentation: a question kept with what was tried and
-# what came back, which nobody endorses entry by entry. A declared path is
-# exempt, and where it is a folder's README.md, so is the folder. The
-# declaration is the one statement, and naming the path there rather than here
-# keeps one repo's filenames out of a portable gate. warn-governing-docs.sh reads
-# the same list at edit time; doc-craft's approval rule names it in prose. The
-# staged copy is read, so a commit that declares a path and edits it agrees with
-# itself.
-def declared_research(root):
-    """(files, folders) the repo declares as research, as repo-relative paths."""
-    raw = git(root, "show", ":.web-tools.json")
-    try:
-        entries = json.loads(raw).get("research") or []
-    except (ValueError, AttributeError):
-        return [], []
-    files, folders = [], []
-    for e in entries:
-        p = (e.get("path") or "").strip("/") if isinstance(e, dict) else ""
-        if p and os.path.basename(p) == "README.md":
-            folders.append(os.path.dirname(p) + "/")
-        elif p:
-            files.append(p)
-    return files, folders
-
-
-def is_research(rel, declared):
-    files, folders = declared
-    return rel in files or any(f != "/" and rel.startswith(f) for f in folders)
-
-
-def is_generated(root, rel):
-    try:
-        with open(os.path.join(root, rel), encoding="utf-8", errors="replace") as fh:
-            head = "".join(next(fh, "") for _ in range(8))
-    except OSError:
-        return False
-    return bool(GENERATED.search(head))
 
 
 def is_copy(root, rel):
@@ -148,7 +93,7 @@ def is_copy(root, rel):
     and the commit that re-ran the copier was refused: the language had been
     approved where it was written, and the commit propagating it had nothing to
     ask about. That is the third false positive of one family, after a new file
-    written to spec and a regenerated index, and the comment above GENERATED
+    written to spec and a regenerated index, and the comment above engine()
     already says why they matter more than they look: a gate that stops a
     generator teaches a session that the answer is --no-verify.
 
@@ -174,25 +119,6 @@ def on_branch(root):
     """True on a named branch other than main, where the merge is the gate."""
     name = git(root, "symbolic-ref", "--short", "-q", "HEAD").strip()
     return bool(name) and name not in PROTECTED
-
-
-def is_doc(rel, globs):
-    if rel.startswith(FREE) or "/dump/" in rel or rel.startswith("tracker/tasks/"):
-        return False
-    if os.path.basename(rel) in ALWAYS:
-        return True
-    if not rel.endswith(".md"):
-        return False
-    return any(glob_hit(rel, g) for g in globs)
-
-
-def glob_hit(rel, g):
-    """Match `rel` against a registry glob the way the registry means it: `*`
-    stays inside one folder and `**/` spans any number of folders, none
-    included. fnmatch lets `*` cross `/`, so `*.md`, written for the root,
-    matched every Markdown file in the repo."""
-    rx = re.escape(g).replace(r"\*\*/", "(?:[^/]+/)*").replace(r"\*", "[^/]*")
-    return re.fullmatch(rx, rel) is not None
 
 
 def staged(root):
@@ -290,15 +216,15 @@ def main(argv):
         return 0
 
     rows = staged(root)
-    globs = doc_globs(root)
     tasks = [p for st, p in rows if st == "A" and "/tracker/tasks/" in f"/{p}"]
-    research = declared_research(root)
-    docs = [p for st, p in rows if st == "M" and is_doc(p, globs)
-            and not is_generated(root, p) and not is_copy(root, p)
-            and not is_research(p, research)]
-    new_docs = [p for st, p in rows if st == "A" and is_doc(p, globs)
-                and not is_generated(root, p) and not is_copy(root, p)
-                and not is_research(p, research)]
+    try:
+        test, cache = engine().documentation, {}
+    except (OSError, ImportError, SyntaxError):
+        test = None   # an engine that cannot load must never block a commit
+    def doc(p):
+        return bool(test and test(root, p, cache, staged=True)) and not is_copy(root, p)
+    docs = [p for st, p in rows if st == "M" and doc(p)]
+    new_docs = [p for st, p in rows if st == "A" and doc(p)]
     if not tasks and not docs and not new_docs:
         return 0
 

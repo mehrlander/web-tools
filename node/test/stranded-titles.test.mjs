@@ -58,6 +58,12 @@ test('a title inside a button is reachable, since tapping the button reaches it'
   assert.equal(r.stranded, 0);
 });
 
+test('a title inside a bare button is reachable by the ancestor tag alone', () => {
+  const r = scan('<button><span title="what this opens">6</span></button>');
+  assert.equal(r.reachable, 1);
+  assert.equal(r.stranded, 0);
+});
+
 test('an ancestor several levels up still counts as reachable', () => {
   const r = scan('<a href="#x"><span><i></i><span title="deep label">go</span></span></a>');
   assert.equal(r.reachable, 1);
@@ -209,4 +215,14 @@ test('a title set from script is counted on its own line', () => {
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// Not tooltips, and the task that converted the rest says they stay: an
+// iframe's title is its accessible name, and `data-title` or
+// `data-axis-title` is data that happens to end in "title".
+test('an iframe title and a data-*-title attribute are not reported', () => {
+  const r = scan('<iframe src="x" title="The component, running"></iframe>'
+    + '<a href="#" data-title="t">t</a><svg><text data-axis-title="x">x</text></svg>'
+    + '<span title="still a tooltip">*</span>');
+  assert.deepEqual(r.values, ['still a tooltip']);
 });

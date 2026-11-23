@@ -34,8 +34,8 @@ When GitHub rejects the token, the app opens **This browser** (`?view=here`), wh
 
 - `?repo=owner/repo[&ref=…]` opens a repo on its Overview. `?ref=` is repo-scoped and stamps beside `repo`.
 - `?view=<key>` opens a view. The keys, their labels, nav stops, groups, files and docs are rows of [app-routes.csv](app-routes.csv).
-- Second keys: `&tab=` (Project's pills, Map's tabs), `&item=` (State, Compactions), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
-- `&shell=full|nav|none` sets how much chrome surrounds the view (below).
+- Second keys: `&tab=` (Project's pills, Program's and Map's tabs), `&item=` (State, Compactions), `&detail=` (Branches), the `&sq=` family (Search), `&file=`, `&path=`, `&window=`. A view leaves its default second key out of the URL.
+- `&header=0|1` and `&sidebar=0|1` set whether the header shows and which way the sidebar starts (below).
 
 The app's `VIEWS` table is the router: each row names a key, how a link opens it, and what it stamps back. `routeFromUrl` dispatches through it and `deepLinkParams` stamps through it. **Adding a row is the whole of adding an addressable view**, plus its `app-routes.csv` row. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) forbids comparing a view name inside the routing functions and re-parses every row's own stamp; [`app-routes.test.mjs`](../node/test/app-routes.test.mjs) holds `VIEWS` and `app-routes.csv` to each other both ways. The default repo's `repo` key is dropped from addresses as redundant, except on its landing, which would otherwise have no address.
 
@@ -43,21 +43,24 @@ The app's `VIEWS` table is the router: each row names a key, how a link opens it
 
 **Header.** The estate navigation (`estateNav`) lists Activity, Waiting (with a token), Lists, Repos, Stage, Tools, Search, and Map. Repo-promoted app views (`appView: true`) follow, one button each, from `sidebarAppViews`, the same list the sidebar renders; keep one list so the two cannot disagree. The rail (`rail: true` links) and the ref switch appear on desktop. Select a repo in Repos.
 
-**Filter.** A view whose container carries `data-find-hoist` hides its own filter box (`data-find-box`), and the header's find pill drives it: a magnifier in the header that opens a bar over the top of the view, at every width. Below `lg` the view also lifts its list under the bar, above the keyboard. Ctrl or Cmd+F opens the view's filter, and a second press is the browser's find. Each box's placeholder names what its filter matches, as "<rows> by <fields>". The Search view and Config keep their boxes.
+**Filter.** A view whose container carries `data-find-hoist` hides its own filter input (`data-find-input`). The header's find pill drives it instead. The pill is a magnifier in the header that opens a bar over the top of the view, at every width. Below `lg` the view also lifts its list under the bar, above the keyboard. Ctrl or Cmd+F opens the view's filter, and a second press is the browser's find. Each input's placeholder names what its filter matches, as "<rows> by <fields>". The Search view and Config keep their inputs. In the Activity view's Sessions pane, Enter opens the Search view on the sessions that match.
 
-**Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos and app views.
+**Sidebar.** `sidebarOpen` controls an overlay below `lg` and a column at `lg` and above, without changing the URL. Breadcrumbs show the app, repo, and non-default ref. Repo navigation lists views, projects, pins, and recents; estate navigation lists repos, [programs](CONSTELLATION.md#projects-and-research), and app views.
 
 **Repo views.** Overview displays the README. Other views are Pages, Atlas, Config, Files, and Project. A declared landing page renders as an app view.
 
-**Display options.** `?shell=` controls the header and sidebar. It accompanies the view's address and has no `VIEWS` row.
+**Display options.** `?header=` and `?sidebar=` control the header and sidebar. They accompany the view's address and have no `VIEWS` row. The app leaves a default out of the URL and reads any value other than `0` or `1` as absent.
 
-| Value | Header | Sidebar |
-| --- | --- | --- |
-| `full` | Shown | Open on wide screens; closed on phones |
-| `nav` | Shown | Closed; opened by the menu button |
-| `none` | Hidden | Closed; the FAB and its sidebar's Render tab provide navigation |
+| Parameter | Absent | `1` | `0` |
+| --- | --- | --- | --- |
+| `header` | Shown | Shown | Hidden; the [FAB](fab.md)'s Render tab and its long-press menu bring it back |
+| `sidebar` | Starts open on wide screens and closed on phones; closed on app views and with the header hidden | Starts open | Starts closed |
 
-App views default to `nav`; other views default to `full`. Omit the default from the URL. Unknown values use `full`. `shell-routing.test.mjs` holds these rules. App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
+`?sidebar=` sets only how the sidebar starts: the header's menu button toggles it without changing the URL. The menu button sits in the header and hides with it. [`shell-routing.test.mjs`](../node/test/shell-routing.test.mjs) checks these rules.
+
+**The `?shell=` alias.** `?shell=full|nav|none`, the preset these two parameters replace, still opens and is rewritten to them at the next URL update. Its code carries `SUNSET(2027-02-01)` markers, which `npm run sunset` lists; remove the alias when they come due.
+
+App views take their tab title and iOS Home Screen title and icon from toss-render's `toss-subject-mark` event.
 
 **Ref switch** (`lib/alpineComponents/ref-switch.js`). Enter a branch, tag, or SHA to reload the app through toss-render at that ref (`#gh=…@<ref>:…`, which also pins its library), preserving the current deep link. It puts no `?use=` on the renderer's own query, since that pin kills Safari's web process on an iPhone whenever the renderer hosts a frame (the snag `shell-pin-kills-the-tab`); the FAB and its sidebar around a switched view are therefore main's, and the sidebar's layer strip says so. Search's ref picker changes the browsed repo's ref. The FAB Render tab shows the app ref. A link's selection (`refs=owner/repo@ref[:path]`, [loader.md](loader.md#the-selection)) travels to every view the app frames; a hub view with no ref of its own is displayed at the app's version. The Files view's browsed ref is its own visible choice, which also targets its writes, so the selection does not move it.
 

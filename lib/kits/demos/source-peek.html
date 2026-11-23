@@ -8,6 +8,7 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
+  await gh.load('kits/title-tip.js');
   // The address grammar the card parses a data-peek with, then the kit itself.
   await gh.load('kits/repo-address.js');
   // The one CSV parser, which a table peek splits its cells with.
@@ -122,7 +123,7 @@ codex-errand,personal-laptop,self-filed,"Ask Codex on the laptop, in its clone o
         <a id="t-md" class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
            href="https://github.com/mehrlander/web-tools/blob/main/tracker/tasks/add-task-tracker-skill-iwr1ay.md"
            data-peek="mehrlander/web-tools@main:tracker/tasks/add-task-tracker-skill-iwr1ay.md"
-           target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
+           target="_blank" rel="noopener" data-title-tip="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
       </li>
       <li class="flex items-center gap-3 px-3 py-2">
         <i class="ph ph-brackets-curly text-base-content/30 text-[17px]"></i>
@@ -130,7 +131,7 @@ codex-errand,personal-laptop,self-filed,"Ask Codex on the laptop, in its clone o
         <a id="t-json" class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
            href="https://github.com/mehrlander/web-tools/blob/main/.web-tools.json"
            data-peek="mehrlander/web-tools@main:.web-tools.json"
-           target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
+           target="_blank" rel="noopener" data-title-tip="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
       </li>
       <li class="flex items-center gap-3 px-3 py-2">
         <i class="ph ph-file-code text-base-content/30 text-[17px]"></i>
@@ -138,7 +139,7 @@ codex-errand,personal-laptop,self-filed,"Ask Codex on the laptop, in its clone o
         <a id="t-src" class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
            href="https://github.com/mehrlander/web-tools/blob/main/lib/kits/source-peek.js"
            data-peek="mehrlander/web-tools@main:lib/kits/source-peek.js"
-           target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
+           target="_blank" rel="noopener" data-title-tip="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
       </li>
       <li class="flex items-center gap-3 px-3 py-2">
         <i class="ph ph-table text-base-content/30 text-[17px]"></i>
@@ -146,14 +147,14 @@ codex-errand,personal-laptop,self-filed,"Ask Codex on the laptop, in its clone o
         <a id="t-csv" class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
            href="https://github.com/mehrlander/web-tools/blob/main/docs/run-methods.csv"
            data-peek="mehrlander/web-tools@main:docs/run-methods.csv"
-           target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
+           target="_blank" rel="noopener" data-title-tip="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
       </li>
       <li class="flex items-center gap-3 px-3 py-2">
         <i class="ph ph-folder-simple text-base-content/30 text-[17px]"></i>
         <span class="font-mono text-[13.5px] truncate min-w-0">lib/kits/</span>
         <a class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
            href="https://github.com/mehrlander/web-tools/tree/main/lib/kits"
-           target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
+           target="_blank" rel="noopener" data-title-tip="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
       </li>
     </ul>
     <p class="text-[13px] text-base-content/50">The last row names a directory and carries no <code class="font-mono">data-peek</code>, which is the convention: an icon that can show you the file is pointing at a file.</p>
@@ -169,7 +170,7 @@ codex-errand,personal-laptop,self-filed,"Ask Codex on the laptop, in its clone o
         <a id="t-live" class="ml-auto shrink-0 text-base-content/30 hover:text-primary"
            href="https://github.com/mehrlander/web-tools/blob/main/docs/CONVENTIONS.md"
            data-peek="mehrlander/web-tools@main:docs/CONVENTIONS.md"
-           target="_blank" rel="noopener" title="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
+           target="_blank" rel="noopener" data-title-tip="Open on GitHub"><i class="ph ph-github-logo text-[17px]"></i></a>
       </li>
     </ul>
   </section>
@@ -191,7 +192,7 @@ codex-errand,personal-laptop,self-filed,"Ask Codex on the laptop, in its clone o
                 :disabled="!ready"
                 @click="window.SourcePeek.seed(addr(), text); $refs.trig.focus()">Seed and peek</button>
         <a x-ref="trig" :data-peek="addr()" :href="ready ? window.RepoAddress.github.blob('mehrlander/web-tools', 'main', path) : ''"
-           target="_blank" rel="noopener" title="Open on GitHub"
+           target="_blank" rel="noopener" data-title-tip="Open on GitHub"
            class="text-base-content/30 hover:text-primary"><i class="ph ph-github-logo text-[17px]"></i></a>
       </span>
     </div>

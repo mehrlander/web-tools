@@ -69,5 +69,67 @@ compact({...provider,windows:[{...row,durationMinutes:null}]});
 check(!doc.querySelector('[data-elapsed]') && !!doc.querySelector('[data-compact-reset]'),'An unknown period still shows its actual reset without a guessed pace.');
 compact({...provider,windows:[{...row,resetsAt:'2027-01-15T04:59:00Z'}]});
 check(!doc.querySelector('[data-elapsed], [data-over-pace]') && doc.querySelector('[data-compact-reset]').textContent === 'Reset due','Expired periods show reset due without a pace comparison.');
+const {remainingPace,dailyPaceGuides,calendarAxis,calendarDay} = window.NowUsage;
+const weeklyReset = Date.parse('2026-11-15T01:00:00Z'), weeklyDuration = 7 * 86400000, midway = weeklyReset - weeklyDuration / 2;
+const remainingBudget = (usedPercent,changes = {},options = {}) => remainingPace({usedPercent,durationMinutes:10080,resetsAt:new Date(weeklyReset).toISOString(),...changes},{now:midway,observedAt:midway,status:'available',...options});
+check(remainingBudget(0).multiplier === 2 && remainingBudget(50).multiplier === 1 && remainingBudget(75).multiplier === .5 && remainingBudget(100).multiplier === 0,'At midweek, untouched, half-used, three-quarter-used and exhausted budgets allow 2x, 1x, 0.5x and zero normal pace.');
+const halfUsed = remainingBudget(50);
+check(halfUsed.remainingPercent === 50 && halfUsed.remainingFraction === .5 && Math.abs(halfUsed.normalDailyPercent - 100 / 7) < .000001 && Math.abs(halfUsed.availableDailyPercent - 100 / 7) < .000001 && halfUsed.usedPercent === 50,'Remaining allowance, remaining time and daily rates describe the current net budget in explicit units.');
+check(halfUsed.reset === weeklyReset && halfUsed.observedAt === midway,'The remaining-budget result retains the exact reset and observation instants.');
+const longerBudget = remainingBudget(50,{durationMinutes:20160});
+check(longerBudget.multiplier === 2 && longerBudget.remainingFraction === .25 && Math.abs(longerBudget.normalDailyPercent - 100 / 14) < .000001 && Math.abs(longerBudget.availableDailyPercent - 100 / 7) < .000001,'A longer reported period changes the normal rate while retaining the same allowance and actual time left.');
+const laterBudget = remainingBudget(0,{}, {now:midway + 300000});
+check(laterBudget.multiplier > 2 && laterBudget.remainingFraction < .5 && laterBudget.observedAt === midway,'Fresh unchanged readings use the current viewing clock rather than freezing the remaining time at collection.');
+check(remainingBudget(0,{}, {now:weeklyReset - weeklyDuration,observedAt:weeklyReset - weeklyDuration}).multiplier === 1,'An untouched budget at its actual window start allows exactly normal pace.');
+check([null,0,-1,Infinity,NaN].every(durationMinutes => remainingBudget(50,{durationMinutes}) === null) && [null,-1,101,NaN,'50'].every(usedPercent => remainingBudget(usedPercent) === null),'Unknown durations and malformed allowance values do not produce a remaining pace.');
+check(['stale','unavailable','signin_required',undefined].every(status => remainingBudget(50,{}, {status}) === null) && remainingBudget(50,{}, {observedAt:midway - 600001}) === null && remainingBudget(50,{}, {observedAt:midway - 600000}) !== null,'Remaining pace requires an available account reading no more than ten minutes old.');
+check(remainingBudget(50,{}, {observedAt:midway + 1}) === null && remainingBudget(50,{}, {observedAt:'invalid'}) === null && remainingBudget(50,{resetsAt:'2026-02-30T01:00:00Z'}) === null,'Future observations and malformed timestamps never supply a usable budget.');
+check(remainingBudget(50,{}, {now:weeklyReset,observedAt:weeklyReset}) === null && remainingBudget(50,{}, {now:weeklyReset + 1,observedAt:weeklyReset}) === null && remainingBudget(50,{}, {now:weeklyReset - weeklyDuration - 1,observedAt:weeklyReset - weeklyDuration - 1}) === null,'Expired, reset-boundary and not-yet-started windows have no remaining pace.');
+check(remainingBudget(50,{}, {now:weeklyReset - weeklyDuration + 1000,observedAt:weeklyReset - weeklyDuration - 1}) === null,'A fresh reading from before the reported window does not become the current window budget.');
+const lastMillisecond = remainingBudget(0,{}, {now:weeklyReset - 1,observedAt:weeklyReset - 1});
+check(Number.isFinite(lastMillisecond.multiplier) && lastMillisecond.multiplier === weeklyDuration && lastMillisecond.availableDailyPercent > 0 && remainingBudget(100,{}, {now:weeklyReset - 1,observedAt:weeklyReset - 1}).multiplier === 0,'A tiny positive remainder produces a large finite rate while exhausted allowance remains zero.');
+check(remainingBudget(50,{history:[{usedPercent:99}],confirmed_restore:true}).multiplier === halfUsed.multiplier,'History and restore metadata do not alter the available rate from the current net allowance.');
+const guideRow = {usedPercent:0,durationMinutes:10080,resetsAt:new Date(weeklyReset).toISOString()};
+const guides = dailyPaceGuides(guideRow,{now:midway,observedAt:midway,status:'available'});
+check(guides.length === 2 && Math.abs(guides[0].dailyPercent - 100/7) < 1e-9 && Math.abs(guides[1].dailyPercent - 200/7) < 1e-9,'Daily reference rates share percentage points per 24 hours, with the catch-up line twice normal for an unused half-week.');
+check(guides[0].from === weeklyReset-weeklyDuration && guides[0].until === weeklyReset && guides[1].from === midway && guides[1].until === weeklyReset,'The normal guide spans its reported window and catch-up spans only the time remaining before that reset.');
+check(Math.abs(guides[1].dailyPercent * (guides[1].until-guides[1].from)/86400000 - 100) < 1e-9,'The catch-up rate over its exact remaining interval spends the remaining allowance without extending beyond reset.');
+check(dailyPaceGuides({...guideRow,usedPercent:100},{now:midway,observedAt:midway,status:'available'})[1].dailyPercent === 0,'An exhausted allowance has a zero catch-up rate, not a missing rate.');
+check(dailyPaceGuides(guideRow,{now:midway,observedAt:midway-600001,status:'available'}).length === 1 && dailyPaceGuides(guideRow,{now:weeklyReset,observedAt:weeklyReset,status:'available'}).length === 1,'Stale and expired readings retain only the theoretical even-pace reference.');
+check([null,0,-1,Infinity,NaN].every(durationMinutes=>dailyPaceGuides({...guideRow,durationMinutes}).length===0) && dailyPaceGuides({...guideRow,resetsAt:'bad'}).length===0,'Unknown periods and invalid resets never produce a guide.');
+const realNow = window.Date.now;
+try {
+  let reads = 0;
+  window.Date.now = () => weeklyReset - 1 + reads++;
+  const edgeGuides = dailyPaceGuides(guideRow,{observedAt:weeklyReset-1,status:'available'});
+  check(reads === 1 && edgeGuides[1].from === weeklyReset-1 && edgeGuides[1].until === weeklyReset,'A default-clock guide uses one instant for its rate and interval even at the reset boundary.');
+} finally { window.Date.now = realNow; }
+const calendar = (at,options = {}) => calendarAxis({width:280,now:Date.parse(at),timezone:'Pacific time',...options});
+const spring = calendar('2026-03-08T20:00:00Z'), springDay = spring.days.find(day => day.day === '2026-03-08');
+check(spring.timezone === 'America/Los_Angeles' && spring.today === '2026-03-08' && spring.home === '2026-03-05','The calendar names the archive timezone and centers the default week around today.');
+check(springDay.start === Date.parse('2026-03-08T08:00:00Z') && springDay.end === Date.parse('2026-03-09T07:00:00Z'),'Pacific spring change uses the actual 23-hour calendar day.');
+check(spring.x('2026-03-09') - spring.x('2026-03-08') === 40 && spring.x('2026-03-10') - spring.x('2026-03-09') === 40,'A short DST day and a normal day occupy equal calendar columns.');
+check(Math.abs(spring.x('2026-03-08T10:00:00Z') - spring.x('2026-03-08') - 40 * 2 / 23) < .000001,'A reset after the skipped spring hour retains its exact position within that day.');
+const fall = calendar('2026-11-01T20:00:00Z'), fallDay = fall.days.find(day => day.day === '2026-11-01');
+check(fallDay.start === Date.parse('2026-11-01T07:00:00Z') && fallDay.end === Date.parse('2026-11-02T08:00:00Z'),'Pacific fall change uses the actual 25-hour calendar day.');
+check(Math.abs(fall.x('2026-11-01T09:30:00Z') - fall.x('2026-11-01T08:30:00Z') - 40 / 25) < .000001,'The two repeated fall 1:30 times retain distinct chronological positions.');
+for (const [axis,instants] of [[spring,['2026-03-07T21:00:00Z','2026-03-08T08:00:00Z','2026-03-08T10:00:00Z','2026-03-09T07:00:00Z']],[fall,['2026-11-01T08:30:00Z','2026-11-01T09:30:00Z','2026-11-02T08:00:00Z']]]) {
+  check(instants.every(value => Math.abs(axis.time(axis.x(value)) - Date.parse(value)) < .001),'Timestamp and calendar-pixel conversion round trips across DST and exact day boundaries.');
+}
+const bounds = calendar('2026-11-01T20:00:00Z',{dates:['2026-10-01','2026-10-01','2026-02-30','bad'],markers:[{reset:'2026-12-01T12:34:56Z'},{reset:'invalid'}]});
+check(bounds.days[0].day === '2026-10-01' && bounds.days.at(-1).day === '2026-12-01' && bounds.days.filter(day => day.day === '2026-10-01').length === 1,'The calendar includes saved dates and future resets while ignoring malformed or duplicate dates.');
+check(spring.days[0].day === '2026-03-01' && spring.days.at(-1).day === '2026-03-16','The base calendar includes seven earlier days and the boundary nine days after today.');
+check(bounds.x('2000-01-01T00:00:00Z') === 0 && bounds.x('2099-01-01T00:00:00Z') === bounds.days.length * bounds.cell && bounds.time(-1) === bounds.days[0].start && bounds.time(Infinity) === null && bounds.time(1e9) === bounds.days.at(-1).end,'Calendar conversions clamp valid out-of-range values and reject invalid positions.');
+check(bounds.x('2026-02-30') === null && bounds.x('2026-02-30T12:00:00Z') === null && bounds.x('invalid') === null && calendarDay('2026-02-30','Pacific time') === null,'Malformed calendar dates never roll into another date or produce NaN positions.');
+check(calendar('2026-11-01T20:00:00Z',{timezone:'not-a-timezone'}) === null && calendarDay('2026-11-01T20:00:00Z','not-a-timezone') === null,'An unknown archive timezone fails explicitly instead of moving daily readings to the viewer timezone.');
+const deviceTimezone = process.env.TZ;
+try {
+  process.env.TZ = 'Asia/Tokyo';
+  const remote = calendar('2026-11-01T07:30:00Z');
+  check(calendarDay('2026-11-01T06:30:00Z','Pacific time') === '2026-10-31' && remote.today === '2026-11-01' && remote.days.find(day => day.day === '2026-11-01').start === Date.parse('2026-11-01T07:00:00Z'),'A device in another timezone preserves the source dates and Pacific DST boundaries.');
+} finally {
+  if (deviceTimezone === undefined) delete process.env.TZ;
+  else process.env.TZ = deviceTimezone;
+}
 console.log(`${checks} usage display checks passed.`);
 dom.window.close();

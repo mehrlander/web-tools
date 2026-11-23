@@ -146,7 +146,6 @@ and write `data-title-tip="…"` where a `title` would have gone; markup written
 later needs nothing more. Beside it:
 
 - `data-title-tip-lead`: a bold lead line, such as a comment's author.
-- `data-title-tip-bare`: no dotted underline, where there is no room for one.
 - `data-title-tip-look`: `plain` (the browser's tooltip redrawn, for a few
   words) or the styled default, resolved with `closest()` so `<body>` sets a
   page default. Any other token is the page's to style through

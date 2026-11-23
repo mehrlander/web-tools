@@ -13,7 +13,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { repoRoot, makeWindow } from './bootstrap.mjs';
+import { repoRoot, makeWindow, until } from './bootstrap.mjs';
 import { marked } from 'marked';
 import * as Diff from 'diff';
 
@@ -154,6 +154,41 @@ test('a variant proposed for the open file is the default pick and carries a mar
   host.remove();
 });
 
+test('a proposal for the same path in another repo is not marked here', async () => {
+  const ix = index();
+  ix.proposals[1] = { from: 't3', to: 't3n', repo: 'other/repo', path: FILE.path, basis: BASIS };
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  await K.render(host, DOC, ix, { file: FILE });
+  const who = [...host.querySelectorAll('.md-variants-who')];
+  assert.equal(who.length, 2);
+  assert.equal(who[1].querySelector('[data-md-variants-proposal]'), null, 'the path alone does not make it this file\'s');
+  host.remove();
+});
+
+test('provenance lines follow the diff boxes by position: a block that diffs into two boxes is named once, by its own variant', async () => {
+  const A = 'Alpha beta gamma delta epsilon.';
+  const A2 = '- zebras quilts\n- more quilts';
+  const T = 'Carry-forward level is the base a request is measured against.';
+  const T2 = 'Carry-forward level is the base a request is measured against, not spent from.';
+  const doc = `# T\n\n${A}\n\nMiddle untouched.\n\n${T}\n`;
+  const ix = { variants: [
+      { id: 'va', from: 'a', to: 'a2', author: 'AuthA', purpose: 'update' },
+      { id: 'vc', from: 'c', to: 'c2', author: 'AuthC', purpose: 'update' } ],
+    passages: { a: A, a2: A2, c: T, c2: T2 }, proposals: [] };
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  await K.render(host, doc, ix);
+  const boxes = [...host.querySelectorAll('.md-diff-change')];
+  assert.equal(boxes.length, 3, 'the first block shows as a removal and an addition, the second as one box');
+  const who = boxes.map((b) => b.querySelector('.md-variants-who'));
+  assert.equal(host.querySelectorAll('.md-variants-who').length, 2);
+  assert.match(who[0].textContent, /AuthA/);
+  assert.equal(who[1], null, 'the addition half of a block carries no second line');
+  assert.match(who[2].textContent, /AuthC/);
+  host.remove();
+});
+
 test('without a file, no variant is marked and the first stays the default', async () => {
   assert.deepEqual(K.plan(DOC, index()).blocks.map((b) => b.pick), [0, 0]);
   const host = window.document.createElement('div');
@@ -257,7 +292,6 @@ window.HTMLElement.prototype.scrollTo = function ({ left = 0 } = {}) {
 
 const BARE = DOC.replace(/^# .*\n\n/, '');
 const sectionTool = (box) => box.querySelector('[data-md-variant-section]');
-const until = async (ok) => { for (let i = 0; i < 80 && !ok(); i++) await new Promise((r) => setTimeout(r, 10)); };
 
 test('mark puts the sparkle in the heading\'s row of tools, counting its paragraphs, from the light read alone', async () => {
   const { box, calls, T } = await marksFixture();

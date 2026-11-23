@@ -27,9 +27,12 @@
     #branch=claude/some-branch-ab12  that branch's LATEST session
     #gz=<base64url>                  a gzipped record, for a reader with no token
 
-  Any of the four takes `pane=outline|cost|files|raw|calls` and `card=<n>`, which say where
-  in the session to land: `card` opens the deck on one exchange, the session's
-  answer to branch.html's `file=`.
+  Any of the four takes `pane=calls|overview|turns|outline|views|files|record`
+  and `card=<n>`, which say where in the session to land: `card` opens the deck
+  on one exchange, the session's answer to branch.html's `file=`. The tabs that
+  went on 2026-11-17 still land: `log`, `raw` and `schema` on the Record tab,
+  `cost` on the Overview with the cost panel open. `find=<text>` opens the
+  search in the header with that text.
 
   `#branch=` is the address a phone can produce. The Claude app copies the branch
   a Claude Code session is on and nothing else about it, so this page takes that
@@ -236,7 +239,7 @@
         const find = (pick('find') || '').trim();
         // `now` names the ref the action message is read from, main by default.
         const nowRef = pick('now');
-        const at = { ...(['overview', 'turns', 'cost', 'outline', 'log', 'schema', 'raw',
+        const at = { ...(['overview', 'turns', 'cost', 'outline', 'log', 'schema', 'raw', 'record',
                           'calls', 'views', 'files'].includes(pane) ? { pane } : {}),
                      ...(Number.isInteger(card) ? { start: card } : {}),
                      ...(find ? { find } : {}),
@@ -338,8 +341,11 @@
       },
 
       // The session as a one-slide takeover, its header the app's: the name,
-      // the day and the id, the Claude Code link. ✕, Escape and Back leave
-      // for the app's Sessions view, where the app's own takeover returns.
+      // the Claude Code link, and under the name the brief's own facts line
+      // with its search, handed over through setChrome (session-brief.js
+      // buildHead). The subtitle below is what shows until the brief's line
+      // arrives. ✕, Escape and Back leave for the app's Sessions view, where
+      // the app's own takeover returns.
       openDeck(opts){
         if (!window.swipeDeck) return false;
         const app = 'https://mehrlander.github.io/web-tools/app/?view=sessions';
@@ -353,8 +359,8 @@
         deck = window.swipeDeck.open({
           count: 1, slideScroll: false, innerClass: 'h-full w-full min-w-0',
           icon: 'ph-terminal-window', title: opts.id || opts.branch || 'Session', subtitle: sub(opts.path),
-          render: (i, slide) => {
-            window.__sessionSlide = { ...opts, framed: true, lent: false, onMeta: (m) => {
+          render: (i, slide, ctx) => {
+            window.__sessionSlide = { ...opts, framed: true, lent: false, chrome: ctx?.setChrome, onMeta: (m) => {
               if (!deck || !m) return;
               if (m.title) deck.setTitle(m.title);
               deck.setSubtitle(sub(m.path));

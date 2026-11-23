@@ -50,7 +50,7 @@ test('a ⚖️ closing line without its "Recommended:" clause goes back, naming 
     const d = run({ last_assistant_message: body + line });
     assert.equal(d.decision, 'block', line);
     assert.match(d.reason, /Recommended: <answer>, because <reason>/);
-    assert.match(d.reason, /close on 🪧 Direction needed instead/, 'an unassessed call is offered the way out');
+    assert.match(d.reason, /close on ❇️ Ready to assess instead/, 'an unassessed call is offered the way out');
     assert.match(d.reason, /do not repeat the rest of the reply/);
   }
 });
@@ -63,9 +63,16 @@ test('the clause passes in the shapes a reply writes it, bold included', () => {
   }
 });
 
+test('a closing line whose whole lead is a link is read the same way', () => {
+  const lead = '[⚖️ **Choice needed:**](https://example.test/call) merge now or wait.';
+  assert.equal(run({ last_assistant_message: body + lead }).decision, 'block', 'no clause, sent back');
+  assert.equal(run({ last_assistant_message: body + lead + ' Recommended: merge now, because CI passed.' }), null,
+               'with the clause, it passes');
+});
+
 test('only the closing line is read: other markers, and a clause elsewhere in the reply, are not it', () => {
-  assert.equal(run({ last_assistant_message: body + '🪧 **Direction needed:** whether the merge should wait is open.' }), null,
-               'naming an open question asks for no recommendation');
+  assert.equal(run({ last_assistant_message: body + '❇️ **Ready to assess:** whether the merge should wait.' }), null,
+               'an offer to assess asks for no recommendation');
   assert.equal(run({ last_assistant_message: body + '🟡 **Pending:** your yes or no on the merge.' }), null);
   assert.equal(run({ last_assistant_message: body + '🟢 **Ready to continue:** merging next.' }), null);
   const elsewhere = 'Recommended: merge now, because CI passed.\n\n⚖️ **Choice needed:** merge now or wait.';

@@ -45,7 +45,7 @@ test('read of the record and fromExtract of its extract agree on every prompt an
   // The fixture reaches what it is for: both re-load kinds, a priced and an
   // unpriced model, a compaction inside a prompt, a prompt with no steps.
   assert.deepEqual(a.prompts.map((p) => p.reloads), [0, 1, 1, 0]);
-  assert.deepEqual(a.totals.unpriced, ['claude-sonnet-5-5']);
+  assert.deepEqual(a.totals.unpriced, ['claude-haiku-4-5']);
   assert.deepEqual(a.prompts.map((p) => p.compaction), [false, true, true, false]);
   assert.equal(a.prompts[3].context, null);
   assert.ok(a.totals.reload > 0);
@@ -55,6 +55,17 @@ test('with no owner prompt the totals still agree, kept as the extract\'s unowne
   const { a, b } = agree(fixture('peer-record.json'), fixture('peer-extract.json'));
   assert.equal(a.prompts.length, 0);
   assert.ok(b.totals.modelled > 0 && b.totals.steps === a.totals.steps);
+});
+
+test('a step exactly at a prompt\'s time belongs to that prompt, and so does a compaction', () => {
+  const rec = fixture('record.json');
+  const step = rec.responses.find((r) => r.at === '2026-11-04T11:00:04.000Z');
+  step.at = '2026-11-04T11:00:00.000Z';
+  const { a } = agree(rec, fixture('extract.json'));
+  assert.deepEqual(a.prompts.map((p) => p.steps), [3, 3, 3, 0]);
+  const x = fixture('extract.json');
+  x.compactions[0].at = '2026-11-04T12:30:00.000Z';
+  assert.equal(U.fromExtract(x).compactions[0].prompt, 3);
 });
 
 test('an extract carries tokens only: its dollars come from the kit\'s one price table', () => {

@@ -7,9 +7,12 @@
 // The README used to be hand-kept and indexed well under half the folder; the
 // registry's registry is complete by construction (docs-registry.test.mjs), so
 // the index is now a projection of it. Subjects, statuses, and maintenance
-// live in the registry: edit docs/docs.csv, never this file's output.
+// live in the registry: edit docs/docs.csv, never this file's output. Which
+// docs are records is not a registry column: .gitattributes owns it as
+// edit=write-once, read here through `git check-attr`.
 
 import { readFile, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { parseCsv } from './registries-load.mjs';
 import { repoRoot } from '../repo-root.mjs';
@@ -31,6 +34,15 @@ function groups(documents) {
     .sort(([a], [b]) => a === '.' ? -1 : b === '.' ? 1 : a.localeCompare(b));
 }
 
+// The registered paths .gitattributes holds write-once: the records.
+function writeOnce(paths) {
+  const out = spawnSync('git', ['check-attr', '--stdin', '-z', 'edit'],
+    { cwd: repoRoot, input: paths.join('\0') }).stdout.toString().split('\0');
+  const found = new Set();
+  for (let i = 0; i + 2 < out.length; i += 3) if (out[i + 2] === 'write-once') found.add(out[i]);
+  return found;
+}
+
 function render(reg) {
   const lines = [];
   lines.push('# docs');
@@ -40,8 +52,8 @@ function render(reg) {
   lines.push('Reference docs that don\'t belong at the repo root. This index is generated');
   lines.push('from [`docs.csv`](docs.csv), the documentation registry, which also renders');
   lines.push('live in [the Web Tools app\'s Map → Docs → Inventory](https://mehrlander.github.io/web-tools/app/?view=map&tab=docs).');
-  lines.push('A **record** preserves a moment and is');
-  lines.push('never rewritten: a later dated sentence corrects it; a **measured** doc carries dated');
+  lines.push('A **record** (`edit=write-once` in `.gitattributes`) preserves a moment and is');
+  lines.push('not edited once on main: a note corrects it; a **measured** doc carries dated');
   lines.push('observations and is corrected by re-probing; everything else is living and');
   lines.push('must stay correct.');
   lines.push('');
@@ -52,6 +64,7 @@ function render(reg) {
   lines.push(`${reach.skill || 0} by a skill, ${reach.app || 0} by a page or component. The remaining ${reach.orphan || 0} are`);
   lines.push('marked *(orphan)* below: nothing points at them except this index.');
   lines.push('');
+  const records = writeOnce(reg.documents.map(d => d.path));
   for (const [dir, docs] of groups(reg.documents)) {
     lines.push(dir === '.' ? '## docs/' : `## docs/${dir}/`);
     lines.push('');
@@ -59,7 +72,8 @@ function render(reg) {
       const rel = d.path.replace(/^docs\//, '');
       const name = rel.slice(rel.lastIndexOf('/') + 1);
       const marks = [];
-      if (d.status !== 'living') marks.push(d.status);
+      const status = records.has(d.path) ? 'record' : d.status;
+      if (status && status !== 'living') marks.push(status);
       if (d.reach === 'orphan') marks.push('orphan');
       const tag = marks.length ? ` *(${marks.join(', ')})*` : '';
       lines.push(`- [\`${name}\`](${rel})${tag} — ${d.subject}`);

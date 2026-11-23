@@ -74,9 +74,11 @@ test('JsonExplorer.mount builds the toolbar once and draws the top level as rows
   assert.ok(explorer, 'explorer instance returned');
   assert.ok(container.querySelector('.json-explorer'), 'explorer element mounted');
 
-  const tabs = [...container.querySelectorAll('[role="tablist"] [role="tab"]')]
+  const tabs = [...container.querySelector('[role="tablist"]').querySelectorAll('[role="tab"]')]
     .filter(t => !t.classList.contains('hidden')).map(t => t.textContent.trim());
-  assert.deepEqual(tabs, ['Tree', 'Schema', 'JSON'], 'Table is offered only on an array of records');
+  assert.deepEqual(tabs, ['Tree', 'JSON'], 'Table is offered only on an array of records, and a docked tree has its Schema in the panel');
+  const panelTabs = [...container.querySelectorAll('[data-panel-view]')].map(t => t.textContent.trim());
+  assert.deepEqual(panelTabs, ['Value', 'Schema'], 'the panel switches between Value and Schema');
   assert.equal(container.querySelector('select'), null, 'no chunk select: the tree drills in itself');
 
   const searchInput = container.querySelector('input[type="search"]');
@@ -115,6 +117,83 @@ test('JsonExplorer opens a collection on a tap and offers a way back', () => {
   explorer.destroy();
 });
 
+test('a docked tree keeps a panel: the schema of the opened field, or the selection with its copies', async () => {
+  const container = window.document.getElementById('c');
+  const data = { repos: [{ name: 'web-tools', branch: 'main' }], 'odd-key': 7, notes: 'x'.repeat(200) };
+  const explorer = JsonExplorer.mount(container, { data, name: 'd.json' });
+  const pane = container.querySelector('[data-selection]');
+  const copy = (what) => pane.querySelector(`[aria-label="Copy the ${what}"]`);
+  const tick = () => new Promise(r => setTimeout(r, 0));
+  let copied = null;
+  window.io = { copy: async (t) => { copied = t; return true; } };
+  try {
+    assert.equal(container.querySelector('[data-view="schema"]'), null, 'a docked tree has no Schema tab');
+    assert.ok(!pane.classList.contains('hidden'), 'with nothing selected the panel is up');
+    assert.match(pane.textContent, /d\.json/, 'and names the opened file');
+    pane.querySelector('[data-panel-view="schema"]').click();
+    assert.ok(pane.querySelector('table'), 'with its schema');
+    pane.querySelector('[data-panel-view="value"]').click();
+    assert.match(pane.querySelector('pre').textContent, /"odd-key": 7/, 'or its value, as indented JSON');
+    pane.querySelector('[data-panel-view="schema"]').click();
+
+    container.querySelector('[data-path="repos"]').click();
+    assert.ok(container.querySelector('[data-path="repos[0]"]'), 'a row that opens still opens on a tap');
+    assert.match(pane.textContent, /list · 1 item/);
+    assert.match(pane.textContent, /branch/, 'a selected list of records shows its fields');
+    await tick();
+    assert.ok(container.querySelector('[data-path="repos"]').hasAttribute('data-selected'), 'the selected row is marked after the redraw');
+
+    container.querySelector('[data-path="repos[0]"]').click();
+    container.querySelector('[data-path="repos[0].name"]').click();
+    assert.match(pane.textContent, /repos\[0\]\.name/);
+    assert.equal(pane.querySelector('[data-what]').textContent, 'text · 9 characters');
+    const label = pane.querySelector('[data-title-tip-lead]');
+    assert.equal(label.textContent, 'path', 'the path is labeled');
+    assert.equal(label.getAttribute('data-title-tip-lead'), '3 steps from the top of d.json');
+    assert.deepEqual(label.getAttribute('data-title-tip').split('\n'),
+      ['repos · list · 1 item', '[0] · object · 2 fields', 'name · text · 9 characters'], 'its title-tip walks the path');
+    assert.equal(pane.lastElementChild.getAttribute('data-what'), '', 'the type and size sit on a line under the box');
+    copy('path').click(); await tick();
+    assert.equal(copied, 'repos[0].name');
+    copy('value').click(); await tick();
+    assert.equal(copied, 'web-tools');
+
+    assert.ok(pane.querySelector('[role="tablist"]').classList.contains('hidden'), 'a plain value has no Value and Schema switch');
+    container.querySelector('[data-path="odd-key"]').click();
+    assert.ok(!container.querySelector('[data-path="repos[0].name"]').hasAttribute('data-selected'), 'one selection at a time');
+    copy('path').click(); await tick();
+    assert.equal(copied, '["odd-key"]', 'a key that is not an identifier is bracketed and quoted');
+    copy('value').click(); await tick();
+    assert.equal(copied, '7', 'a number copies as its JSON text');
+
+    const notes = container.querySelector('[data-path="notes"]');
+    notes.click();
+    assert.equal(pane.textContent.includes('x'.repeat(200)), true, 'the panel shows a long string in full');
+    assert.ok(notes.querySelector('[data-clamp]').classList.contains('line-clamp-3'), 'while its row stays clamped');
+
+    notes.click();
+    assert.match(pane.textContent, /d\.json/, 'a second tap clears the selection, back to the opened file');
+  } finally {
+    delete window.io;
+    explorer.destroy();
+  }
+});
+
+test('an inline tree shows the panel only for a selection', () => {
+  const container = window.document.getElementById('c');
+  const explorer = JsonExplorer.mount(container, { data: { a: 1 }, name: 'i.json', fill: false });
+  const pane = container.querySelector('[data-selection]');
+  try {
+    assert.ok(container.querySelector('[data-view="schema"]'), 'an inline tree keeps its Schema tab');
+    assert.ok(pane.classList.contains('hidden'), 'no selection, no panel');
+    container.querySelector('[data-path="a"]').click();
+    assert.ok(!pane.classList.contains('hidden'));
+    assert.match(pane.textContent, /number/);
+  } finally {
+    explorer.destroy();
+  }
+});
+
 test('JsonExplorer chunk zooming and path navigation', () => {
   const container = window.document.getElementById('c');
   const explorer = JsonExplorer.mount(container, {
@@ -144,6 +223,22 @@ test('JsonExplorer chunk zooming and path navigation', () => {
   container.querySelector('[data-path="repos"] [aria-label="Open repos on its own"]').click();
   assert.deepEqual([...container.querySelectorAll('[data-crumb]')].map(b => b.textContent.trim()), ['document.json', 'repos']);
 
+  explorer.destroy();
+});
+
+test('JsonProfile counts an empty string as an unfilled cell', () => {
+  const col = JsonProfile.analyze({ r: [{ a: '' }, { a: 'x' }] }).collections[0].columns[0];
+  assert.equal(col.fillRate, 0.5);
+  assert.deepEqual([...col.samples], ['x']);
+});
+
+test('JsonExplorer a crumb zooms to its own level, not the one above', () => {
+  const container = window.document.getElementById('c');
+  const explorer = JsonExplorer.mount(container, { data: { a: { b: { c: 1 } } }, chunk: ['a', 'b'] });
+  const names = () => [...container.querySelectorAll('[data-crumb]')].map(b => b.textContent.trim());
+  assert.deepEqual(names(), ['document.json', 'a', 'b']);
+  container.querySelectorAll('[data-crumb]')[1].click();
+  assert.deepEqual(names(), ['document.json', 'a']);
   explorer.destroy();
 });
 

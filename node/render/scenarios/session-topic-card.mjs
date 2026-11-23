@@ -43,7 +43,7 @@ export default async (page) => {
     };
     // The one row, so its topic lines are on screen without scrolling.
     if (id) st.activityQuery = id;
-    st.setLens('list');
+    st.setSessionTab('list');
   }, { cache, topics, companion, id });
   await page.waitForTimeout(1200);
   const box = await page.evaluate(({ id, n }) => {

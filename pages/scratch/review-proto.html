@@ -7,6 +7,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎨</text></svg>">
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../../lib/kits/title-tip.js"></script>
 <!-- Collapse plugin first (defers run in order): the repo's alpine-bundle ships
      it, but the plain CDN Alpine build does not, and the card body uses x-collapse. -->
 <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3/dist/cdn.min.js"></script>
@@ -334,7 +335,7 @@ document.addEventListener('alpine:init', function () {
           <button @click="toggle()" class="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-base-200/60 cursor-pointer">
             <i class="ph shrink-0" :class="open ? 'ph-caret-down' : 'ph-caret-right'"></i>
             <span class="font-mono w-4 text-center text-xs shrink-0" :class="statusClass" x-text="statusTag"></span>
-            <span class="font-mono text-xs truncate flex-1" x-text="path" :title="path"></span>
+            <span class="font-mono text-xs truncate flex-1" x-text="path" :data-title-tip="path"></span>
             <span class="font-mono text-[10px] opacity-60 shrink-0" x-show="additions != null">
               +<span x-text="additions || 0"></span>/-<span x-text="deletions || 0"></span>
             </span>

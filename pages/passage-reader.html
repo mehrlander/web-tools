@@ -81,7 +81,7 @@ document.addEventListener('alpine:init', () => {
     measure: { label: 'Measure', icon: 'ph-ruler' }, condition: { label: 'Condition', icon: 'ph-cloud-sun' },
     concept: { label: 'Concept', icon: 'ph-lightbulb' },
   };
-  const kindIcon = k => KIND[k] ? `<i class="ph ${KIND[k].icon} mr-1.5 align-[-0.125em] text-base-content/50" aria-label="${KIND[k].label}" data-title-tip="${KIND[k].label}" data-title-tip-bare></i>` : '';
+  const kindIcon = k => KIND[k] ? `<i class="ph ${KIND[k].icon} mr-1.5 align-[-0.125em] text-base-content/50" aria-label="${KIND[k].label}" data-title-tip="${KIND[k].label}"></i>` : '';
   const HOVER = matchMedia('(hover: hover) and (pointer: fine)');
   // An ellipsis badge: a raised question mark in the primary text colour, the
   // page's mark for something to open, full when the gap is lit and faded when
@@ -490,7 +490,7 @@ document.addEventListener('alpine:init', () => {
         const ranges = X.rng[s.n], m = { fill, ends, pos: this.side(s.n, lit) };
         const gapTone = k => on || fill.has(k);
         const body = pieces(s.text, ranges).map(p => this.span(p, on ? 'lit' : 'dim', m) + this.gapsAfter(p, gapTone)).join('');
-        return `<span data-s="${s.n}" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-primary)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
+        return `<span data-s="${s.n}" data-part="item" class="cursor-pointer box-decoration-clone rounded px-1 py-0.5 ${on ? 'ring-1 ring-[var(--color-primary)] text-base-content' : 'text-base-content/60 hover:text-base-content/80 hover:ring-1 hover:ring-[var(--color-base-content)]/20'}"><sup class="text-xs tabular-nums mr-1 select-none ${on ? 'text-base-content font-semibold' : 'text-base-content/50'}">${s.n}</sup>${body}</span>`;
       }).join(' ');
     },
 
@@ -558,7 +558,7 @@ document.addEventListener('alpine:init', () => {
     // from, or the other end of a connection. The current sentence's own
     // number is solid, with a halo: you are here.
     num(n, tone = 'here', tip = '') {
-      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}"${tip ? ` data-title-tip="${esc(tip)}" data-title-tip-bare` : ''} class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums">${esc(n)}</button>`;
+      return `<button data-go="${esc(n)}" aria-label="Sentence ${esc(n)}"${tip ? ` data-title-tip="${esc(tip)}"` : ''} class="inline-flex items-center justify-center size-5 rounded-full ${TONE[tone].badge} text-xs tabular-nums">${esc(n)}</button>`;
     },
     row(it) {
       return `<li tabindex="0" data-item="${it.id}" data-hl="${esc(it.keys.join(' '))}" data-mode="${it.mode}"
@@ -566,7 +566,7 @@ document.addEventListener('alpine:init', () => {
         <div class="pt-1 text-sm text-base-content/60 leading-5">${it.left || ''}</div>
         <div class="grid leading-7 min-w-0">${it.body.filter(Boolean).join('')}</div></li>`;
     },
-    text(t, cls = 'text-base-content/70') { return t ? `<span class="text-pretty ${cls}">${esc(t)}</span>` : ''; },
+    text(t, cls = 'text-base-content/70') { return t ? `<span class="${cls}">${esc(t)}</span>` : ''; },
     // A quoted span as a chip, lit with its span in the colour of where that
     // span sits; `within` bolds the word inside a longer anchor.
     chip(text, key, within, tone) {
@@ -605,7 +605,7 @@ document.addEventListener('alpine:init', () => {
       const e = this.R.entities[k] || {};
       const lines = [e.gloss, ...more, k === this.R.topic ? 'What the whole passage is about.' : ''].filter(Boolean);
       const lead = (e.label || k) + (KIND[e.kind] ? ` · ${KIND[e.kind].label.toLowerCase()}` : '');
-      return ` data-title-tip-lead="${esc(lead)}" data-title-tip="${esc(lines.join('\n'))}" data-title-tip-bare`;
+      return ` data-title-tip-lead="${esc(lead)}" data-title-tip="${esc(lines.join('\n'))}"`;
     },
     // The innermost mention a piece of text sits in.
     mentionIn(p) { return p.on.filter(r => r.kind === 'm' && !r.gap).sort((x, y) => (x.b - x.a) - (y.b - y.a))[0]; },
@@ -672,7 +672,7 @@ document.addEventListener('alpine:init', () => {
         const tone = m === n ? 'fresh' : 'again', T = TONE[tone];
         const left = X.num[k] ? `<span class="inline-grid place-items-center min-w-5 h-5 px-1 rounded-full text-xs leading-none font-bold tabular-nums text-white ${T.mark}" aria-label="Entity ${X.num[k]}">${X.num[k]}</span>` : '';
         return { id: `entities:${j}`, mode: 'ev', e: k, keys, spans: here(k), gloss: e.gloss, tone, left,
-          body: [`<span class="text-pretty">${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${T.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t)), this.appears(k, n)] };
+          body: [`<span>${kindIcon(e.kind)}<span data-k="${keys.join(' ')}" class="font-semibold rounded box-decoration-clone px-1 -mx-1 ${T.lit}">${esc(e.label || k)}</span>: ${esc(e.gloss || '')}${basis ? `<span class="text-base-content/50">${basis}</span>` : ''}</span>`, ...notes(k).map(t => this.text(t)), this.appears(k, n)] };
       });
       const eid = Object.fromEntries(entities.map(it => [it.e, it.id]));
       return {
@@ -684,7 +684,7 @@ document.addEventListener('alpine:init', () => {
           const tags = [a.for ? `${VERB[a.as] || a.as} ${a.for}` : '', a.implied ? 'implied' : ''].filter(Boolean), t = TYPE[a.type] || { label: a.type, icon: 'ph-circle' };
           const key = `a${n}-${k}`;
           return { id: `atoms:${k}`, mode: 'atom', keys: [key], spans: [key], left: esc(a.id), about: a.on || [],
-            body: [`<span class="text-pretty${a.implied ? ' italic' : ''}"><i class="ph ${t.icon} mr-1.5 align-[-0.125em] not-italic text-base-content/50" aria-label="${esc(t.label)}" data-title-tip="${esc(t.label)}" data-title-tip-bare></i>`
+            body: [`<span${a.implied ? ' class="italic"' : ''}><i class="ph ${t.icon} mr-1.5 align-[-0.125em] not-italic text-base-content/50" aria-label="${esc(t.label)}" data-title-tip="${esc(t.label)}"></i>`
               + `${this.claimHtml(a, eid, n)}${tags.length ? ` <span class="not-italic text-base-content/50">(${esc(tags.join(', '))})</span>` : ''}</span>`,
                    this.text(a.note), X.rng[n].some(r => r.key === key) ? '' : this.flag(false)] };
         }),
@@ -731,7 +731,7 @@ document.addEventListener('alpine:init', () => {
       const list = its => `<ul class="grid">${its.map(it => this.row(it)).join('')}</ul>`;
       const atoms = all.atoms.length ? `<section class="grid gap-1"><h3 class="text-sm font-semibold text-base-content/60">Atoms</h3>${list(all.atoms)}</section>` : '';
       el.innerHTML = `<article class="grid gap-4 text-lg">
-        <p class="leading-8 text-pretty border-l-4 border-primary pl-4">${this.sentenceHtml(n, active)}</p>
+        <p class="leading-8 border-l-4 border-primary pl-4">${this.sentenceHtml(n, active)}</p>
         <hr class="border-base-300">
         ${atoms}
         ${GROUPS.filter(g => all[g.key].length).map(g => `<section class="grid gap-1">${head(g)}${list(all[g.key])}</section>`).join('')}
@@ -805,7 +805,7 @@ document.addEventListener('alpine:init', () => {
   <header class="bg-base-100 border-b border-base-300 px-4 py-2 flex items-center gap-3">
     <i class="ph ph-book-open-text text-xl"></i>
     <div class="min-w-0">
-      <h1 class="font-semibold text-lg leading-snug text-balance" x-text="R ? R.title : 'Passage reader'"></h1>
+      <h1 class="font-semibold text-lg leading-snug" x-text="R ? R.title : 'Passage reader'"></h1>
       <template x-if="R && R.source">
         <a class="block text-xs text-base-content/60 truncate link link-hover" target="_blank" rel="noopener" :href="link(R.source)" x-text="R.source.path + (R.source.repo ? ' ↗' : '')"></a>
       </template>
@@ -813,7 +813,7 @@ document.addEventListener('alpine:init', () => {
     <template x-if="R">
       <div class="ml-auto flex items-center gap-1">
         <template x-if="fileUrl">
-          <a class="btn btn-ghost btn-sm btn-square" :href="fileUrl" target="_blank" rel="noopener" aria-label="GitHub" data-title-tip="Reading on GitHub" data-title-tip-bare><i class="ph ph-github-logo text-lg"></i></a>
+          <a class="btn btn-ghost btn-sm btn-square" :href="fileUrl" target="_blank" rel="noopener" aria-label="GitHub" data-title-tip="Reading on GitHub"><i class="ph ph-github-logo text-lg"></i></a>
         </template>
       </div>
     </template>
@@ -829,15 +829,15 @@ document.addEventListener('alpine:init', () => {
                class="overflow-y-auto overscroll-contain border-b lg:border-b-0 lg:border-r border-base-300 px-4 py-4 sm:px-6 grid gap-4 content-start">
         <div x-show="R.gist" class="hidden lg:grid gap-1">
           <h2 class="text-sm font-semibold text-base-content/60">Gist</h2>
-          <p class="text-lg leading-8 text-balance" x-text="R.gist"></p>
+          <p class="text-lg leading-8" x-text="R.gist"></p>
         </div>
         <div x-ref="pwrap" class="relative">
           <div x-ref="arrows" class="absolute inset-0 pointer-events-none" aria-hidden="true"></div>
-          <p x-ref="ptext" class="relative text-lg leading-8 text-pretty" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event); passageOver($event)" @pointerout="gapOut($event); passageOut($event)"></p>
+          <p x-ref="ptext" class="relative text-lg leading-8" data-part="list" x-html="passageHtml" @click="pick($event)" @pointerover="gapOver($event); passageOver($event)" @pointerout="gapOut($event); passageOut($event)"></p>
         </div>
       </section>
 
-      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
+      <section class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0" data-part="detail">
         <div class="flex items-center gap-1 px-2 sm:px-4 py-1 border-b border-base-200">
           <button class="btn btn-ghost btn-sm btn-square" :class="N <= 12 && 'hidden sm:inline-flex'" @click="step(-1)" :disabled="cur === 0" aria-label="Previous sentence"><i class="ph ph-caret-left text-lg"></i></button>
           <div class="items-center gap-2 px-1" :class="N <= 12 ? 'hidden' : N <= 25 ? 'flex sm:hidden' : 'flex'">
@@ -856,22 +856,22 @@ document.addEventListener('alpine:init', () => {
             <span class="inline-flex shrink-0 items-center justify-center size-5 rounded-full text-xs tabular-nums bg-primary text-primary-content ring-2 ring-[var(--color-primary)]/30 ring-offset-1 ring-offset-base-100" x-text="s.n"></span>
             <span class="truncate" x-text="kindName"></span></span>
           <button type="button" class="btn btn-ghost btn-sm btn-square ml-auto shrink-0" :class="arrows ? 'text-primary' : 'text-base-content/40'"
-                  :aria-pressed="arrows ? 'true' : 'false'" @click="toggleArrows()" aria-label="Connections" data-title-tip="Connections" data-title-tip-bare>
+                  :aria-pressed="arrows ? 'true' : 'false'" @click="toggleArrows()" aria-label="Connections" data-title-tip="Connections">
             <i class="ph ph-flow-arrow text-lg"></i></button>
           <button type="button" class="btn btn-ghost btn-sm btn-square shrink-0" :class="about ? 'text-primary' : ''"
-                  :aria-pressed="about ? 'true' : 'false'" @click="toggleAbout()" aria-label="About" data-title-tip="About" data-title-tip-bare>
+                  :aria-pressed="about ? 'true' : 'false'" @click="toggleAbout()" aria-label="About" data-title-tip="About">
             <i class="ph ph-info text-lg"></i></button>
           <button type="button" :class="swipeDeck.entry.cls('ghost', 'tight')" @click="openDeck()"
-                  :aria-label="swipeDeck.entry.title(N, 'sentence')" :data-title-tip="swipeDeck.entry.title(N, 'sentence')" data-title-tip-bare><i class="ph text-lg" :class="swipeDeck.entry.icon"></i></button>
+                  :aria-label="swipeDeck.entry.title(N, 'sentence')" :data-title-tip="swipeDeck.entry.title(N, 'sentence')"><i class="ph text-lg" :class="swipeDeck.entry.icon"></i></button>
           <button type="button" class="btn btn-ghost btn-sm btn-square lg:hidden" @click="toggleWide()"
-                  :aria-label="wide ? 'Show the cards' : 'Give the passage the screen'" :data-title-tip="wide ? 'Show the cards' : 'Give the passage the screen'" data-title-tip-bare>
+                  :aria-label="wide ? 'Show the cards' : 'Give the passage the screen'" :data-title-tip="wide ? 'Show the cards' : 'Give the passage the screen'">
             <i class="ph text-lg" :class="wide ? 'ph-caret-double-up' : 'ph-caret-double-down'"></i></button>
         </div>
         <div x-ref="track" class="min-h-0 min-w-0 h-full" x-show="!about" :class="wide && 'max-lg:hidden'"></div>
         <div x-show="about" class="min-h-0 overflow-y-auto px-4 pt-5 pb-28 sm:px-8 sm:pt-8" :class="wide && 'max-lg:hidden'" aria-label="About">
           <dl class="grid grid-cols-1 sm:grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 gap-y-1 sm:gap-y-3 text-lg leading-7 [&>dt:not(:first-child)]:max-sm:pt-4">
-            <dt class="text-sm text-base-content/60 pt-1">Source</dt><dd class="text-pretty" x-text="R?.source?.note"></dd>
-            <dt class="text-sm text-base-content/60 pt-1 lg:hidden">Gist</dt><dd class="text-pretty lg:hidden" x-text="R?.gist"></dd>
+            <dt class="text-sm text-base-content/60 pt-1">Source</dt><dd x-text="R?.source?.note"></dd>
+            <dt class="text-sm text-base-content/60 pt-1 lg:hidden">Gist</dt><dd class="lg:hidden" x-text="R?.gist"></dd>
             <template x-if="R?.topic"><dt class="text-sm text-base-content/60 pt-1">Topic</dt></template>
             <template x-if="R?.topic"><dd x-text="(R.entities[R.topic] || {}).label || R.topic"></dd></template>
             <dt class="text-sm text-base-content/60 pt-1">Context</dt>
@@ -879,7 +879,7 @@ document.addEventListener('alpine:init', () => {
               <template x-for="c in R?.context || []" :key="c.id">
                 <span class="grid">
                   <a class="link link-hover" target="_blank" rel="noopener" :href="link(c)" x-text="c.path + (c.repo ? ' ↗' : '')"></a>
-                  <span class="text-pretty text-base-content/70" x-text="c.why"></span>
+                  <span class="text-base-content/70" x-text="c.why"></span>
                 </span>
               </template>
               <span x-show="!(R?.context || []).length" class="text-base-content/60">None supplied</span>
@@ -889,7 +889,7 @@ document.addEventListener('alpine:init', () => {
               <template x-for="e in R ? entityList : []" :key="e.k">
                 <span class="grid">
                   <span><i class="ph mr-1.5 align-[-0.125em] text-base-content/50" :class="KIND[e.kind]?.icon" x-show="KIND[e.kind]" :aria-label="KIND[e.kind]?.label"></i><span class="font-semibold" x-text="e.label"></span> <span class="text-sm tabular-nums text-base-content/60" x-text="e.where"></span></span>
-                  <span class="text-pretty text-base-content/70" x-text="e.gloss"></span>
+                  <span class="text-base-content/70" x-text="e.gloss"></span>
                 </span>
               </template>
             </dd>

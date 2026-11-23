@@ -73,3 +73,12 @@ test('argument validation throws', () => {
   assert.throws(() => m.subscribe(42, () => {}), /non-empty string/);
   assert.throws(() => m.subscribe('p', 'not a fn'), /requires a function/);
 });
+
+test('publish reaches every healthy subscriber and counts them', () => {
+  const { m } = fresh();
+  const calls = [];
+  m.subscribe('p', (...a) => calls.push(['A', ...a]));
+  m.subscribe('p', (...a) => calls.push(['B', ...a]));
+  assert.equal(m.publish('p', 'x', 7), 2);
+  assert.deepEqual(calls, [['A', 'x', 7, 'p'], ['B', 'x', 7, 'p']]);
+});

@@ -3584,8 +3584,8 @@
           // opened the note panel below also opened the tip above, over the
           // previous line, saying what the panel already showed (owner's
           // screenshot, 2026-10-02). The aria-label carries it for a reader.
-          if (hoverTip) { b.dataset.titleTipBare = ''; b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block'; }
-          else { delete b.dataset.titleTip; delete b.dataset.titleTipBare; }
+          if (hoverTip) { b.dataset.titleTip = has ? 'Read or edit the note on this block' : 'Add a note to this block'; }
+          else { delete b.dataset.titleTip; }
         }
       },
       // ── Confirm, then Apply ───────────────────────────────────────────
@@ -3763,7 +3763,7 @@
             a.textContent = c ? 'confirmed ✓' : 'confirm';
             // A title-tip, not a `title`: this is what the word does, and a
             // phone would never have shown it.
-            a.removeAttribute('title'); a.dataset.titleTipBare = '';
+            a.removeAttribute('title');
             a.dataset.titleTip = c ? 'Confirmed for Apply. Tap to take it back; editing the change also takes it back.'
                                    : 'Accept this change (can undo).';
           }
@@ -4783,7 +4783,7 @@
       <button @click="mic()" :disabled="edit"
               class="btn btn-md btn-square shrink-0"
               :class="listening ? 'btn-error' : 'btn-ghost'"
-              :title="listening ? 'Recording. Tap to stop.' : 'Start listening'">
+              :data-title-tip="listening ? 'Recording. Tap to stop.' : 'Start listening'">
         <i class="ph text-xl" :class="(listening ? 'ph-microphone animate-pulse' : 'ph-microphone-slash')"></i>
       </button>
       <span class="font-mono text-sm opacity-40 tabular-nums" :class="file && 'hidden sm:inline'" x-text="started ? clock : ''"></span>
@@ -4791,7 +4791,7 @@
       <!-- The armed capital has nothing on screen to show yet: the word it
            applies to has not been said. So it wears the ring red the pins and
            the target wear, which is this page's one word for "live". -->
-      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error" data-title-tip-bare
+      <i x-show="capsArmed" x-cloak class="ph ph-text-aa text-lg text-error"
          data-title-tip="The next word you say will be capitalised (tap Shift again to cancel)"></i>
     </div>
 
@@ -4800,7 +4800,7 @@
     <button x-show="!file" x-init="bindPad($el)" :disabled="edit" style="touch-action:none"
             class="btn btn-md btn-square justify-self-center"
             :class="armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost')"
-            :title="armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
+            :data-title-tip="armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
                     : armed ? 'The ' + armed + ' of the selection is armed. Tap here to put it down.'
                     : 'Drag to move the cursor. Tap to start a selection from it.'">
       <i class="ph ph-crosshair text-xl"></i>
@@ -4808,7 +4808,7 @@
     <!-- Which file, and whether the buffer differs from it. The name links to
          GitHub, the only place a reader can check what Save would overwrite. -->
     <div x-show="file" class="flex items-center gap-1.5 min-w-0 px-1">
-      <a :href="fileUrl" target="_blank" rel="noopener" :title="fileWhere"
+      <a :href="fileUrl" target="_blank" rel="noopener" :data-title-tip="fileWhere"
          class="link link-hover truncate min-w-0 text-sm sm:font-mono">
         <span class="sm:hidden flex flex-col min-w-0 leading-tight">
           <span class="truncate" data-file-name x-text="fileName"></span>
@@ -4820,18 +4820,18 @@
       </a>
       <span x-show="fileLoading" class="loading loading-spinner loading-xs shrink-0"></span>
       <button x-show="dirty && !fileLoading" @click="unsavedTap($event)" data-unsaved
-              class="sm:hidden shrink-0 p-1.5 -m-1.5" title="Unsaved. Tap to clear all edits.">
+              class="sm:hidden shrink-0 p-1.5 -m-1.5" data-title-tip="Unsaved. Tap to clear all edits.">
         <span class="block size-2 rounded-full bg-warning"></span>
       </button>
       <button x-show="dirty && !fileLoading" @click="unsavedTap($event)"
-              class="hidden sm:inline-flex badge badge-warning badge-sm shrink-0 cursor-pointer" title="Unsaved. Click to clear all edits.">unsaved</button>
+              class="hidden sm:inline-flex badge badge-warning badge-sm shrink-0 cursor-pointer" data-title-tip="Unsaved. Click to clear all edits.">unsaved</button>
     </div>
 
     <div class="flex items-center gap-0.5 justify-self-end col-start-3">
-      <button @click="undo()" :disabled="!canUndo" class="btn btn-ghost btn-md btn-square" title="Undo">
+      <button @click="undo()" :disabled="!canUndo" class="btn btn-ghost btn-md btn-square" data-title-tip="Undo">
         <i class="ph ph-arrow-counter-clockwise text-xl"></i>
       </button>
-      <button @click="redo()" :disabled="!canRedo" class="btn btn-ghost btn-md btn-square" title="Redo">
+      <button @click="redo()" :disabled="!canRedo" class="btn btn-ghost btn-md btn-square" data-title-tip="Redo">
         <i class="ph ph-arrow-clockwise text-xl"></i>
       </button>
       <!-- THE KEYBOARD, on a button rather than only on a double tap. The
@@ -4843,14 +4843,14 @@
            across selected, so the first thing typed replaces it. -->
       <button @click="editOpen()" @pointerdown.prevent :disabled="edit"
               class="btn btn-md btn-square" :class="typing ? 'btn-info' : 'btn-ghost'"
-              title="Type. Anything selected comes across selected, so typing replaces it.">
+              data-title-tip="Type. Anything selected comes across selected, so typing replaces it.">
         <i class="ph ph-keyboard text-xl"></i>
       </button>
       <!-- The menu is a DROPDOWN, not a band. As a band it inserted itself
            between the header and the text and pushed the words down the screen
            to show controls that are not about the words at all. -->
       <div class="relative" @click.outside="menu = false">
-        <button @click="menu = !menu" class="btn btn-ghost btn-md btn-square" title="More">
+        <button @click="menu = !menu" class="btn btn-ghost btn-md btn-square" data-title-tip="More">
           <i class="ph ph-dots-three-vertical text-xl"></i>
         </button>
         <div x-show="menu" x-cloak
@@ -4863,7 +4863,7 @@
                One step of undo still reaches the edit, as it does for New. -->
           <button x-show="file" @click="clearEdits(); menu = false" :disabled="fileLoading"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
-                  :title="dirty ? 'Discard every edit and reopen the file as GitHub holds it. Notes stay.' : 'Reopen the file as GitHub holds it now. Notes stay.'">
+                  :data-title-tip="dirty ? 'Discard every edit and reopen the file as GitHub holds it. Notes stay.' : 'Reopen the file as GitHub holds it now. Notes stay.'">
             <i class="ph text-lg opacity-60" :class="dirty ? 'ph-x-circle' : 'ph-arrow-clockwise'"></i>
             <span x-text="dirty ? 'Clear all edits' : 'Reload'"></span>
           </button>
@@ -4871,24 +4871,24 @@
                the reader lets them go; only here when there are some. -->
           <button x-show="file && unplacedCount" x-cloak @click="discardUnplaced(); menu = false" data-discard-unplaced
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Delete the notes whose text is no longer in the file">
+                  data-title-tip="Delete the notes whose text is no longer in the file">
             <i class="ph ph-note text-lg opacity-60"></i>
             <span x-text="'Discard ' + unplacedCount + ' unplaced note' + (unplacedCount === 1 ? '' : 's')"></span>
           </button>
           <button x-show="file" @click="unwrapLines()" :disabled="!!(fileLoading || blank)"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
-                  title="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
+                  data-title-tip="Join hard-wrapped lines so each paragraph is one line. The rendered markdown does not change.">
             <i class="ph ph-text-align-left text-lg opacity-60"></i>Unwrap lines
           </button>
           <button x-show="file" @click="toggleNativeSel()"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200"
-                  title="Select with the browser's own long press and handles, or the mouse: the default. Unchecked, the page's own selection with its pins. Rendered view only.">
+                  data-title-tip="Select with the browser's own long press and handles, or the mouse: the default. Unchecked, the page's own selection with its pins. Rendered view only.">
             <i class="ph ph-cursor-text text-lg opacity-60"></i>Native selection
             <i x-show="nativeSel" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
           <button @click="breaks = !breaks" :disabled="!breakable"
                   class="flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-base-200 disabled:opacity-40"
-                  :title="breakable ? 'Break into paragraphs where you paused longest' : 'Needs the pause record, which typing replaces'">
+                  :data-title-tip="breakable ? 'Break into paragraphs where you paused longest' : 'Needs the pause record, which typing replaces'">
             <i class="ph ph-paragraph text-lg opacity-60"></i>Breaks
             <i x-show="breaks" class="ph ph-check ml-auto text-lg text-success"></i>
           </button>
@@ -4934,7 +4934,7 @@
           :data-title-tip="arrivedFrom ? 'Sent from ' + arrivedFrom : 'Sent from a composer on another page'"
           x-text="'Carried over from ' + (arrivedFrom ? arrivedFrom.split('/').pop() : 'another page') + '.'"></span>
     <button x-show="aside" @click="restoreAside()" class="link link-hover font-medium shrink-0"
-            title="Put the draft this page was holding back above these words">Bring back</button>
+            data-title-tip="Put the draft this page was holding back above these words">Bring back</button>
     <button @click="clear()" class="link link-hover font-medium shrink-0">Start fresh</button>
   </div>
   <div x-show="fileErr" class="shrink-0 px-4 py-1.5 text-sm bg-error/10 text-error" x-text="fileErr"></div>
@@ -5097,18 +5097,18 @@
                       @input="noteDraft = $event.target.value; setNote(noteDraft)"></textarea>
             <div class="shrink-0 h-5 flex items-center gap-4">
               <template x-if="!noteOpen">
-                <button type="button" data-info-edit title="Edit note" aria-label="Edit note" @click="editNote()"
+                <button type="button" data-info-edit data-title-tip="Edit note" aria-label="Edit note" @click="editNote()"
                         class="relative h-5 w-[15px] flex items-center justify-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
                   <i class="ph ph-pencil-simple text-[15px]"></i></button>
               </template>
               <template x-if="!noteOpen && infoNotes.length">
                 <button type="button" data-info-note-remove @click="removeNote()"
-                        :title="infoWhy ? 'Back to the call\'s note' : 'Remove note'" :aria-label="infoWhy ? 'Back to the call\'s note' : 'Remove note'"
+                        :data-title-tip="infoWhy ? 'Back to the call\'s note' : 'Remove note'" :aria-label="infoWhy ? 'Back to the call\'s note' : 'Remove note'"
                         class="relative h-5 w-[15px] flex items-center justify-center opacity-50 hover:opacity-100 before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
                   <i class="ph text-[15px]" :class="infoWhy ? 'ph-arrow-counter-clockwise' : 'ph-trash'"></i></button>
               </template>
               <template x-if="noteOpen">
-                <button type="button" data-info-done title="Done" aria-label="Done" @click="noteDone()"
+                <button type="button" data-info-done data-title-tip="Done" aria-label="Done" @click="noteDone()"
                         :class="noteDraft.trim() || infoWhy ? '' : 'invisible'"
                         class="relative h-5 w-[15px] flex items-center justify-center text-primary before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']">
                   <i class="ph-bold ph-check text-[15px]"></i></button>
@@ -5139,7 +5139,7 @@
            class="fixed z-50 -translate-x-1/2 select-none grid gap-1.5 w-max rounded-box border border-base-300 bg-base-100 shadow-lg p-2 max-w-[min(26rem,calc(100vw-1rem))]"
            :style="wordPop ? 'left:' + wordPop.x + 'px;' + (wordPop.pos || 'top:' + wordPop.y + 'px') : ''">
         <code data-pop-raw class="min-w-0 font-mono text-xs leading-5 whitespace-pre-wrap break-words px-1"><template x-for="(s, j) in (wordPop ? wordPop.raw : [])" :key="j"><span :class="s.cls" :data-chg="s.k" x-text="s.t"></span></template></code>
-        <button type="button" @pointerdown.prevent @click="undoWord()" title="Undo this change"
+        <button type="button" @pointerdown.prevent @click="undoWord()" data-title-tip="Undo this change"
                 class="justify-self-end btn btn-xs btn-primary rounded-full shadow gap-1 relative before:absolute before:-inset-x-1 before:-inset-y-2.5 before:content-['']"><i class="ph ph-arrow-counter-clockwise"></i>Undo</button>
       </div>
 
@@ -5188,16 +5188,16 @@
            the launcher holds the bottom right. -->
       <div x-show="file && rendered && showMarks && changesCount && !edit && !before" x-cloak data-jump
            class="absolute bottom-2 left-2 z-20 join rounded-full shadow-sm border border-base-300 bg-base-100/95">
-        <button @click="jumpCard(-1)" class="join-item btn btn-xs btn-ghost rounded-l-full px-1.5" title="Previous change"><i class="ph ph-caret-up"></i></button>
+        <button @click="jumpCard(-1)" class="join-item btn btn-xs btn-ghost rounded-l-full px-1.5" data-title-tip="Previous change"><i class="ph ph-caret-up"></i></button>
         <span class="px-1 text-xs tabular-nums self-center" x-text="changesCount + (changesCount === 1 ? ' change' : ' changes')"></span>
-        <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost px-1.5" :class="confirmedCount ? '' : 'rounded-r-full'" title="Next change"><i class="ph ph-caret-down"></i></button>
+        <button @click="jumpCard(1)" class="join-item btn btn-xs btn-ghost px-1.5" :class="confirmedCount ? '' : 'rounded-r-full'" data-title-tip="Next change"><i class="ph ph-caret-down"></i></button>
         <!-- Apply, the second step: shown once a card is confirmed, naming
              how many and the branch they will be committed to. Under a call it
              opens the answer sheet instead, where the branch is chosen and the
              answer is recorded with the commit. -->
         <button x-show="confirmedCount" x-cloak @click="call ? openAnswer() : applyConfirmed()" :disabled="applying" data-apply
                 class="join-item btn btn-xs btn-success rounded-r-full gap-1 px-2"
-                data-title-tip-bare :data-title-tip="call ? 'Answer the call: commit the confirmed edits, or copy the decisions out.'
+                :data-title-tip="call ? 'Answer the call: commit the confirmed edits, or copy the decisions out.'
                   : 'Commit the ' + confirmedCount + ' confirmed change' + (confirmedCount === 1 ? '' : 's') + ' to ' + (fileRef || 'its branch') + ' on GitHub as one commit.'">
           <i class="ph ph-check-circle"></i>
           <span x-text="'Apply ' + confirmedCount + (fileRef ? ' to ' + fileRef : '')"></span>
@@ -5245,7 +5245,7 @@
        what qualifies a control to be here. -->
   <div x-show="!edit && !desk" class="shrink-0 flex items-stretch gap-1 px-1 pt-1">
     <template x-for="k in pad" :key="k.k">
-      <button @pointerdown.prevent="key(k.k)" :title="k.t"
+      <button @pointerdown.prevent="key(k.k)" :data-title-tip="k.t"
               class="btn h-14 min-h-0 grow basis-0 px-0 text-2xl font-semibold"
               :class="k.k === 'stitch' ? 'btn-warning' : 'btn-ghost bg-base-200'">
         <i x-show="k.k === 'stitch'" class="ph ph-arrows-in-line-horizontal"></i>
@@ -5261,7 +5261,7 @@
     <button @pointerdown.prevent="shift = !shift"
             class="btn h-14 min-h-0 grow basis-0 px-0 font-mono text-sm"
             :class="shift ? 'btn-warning' : 'btn-ghost bg-base-200'"
-            :title="file ? (sel ? 'Casing' : 'Heading, list, paragraph') : 'The other three marks'"
+            :data-title-tip="file ? (sel ? 'Casing' : 'Heading, list, paragraph') : 'The other three marks'"
             x-text="shift ? 'abc' : (file ? (sel ? 'Aa' : 'H•¶') : '·!¶')"></button>
     <!-- ── THE REPAIRS, past a rule ───────────────────────────────────────
          Four keys write and three take back, and until this rule they sat in
@@ -5302,7 +5302,7 @@
     <button @pointerdown.prevent="key('jump')" :disabled="!jumpable"
             class="btn h-14 min-h-0 grow basis-0 px-0 text-2xl"
             :class="jumpable ? 'btn-ghost bg-base-200' : 'btn-ghost bg-base-200 opacity-40'"
-            title="Step the caret back to the previous sentence break, without changing anything">
+            data-title-tip="Step the caret back to the previous sentence break, without changing anything">
       <i class="ph ph-caret-double-left"></i>
     </button>
     <!-- THE STITCH, IN TWO TAPS. The first shows where it would happen and
@@ -5332,7 +5332,7 @@
     <button @pointerdown.prevent="key('stitch')" :disabled="!stitchable && !mendArmed"
             class="btn h-14 min-h-0 grow basis-0 px-0 text-2xl"
             :class="mendArmed ? 'btn-warning' : (stitchable ? 'btn-ghost bg-base-200' : 'btn-ghost bg-base-200 opacity-40')"
-            :title="stitchNote">
+            :data-title-tip="stitchNote">
       <i class="ph ph-arrows-in-line-horizontal"></i>
     </button>
     <!-- BACKSPACE, at the right end, where every keyboard the reader has ever
@@ -5347,7 +5347,7 @@
          there and the software keyboard has its own. -->
     <button @pointerdown.prevent="back()"
             class="btn btn-ghost bg-base-200 h-14 min-h-0 grow basis-0 px-0 text-error"
-            title="Delete the last word, or the selection (dictation keeps running)">
+            data-title-tip="Delete the last word, or the selection (dictation keeps running)">
       <i class="ph ph-backspace text-2xl"></i>
     </button>
   </div>
@@ -5378,7 +5378,7 @@
        style="padding-bottom:calc(env(safe-area-inset-bottom) + 0.25rem)">
     <button @click="copy()" :disabled="blank"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
-            :class="lead('copy')" title="Copy the words, to paste into a chat">
+            :class="lead('copy')" data-title-tip="Copy the words, to paste into a chat">
       <i class="ph ph-clipboard-text text-lg"></i>Copy
     </button>
     <!-- THE TARGET, IN FILE MODE, small and on the centre line between Copy
@@ -5406,14 +5406,14 @@
          to move it, and has the arrow keys, so the pad has nothing to add. -->
     <div x-show="file && !desk" class="flex gap-1 shrink-0">
       <button x-show="moveArm" @click="cancelMove()" data-move-cancel
-              class="btn h-12 min-h-0 w-10 px-0 btn-ghost bg-base-200" title="Leave the words where they were">
+              class="btn h-12 min-h-0 w-10 px-0 btn-ghost bg-base-200" data-title-tip="Leave the words where they were">
         <i class="ph ph-x text-lg"></i>
       </button>
       <button x-init="bindPad($el)" :disabled="edit" style="touch-action:none" data-target
               class="btn h-12 min-h-0 shrink-0"
               :class="'w-12 px-0 ' + (moveArm ? 'btn-primary' : moveReady ? 'btn-primary btn-outline'
                       : armed ? 'btn-error btn-outline' : (padDrag ? 'btn-info' : 'btn-ghost'))"
-              :title="moveArm ? 'Drag here or on the text to aim, then tap to move the words there'
+              :data-title-tip="moveArm ? 'Drag here or on the text to aim, then tap to move the words there'
                       : moveReady ? 'Tap to pick up the selected words and move them'
                       : armed === 'anchor' ? 'Now tap where the selection should end (tap here again to cancel)'
                       : armed ? 'The ' + armed + ' of the selection is armed. Tap here to put it down.'
@@ -5446,17 +5446,17 @@
     <button @click="openSend()" :disabled="blank && !file"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
             :class="file ? (dirty ? 'btn-primary' : 'btn-ghost bg-base-200') : lead('send')"
-            :title="(file ? 'Save it, share it, or send the edit somewhere that can act on it' : 'Share it, or send it somewhere that can act on it') + (desk ? ' (' + chord('⌘↵') + ')' : '')">
+            :data-title-tip="(file ? 'Save it, share it, or send the edit somewhere that can act on it' : 'Share it, or send it somewhere that can act on it') + (desk ? ' (' + chord('⌘↵') + ')' : '')">
       <i class="ph ph-paper-plane-tilt text-lg"></i>Send
     </button>
     <button x-show="!file" @click="jot()" :disabled="blank || !!saving"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
-            :class="lead('jot')" title="File it in the estate's jots pile, beside the others">
+            :class="lead('jot')" data-title-tip="File it in the estate's jots pile, beside the others">
       <i class="ph ph-note-pencil text-lg"></i>Jot
     </button>
     <button x-show="!file" @click="drop()" :disabled="blank || !!saving"
             class="btn h-12 min-h-0 grow basis-0 px-0 gap-1.5 text-sm"
-            :class="lead('drop')" :title="'Write a dated markdown file into ' + destName + ', for the next drain'">
+            :class="lead('drop')" :data-title-tip="'Write a dated markdown file into ' + destName + ', for the next drain'">
       <i class="ph ph-tray-arrow-down text-lg"></i>Drop
     </button>
   </div>
@@ -5478,7 +5478,7 @@
         <span class="font-medium">Answer the call</span>
         <div class="grow"></div>
         <button @click="answerPreview = !answerPreview" class="btn btn-ghost btn-sm btn-square" :class="answerPreview && 'btn-active'"
-                aria-label="Show the answer as JSON" data-title-tip-bare data-title-tip="Show the answer as JSON">
+                aria-label="Show the answer as JSON" data-title-tip="Show the answer as JSON">
           <i class="ph ph-brackets-curly text-lg"></i></button>
         <button @click="answerOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
       </div>
@@ -5516,7 +5516,7 @@
            class="max-h-56 overflow-auto rounded-lg bg-base-200 p-2 font-mono text-[11px] leading-snug whitespace-pre-wrap break-all"></pre>
       <div class="flex gap-2">
         <button @click="copyDecisions()" data-answer-copy class="btn btn-sm grow gap-1.5"
-                data-title-tip-bare data-title-tip="The decisions and the confirmed patch as JSON on the clipboard. Nothing is committed.">
+                data-title-tip="The decisions and the confirmed patch as JSON on the clipboard. Nothing is committed.">
           <i class="ph ph-copy"></i>Copy</button>
         <button @click="answerCall()" :disabled="answering || (answerTo === 'branch' && confirmedCount && !answerBranch.trim())" data-answer-send
                 class="btn btn-sm btn-primary grow gap-1.5">
@@ -5575,11 +5575,11 @@
         <div class="grow"></div>
         <!-- The record's two readings, and a look at exactly what goes. -->
         <div x-show="file && sendWhat === 'record'" class="join shrink-0">
-          <button @click="recordAs = 'md'" class="join-item btn btn-xs" :class="recordAs === 'md' ? 'btn-active' : 'btn-ghost'" data-title-tip-bare data-title-tip="Markdown, for a chat or a session">MD</button>
-          <button @click="recordAs = 'json'" class="join-item btn btn-xs" :class="recordAs === 'json' ? 'btn-active' : 'btn-ghost'" data-title-tip-bare data-title-tip="JSON, the dictate/1 record">JSON</button>
+          <button @click="recordAs = 'md'" class="join-item btn btn-xs" :class="recordAs === 'md' ? 'btn-active' : 'btn-ghost'" data-title-tip="Markdown, for a chat or a session">MD</button>
+          <button @click="recordAs = 'json'" class="join-item btn btn-xs" :class="recordAs === 'json' ? 'btn-active' : 'btn-ghost'" data-title-tip="JSON, the dictate/1 record">JSON</button>
         </div>
         <button x-show="file" @click="sendPreview = !sendPreview" class="btn btn-ghost btn-sm btn-square" :class="sendPreview && 'btn-active'"
-                data-send-preview-toggle aria-label="Show what goes" data-title-tip-bare data-title-tip="Show what goes">
+                data-send-preview-toggle aria-label="Show what goes" data-title-tip="Show what goes">
           <i class="ph ph-eye text-lg"></i>
         </button>
         <button @click="sendOpen = false" class="btn btn-ghost btn-sm btn-square"><i class="ph ph-x text-lg"></i></button>
@@ -5616,7 +5616,7 @@
               <span class="block text-xs opacity-60" x-text="t.available ? t.hint : t.reason"></span>
             </span>
             <span x-show="t.submits" class="ml-auto shrink-0 text-xs text-warning"
-                  title="This one sends on arrival rather than waiting for you">sends</span>
+                  data-title-tip="This one sends on arrival rather than waiting for you">sends</span>
           </button>
         </template>
       </div>
@@ -5672,14 +5672,14 @@
       <div class="flex items-stretch gap-2">
         <button @click="sendOpen = false; share()" :disabled="!canShare"
                 class="btn h-12 min-h-0 gap-2 shrink-0 px-4"
-                :title="canShare ? 'The system sheet: any app on this device'
+                :data-title-tip="canShare ? 'The system sheet: any app on this device'
                                  : 'This browser has no share sheet. Copy the words instead.'">
           <i class="ph ph-share-network text-lg"></i>
           <span>Share</span>
         </button>
         <button x-show="file" @click="copyPayload()"
                 class="btn h-12 min-h-0 grow basis-0 gap-1.5 btn-ghost bg-base-200"
-                :title="sendWhat === 'record' ? 'Copy the changes and notes' : sendWhat === 'patch' ? 'Copy the patch: git apply takes it' : 'Copy the whole file'">
+                :data-title-tip="sendWhat === 'record' ? 'Copy the changes and notes' : sendWhat === 'patch' ? 'Copy the patch: git apply takes it' : 'Copy the whole file'">
           <i class="ph ph-clipboard-text text-lg"></i><span>Copy</span>
         </button>
         <button @click="send()" :disabled="!sendReady"

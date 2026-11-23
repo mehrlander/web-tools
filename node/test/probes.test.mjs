@@ -51,6 +51,7 @@ test('each broken rule is named with its row', t => {
     '2026-01-02-tie,2026-01-03,Tie,2026-01-02-tie.md,Does it tie?,Yes.,won,',
     '2026-01-02-tie,2026-01-02,,missing.md,Again?,No.,,',
     'Bad_Id,2026-1-5,Bad,,Q?,A.,,',
+    'blank-cells,2026-01-09,Blank,,,,,',
   ]));
   assert.equal(r.status, 1);
   for (const want of [
@@ -62,6 +63,8 @@ test('each broken rule is named with its row', t => {
     /probes\.csv:3: path missing\.md names nothing in the folder/,
     /probes\.csv:4: Bad_Id is not lowercase letters, digits and hyphens/,
     /probes\.csv:4: date 2026-1-5 is not YYYY-MM-DD/,
+    /probes\.csv:5: question is empty/,
+    /probes\.csv:5: summary is empty/,
     /2026-01-05-model is a dated probe that no row's path names/,
   ]) assert.match(r.stdout, want);
 });
@@ -85,4 +88,17 @@ test('--new writes the required header and refuses to overwrite', t => {
   assert.equal(run(root, '--new', 'fresh').status, 0);
   assert.equal(readFileSync(path.join(root, 'fresh/probes.csv'), 'utf8'), 'probe,date,title,question,summary\n');
   assert.equal(run(root, '--new', 'fresh').status, 1);
+});
+
+test("a declaration's status is living, measured or record", t => {
+  const root = fixture(t, GOOD);
+  const manifest = JSON.parse(readFileSync(path.join(root, '.web-tools.json'), 'utf8'));
+  manifest.research[0].status = 'measured';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  assert.equal(run(root).status, 0);
+  manifest.research[1].status = 'done';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  const r = run(root);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /research one\/README\.md has status done, not one of living, measured, record/);
 });

@@ -83,7 +83,7 @@ test('Discussion keeps repo, state, topic and ordered list filters strict in lis
   data.sessionScope = 'list';
   assert.deepEqual(ids(data.sessionDeckRows), ['eeee5555', 'aaaa1111']);
   assert.deepEqual(ids(data.grainRows), ['eeee5555', 'aaaa1111']);
-  assert.deepEqual(data.sessionInspectionIds(), ['eeee5555', 'aaaa1111', 'ffff6666']);
+  assert.deepEqual(data.sessionScopeIds(), ['eeee5555', 'aaaa1111', 'ffff6666']);
 });
 
 test('branch joins and recordless stubs remain findable when discussion is included', async () => {
@@ -98,7 +98,7 @@ test('branch joins and recordless stubs remain findable when discussion is inclu
   assert.equal(data.sessionNodes.length, 1);
   assert.equal(data.sessionNodes[0].kind, 'stub');
   assert.equal(data.sessionDeckRows.length, 0);
-  data.inspectSessionMatches();
+  data.openSessionResults();
 });
 
 test('late results cannot restore an old query, disabled mode or old credential', async () => {
@@ -186,27 +186,30 @@ test('freshness confirmation refreshes discussion only when the session cache ch
   assert.equal(searches, 3);
 });
 
-test('Inspect snapshots scope before the query, including empty scopes and local-only matches', async () => {
+test('Enter holds the pane scope as a clearable set, including an empty one', async () => {
   const { data, searches } = estate();
-  data.inspectSessionMatches();
-  assert.equal(searches.length, 0, 'incomplete results cannot be frozen');
   await data.refreshSessionDiscussion();
-  data.inspectSessionMatches();
+  data.openSessionResults();
   assert.deepEqual(searches[0].sessionIds, ['aaaa1111', 'bbbb2222', 'eeee5555', 'ffff6666']);
-  assert.deepEqual(ids(searches[0].sessionRows), ['aaaa1111', 'bbbb2222', 'eeee5555']);
-  assert.deepEqual(searches[0].sessionExtraIds, ['bbbb2222', 'eeee5555']);
   assert.deepEqual(searches[0].sessionScope, { scope: 'day', repo: '', state: '', topic: '', list: '' });
   data.sessionRepoFilter = 'absent';
-  data.inspectSessionMatches();
+  data.openSessionResults();
   assert.deepEqual(searches[1].sessionIds, []);
-  assert.deepEqual(searches[1].sessionExtraIds, []);
+  assert.equal(searches[1].sessionScope.repo, 'absent');
+  // A pane narrowed by nothing hands over no scope, so the page shows no chip.
+  data.sessionRepoFilter = '';
+  data.sessionScope = 'all';
+  data.openSessionResults();
+  assert.equal(searches[2].sessionIds, null);
+  assert.equal(searches[2].sessionScope, null);
+  assert.equal(searches[2].q, 'cobalt');
 });
 
 test('route seed restores filters and stamps their normalized state', () => {
   const { data, stamps } = estate();
-  data.applySessionSearchSeed({ q: '  cobalt  ', discussion: true, scope: 'week', repo: 'tools', state: 'all' });
+  data.applySessionSearchSeed({ q: '  cobalt  ', discussion: true, scope: 'week', repo: 'tools', state: 'all', launched: 'hide' });
   data.stampSessionSearch();
-  assert.deepEqual(stamps[0], { q: 'cobalt', discussion: true, scope: 'week', repo: 'tools', state: '' });
+  assert.deepEqual(stamps[0], { q: 'cobalt', discussion: true, scope: 'week', repo: 'tools', state: '', launched: 'hide' });
   data.applySessionSearchSeed({ q: '', discussion: false, scope: 'invalid' });
   assert.equal(data.sessionScope, 'day');
   assert.equal(data.sessionDiscussion, false);

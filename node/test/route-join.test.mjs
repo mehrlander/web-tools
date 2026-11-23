@@ -255,6 +255,7 @@ test('the pane reads at the running ref, so a preview is not pinned to main', as
   assert.equal(manifestRef, 'claude/branch');
   assert.equal(gotRef, 'claude/branch');
   assert.equal(view.viewsError, '');
+  assert.equal(view.viewTouches['lib/alpineComponents/map.js']?.sha, 'aaaaaaa1');
   window.history.replaceState(null, '', '?');
   assert.equal(view.viewsRef, 'main');
 });
@@ -349,7 +350,7 @@ test('a branch row chip opens the view running THAT branch', async () => {
   const r = data.branchRoutes({ repo: 'mehrlander/web-tools', name: 'claude/registries', sha });
   assert.equal(r.on[0].key, 'map');
   assert.equal(r.on[0].url,
-    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@' + sha + ':app/index.html?view=map');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@' + sha + ':app/index.html?view=map');
 });
 
 // A SHA and never the branch name: the toss hands the ref to the app as use=,

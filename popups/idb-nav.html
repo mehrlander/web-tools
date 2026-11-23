@@ -14,7 +14,7 @@
     delete DB). Composes:
       - kits/persistence.js — idb introspection + idb.admin writes
       - alpineComponents/idb-tree.js — sidebar
-      - alpineComponents/viewer.js — right pane (defaultMode: tree)
+      - alpineComponents/viewer.js — right pane (edit: true, defaultMode: edit)
   -->
   <script type="module">
     await import('https://mehrlander.github.io/web-tools/lib/entry.js');
@@ -76,7 +76,7 @@
       <div class="flex-1 overflow-hidden bg-base-100">
         <template x-if="currentStore">
           <div class="h-full px-3 py-2 overflow-hidden"
-               x-data="viewer({ copy: true, defaultMode: 'tree' })"></div>
+               x-data="viewer({ copy: true, edit: true, defaultMode: 'edit' })"></div>
         </template>
         <template x-if="!currentStore">
           <div class="h-full flex items-center justify-center text-base-content/30 italic">
@@ -162,7 +162,8 @@
           this.dirty = false;
           this.latestContent = null;
           // Hand the records to the viewer via the shared browser store.
-          // viewer({ defaultMode: 'tree' }) opens directly in the tree editor.
+          // viewer({ edit: true, defaultMode: 'edit' }) opens directly in the editor,
+          // the one host that asks for vanilla-jsoneditor; Tree is the reader.
           Alpine.store('browser').activeFile = {
             path: `${dbName}.${storeName}.json`,
             content: JSON.stringify(records, null, 2)

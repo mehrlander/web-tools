@@ -20,18 +20,20 @@ w.fetch=async(path,options={})=>{
   }
   return {ok:!denied,status:denied?403:200,json:async()=>structuredClone(data)};
 };
-w.eval(read('../phone/devices.js')); w.eval(read('../phone/views.js'));
+w.eval(read('../phone/devices.js')); w.eval(read('../../lib/kits/swipe-deck.js'));w.eval(read('../phone/views.js'));
+const position=()=>w.NowViews.scrollPosition(w.NowViews.current());
+const setTop=value=>w.NowViews.scrollTo(value,w.NowViews.current());
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 const check=(condition,message)=>{assert.ok(condition,message);checks++;};
 const click=selector=>{const node=doc.querySelector(selector);assert.ok(node,selector);node.click();};
 const poll=async()=>{w.dispatchEvent(new w.Event('online'));await flush();};
 check(requests.length===0,'Devices does not poll while another view is selected.');
-top=280;click('[data-view=devices]');await flush();
-check(w.location.hash==='#view=devices' && !doc.querySelector('#devices').hidden && doc.querySelector('#content').hidden && doc.querySelector('#assistants').hidden,'Devices is available in the compact title menu with its own route.');
+setTop(280);click('[data-view=computer]');await flush();
+check(w.location.hash==='#view=computer' && !doc.querySelector('#panel-computer').inert && doc.querySelector('#panel-now').inert,'Device controls share the Computer destination without another title-menu entry.');
 check(doc.querySelector('#devices').textContent.includes('A track <img') && !doc.querySelector('#devices img,[onerror]'),'Media metadata renders as text, not markup.');
 check(!doc.querySelector('[data-media=play-pause]').disabled && doc.querySelector('[data-media=previous]').disabled && doc.querySelector('[data-media=play-pause]').getAttribute('aria-label')==='Pause','Playback controls follow the actual session capabilities and state.');
-top=190;doc.querySelector('[data-media=next]').focus();data.positionSeconds=44;await poll();
-check(top===190 && doc.activeElement.dataset.media==='next' && doc.querySelector('[role=progressbar]').getAttribute('aria-valuenow')==='44','Polling updates the timeline without moving the page or keyboard focus.');
+setTop(190);doc.querySelector('[data-media=next]').focus();data.positionSeconds=44;await poll();
+check(position()===190 && doc.activeElement.dataset.media==='next' && doc.querySelector('[role=progressbar]').getAttribute('aria-valuenow')==='44','Polling updates the timeline without moving the page or keyboard focus.');
 let release;held=new Promise(resolve=>{release=resolve;});click('[data-media=play-pause]');click('[data-media=play-pause]');
 check(requests.filter(r=>r.method==='POST').length===1 && [...doc.querySelectorAll('[data-media]')].every(n=>n.disabled),'A pending control disables every action and repeated taps send only one request.');
 const action=requests.find(r=>r.method==='POST');
@@ -42,8 +44,8 @@ data.sessionAvailable=false;data.canPlayPause=false;data.canGoNext=false;await p
 check(doc.querySelector('#devices').textContent.includes('No media playing') && doc.querySelector('[data-media=play-pause]').disabled && !doc.querySelector('[data-media=volume-up]').disabled,'No media playing is distinct from Bridge unavailability, and laptop volume remains available.');
 offline=true;await poll();const before=requests.length;click('[data-media=volume-up]');
 check([...doc.querySelectorAll('[data-media]')].every(n=>n.disabled) && requests.length===before && doc.querySelector('#devices').textContent.includes('Controls are disabled'),'Offline observations never offer or queue media controls.');
-click('[data-view=now]');check(top===280 && doc.querySelector('#devices').hidden && !doc.querySelector('#content').hidden,'Now retains its independent reading position.');
-click('[data-view=devices]');await flush();check(top===190,'Devices retains its independent reading position.');
+click('[data-view=now]');check(position()===280 && doc.querySelector('#panel-computer').inert && !doc.querySelector('#panel-now').inert,'Now retains its independent reading position.');
+click('[data-view=computer]');await flush();check(position()===190,'Devices retains its independent reading position.');
 offline=false;data.observedAt=new Date(Date.now()-60000).toISOString();await poll();
 check([...doc.querySelectorAll('[data-media]')].every(n=>n.disabled) && !doc.querySelector('#connection').textContent.includes('live'),'An old response cannot enable controls or claim live status.');
 data.observedAt=new Date().toISOString();data.reachable=false;await poll();
@@ -57,7 +59,7 @@ check(doc.querySelector('[data-media=mute]').disabled,'The freshness deadline al
 w.Date.now=realNow;
 denied=true;await poll();
 check(!w.localStorage.getItem('web-tools-stereo-snapshot') && doc.querySelector('#connection').textContent==='Access unavailable','Access denial removes the saved device observation.');
-w.history.replaceState(null,'','#view=computer');w.dispatchEvent(new w.HashChangeEvent('hashchange'));
-check(doc.querySelector('#devices').hidden && !doc.querySelector('#computer').hidden,'Hash navigation leaves Devices and stops its foreground view.');
+w.history.replaceState(null,'','#view=usage');w.dispatchEvent(new w.HashChangeEvent('hashchange'));
+check(doc.querySelector('#panel-computer').inert && !doc.querySelector('#panel-usage').inert,'Hash navigation leaves Computer and stops its foreground modules.');
 console.log(`${checks} Devices navigation, playback, freshness and privacy checks passed.`);
 dom.window.close();

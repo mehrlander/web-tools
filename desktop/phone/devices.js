@@ -1,6 +1,8 @@
 (() => {
   'use strict';
   const el = id => document.getElementById(id);
+  const scrollPosition = () => window.NowViews?.scrollPosition('computer') ?? window.scrollY;
+  const restoreScroll = top => window.NowViews?.scrollTo ? window.NowViews.scrollTo(top,'computer') : window.scrollTo(0,top);
   const escape = value => String(value ?? '').replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const stamp = value => new Date(value).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   const clock = seconds => Math.floor(seconds / 60) + ':' + String(Math.floor(seconds % 60)).padStart(2,'0');
@@ -12,7 +14,7 @@
   const fresh = () => connected && navigator.onLine !== false && data && Date.now() - Date.parse(data.observedAt) < 10000;
   const ready = () => fresh() && data.reachable;
   function connection() {
-    if (!active) return;
+    if (!active || (window.NowComputer && window.NowViews?.current() === 'computer')) return;
     el('connection').textContent = denied ? 'Access unavailable' : fresh() ? 'Laptop live' : data ? 'Last seen' : failed ? 'Offline' : 'Connecting…';
     el('connection').className = 'ml-auto text-[10px] ' + (fresh() ? 'text-emerald-800' : 'text-amber-800');
     el('connection').title = data ? 'Observed ' + stamp(data.observedAt) : 'Connecting to your laptop';
@@ -28,7 +30,7 @@
   }
   function render() {
     if (!active) return;
-    const viewport = {x:scrollX,y:scrollY}, focus = document.activeElement?.dataset.media;
+    const viewport = scrollPosition(), focus = document.activeElement?.dataset.media;
     const live = ready(), playing = data?.playbackState === 'playing';
     const state = !data ? denied ? 'Access unavailable' : failed ? 'Laptop unreachable' : 'Connecting…'
       : !fresh() ? 'Last seen ' + stamp(data.observedAt) : !data.reachable ? 'Unavailable' : !data.sessionAvailable ? 'Ready' : ({playing:'Playing',paused:'Paused',stopped:'Stopped'})[data.playbackState] || 'Player connected';
@@ -38,7 +40,7 @@
     el('devices').innerHTML = `<article class="border-b border-stone-200 bg-white px-3 py-3"><div class="flex items-center gap-2"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-5 shrink-0 text-sky-700" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><circle cx="12" cy="15" r="4"/><circle cx="12" cy="6" r="1"/></svg><h2 class="text-sm font-semibold">Stereo Bridge</h2><span class="ml-auto text-[10px] ${live ? 'text-emerald-800' : 'text-stone-500'}">${escape(state)}</span></div><div class="mt-3 min-h-16"><p class="break-words text-base font-medium leading-5">${escape(title)}</p><p class="mt-1 break-words text-xs leading-4 text-stone-500">${escape(detail)}</p>${data?.source && data.sessionAvailable ? `<p class="mt-1 truncate text-[10px] text-stone-400">${escape(data.source)}</p>` : ''}</div><div class="mt-2 h-1 overflow-hidden rounded-full bg-stone-100" role="progressbar" aria-label="Track position" aria-valuemin="0" aria-valuemax="${end || 1}" aria-valuenow="${position}"><div class="h-full rounded-full bg-sky-600" style="width:${end ? position / end * 100 : 0}%"></div></div><div class="mt-1 flex justify-between text-[10px] tabular-nums text-stone-400"><span>${end ? clock(position) : '–:–'}</span><span>${end ? clock(end) : '–:–'}</span></div><div class="mt-1 flex items-center justify-center gap-7">${button('previous','Previous track','previous',live && data.canGoPrevious)}${button('play-pause',playing ? 'Pause' : 'Play',playing ? 'pause' : 'play',live && data.canPlayPause,true)}${button('next','Next track','next',live && data.canGoNext)}</div><div class="mt-2 flex items-center justify-center gap-7 border-t border-stone-100 pt-1">${button('volume-down','Volume down','down',live)}${button('mute','Toggle mute','mute',live)}${button('volume-up','Volume up','up',live)}</div><p class="min-h-4 text-center text-[11px] ${failed ? 'text-amber-800' : 'text-stone-500'}" role="status">${escape(message || (busy ? 'Sending…' : 'Laptop volume'))}</p></article><p class="px-3 pt-2 text-[11px] leading-4 text-stone-500">${denied ? 'Connect with your Tailscale account.' : data && !fresh() ? 'Laptop unreachable or readings paused. Controls are disabled.' : data && !data.reachable ? 'Open Stereo Bridge on the laptop to connect.' : 'Controls the laptop’s current audio output. Phone audio still uses Bluetooth.'}</p>`;
     if (data?.machineName) el('machine').textContent = data.machineName;
     if (focus) [...el('devices').querySelectorAll('[data-media]')].find(n => n.dataset.media === focus && !n.disabled)?.focus({preventScroll:true});
-    if (scrollX !== viewport.x || scrollY !== viewport.y) scrollTo(viewport.x,viewport.y);
+    if (scrollPosition() !== viewport) restoreScroll(viewport);
     connection();
     clearTimeout(staleTimer);
     if (fresh()) staleTimer = setTimeout(render,Math.max(1,10000 - (Date.now() - Date.parse(data.observedAt))));

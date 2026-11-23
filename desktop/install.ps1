@@ -1,9 +1,11 @@
 [CmdletBinding()]
-param([switch]$CompanionStartup)
+param([switch]$CompanionStartup, [switch]$AllowUsageDowngrade)
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'package-info.ps1')
 & (Join-Path $PSScriptRoot 'build.ps1') -Publish
 $desktopSource = Join-Path $PSScriptRoot 'output\app'
 $desktopDestination = Join-Path $env:LOCALAPPDATA 'Programs\WebToolsDesktop'
+$desktopPackage = Assert-WebToolsInstall -CandidateRoot $desktopSource -InstalledRoot $desktopDestination -AllowUsageDowngrade:$AllowUsageDowngrade
 if (Get-Process -Name 'WebTools.Desktop' -ErrorAction SilentlyContinue) {
     throw 'Close Web Tools Desktop before installing the new build.'
 }
@@ -23,6 +25,7 @@ foreach ($desktopShortcutFolder in @([Environment]::GetFolderPath('Desktop'), (J
     $desktopShortcut.Save()
 }
 Write-Output "Installed Web Tools Desktop: $desktopExe"
+Write-Output "Source $($desktopPackage.SourceCommit); interface $($desktopPackage.InterfaceVersion); local source changes: $($desktopPackage.SourceDirty)"
 if ($CompanionStartup) {
     $companionShortcut = $desktopShell.CreateShortcut((Join-Path ([Environment]::GetFolderPath('Startup')) 'Web Tools Companion.lnk'))
     $companionShortcut.TargetPath = Join-Path $desktopDestination 'companion\WebTools.Companion.exe'

@@ -3,7 +3,7 @@
 // pattern catalog (data/ui-units/README.md); the codebook beside it is Pass 2.
 //
 // A UNIT is the grain a pattern is read at: an app view, a view's tab where the
-// view declares tabs, or a page. Units are enumerated from declarations, never
+// view declares tabs, a page, or an overlay (codebook.md, "What is coded"). Units are enumerated from declarations, never
 // from a walk of the tree, so units.csv says what the apps CLAIM to show:
 //
 //   web-tools  docs/app-routes.csv (the router's rows), docs/map-tabs.csv
@@ -12,9 +12,10 @@
 //   any repo   .web-tools.json `pages[]`, where `appView: true` promotes a page
 //              into the app
 //   budget-drs app/view/app.html VIEWS (its views, and `embed` for the pages it
-//              frames), RENDER (which function draws each view), and
+//              frames), RENDER (which function draws each view),
 //              data/design/view-tabs.csv (its tabs; `switch` rows are controls
-//              inside a tab, not units)
+//              inside a tab, not units) and data/design/overlays.csv (its
+//              overlays)
 //
 // THE RING says how far a unit sits from the Web Tools app's center. No registry
 // declares it; each value rests on the declaration named in `ring_basis`:
@@ -38,14 +39,15 @@
 // is a reason to read the file, not a finding: a page may carry scroll-snap for
 // a reason that has nothing to do with decks.
 //
-//   node node/ui-units.mjs [--date YYYY-MM-DD] [--estate <dir>] [--write]
+//   node node/ui-units.mjs [--date YYYY-MM-DD] [--estate <dir>] [--write] [--store public|home]
 //
-// Without --write it prints a summary. With it, public rows go to this repo's
-// data/ui-units/ and the budget-drs app's rows to home's data/ui-units/, so a
-// private file's name never lands in public source. The files keep stable names
-// (units.csv, signals.csv) so the Map's Patterns tab can read them without
-// listing a folder; `as_of` on every unit row says when the snapshot was taken,
-// and git holds the earlier ones.
+// Without --write it prints a summary, with the rows each store would hold.
+// With it, public rows go to this repo's data/ui-units/ and the budget-drs
+// app's rows to home's data/ui-units/, so a private file's name never lands in
+// public source. --store writes that one store and leaves the other as it is.
+// The files keep stable names (units.csv, signals.csv) so the Map's Patterns
+// tab can read them without listing a folder; `as_of` on every unit row says
+// when the snapshot was taken, and git holds the earlier ones.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
@@ -59,12 +61,17 @@ const OWNER = 'mehrlander';
 // Visibility is not readable offline. A repo absent from this list is treated
 // as private, so an unknown repo errs toward the store that discloses nothing.
 const PUBLIC = new Set(['web-tools']);
+// The private repos whose rows home's store holds. budget-drs was home's
+// projects/budget-drs until 2026-11-10; its rows stayed in home's store.
+const HOME_STORE = new Set(['home', 'budget-drs']);
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
 const DATE = opt('--date', new Date().toISOString().slice(0, 10));
 const ESTATE = path.resolve(opt('--estate', path.join(HUB, '..')));
 const WRITE = args.includes('--write');
+const ONLY = opt('--store', '');
+if (ONLY && !['public', 'home'].includes(ONLY)) throw new Error(`--store ${ONLY}: name public or home`);
 
 const checkout = (repo) => repo === 'web-tools' ? HUB : path.join(ESTATE, repo);
 const has = (repo, p = '') => existsSync(path.join(checkout(repo), p));
@@ -172,11 +179,13 @@ for (const repo of repos) {
 }
 
 // ── The budget-drs app: a promoted page that hosts views of its own ──────────
-const BD = 'projects/budget-drs';
-const bdApp = `${BD}/app/view/app.html`;
+// Read from the budget-drs checkout, its own repository since 2026-11-10, and
+// keyed `budget-drs:view/<view>[/<tab>]` the way the hub's own views are keyed.
+const BD = 'budget-drs';
+const bdApp = 'app/view/app.html';
 const framed = new Map();     // "repo:path" -> view key
-if (has('home', bdApp)) {
-  const html = read('home', bdApp);
+if (has(BD, bdApp)) {
+  const html = read(BD, bdApp);
   // The VIEWS literal: one `key: { ... }` per view, in sidebar order. Keys are
   // read off the line starts; `embed:{ repo, path }` follows within the entry.
   const start = html.indexOf('const VIEWS = {');
@@ -192,12 +201,12 @@ if (has('home', bdApp)) {
 
   // Which views/*.js defines which top-level function, so RENDER's function
   // names resolve to a file, and a file's calls into a sibling resolve too.
-  const vdir = `${BD}/app/view/views`;
-  const vfiles = readdirSync(path.join(checkout('home'), vdir)).filter(f => f.endsWith('.js'));
+  const vdir = 'app/view/views';
+  const vfiles = readdirSync(path.join(checkout(BD), vdir)).filter(f => f.endsWith('.js'));
   const defines = new Map();
   const src = {};
   for (const f of vfiles) {
-    const raw = read('home', `${vdir}/${f}`);
+    const raw = read(BD, `${vdir}/${f}`);
     // Comments stripped before matching, since a header that says "renderData
     // in data-explorer.js mounts it" is a reference in prose, not in code.
     src[f] = raw.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:"'`\\])\/\/.*$/gm, '$1');
@@ -227,22 +236,22 @@ if (has('home', bdApp)) {
     return [...seen].map(f => `${vdir}/${f}`);
   };
 
-  const meta = Object.fromEntries(csv('home', `${BD}/data/design/views.csv`).map(r => [r.view, r]));
+  const meta = Object.fromEntries(csv(BD, 'data/design/views.csv').map(r => [r.view, r]));
   const tabsBy = {};
-  for (const t of csv('home', `${BD}/data/design/view-tabs.csv`)) {
+  for (const t of csv(BD, 'data/design/view-tabs.csv')) {
     if (t.control === 'switch') continue;
     (tabsBy[t.view] ||= []).push(t);
   }
   for (const { key, text } of entries) {
     const em = text.match(/embed:\s*\{\s*repo:\s*"([^"]+)",\s*path:\s*"([^"]+)"/);
     const label = meta[key]?.title || key;
-    const base = { repo: 'home', host: 'budget-drs app', group: meta[key]?.kind || '', view: key, address: `#view=${key}` };
+    const base = { repo: BD, host: 'budget-drs app', group: meta[key]?.kind || '', view: key, address: `#view=${key}` };
     if (em) {
       const [ownerRepo, p] = [em[1].split('/')[1], em[2]];
       framed.set(`${ownerRepo}:${p}`, key);
       const reach = has(ownerRepo, p);
       add({ ...base, repo: ownerRepo, unit: `${ownerRepo}:${p}`, kind: 'framed page', tab: '', label,
-        app_ring: 2, ring_basis: `VIEWS.${key}.embed in ${bdApp}`, files: p,
+        app_ring: 2, ring_basis: `VIEWS.${key}.embed in ${BD}:${bdApp}`, files: p,
         reachable: reach ? 'yes' : 'not checked out', attribution: reach ? 'declared' : 'none' });
       continue;
     }
@@ -254,7 +263,7 @@ if (has('home', bdApp)) {
     // so they are its files too; the payloads among them carry no kit calls and
     // are left out (a name ending in data.js, and the workbook's images).
     for (const f of [...own]) {
-      const t = read('home', f);
+      const t = read(BD, f);
       const dir = (t.match(/const (\w+)_DIR = "([^"]+)";/) || []);
       if (!dir[1]) continue;
       const names = [...((t.match(new RegExp(`const ${dir[1]}_LOAD = \\[([\\s\\S]*?)\\];`)) || [])[1] || '')
@@ -263,21 +272,45 @@ if (has('home', bdApp)) {
       for (const n of [...names, markup].filter(Boolean)) {
         if (/data\.js$|^workbook-images\.js$/.test(n)) continue;
         // The directory is relative to the app's document, not to views/.
-        const p = path.posix.normalize(`${BD}/app/view/${dir[2]}${n}`);
-        if (has('home', p) && !own.includes(p)) own.push(p);
+        const p = path.posix.normalize(`app/view/${dir[2]}${n}`);
+        if (has(BD, p) && !own.includes(p)) own.push(p);
       }
     }
     const files = own.join(';');
     const attribution = own.length ? 'derived' : 'shell';
-    const ring = { app_ring: 1, ring_basis: `VIEWS.${key} in ${bdApp}, promoted by home` };
+    const by = (promoted.get(`${BD}:${bdApp}`) || []).map(b => b.by).join(', ') || 'nothing';
+    const ring = { app_ring: 1, ring_basis: `VIEWS.${key} in ${BD}:${bdApp}, promoted by ${by}` };
     const tabs = tabsBy[key] || [];
     if (!tabs.length) {
-      add({ ...base, ...ring, unit: `home:budget-drs/${key}`, kind: 'view', tab: '', label,
+      add({ ...base, ...ring, unit: `${BD}:view/${key}`, kind: 'view', tab: '', label,
         files: files || bdApp, attribution });
       continue;
     }
-    for (const t of tabs) add({ ...base, ...ring, unit: `home:budget-drs/${key}/${t.tab}`, kind: 'tab',
+    for (const t of tabs) add({ ...base, ...ring, unit: `${BD}:view/${key}/${t.tab}`, kind: 'tab',
       tab: t.tab, label: `${label}: ${t.tab}`, files: files || bdApp, attribution: 'shared' });
+  }
+
+  // Overlays (codebook.md, "What is coded"), one unit per row of the declaration.
+  const OVERLAYS = 'data/design/overlays.csv';
+  if (has(BD, OVERLAYS)) {
+    const viewKeys = new Set(entries.map(e => e.key));
+    const by = (promoted.get(`${BD}:${bdApp}`) || []).map(b => b.by).join(', ') || 'nothing';
+    for (const o of csv(BD, OVERLAYS)) {
+      const [hv, ht = ''] = o.host === '*' ? ['', ''] : o.host.split('/');
+      if (hv && !viewKeys.has(hv)) throw new Error(`${OVERLAYS}: ${o.overlay} opens over ${o.host}, which is no view`);
+      if (ht && !(tabsBy[hv] || []).some(t => t.tab === ht)) throw new Error(`${OVERLAYS}: ${o.overlay} opens over ${o.host}, which is no tab`);
+      if (!has(BD, o.drawn_in)) throw new Error(`${OVERLAYS}: ${o.overlay} is drawn in ${o.drawn_in}, which does not exist`);
+      const hostAddr = hv ? `#view=${hv}${ht ? `&tab=${ht}` : ''}` : '';
+      // Labelled by the object it draws; the host stays in view and tab. Its
+      // ring is its host's: a view of the promoted app, or the app itself for `*`.
+      const name = o.overlay.replace(/-/g, ' ');
+      add({ repo: BD, unit: `${BD}:overlay/${o.overlay}`, kind: 'overlay', host: 'budget-drs app',
+        group: meta[hv]?.kind || '', view: hv, tab: ht,
+        label: name.charAt(0).toUpperCase() + name.slice(1),
+        address: /^[?#]/.test(o.opens) ? o.opens : hostAddr,
+        app_ring: 1, ring_basis: `${OVERLAYS} in ${BD}, over ${hv ? `VIEWS.${hv}` : 'any view'} in ${BD}:${bdApp}, promoted by ${by}`,
+        files: o.drawn_in, attribution: 'declared' });
+    }
   }
 }
 
@@ -321,9 +354,9 @@ for (const p of walk('web-tools', 'pages')) {
   const demo = /^pages\/(demos|drop|scratch)\//.test(p);
   addPage('web-tools', p, demo ? 4 : 3, 'on disk, in no declaration', path.basename(p, '.html'));
 }
-if (has('home', BD)) for (const p of walk('home', `${BD}/app`)) {
+if (has(BD, 'app')) for (const p of walk(BD, 'app')) {
   if (p === bdApp) continue;
-  addPage('home', p, 3, 'on disk, in no declaration', p.split('/').slice(-2).join('/'));
+  addPage(BD, p, 3, 'on disk, in no declaration', p.split('/').slice(-2).join('/'));
 }
 for (const u of units) if (u.ring_basis === 'on disk, in no declaration') u.listed = 'no';
 for (const u of units) u.listed ??= 'yes';
@@ -384,7 +417,7 @@ for (const u of units) for (const f of (u.files || '').split(';').filter(Boolean
 // signals can say what the chrome itself is built from.
 scan('web-tools', 'app/index.html');
 for (const f of readdirSync(path.join(HUB, 'lib/alpineComponents'))) if (f.endsWith('.js')) scan('web-tools', `lib/alpineComponents/${f}`);
-if (has('home', bdApp)) scan('home', bdApp);
+if (has(BD, bdApp)) scan(BD, bdApp);
 
 // Unit-level totals, summed over the unit's files. A shared file's counts land
 // on every unit it serves, which is why `attribution` rides beside them.
@@ -413,26 +446,29 @@ for (const u of units) byRing[u.app_ring] = (byRing[u.app_ring] || 0) + 1;
 console.log(`${units.length} units; by ring ${JSON.stringify(byRing)}; ${files.length} files scanned`);
 for (const r of [...new Set(units.map(u => u.repo))]) console.log(`  ${r}: ${units.filter(u => u.repo === r).length} units`);
 
-if (WRITE) {
-  // Two stores, one per visibility. Public rows go to this repo's data/; every
-  // private row goes to home's, including a page framed by the budget-drs app
-  // from a repo not checked out here, since home's own VIEWS already names it.
-  // Units of any other repo (shortcut-tools' own pages) are counted above and
-  // written nowhere: the tables cover the two apps, not every estate page.
-  const WRITE_TO = { public: path.join(HUB, 'data/ui-units'), home: path.join(checkout('home'), 'data/ui-units') };
-  const destOf = (row) => PUBLIC.has(row.repo) ? WRITE_TO.public
-    : (row.repo === 'home' || row.host === 'budget-drs app') ? WRITE_TO.home : null;
-  const groups = new Map();
-  const put = (row, k) => { const d = destOf(row); if (!d) return; (groups.get(d) || groups.set(d, { u: [], f: [] }).get(d))[k].push(row); };
-  for (const u of units) put(u, 'u');
-  for (const f of files) put(f, 'f');
-  for (const [d, g] of groups) {
-    if (!existsSync(path.dirname(d))) continue;
+// Two stores, one per visibility. Public rows go to this repo's data/; every
+// private row goes to home's, including a page framed by the budget-drs app
+// from a repo not checked out here, since that app's VIEWS already names it.
+// Units of any other repo (shortcut-tools' own pages) are counted above and
+// written nowhere: the tables cover the two apps, not every estate page.
+const WRITE_TO = { public: path.join(HUB, 'data/ui-units'), home: path.join(checkout('home'), 'data/ui-units') };
+const destOf = (row) => PUBLIC.has(row.repo) ? WRITE_TO.public
+  : (HOME_STORE.has(row.repo) || row.host === 'budget-drs app') ? WRITE_TO.home : null;
+const groups = new Map();
+const put = (row, k) => { const d = destOf(row); if (!d) return; (groups.get(d) || groups.set(d, { u: [], f: [] }).get(d))[k].push(row); };
+for (const u of units) put(u, 'u');
+for (const f of files) put(f, 'f');
+for (const [d, g] of groups) {
+  if (ONLY && d !== WRITE_TO[ONLY]) continue;
+  if (!existsSync(path.dirname(d))) continue;
+  if (WRITE) {
     mkdirSync(d, { recursive: true });
     writeFileSync(path.join(d, 'units.csv'), writeCsv(g.u, UNIT_COLS));
     writeFileSync(path.join(d, 'signals.csv'), writeCsv(g.f, FILE_COLS));
-    console.log(`wrote ${g.u.length} units, ${g.f.length} files -> ${path.relative(ESTATE, d)}`);
   }
+  console.log(`${WRITE ? 'wrote' : 'would write'} ${g.u.length} units, ${g.f.length} files -> ${path.relative(ESTATE, d)}`);
+}
+if (WRITE) {
   const stamp = Object.fromEntries(repos.map(r => [r, sha(r)]));
   console.log('source commits', JSON.stringify(stamp));
 }

@@ -24,13 +24,25 @@ public static class SessionLinks
         : provider == "Gemini" && geminiInstance is not null ? Safe("https://antigravity.google.com/r/" + geminiInstance + "?p=c%2F" + id)
         : provider == "Claude" && source?.StartsWith("https://claude.ai/code/",StringComparison.Ordinal) == true ? Safe(source) : null;
 
+    public static string? CapturedRecord(string provider, string id, Dictionary<string,string>? records)
+    {
+        if (provider is not ("Codex" or "Gemini") || !Guid.TryParseExact(id, "D", out _) || records is null) return null;
+        // Match local_sessions.record's provider namespace before looking up a
+        // confirmed index entry. A missing capture never becomes a guessed link.
+        var name = provider.ToLowerInvariant();
+        var digest = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(name + ":" + id));
+        var shortId = Convert.ToHexString(digest).ToLowerInvariant()[..16];
+        return records.TryGetValue(name + ":" + shortId, out var url) && NavigationPolicy.IsWebTools(url) ? url : null;
+    }
+
     public static List<ActivityChange> HydrateChanges(IEnumerable<ActivityChange> changes,
-        Dictionary<string,string>? cloudUrls, string? geminiInstance) => changes.Select(c => {
+        Dictionary<string,string>? cloudUrls, string? geminiInstance, Dictionary<string,string>? capturedRecords = null) => changes.Select(c => {
             if (!c.Key.StartsWith("cloud:",StringComparison.Ordinal) && !c.Key.StartsWith("session:",StringComparison.Ordinal))
                 return c with { SessionUrl = null };
             var id = c.Key.StartsWith("cloud:",StringComparison.Ordinal) ? c.Key[6..] : c.Key.Split(':').Last();
             var source = c.SessionUrl;
             if (c.Location == "Cloud" && cloudUrls?.TryGetValue(id,out var url) == true) source = url;
-            return c with { SessionUrl = For(c.Provider,id,source,geminiInstance) };
+            return c with { SessionUrl = For(c.Provider,id,source,geminiInstance),
+                Url = c.Location == "Cloud" ? c.Url : CapturedRecord(c.Provider,id,capturedRecords) ?? c.Url };
         }).ToList();
 }

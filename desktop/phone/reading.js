@@ -10,13 +10,13 @@
   const classes = {
     p:'my-2 first:mt-0 last:mb-0',
     ul:'my-2 list-disc space-y-1 pl-4', ol:'my-2 list-decimal space-y-1 pl-4',
-    h1:'mt-3 mb-1 text-sm font-semibold text-stone-900', h2:'mt-3 mb-1 text-[13px] font-semibold text-stone-900',
+    h1:'mt-4 mb-2 text-xl font-semibold text-stone-900', h2:'mt-4 mb-2 text-lg font-semibold text-stone-900',
     h3:'mt-3 mb-1 font-semibold text-stone-900', h4:'mt-3 mb-1 font-semibold text-stone-900',
     h5:'mt-3 mb-1 font-semibold text-stone-900', h6:'mt-3 mb-1 font-semibold text-stone-900',
-    pre:'my-2 max-w-full overflow-x-auto rounded-md bg-stone-100 p-2 text-[11px] leading-4',
-    code:'rounded bg-stone-100 px-1 py-0.5 font-mono text-[11px]',
+    pre:'my-3 max-w-full overflow-x-auto rounded-md bg-stone-100 p-3 text-[13px] leading-5',
+    code:'rounded bg-stone-100 px-1 py-0.5 font-mono text-[13px]',
     blockquote:'my-2 border-l-2 border-stone-300 pl-3 text-stone-500',
-    hr:'my-3 border-stone-200', table:'w-full border-collapse text-left text-xs',
+    hr:'my-3 border-stone-200', table:'w-full border-collapse text-left text-[15px]',
     th:'border-b border-stone-300 px-2 py-1 font-medium', td:'border-b border-stone-200 px-2 py-1 align-top',
     a:'text-emerald-800 underline decoration-emerald-300 underline-offset-2'
   };

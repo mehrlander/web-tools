@@ -53,16 +53,17 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 |---|---|
 | `npm run setup` | Configure this checkout's committed Git hooks and registry CSV merge driver, install usable development dependencies without a Playwright browser, and finish by checking readiness. Safe to repeat; never regenerates tracked artifacts. `node node/checkout-setup.mjs` is the dependency-free bootstrap when npm itself cannot start; Windows PowerShell can use `npm.cmd run setup` to bypass a broken `.ps1` shim. |
 | `npm run ready` | Read-only checkout diagnosis: effective hook paths, merge-driver configuration and attributes, required runtimes, and npm's installed dependency metadata. Works for ordinary clones and linked worktrees without assuming `.git` is a directory. |
-| `npm run artifacts:refresh` | Force every hook-owned generator through the configured pre-commit refresher, in the same order and with the same staging and gate policies the commit hooks use. This is artifact repair, intentionally separate from setup. If verification names an artifact outside that hook's ownership, run the command it names. |
+| `npm run artifacts:refresh` | Run every commit rule whose `repair` is `yes` over the whole tree, in order, staging what each writes (see [The refresh model](#the-refresh-model)). If verification names a generated file no rule writes, run the command it names. |
+| `npm run build`, `generate`, `package`, `check` | Run one kind of commit rule over the whole tree, as `artifacts:refresh` does for every kind. |
 | `npm test` | Run the unit/logic suite under [`test/`](test/) with Node's built-in runner: kit behavior, a registration smoke test across every kit, and jsdom + real-Alpine component logic tests. Offline; third-party libs come vendored from `node_modules`. |
 | `npm run preview <page>` | **Logic** render under jsdom: runs the full `gh.load` chain, mounts Alpine, reports which `x-data` containers mounted + their state. No pixels; how it rewrites the page is in [`testing.md`](../docs/environment/testing.md). |
 | `npm run shot <page> [--build] [--ref R] [--script s.mjs] [--full] [--out p.png]` | **Pixel** render with the pre-installed Chromium → PNG. Runs the real `gh.load` chain (or the build, with `--build`). `--script` drives the page into a state first (see below). |
-| `npm run build <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
+| `npm run build:page <page>` | Emit `dist/<page>.js`: the offline form of the page's `gh.load` chain. |
 | `npm run build:lib` | Emit `dist/web-tools.js`: **the pre-build**, the whole `lib/` as one self-booting offline artifact (see [The pre-build](#the-pre-build)). |
 | `npm run build:app` | Emit `dist/app.js`: the app's own pre-build, the part of `lib/` that `app/index.html` can reach, by the same emitter (see [The app's pre-build](#the-apps-pre-build)). |
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
-| `npm run pages-shots` | Regenerate `pages/thumbs/*.png`: one headless screenshot per page, the card previews for the visual index. Uses the [`screenshot.mjs`](render/screenshot.mjs) renderer; see [Cataloging the pages](#cataloging-the-pages). |
+| `npm run pages-shots` | Regenerate the visual index's card previews, one headless screenshot per page, into [web-tools-private](https://github.com/mehrlander/web-tools-private)'s `thumbs/mehrlander/web-tools/`; commit them there. Uses the [`screenshot.mjs`](render/screenshot.mjs) renderer; see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages-index` | Regenerate both catalogs of every page: [`pages/README.md`](../pages/README.md) (link-dense table) and [`pages/index.html`](../pages/index.html) (visual card index). A *catalog* generator, not part of the code pipeline below; see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages` | `pages-shots` then `pages-index`: refresh thumbnails and both catalogs in one step. |
 | `npm run graphql-schema [-- --check]` | Regenerate [`graphql/github-schema.pruned.graphql`](graphql/): fetch GitHub's published SDL (1.5 MB) and write only the slice `lib/gh-fetch.js`'s queries reach (~2 KB), so `npm test` can typecheck them offline. The **one generator that needs the network**, which is why it stays out of the commit hook and the derived-artifacts gate; the drift guard lives in [`test/graphql-schema.test.mjs`](test/graphql-schema.test.mjs) instead. Run it after editing a query. |
@@ -160,7 +161,7 @@ runtime grab-bags (`vanilla-bundle.js`, `alpine-bundle.js`):
 
 ## The pre-build
 
-`npm run build` snapshots *one page's* reachable graph. **The pre-build**
+`npm run build:page` snapshots *one page's* reachable graph. **The pre-build**
 (`npm run build:lib` → [`build-lib.mjs`](build/build-lib.mjs)) snapshots the
 *whole* `lib/`: every `lib/*.js` inlined into one self-resolving artifact at
 `dist/web-tools.js`. It's the same emitter (`lib/build.js`), just seeded
@@ -234,137 +235,97 @@ graph and emits no `dist/` artifact. It walks the `pages/` tree, reads each page
   folder's `README.md` beneath its file listing, so it surfaces where you browse.
 - [`pages/index.html`](../pages/index.html): the **visual index**, a light-themed
   card per page, grouped by directory, whose default preview is the page's
-  screenshot (from `pages/thumbs/`, generated by `pages-shots.mjs`) with a toggle to
-  a **live** iframe of the page or its **HTML source**. Per-page blurbs live in the
-  `NOTES` map at the top of `pages-index.mjs`; edit them there.
+  screenshot, with a toggle to a **live** iframe of the page or its **HTML source**.
+  [`pages-shots.mjs`](build/pages-shots.mjs) generates the screenshots. A card
+  shows its screenshot to a reader whose browser holds a GitHub token, and a
+  placeholder to anyone else. Per-page blurbs live in the `NOTES` map at the top
+  of `pages-index.mjs`; edit them there.
 
 The catalogs regenerate automatically at commit time (see
 [The refresh model](#the-refresh-model)); `npm run pages` (= `pages-shots` then
-`pages-index`) is the manual full refresh, and `pages-index --check` exits non-zero
-when either committed catalog is stale, as an audit. The thumbnails are committed
-PNGs, so the index stays self-contained rather than re-rendering every page at
-view time.
+`pages-index`) is the manual full refresh. `pages-index --check` exits non-zero
+when either committed catalog is stale, as an audit.
 
 ## The refresh model
 
-Run `npm run setup` once in a new clone or linked worktree. The command stores a
-relative `.githooks` path, so Git resolves the hooks from the checkout it is
-actually operating on, and registers the `derived-csv` merge driver named by
-`.gitattributes`. `npm run ready` asks Git for the effective hook path and reads
-the effective driver config; it does not inspect a presumed `.git/config`,
-regenerate anything, or stage files.
+Run `npm run setup` once in a new clone or linked worktree. It stores a relative
+`.githooks` path, which Git resolves in whichever checkout it is working on, and
+registers the `derived-csv` merge driver that
+[`.gitattributes`](../.gitattributes) names. `npm run ready` reads the hook path
+and driver config and writes nothing.
 
-Every derived artifact in the repo is refreshed one of two ways, split on one
-property: whether its generator is **deterministic**.
+Generated files are refreshed in three places:
 
-**Deterministic artifacts ride in the commit that changes their source.** The
-commit-time hook ([`.githooks/pre-commit`](../.githooks/pre-commit), a git hook
-rather than a Claude Code hook, so it fires whatever the session's project root
-is) runs before every `git commit` and regenerates + stages whatever the pending
-changes touch, in this order (the full list, warn-only legs included, is the
-hook's `# --- leg` headers, derived into [`docs/hook-legs.csv`](../docs/hook-legs.csv)):
+- the commit hook, below, commits each deterministic generated file with the
+  change to its source;
+- [`refresh-derived.yml`](../.github/workflows/refresh-derived.yml) runs
+  `npm run artifacts:refresh` on `main` after each push, for writes that ran no
+  hook;
+- page thumbnails are slow and not byte-deterministic, and are refreshed once
+  per session, as root `CLAUDE.md` says under
+  [Per-session refresh: thumbnails](../CLAUDE.md#per-session-refresh-thumbnails).
 
-| Source dirty | Generator | Staged into the same commit |
-|---|---|---|
-| `lib/` | `npm run build:lib` | `dist/web-tools.js` |
-| `lib/`, `pages/dictate.html` | `npm run build:dictate` | `dist/dictate.js` |
-| `lib/`, `app/index.html` | `npm run build:app` | `dist/app.js` |
-| `console/` | `npm run build:console` | `console/suite.js` |
-| `pages/**/*.html` | `npm run pages-index` | `pages/README.md`, `pages/index.html`, `pages/pages.csv` |
-| `node/test/` | `npm run tests-index` | `docs/tests.csv`, and rows added or dropped in `docs/tests-authored.csv` |
-| `node/`, `python/`, any markdown | `npm run tools-index` | derived fields in `docs/harness.csv`, and `docs/hook-legs.csv` |
-| `lib/kits/`, or a file that loads a kit | `npm run kits-index` | `docs/kits.csv` |
-| `lib/`, `pages/` | `npm run registries-reach` | `renders_in` in `docs/registries.csv` |
-| skills, `lib/`, `pages/`, `docs/` | `npm run docs-reach` | `reach` and `words` in `docs/docs.csv` |
-| `docs/CONVERSATION.md`, `docs/QUALIFIED-WRITING.md` | `npm run vendor-docs` | the plugin's copies under `skills/default/` |
-| `docs/house-policies.md` | `npm run policy-skills` | the h plugin's skills under `plugins/h/skills/` |
-| `skills/peeves/peeves.md` | `npm run peeves-csv` | `skills/peeves/peeves.csv` |
-| any markdown | `npm run themes-graph` | `docs/themes.csv` |
-| any `.js`, `.mjs`, `.html`, `.py` or markdown file, or a `docs/*.csv` | `npm run comment-blocks` | `data/comments/web-tools.json` |
-| `docs/docs.csv` | `npm run docs-readme` | `docs/README.md` |
-| `tracker/tasks/` | `npm run tracker-board` | `tracker/board.md`, `tracker/board.csv`, `tracker/board-tags.csv` |
-| any tracked CSV | `python3 python/csv-census.py` | `data/csv-census.csv` |
+**Deterministic generated files are committed with their source.**
+[`.githooks/pre-commit`](../.githooks/pre-commit) runs
+[`build/commit-rules.mjs`](build/commit-rules.mjs) over the rules in
+[`docs/commit-rules.csv`](../docs/commit-rules.csv). A rule is a Make rule:
+sources, a command, outputs. In file order, each rule whose sources have a
+pending change runs its command and, when the command succeeds, stages its
+outputs. A failed command or a missing output prints a warning, and the commit
+proceeds. A rule's `kind` is `build` (a built script under `dist/` or
+`console/`), `generate` (a catalog, registry or index), `package` (a copy a
+plugin ships) or `check` (a warning that writes nothing, printed when its
+command exits nonzero).
 
-Most of these files are generated whole. Four are not. `docs/docs.csv`, `docs/harness.csv`, `docs/registries.csv` and `docs/tests-authored.csv` are hand-edited except for the fields or rows a generator writes. Edit a row freely and leave those fields alone.
+Most generated files are written whole. Four are not:
+[`docs/docs.csv`](../docs/docs.csv), [`docs/harness.csv`](../docs/harness.csv),
+[`docs/registries.csv`](../docs/registries.csv) and
+[`docs/tests-authored.csv`](../docs/tests-authored.csv) are hand-edited except
+for the fields or rows a generator writes. Edit a row freely and leave those
+fields alone.
 
-`docs-readme` and `docs-reach` are a cycle. `docs/README.md` is generated from
-the registry and is also a row in it, so the hook runs `docs-reach` a second
-time after `docs-readme`. One more stamp settles it.
+**A rule that writes a file runs before any rule that measures it.** `docs-reach`
+writes the word count of every `docs/` file into `docs/docs.csv`. Each rule that
+writes under `docs/` comes before it. `docs/README.md` is generated from
+`docs/docs.csv` and is also a row in it. After `docs-readme` rewrites it,
+`docs-reach-again` runs `docs-reach` once more. `csv-census` measures the staged
+bytes of every CSV and comes after every rule that writes one. A word count
+written too early fails [`docs-registry.test.mjs`](test/docs-registry.test.mjs) in
+CI.
 
-**Order is part of the contract, and it runs one way: a leg that WRITES into a
-folder precedes the leg that MEASURES it.** `docs-reach` stamps every `docs/`
-file's length into the registry's `words`, so `tests-index`, `tools-index` and
-`registries-reach` all run above it: each writes a file under
-`docs/`, and a stamp taken before that write is stale by exactly that file's own
-delta. Nothing local reports it either, because the hook does not verify what it
-stamps; `docs-registry.test.mjs` catches it in CI, after the push. So a new
-generator that writes under `docs/` goes above leg docs-reach, and one that only
-reads goes wherever it likes.
+Every generator is byte-deterministic: a commit whose sources did not change
+gets identical generated files back. The suite tests determinism directly.
 
-**And a leg has to stage the file it actually writes.** Every `git add` in the
-hook goes through a `stage()` helper that reports a path that is not there,
-because `git add X 2>/dev/null || true` cannot tell "nothing to stage" from
-"renamed," and the second is the one worth hearing about.
+**Automatic local merge commits use the same rules.** Git does not run
+`pre-commit` for a clean automatic merge. It runs `pre-merge-commit`, which
+runs `pre-commit` on the merged index and compares the index before and after.
+Git has already recorded the merge tree by then. When the rules changed a
+file, the hook stops the commit and leaves the merge in progress, with the
+regenerated files staged. It prints the next step:
+`git -c core.editor=true merge --continue`. That command makes an ordinary
+commit, which runs `pre-commit` again and then the
+[`commit-msg`](../.githooks/commit-msg) checks. When no file changed, the merge
+finishes in one command. A conflicted merge does not reach `pre-merge-commit`;
+its continuation is an ordinary commit. A fast-forward creates no merge commit,
+and `--no-verify` skips every hook.
 
-Every generator is byte-deterministic, so the hook can fire on every commit and
-no-op invisibly when nothing real changed. It's non-blocking: a generator failure
-warns and the commit proceeds.
+The registry CSV merge driver and the commit rules divide the work. The driver
+unions rows, merges authored cells three-way, and keeps the current side's
+value in computed cells. The rules then run over the merged tree and rewrite
+those computed cells. Neither takes one side of a CSV whole. Authored rows from
+the other branch survive.
 
-**Automatic local merge commits use the same order.** Git does not invoke
-`pre-commit` for a clean automatic merge; it invokes `pre-merge-commit` instead.
-The committed hook resolves the effective `pre-commit` path through Git,
-delegates after the combined index exists, and compares the index tree before
-and after. Git has already cached the proposed automatic merge tree at that
-point. If refresh changed the index, the hook deliberately stops the commit,
-leaves the clean merge and its refreshed index in progress, and prints one next
-step: `git -c core.editor=true merge --continue`. That continuation uses the
-ordinary commit path, so `pre-commit` runs again and `commit-msg` preserves the
-consent gate. If the
-refresh was a no-op, the automatic merge finishes in one command. A conflicted
-merge does not reach `pre-merge-commit`; its later continuation uses ordinary
-`pre-commit`. Fast-forwards create no merge commit, and `--no-verify` remains
-the deliberate bypass.
+GitHub Pages serves `main` as it is, with no deploy build.
 
-The registry CSV merge driver and the refresh hook divide the job. The driver
-unions rows, strictly three-way merges authored cells, and deliberately leaves
-computed cells at the current side's value. The delegated refresher then runs
-the existing derivers over the combined tree, in the order above, and restamps
-those computed cells. It never takes one CSV side wholesale, so authored rows
-from the other branch survive.
+[`test.yml`](../.github/workflows/test.yml) runs `npm test` on pull requests
+and on pushes to `main`, except pushes limited to `pages/wsl-sync/data/**`.
 
-The suite asserts determinism directly rather than inferring
-it from one passing run, since a nondeterministic generator (one that iterates
-a set, say) makes a byte-comparison gate flaky rather than false.
+A write through GitHub's API, MCP or a server-side merge runs no local hooks.
+Root [`CLAUDE.md`](../CLAUDE.md#the-pre-build--the-build-on-commit-hook), under
+"Verification stays independent", says how to repair the tree it leaves.
 
-**Thumbnails (`pages/thumbs/*.png`) refresh once per session, before a merge.**
-Screenshots are slow (a Chromium render per page) and not byte-deterministic
-(PNG encoding, font raster), so regenerating per commit would write ~100KB of
-binary churn for every touched page on every commit. Instead the hook *warns*
-when a page's HTML changes without its thumbnail, and the refresh happens
-deliberately before a merge (`npm run pages-shots -- <changed pages…>`, root
-`CLAUDE.md` "Per-session refresh: thumbnails"). Until then,
-`pages/index.html` degrades gracefully: a missing thumb shows the
-"no screenshot" placeholder.
-
-GitHub Pages serves `main` as-is, with no
-deploy build. The one verification workflow, `.github/workflows/test.yml`, runs
-`npm test` on pull requests and pushes to `main`, except pushes limited to
-`pages/wsl-sync/data/**`. It reports results without committing changes. GitHub's API, MCP writes, the web merge button, and other
-server-side merges cannot execute a local checkout's hooks; on `main`,
-`.github/workflows/refresh-derived.yml` runs `npm run artifacts:refresh` after
-each push and commits what moved. Before a server
-merge, merge the current base into the branch in a ready local checkout, run
-`npm test`, and push the refreshed branch. Follow a printed
-`git -c core.editor=true merge --continue` when the combined tree needed
-restamping. If a remote write left a tree that workflow did not repair (a
-branch, or a test still red after it ran), fetch
-and check out that tree locally, run `npm run artifacts:refresh` followed by
-`npm test`, then run any additional generator the test names and commit and push
-the repair. Setup alone makes no claim about those paths.
-
-Committed artifacts are the truth, which is what lets a branch be previewed
-pre-merge via `?use=<sha>`. Authored docs (`docs/environment/`,
-this file) are never auto-generated.
+A branch can be previewed before merge with `?use=<sha>` because its generated
+files are committed.
 
 ## Extending
 

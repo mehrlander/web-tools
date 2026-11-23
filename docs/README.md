@@ -5,14 +5,14 @@
 Reference docs that don't belong at the repo root. This index is generated
 from [`docs.csv`](docs.csv), the documentation registry, which also renders
 live in [the Web Tools app's Map → Docs → Inventory](https://mehrlander.github.io/web-tools/app/?view=map&tab=docs).
-A **record** preserves a moment and is
-never rewritten: a later dated sentence corrects it; a **measured** doc carries dated
+A **record** (`edit=write-once` in `.gitattributes`) preserves a moment and is
+not edited once on main: a note corrects it; a **measured** doc carries dated
 observations and is corrected by re-probing; everything else is living and
 must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
-2 arrive in every session's context, 16 are named by CLAUDE.md,
-23 by a skill, 42 by a page or component. The remaining 43 are
+2 arrive in every session's context, 17 are named by CLAUDE.md,
+25 by a skill, 42 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -31,6 +31,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`artifacts.md`](artifacts.md) *(orphan)* — Claude Code artifacts and the link-choice matrix
 - [`code-layers.md`](code-layers.md) — the code layers and the admission rule that sorts a new file into one of them
 - [`column-primitives.md`](column-primitives.md) — the column primitives: which of four roles a column plays in its row (id, label, locator, value), the role axis and its crossing with position
+- [`components.csv`](components.csv) — the components registry: every Alpine component file, the names it registers, what it says it is, and what loads and mounts it
 - [`delivery.json`](delivery.json) *(measured)* — historical snapshots of the retired injection routes and an unshipped proposal; current content routes are in Map / Harness / Context
 - [`doc-growth.md`](doc-growth.md) *(orphan)* — the doc-growth chart: what it plots, how to generate its data file for a repo, and what makes the chart misleading
 - [`docs.csv`](docs.csv) — the documentation registry: what each file under docs/ is, on four axes
@@ -82,7 +83,7 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`account-skills.csv`](account-skills.csv) — what the claude.ai account should hold: each skill on or off, and the plugin folder its copy should match
 - [`upstream-skills.csv`](upstream-skills.csv) — the upstream registry: skills written elsewhere that the estate watches, studies, holds or copies, each with its pin and our copy
 - [`agents.csv`](agents.csv) — the agent roster: every agent the hub ships as a definition file or spawns as a reader inside a skill, with its model, tools and preloads
-- [`hook-legs.csv`](hook-legs.csv) — the commit hook's steps: what each watches, runs and writes, and whether the repair on main runs it
+- [`commit-rules.csv`](commit-rules.csv) — the commit hook's rules: what each one's sources, command and outputs are, and whether the repair on main runs it
 - [`writers.csv`](writers.csv) — every program that commits to an estate repository: what starts it, the machine it runs on, and where and how it sets
 - [`context-links.csv`](context-links.csv) — the directed delivery connections between Context sources and the conditions on each connection
 - [`idea-board.md`](idea-board.md) — the idea board form: one design-sprint Crazy 8s board, its addresses, fields and sketch rules
@@ -99,7 +100,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`credentials.csv`](credentials.csv) — the credentials writers commit with, one row each: its kind, the venue that holds it and whose name its commits carry
 - [`machines.csv`](machines.csv) — the machines work runs on, one row per machine: what each is and what work there reaches
 - [`machines.md`](machines.md) *(measured)* — dated observations about the machines docs/machines.csv lists: what each product needs to keep running, and where unattended work fits
-- [`acronyms.md`](acronyms.md) *(orphan)* — coined acronyms for asks a session may hear (SPUR, FAIR) and for an order of explaining a term (CDE), kept mostly for fun
+- [`acronyms.md`](acronyms.md) — coined acronyms for asks a session may hear (SPUR, TOUR) and for an order of explaining a term (CDE), kept mostly for fun
+- [`formats.csv`](formats.csv) *(orphan)* — the JSON formats web-tools defines or renders: each one's contract, schema, id key, producer and envelope membership
 
 ## docs/envelopes/
 
@@ -112,6 +114,8 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`approval.md`](envelopes/approval.md) — the approval envelope: a surface that asks for a decision, and the verdict a commit gate resolves
 - [`passage-reading.md`](envelopes/passage-reading.md) — the passage-reading envelope contract: one passage read sentence by sentence
 - [`audit.md`](envelopes/audit.md) — the audit envelope contract: a document's units, each with a label from a declared vocabulary and a verdict
+- [`inspection.md`](envelopes/inspection.md) *(orphan)* — the inspection envelope contract: what an AI process made from an input, each item anchored in it, for a note or a verdict apiece
+- [`user-call.md`](envelopes/user-call.md) — the user-call envelope contract: a question for the owner, its kinds, answers and a documentation call's critic review
 
 ## docs/envelopes/schemas/
 
@@ -124,7 +128,6 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`branch-review-v1.schema.json`](envelopes/schemas/profiles/branch-review-v1.schema.json) *(orphan)* — the branch-review profile schema
 - [`inquiry-v1.schema.json`](envelopes/schemas/profiles/inquiry-v1.schema.json) *(orphan)* — the inquiry profile schema
-- [`stage-v1.schema.json`](envelopes/schemas/profiles/stage-v1.schema.json) *(orphan)* — the stage profile schema
 - [`approval-v1.schema.json`](envelopes/schemas/profiles/approval-v1.schema.json) *(orphan)* — the approval profile schema
 
 ## docs/environment/
@@ -159,6 +162,7 @@ marked *(orphan)* below: nothing points at them except this index.
 
 - [`content-maturity-ideas.json`](prototypes/content-maturity-ideas.json) *(record, orphan)* — the idea board for a diagram of content maturity: eight ways to draw four levels from Markdown notes to a view in the app, and the staircase selected with three grafts
 - [`md-edit-ideas.json`](prototypes/md-edit-ideas.json) *(record, orphan)* — the idea board for the Markdown section editor: eight concepts drawn over the Intake section of docs/stage.md, and the selection the two built editors came from
+- [`session-repos-ideas.json`](prototypes/session-repos-ideas.json) *(record, orphan)* — the idea board for the Sessions view's Repos tab: eight ways to draw which repos one repo is worked alongside and how heavily
 - [`harness-map-ideas.json`](prototypes/harness-map-ideas.json) *(record, orphan)* — the idea board for the harness picture: eight ways to draw how writers, the credentials they commit with and the machines they run on reach GitHub, and the selection docs/prototypes/harness-map.html builds
 - [`forms-tab-ideas.json`](prototypes/forms-tab-ideas.json) *(record, orphan)* — the idea board for the Map's Forms tab: eight ways to show the estate's forms with the pages that carry each, and the selection the tab builds
 - [`code-comments-ideas.json`](prototypes/code-comments-ideas.json) *(record, orphan)* — the idea board for a view of the estate's code comments and docstrings: eight ways to show where comment text sits, how much there is beside the Markdown, and what it cites, and the selection a Docs sub-tab would build
@@ -166,4 +170,5 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`model-diagram-redraw.json`](prototypes/model-diagram-redraw.json) *(record, orphan)* — the second idea board for the Map's Model diagram: five ways to draw the taxonomy of screen, chrome, content, unit, collection, item, field and overlay on the Docs tab, and the selection
 - [`program-icons-ideas.json`](prototypes/program-icons-ideas.json) *(record, orphan)* — the idea board for program icons: eight family cues that mark an icon as a program's rather than a project's, drawn for Surfacing and Testing, and the selection docs/prototypes/program-icons-options.html builds six of
 - [`program-mark-picking-ideas.json`](prototypes/program-mark-picking-ideas.json) *(record, orphan)* — the idea board for choosing program marks: eight ways to star favorites, order them and send the choice, and the pick docs/prototypes/program-mark-ideas.html builds
+- [`program-areas-ideas.json`](prototypes/program-areas-ideas.json) *(record, orphan)* — the idea board for the Program view's Areas tab: eight ways to show every area of a program at once, drawn on the Sessions program's five areas, and the bento of tiles each area declares its panels for
 - [`ui-concepts-ideas.json`](prototypes/ui-concepts-ideas.json) *(record, orphan)* — the idea board for a diagram of the UI concepts: eight ways to draw how Alpine components, kits, units, patterns, parts and slots relate, and the selection

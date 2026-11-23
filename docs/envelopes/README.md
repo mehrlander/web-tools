@@ -2,22 +2,9 @@
 
 An **envelope** is a JSON document that carries a curated, annotated set of items for a reader to open, rendered by a web-tools page rather than by a bespoke viewer. Files, chats, and diffs stay where they live; the envelope layers selection, arrangement, and commentary over them, travels as one unit, and renders through a shared page. This folder is the family's home: the format contracts, the JSON Schemas that describe them, and this note on how the members relate.
 
-The `schemas/` here are written contracts that nothing yet validates against (see [`surface.md`](surface.md)); the `.md` files carry concepts, conventions, and worked examples.
-
 ## The members
 
-The members run from the most general to the most specific; [Membership](#membership) says what admits a format.
-
-| Member | Contract | Renders through | Produced by | Carries |
-| --- | --- | --- | --- | --- |
-| **Surface** | [`surface.md`](surface.md) + [`schemas/surface-v2.schema.json`](schemas/surface-v2.schema.json) | [`pages/branch.html`](../../pages/branch.html) and [`pages/walkthrough.html`](../../pages/walkthrough.html), for a `branch-review/1` surface | by hand, or a run's own builder (home `projects/text/runs/2026-10-22-doc-survey/build-walkthrough.py`); the Surfacer desktop app wrote v1 | a curated, annotated set of cross-repo items for any reason |
-| **Chat-results** | [`chat-results.md`](chat-results.md) | [`pages/chat-results.html`](../../pages/chat-results.html) | the `chat-histories` search skill | what a search over the chat archives found |
-| **Stage** | [`docs/stage.md`](../stage.md), `StageLink` | the Web Tools app | `StageLink.mint`, or by hand | a fileset in transit, plus authored review prompts and a mode |
-| **Data view** | [`data-view.md`](data-view.md) | [`pages/data-view.html`](../../pages/data-view.html) | by hand; a bare file needs none | data itself: a CSV, a JSON array, a log, or several of them with a view each |
-| **Shorter** | [`shorter.md`](shorter.md) | [`pages/shorter.html`](../../pages/shorter.html) | [audit-render](../../pages/audit-render.html)'s adjudicate link, or by hand | a document and, optionally, a shortening of it to adjudicate against it |
-| **Workbook extract** | [`workbook-extract.md`](workbook-extract.md) + [`schemas/workbook-extract-v2.schema.json`](schemas/workbook-extract-v2.schema.json) | [`pages/data-view.html`](../../pages/data-view.html) | [`lib/kits/xlsx-extract.js`](../../lib/kits/xlsx-extract.js) | selected sheet readings and individual workbook objects, with provenance |
-| **Passage reading** | [`passage-reading.md`](passage-reading.md) + [`schemas/passage-reading-v1.schema.json`](schemas/passage-reading-v1.schema.json) | [`pages/passage-reader.html`](../../pages/passage-reader.html) | the [`passage-reading`](../../skills/passage-reading/SKILL.md) skill | a passage read sentence by sentence, with each sentence's references, terms and claims |
-| **Audit** | [`audit.md`](audit.md) | [`pages/audit-render.html`](../../pages/audit-render.html) | [`python/annotate/audit-payload.py`](../../python/annotate/audit-payload.py); the [`doc-audit`](../../skills/doc-audit/SKILL.md) skill | a document's units, each with a label from a declared vocabulary and a verdict on whether it stays |
+The members are the rows of [`docs/formats.csv`](../formats.csv) whose `envelope` is `yes`; its `validated` column says whether a test checks a format's documents against its schema.
 
 **Surface** is the general substrate: the schema is deliberately light at the core (`role`, `view`, `context` optional and open) and tightens through named, versioned **profiles**, of which `branch-review/1` is the first (its schema is under [`schemas/profiles/`](schemas/profiles/)).
 
@@ -46,7 +33,7 @@ A format is a member when three things hold: a producer (a skill or a script) wr
 
 The family is indexed by format, not by page, because a page can be replaced while its format stays and one page can render two formats.
 
-Not members: utility pages ([`docs/tools.csv`](../tools.csv)), subject pages ([`docs/subjects.csv`](../subjects.csv)), app views ([`docs/app-routes.csv`](../app-routes.csv)), and renderers bundled with their producer, such as the show-diff skill's template. Four formats with renderer pages are not yet listed: `approval/1`, `inquiry/1`, `user-call/1` and the idea board.
+Not members: utility pages ([`docs/tools.csv`](../tools.csv)), subject pages ([`docs/subjects.csv`](../subjects.csv)), app views ([`docs/app-routes.csv`](../app-routes.csv)), and renderers bundled with their producer, such as the [`show-diff`](../../skills/show-diff/SKILL.md) skill's template.
 
 ## The decision: chat-results stays a sibling
 

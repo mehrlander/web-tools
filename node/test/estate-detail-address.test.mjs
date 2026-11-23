@@ -14,7 +14,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine, tick, deckGeometry } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick, deckGeometry, until } from './bootstrap.mjs';
 
 class FakeGH {
   constructor(c = {}) { this.repo = c.repo || ''; }
@@ -237,12 +237,13 @@ test('a deep link opens even when the branch list could not be read at all', asy
   assert.equal(data.detailRow.name, 'claude/feat-b');
 });
 
-// ── &pane= and &file=, the two keys the surfacing caption links with ────────
-// Added 2026-08-26, when the caption stopped enumerating files in chat and
-// started pointing here instead. Both ride `_openFiles`, the seam the verdict
-// chip has used since it shipped, so what these pin is the PARSING and the
-// handing-off: what the slide is given. What the slide then DOES with a file
-// is branch-brief-address.test.mjs, and that it really mounts a deck is
+// ── &pane= and &file=, the two keys a branch link points at files with ──────
+// Added 2026-08-26, when a reply stopped enumerating its files in chat and
+// started pointing here instead (its session detail caption only counts
+// them). Both ride `_openFiles`, the seam the verdict chip has used since it
+// shipped, so what these pin is the PARSING and the handing-off: what the
+// slide is given. What the slide then DOES with a file is
+// branch-brief-address.test.mjs, and that it really mounts a deck is
 // node/render/scenarios/branch-address.mjs, since a deck is a browser gesture.
 
 // Two traps in reading a slide's options back, and both produce the same wrong
@@ -273,15 +274,18 @@ const openAddress = async (qs) => {
   data._openFiles = null;
   window.history.replaceState(null, '', qs);
   data.openDetailFromUrl();
-  await tick(8);
   // Slides are built by the deck's own rAF, which jsdom runs at most once per
   // document, so only the first deck of the file mounted anything and every
   // later case read an empty track as a feature that had not taken. Driving
   // build() is the same honesty as driving onDeckSlide above: the gesture is
   // the browser's and is proven in node/render/scenarios/branch-address.mjs;
-  // what belongs here is what the shell hands a slide once one exists.
-  const d = data._deck?.deck, i = data.detail?.i ?? 0;
-  if (d) { d.build(i - 1); d.build(i); d.build(i + 1); await tick(4); }
+  // what belongs here is what the shell hands a slide once one exists. Both
+  // waits are for the thing itself, the deck and then the named slide, since
+  // a count of ticks that held on this file alone failed under `npm test`
+  // (snag tick-count-guesses-a-chain).
+  const d = await until(() => data._deck?.deck, 'the takeover\'s deck'), i = data.detail?.i ?? 0;
+  d.build(i - 1); d.build(i); d.build(i + 1);
+  await until(() => slideOpts(), 'the slide for the branch the address names');
 };
 
 test('&pane=files hands the slide the pane, so a link lands on the files', async () => {
@@ -302,6 +306,15 @@ test('&file= hands the slide the path, and lands the list under it on Files', as
 test('&pane=guide is honoured, since a file address is not the only reason to link', async () => {
   await openAddress('/?view=branches&detail=me/tools@claude/feat-b&pane=guide');
   assert.equal(slideOpts().pane, 'guide');
+});
+
+test('&pane= and &file= together keep both, for files and for guide', async () => {
+  await openAddress('/?view=branches&detail=me/tools@claude/feat-b&pane=files&file=lib/kits/file-deck.js');
+  assert.equal(slideOpts().pane, 'files');
+  assert.equal(slideOpts().file, 'lib/kits/file-deck.js');
+  await openAddress('/?view=branches&detail=me/tools@claude/feat-b&pane=guide&file=pages/branch.html');
+  assert.equal(slideOpts().pane, 'guide');
+  assert.equal(slideOpts().file, 'pages/branch.html');
 });
 
 test('a junk pane is ignored rather than passed through', async () => {

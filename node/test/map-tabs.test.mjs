@@ -80,7 +80,7 @@ const GROUPS = [
   ['Reach', [['reach', 'Routes'], ['projects', 'Projects'], ['distribution', 'Distribution'], ['outposts', 'Outposts']]],
   ['Research', [['research', 'Probes'], ['exploration', 'Exploration']]],
   ['Harness', [['harness', 'Automation'], ['set', 'Set'], ['tests', 'Tests'], ['skills', 'Skills'], ['agents', 'Agents'], ['peeves', 'Peeves'], ['context', 'Context'], ['lifetimes', 'Lifetimes']]],
-  ['Browser', [['model', 'Model'], ['units', 'Pages'], ['forms', 'Forms'], ['patterns', 'Patterns'], ['dimensions', 'Dimensions'], ['views', 'Views'], ['kits', 'Kits'], ['showing', 'Showing'], ['fab', 'FAB']]],
+  ['Browser', [['model', 'Model'], ['units', 'Pages'], ['forms', 'Forms'], ['patterns', 'Patterns'], ['dimensions', 'Dimensions'], ['views', 'Views'], ['kits', 'Kits'], ['components', 'Components'], ['showing', 'Showing'], ['fab', 'FAB']]],
   ['Docs', [['docs', 'Inventory'], ['growth', 'Growth'], ['policy', 'Policy'], ['themes', 'Themes'], ['comments', 'Comments']]],
   ['Data', [['data', 'Tables'], ['relations', 'Relations'], ['attributes', 'Attributes']]],
   ['Watch', [['watch', 'Triggers'], ['public', 'Public'], ['names', 'Names']]],
@@ -213,7 +213,7 @@ test('reader labels clarify the stable route keys', () => {
 });
 
 // View-local searches are siblings under mapTab, so only one has layout at a
-// time. That keeps the shell's first-visible data-find-box rule deterministic
+// time. That keeps the shell's first-visible data-find-input rule deterministic
 // while letting each large inventory use the same `/` interaction.
 const sectionSource = (key) => {
   const start = src.indexOf(`<section x-show="mapTab==='${key}'">`);
@@ -225,7 +225,7 @@ const sectionSource = (key) => {
 test('Distribution is a searchable delivery crosswalk, not a second artifact inventory', () => {
   const section = sectionSource('distribution');
   assert.ok(section, 'the Distribution route has a section');
-  assert.match(section, /<input\b[^>]*\bdata-find-box\b[^>]*\bx-model="setQ"/s,
+  assert.match(section, /<input\b[^>]*\bdata-find-input\b[^>]*\bx-model="setQ"/s,
     'Distribution participates in the app-wide finder convention');
   assert.match(section, /x-for="sec in setSections"/,
     'delivery-mode groups come from the component rather than duplicated markup');
@@ -238,7 +238,7 @@ test('Distribution is a searchable delivery crosswalk, not a second artifact inv
 test('Docs Inventory carries its own scoped finder', () => {
   const section = sectionSource('docs');
   assert.ok(section, 'the Inventory route has a section');
-  assert.match(section, /<input\b[^>]*\bdata-find-box\b[^>]*\bx-model="docQ"/s,
+  assert.match(section, /<input\b[^>]*\bdata-find-input\b[^>]*\bx-model="docQ"/s,
     'Inventory exposes the same visible search contract as Skills and Distribution');
   assert.match(section, /@input="docSearchDir = ''"/,
     'typing starts corpus-wide; choosing a folder is a separate, explicit scope');

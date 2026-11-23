@@ -18,9 +18,10 @@ try:
                            "--show-toplevel"], capture_output=True, text=True).stdout.strip()
 except OSError:
     sys.exit(0)
-if not root or not os.path.abspath(path).startswith(root + os.sep):
+ap, aroot = os.path.abspath(path), os.path.abspath(root) if root else ""
+if not aroot or not os.path.normcase(ap).startswith(os.path.normcase(aroot + os.sep)):
     sys.exit(0)
-rel = os.path.relpath(os.path.abspath(path), root)
+rel = os.path.relpath(ap, aroot).replace(os.sep, "/")
 try:
     with open(os.path.join(root, ".web-tools.json"), encoding="utf-8") as fh:
         programs = json.load(fh).get("programs") or []

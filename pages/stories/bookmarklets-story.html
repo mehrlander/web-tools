@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html data-theme="night" lang="en">
+<html data-theme="winter" lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Field Notes: Bookmarklets</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+  <script src="../../lib/kits/title-tip.js"></script>
   <!-- Tells Tailwind these names are colours, so an opacity modifier on one
        generates under a variant. This page does not reach gh-boot, which does the
        same for every page that does; python/dead-opacity.py holds the two in step. -->
@@ -68,10 +69,10 @@
             <span x-text="mode==='external' ? 'BLOCKED' : 'PASSES'"></span>
           </span>
         </div>
-        <div x-show="mode==='external'" style="font-family:'JetBrains Mono',monospace" class="text-xs text-error/70 bg-base-300 rounded-lg px-3 py-2 leading-relaxed">
+        <div x-show="mode==='external'" style="font-family:'JetBrains Mono',monospace" class="text-xs bg-error/20 rounded-lg px-3 py-2 leading-relaxed">
           Refused to load 'https://cdn.jsdelivr.net/…' — violates Content-Security-Policy: script-src 'self'
         </div>
-        <div x-show="mode==='inline'" style="font-family:'JetBrains Mono',monospace" class="text-xs text-success/70 bg-base-300 rounded-lg px-3 py-2">
+        <div x-show="mode==='inline'" style="font-family:'JetBrains Mono',monospace" class="text-xs bg-success/20 rounded-lg px-3 py-2">
           ✓ No external fetch. Everything runs from the javascript: URI. Ship it.
         </div>
       </div>
@@ -88,7 +89,7 @@
       <div class="space-y-3">
 
         <div class="border border-base-300 rounded-xl p-4 flex items-start gap-4 hover:border-primary/40 transition-colors duration-200">
-          <a title="Drag to bookmarks bar"
+          <a data-title-tip="Drag to bookmarks bar"
              href="javascript:(function(){var u=location.href.replace('github.com','gitingest.com');u!==location.href?location.href=u:alert('Not a GitHub page')})()"
              class="btn btn-primary btn-sm shrink-0 cursor-grab active:cursor-grabbing">
             <i class="ph-bold ph-git-branch"></i> Gitingest
@@ -102,7 +103,7 @@
         </div>
 
         <div class="border border-base-300 rounded-xl p-4 flex items-start gap-4 hover:border-primary/40 transition-colors duration-200">
-          <a title="Drag to bookmarks bar"
+          <a data-title-tip="Drag to bookmarks bar"
              href="javascript:navigator.clipboard.writeText('['+document.title+']('+location.href+')').then(function(){var b=document.body,o=b.style.outline;b.style.outline='3px solid #818cf8';setTimeout(function(){b.style.outline=o},500)},function(){prompt('Copy:','['+document.title+']('+location.href+')')})"
              class="btn btn-primary btn-sm shrink-0 cursor-grab active:cursor-grabbing">
             <i class="ph-bold ph-link-simple"></i> MD Link
@@ -116,7 +117,7 @@
         </div>
 
         <div class="border border-base-300 rounded-xl p-4 flex items-start gap-4 hover:border-primary/40 transition-colors duration-200">
-          <a title="Drag to bookmarks bar"
+          <a data-title-tip="Drag to bookmarks bar"
              href="javascript:(function(){var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/lodash@4/lodash.min.js';s.onload=function(){alert('✓ External scripts allowed — CDN bookmarklets will work here')};s.onerror=function(){alert('✗ CSP blocks external scripts — bundle inline or use a temp window')};document.head.appendChild(s)})()"
              class="btn btn-primary btn-sm shrink-0 cursor-grab active:cursor-grabbing">
             <i class="ph-bold ph-shield-check"></i> CSP Check
@@ -164,7 +165,7 @@
         <div class="flex items-center gap-3">
           <div class="w-28 text-right shrink-0"><span style="font-family:'JetBrains Mono',monospace" class="badge badge-neutral text-xs">dump repo</span></div>
           <i class="ph-bold ph-arrow-right text-base-content/20 text-sm"></i>
-          <span class="text-sm text-base-content/60">Claude drains · or expose as MCP tools <span class="text-warning font-semibold">(unbuilt)</span></span>
+          <span class="text-sm text-base-content/60">Claude drains · or expose as MCP tools <span class="badge badge-warning badge-sm">unbuilt</span></span>
         </div>
       </div>
     </section>
@@ -179,22 +180,22 @@
 
       <div class="space-y-2">
         <div x-data class="flex items-center gap-3 px-4 py-3 rounded-lg bg-base-200">
-          <span style="font-family:'JetBrains Mono',monospace" class="text-success font-bold text-sm w-5 shrink-0">1</span>
+          <span style="font-family:'JetBrains Mono',monospace" class="badge badge-sm badge-success font-bold shrink-0">1</span>
           <span class="font-semibold text-sm flex-1">ChatGPT</span>
           <span style="font-family:'JetBrains Mono',monospace" class="text-xs text-base-content/40 text-right">Gitingest · Repomix · CSP analysis · token security</span>
         </div>
         <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-base-200">
-          <span style="font-family:'JetBrains Mono',monospace" class="text-success/60 font-bold text-sm w-5 shrink-0">2</span>
+          <span style="font-family:'JetBrains Mono',monospace" class="badge badge-sm border-0 bg-success/50 text-success-content font-bold shrink-0">2</span>
           <span class="font-semibold text-sm flex-1">Grok</span>
           <span style="font-family:'JetBrains Mono',monospace" class="text-xs text-base-content/40 text-right">give-me/bookmarklets · GitHub API pattern · MCP inversion</span>
         </div>
         <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-base-200">
-          <span style="font-family:'JetBrains Mono',monospace" class="text-base-content/40 font-bold text-sm w-5 shrink-0">3</span>
+          <span style="font-family:'JetBrains Mono',monospace" class="badge badge-sm badge-ghost font-bold shrink-0">3</span>
           <span class="font-semibold text-sm flex-1">DeepSeek</span>
           <span style="font-family:'JetBrains Mono',monospace" class="text-xs text-base-content/40 text-right">fathom · launcher pattern · otherwise thin</span>
         </div>
         <div class="flex items-center gap-3 px-4 py-3 rounded-lg bg-base-200">
-          <span style="font-family:'JetBrains Mono',monospace" class="text-error/60 font-bold text-sm w-5 shrink-0">4</span>
+          <span style="font-family:'JetBrains Mono',monospace" class="badge badge-sm border-0 bg-error/50 text-error-content font-bold shrink-0">4</span>
           <span class="font-semibold text-sm flex-1">Gemini</span>
           <span style="font-family:'JetBrains Mono',monospace" class="text-xs text-base-content/40 text-right">vite-plugin-bookmarklet · Stagehand · then confabulation</span>
         </div>

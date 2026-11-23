@@ -13,14 +13,28 @@ public static class CloudSessions
         if (rows.ValueKind != JsonValueKind.Array) throw new JsonException("Missing session rows.");
         var items = new List<LocalSession>();
         var urls = new Dictionary<string, string>();
+        var captures = new Dictionary<string, string>();
         foreach (var row in rows.EnumerateArray()) {
             var id = Activity.Text(row, "id");
+            // The captured-store index, rather than a local UUID alone, establishes
+            // that a recorded conversation exists at the standard session path.
+            var assistant = Activity.Text(row, "assistant");
+            var day = Activity.Text(row, "day");
+            var capture = Activity.Child(row, "capture");
+            if (captures.Count < 4096 && assistant is "codex" or "gemini"
+                && Activity.Text(row, "venue") == "laptop"
+                && Activity.Text(capture, "state") is "prose" or "partial"
+                && System.Text.RegularExpressions.Regex.IsMatch(id, "^[a-f0-9]{16}$")
+                && DateOnly.TryParseExact(day, "yyyy-MM-dd", out _)) {
+                var path = $"sessions/{day[..4]}/{day[5..7]}/{day}-{id}.json";
+                captures[assistant + ":" + id] = "https://mehrlander.github.io/web-tools/pages/session.html#gh=mehrlander/web-tools-private@main:" + path;
+            }
             var source = Activity.Text(row, "agent");
             var url = SessionLinks.Safe(source);
             if (!Activity.ValidId(id) || url is null || !url.StartsWith("https://claude.ai/code/", StringComparison.Ordinal)) continue;
             var at = Activity.Date(row, "ended", Activity.Date(row, "started"));
             if (at <= now.AddMinutes(1) && at >= now.AddDays(-7) && urls.Count < 1024) urls[id] = url;
-            if (at.Year < 2000 || at > now.AddMinutes(1) || now - at >= TimeSpan.FromDays(1)) continue;
+            if (at.Year < 2000 || at > now.AddMinutes(1) || now - at >= TimeSpan.FromDays(7)) continue;
             var state = Activity.Text(row, "state");
             var detail = state switch {
                 "needs" => "Recorded: needs you", "choice" => "Recorded: choice needed",
@@ -35,6 +49,9 @@ public static class CloudSessions
             if (title.Length > 180) title = title[..180] + "…";
             items.Add(new(id, "Claude", title, "recorded", at, "", detail, "Cloud", SourceUrl: url));
         }
-        return new(items.OrderByDescending(s => s.UpdatedAt).Take(16).ToList(), captured.Year < 2000 ? null : captured, null, urls);
+        var catalog = items.GroupBy(s => s.Id).Select(g => g.MaxBy(s => s.UpdatedAt)!)
+            .OrderByDescending(s => s.UpdatedAt).Take(4096).ToList();
+        return new(catalog.Where(s => s.UpdatedAt > now.AddDays(-1)).ToList(),
+            captured.Year < 2000 ? null : captured, null, urls, captures) { Catalog = catalog };
     }
 }

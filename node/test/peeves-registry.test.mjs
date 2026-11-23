@@ -15,7 +15,7 @@ const agents = parseCsv(readFileSync(path.join(repoRoot, 'docs', 'agents.csv'), 
 
 // Entries the owner had removed. Their ids stay unused, so a cited id never
 // shifts meaning.
-const DELETED = ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61'];
+const DELETED = ['P09', 'P15', 'P17', 'P19', 'P20', 'P27', 'P40', 'P59', 'P61', 'P73'];
 
 test('ids run P01 upward, missing only the deleted ones, so a cited id never shifts meaning', () => {
   const nums = rows.map(r => Number(r.id.slice(1)));
@@ -54,7 +54,7 @@ test('consolidations preserve cited IDs and point directly to an entry with the 
     assert.equal(r.status, target.status, `${r.id}: status differs from its target`);
   }
   const active = rows.filter(r => !r.merged_into && r.status === 'active');
-  assert.equal(active.length, 31);
+  assert.equal(active.length, 35);
   assert.equal(rows.filter(r => r.status === 'guidance').length, 7);
   assert.equal(byId.get('P03').merged_into, 'P10', 'the jargon note follows the Term loading consolidation');
 });
@@ -71,4 +71,15 @@ test('the skill and its critic agree on where the list lives', () => {
   assert.equal(critic.preloads, 'portable:peeves', 'the critic preloads the peeves skill');
   const body = readFileSync(path.join(repoRoot, critic.path), 'utf8');
   assert.match(body, /skills\/peeves\/peeves\.csv/, 'the critic names the list file for its fallback read');
+});
+
+test('the critic agent file itself preloads the peeves skill, not only its roster row', () => {
+  const critic = agents.find(a => a.id === 'portable:peeves-critic');
+  const text = readFileSync(path.join(repoRoot, critic.path), 'utf8').replace(/\r\n/g, '\n');
+  const fm = text.match(/^---\n([\s\S]*?)\n---/);
+  assert.ok(fm, 'the critic has YAML frontmatter');
+  const skills = fm[1].match(/^skills:\n((?:[ \t]+- .*\n?)+)/m);
+  assert.ok(skills, 'the critic frontmatter has a skills: list');
+  const listed = skills[1].split('\n').map(l => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
+  assert.ok(listed.includes('portable:peeves'), 'the frontmatter skills: list preloads portable:peeves');
 });

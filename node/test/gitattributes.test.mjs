@@ -50,12 +50,40 @@ test("every value of the estate's own attributes has a definition in docs/vocabu
   assert.deepEqual([...used].filter(k => !defined.has(k)).sort(), []);
 });
 
-test('every file docs/docs.csv marks record is write-once, and every write-once file is a record', () => {
-  // A record is preserved as it stood, which is what write-once holds. The two
-  // declarations name the same set, so the test holds them to each other.
-  const records = parseCsv(readFileSync(path.join(repoRoot, 'docs/docs.csv'), 'utf8'))
-    .filter(r => r.status === 'record').map(r => r.path).sort();
-  const once = Object.entries(attribute('edit')).filter(([, v]) => v === 'write-once').map(([p]) => p).sort();
-  assert.ok(records.length, 'docs/docs.csv marks no record, so this test checks nothing');
-  assert.deepEqual(once, records);
+test('a write-once doc has no living status in docs/docs.csv, and a blank status is write-once', () => {
+  // Which docs are records is said once, by edit=write-once here; docs.csv
+  // leaves a record's status blank. The Content program's status panel labels
+  // the blank bucket "record", which holds only while every blank is one.
+  const edit = attribute('edit');
+  const docs = parseCsv(readFileSync(path.join(repoRoot, 'docs/docs.csv'), 'utf8'));
+  assert.ok(docs.some(d => edit[d.path] === 'write-once'), 'no doc is write-once, so this test checks nothing');
+  assert.deepEqual(docs.filter(d => edit[d.path] === 'write-once' && d.status === 'living').map(d => d.path), [],
+    'write-once but status living');
+  assert.deepEqual(docs.filter(d => !d.status && edit[d.path] !== 'write-once').map(d => d.path), [],
+    'blank status but not write-once');
+});
+
+test('every file a commit rule rebuilds whole is regenerated, and every regenerated file has a builder', () => {
+  // docs/commit-rules.csv names each rule's outputs. An output is rebuilt
+  // whole unless it is a registry with an authored property or authored rows,
+  // which the rule only updates in part (docs/docs.csv, pages/pages.csv). A
+  // registry whose properties and membership are all computed is rebuilt
+  // whole, and so is any output that is not a registry. An output folder
+  // stands for the files under it.
+  const rules = parseCsv(readFileSync(path.join(repoRoot, 'docs/commit-rules.csv'), 'utf8'));
+  const regs = parseCsv(readFileSync(path.join(repoRoot, 'docs/registries.csv'), 'utf8'));
+  const props = parseCsv(readFileSync(path.join(repoRoot, 'docs/properties.csv'), 'utf8'));
+  const edit = attribute('edit');
+  const files = Object.keys(edit);
+  const staged = [...new Set(rules.flatMap(r => (r.outputs || '').split(';').map(s => s.trim()).filter(Boolean)))];
+  const whole = staged.filter(s => {
+    const reg = regs.find(r => r.path === s);
+    if (!reg) return true;
+    return reg.membership === 'computed' && props.filter(p => p.registry === reg.id).every(p => p.mode === 'computed');
+  }).flatMap(s => files.filter(f => f === s || f.startsWith(s.replace(/\/$/, '') + '/')));
+  assert.ok(whole.length, 'no rule has an output, so this test checks nothing');
+  assert.deepEqual(whole.filter(f => edit[f] !== 'regenerated').sort(), [], 'rebuilt whole by a rule but not edit=regenerated');
+  // The reverse: a regenerated file is a rule's output.
+  const built = (f) => staged.some(s => f === s || f.startsWith(s.replace(/\/$/, '') + '/'));
+  assert.deepEqual(files.filter(f => edit[f] === 'regenerated' && !built(f)).sort(), [], 'edit=regenerated with no rule that builds it');
 });

@@ -32,26 +32,26 @@
   try { host = window.opener.location.hostname || host; } catch (_) {}
 
   const css = `
-    :root { color-scheme: dark; }
+    :root { color-scheme: light; }
     * { box-sizing: border-box; }
     body { margin: 0; font: 14px/1.4 system-ui, -apple-system, sans-serif;
-      background: #0f172a; color: #e2e8f0; min-height: 100vh;
+      background: #f8fafc; color: #0f172a; min-height: 100vh;
       display: grid; place-items: start center; padding: 28px 16px; }
     .card { width: 100%; max-width: 460px; }
     h1 { margin: 0 0 2px; font-size: 17px; }
-    .sub { margin: 0 0 16px; color: #94a3b8; font-size: 12px; }
-    .sub b { color: #cbd5e1; }
+    .sub { margin: 0 0 16px; color: #64748b; font-size: 12px; }
+    .sub b { color: #334155; }
     .list { display: flex; flex-direction: column; gap: 6px; }
     button { display: flex; align-items: center; justify-content: space-between;
       width: 100%; text-align: left; padding: 12px 14px; cursor: pointer;
-      background: #1e293b; color: #e2e8f0; border: 1px solid #334155;
+      background: #ffffff; color: #0f172a; border: 1px solid #e2e8f0;
       border-radius: 10px; font: inherit; transition: .12s; }
-    button:hover { background: #283548; border-color: #6366f1; }
+    button:hover { background: #f1f5f9; border-color: #6366f1; }
     .name { font-weight: 600; }
-    .chev { color: #64748b; }
-    button:hover .chev { color: #a5b4fc; }
-    .err { color: #fca5a5; }
-    .hint { color: #94a3b8; font-size: 12px; }
+    .chev { color: #94a3b8; }
+    button:hover .chev { color: #6366f1; }
+    .err { color: #dc2626; }
+    .hint { color: #64748b; font-size: 12px; }
   `;
   const shell = body => {
     document.title = 'Popups';

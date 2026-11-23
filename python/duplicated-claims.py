@@ -21,8 +21,8 @@ SHARED_MIN shingles, with one sample per pair. Expect false positives
 (boilerplate phrasing, quoted text, a contract quoting its own rule).
 
 Exclusions lean on the repo's own registries rather than a hand list where
-they can: any doc whose docs.csv status is `record` is out (a record may
-legitimately restate what superseded it), as are generated projections and
+they can: any file .gitattributes holds `edit=write-once` is out (a record
+may legitimately restate what superseded it), as are generated projections and
 the plugin's vendored copies of the conventions (byte-identical by a hook,
 gated elsewhere, and they would drown the report).
 
@@ -99,14 +99,18 @@ def vendored_paths(root: Path) -> set:
 
 
 def record_paths(root: Path) -> set:
-    """Docs whose registry status is `record`: preserved moments, allowed to
-    restate. Read from docs.csv so the exclusion cannot drift from the
-    registry; a missing or unreadable registry excludes nothing."""
+    """Records: tracked files whose `edit` attribute is `write-once`, preserved
+    moments allowed to restate. Read through `git check-attr`, so the exclusion
+    is the set skills/hooks/check-edit-policy.py holds commits to; outside a
+    git checkout it excludes nothing."""
     try:
-        with (root / "docs" / "docs.csv").open(encoding="utf-8", newline="") as fh:
-            return {r["path"] for r in csv.DictReader(fh) if r.get("status") == "record"}
-    except (OSError, ValueError, KeyError):
+        git = lambda *a, **kw: subprocess.run(["git", "-C", str(root), *a],
+                                              capture_output=True, check=True, **kw).stdout
+        out = git("check-attr", "--stdin", "-z", "edit", input=git("ls-files", "-z"))
+    except (OSError, subprocess.CalledProcessError):
         return set()
+    f = out.decode("utf-8").split("\0")
+    return {f[i] for i in range(0, len(f) - 2, 3) if f[i + 2] == "write-once"}
 
 
 def prose(text: str) -> str:
@@ -252,7 +256,7 @@ def main(argv):
         return 0
 
     print(f"duplicated-claims scan: {len(files)} files scanned "
-          f"({len(records)} record-status docs excluded via docs.csv), "
+          f"({len(records)} records and vendored copies excluded), "
           f"{len(hits)} pair(s) at >= {SHARED_MIN} shared {SHINGLE}-word windows "
           f"(advisory; expect false positives; top {TOP} shown)")
     for n, (a, b), shs in hits[:TOP]:

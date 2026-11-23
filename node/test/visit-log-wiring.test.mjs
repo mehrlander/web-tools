@@ -97,14 +97,14 @@ test('a visit is recorded on a push and not on a replace', () => {
 
 test('recording a route stores the destination, and a revisit moves it rather than splitting it', () => {
   const { shell } = shellWith();
-  shell.recordVisit('/web-tools/app/?view=sessions&session=2bf8fcae&lens=list');
+  shell.recordVisit('/web-tools/app/?view=sessions&session=2bf8fcae&tab=list');
   assert.equal(shell.visits.length, 1);
   assert.equal(shell.visits[0].view, 'sessions');
   assert.equal(shell.visits[0].session, '2bf8fcae');
   assert.equal(shell.visits[0].seen, 1);
 
-  // The same screen at another lens is the same destination.
-  shell.recordVisit('/web-tools/app/?view=sessions&session=2bf8fcae&lens=table&grain=turn');
+  // The same screen at another Sessions tab is the same destination.
+  shell.recordVisit('/web-tools/app/?view=sessions&session=2bf8fcae&tab=table&grain=turn');
   assert.equal(shell.visits.length, 1, 'a reading parameter split one destination into two rows');
   assert.equal(shell.visits[0].seen, 2);
 

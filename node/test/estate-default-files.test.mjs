@@ -14,9 +14,11 @@ const LISTING = {
   bbbbbbbbbbb2: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
   ddddddddddd4: { 'SKILL.md': 's0', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q1' },
   eeeeeeeeeee5: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c2', 'QUALIFIED-WRITING.md': 'q1' },
+  fffffffffff6: { 'SKILL.md': 's0', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q0' },
+  ggggggggggg7: { 'SKILL.md': 's1', 'CONVERSATION.md': 'c1', 'QUALIFIED-WRITING.md': 'q1' },
 };
 // doc-craft's SKILL.md, the third file /portable:default loads, read beside the folder.
-const CRAFT = { main: 'd2', aaaaaaaaaaa1: 'd2', bbbbbbbbbbb2: 'd2', ddddddddddd4: 'd2', eeeeeeeeeee5: 'd1' };
+const CRAFT = { main: 'd2', aaaaaaaaaaa1: 'd2', bbbbbbbbbbb2: 'd2', ddddddddddd4: 'd2', eeeeeeeeeee5: 'd1', fffffffffff6: 'd2', ggggggggggg7: 'd2' };
 const reads = [];
 class StubGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
@@ -68,6 +70,18 @@ test('the tip names every file that differs', async () => {
   await settle(); await settle();
   assert.deepEqual([...data.sessionDefaultChanged(row('ddddddddddd4'))], ['CONVERSATION.md', 'SKILL.md']);
   assert.match(data.sessionDefaultNote(row('ddddddddddd4')), /^CONVERSATION\.md and SKILL\.md have changed on main since/);
+});
+
+test('the tip lists three differing files with commas and a final and', async () => {
+  data.sessionDefaultStale(row('fffffffffff6'));
+  await settle(); await settle();
+  assert.match(data.sessionDefaultNote(row('fffffffffff6')), /^CONVERSATION\.md, QUALIFIED-WRITING\.md and SKILL\.md have changed on main since/);
+});
+
+test('repeated synchronous asks about an unread commit start one read', async () => {
+  for (let i = 0; i < 3; i++) data.sessionDefaultStale(row('ggggggggggg7'));
+  await settle(); await settle();
+  assert.equal(reads.filter(r => r === 'ggggggggggg7').length, 1);
 });
 
 test('a change to doc-craft marks the session, as the hint that clears it watches doc-craft too', async () => {

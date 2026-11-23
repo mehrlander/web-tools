@@ -255,12 +255,12 @@
              search result is something to carry off, not just browse. -->
         <div class="flex items-center gap-1">
           <button class="btn btn-sm btn-ghost gap-1.5" @click="doCopy()" :disabled="!results.length"
-                  :title="`Copy ${results.length} chat${results.length === 1 ? '' : 's'} as markdown`">
+                  :data-title-tip="`Copy ${results.length} chat${results.length === 1 ? '' : 's'} as markdown`">
             <i class="ph text-[15px]" :class="copied ? 'ph-check text-success' : 'ph-copy'"></i>
             <span x-text="copied ? 'Copied' : 'Copy'"></span>
           </button>
           <button class="btn btn-sm btn-ghost gap-1.5" @click="download()" :disabled="!results.length"
-                  title="Download the filtered set as markdown">
+                  data-title-tip="Download the filtered set as markdown">
             <i class="ph ph-download-simple text-[15px]"></i>
             <span>.md</span>
           </button>
@@ -272,7 +272,7 @@
         <template x-for="f in env.facets" :key="f.id">
           <button class="btn btn-xs gap-1.5 font-normal"
                   :class="active.includes(f.id) ? 'btn-neutral' : 'btn-ghost bg-base-100 border border-base-300'"
-                  :title="f.note || ''"
+                  :data-title-tip="f.note || ''"
                   @click="toggleFacet(f.id)">
             <span x-text="f.label"></span>
             <span class="opacity-50 font-mono text-[10px]" x-text="(f.members||[]).length"></span>
@@ -295,14 +295,14 @@
                 <span class="grow"></span>
                 <button x-show="hasTranscript(r)" @click="viewTranscript(r)"
                         class="btn btn-ghost btn-xs gap-1 self-center px-1.5 text-primary"
-                        title="Read the chat" aria-label="Read the chat">
+                        data-title-tip="Read the chat" aria-label="Read the chat">
                   <span class="loading loading-spinner loading-xs" x-show="r._loading"></span>
                   <i class="ph ph-cards-three text-base" x-show="!r._loading"></i>
                   <span class="font-mono text-[10px]">Read</span>
                 </button>
                 <a x-show="blobUrl(r)" :href="blobUrl(r)" target="_blank" rel="noopener"
                    class="btn btn-ghost btn-xs self-center px-1.5 opacity-50"
-                   title="Source in the archive" aria-label="Source in the archive">
+                   data-title-tip="Source in the archive" aria-label="Source in the archive">
                   <i class="ph ph-github-logo text-sm"></i>
                 </a>
               </div>

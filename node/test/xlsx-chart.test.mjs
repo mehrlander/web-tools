@@ -75,16 +75,14 @@ test('explicit marker none does not invent markers', () => {
   assert.equal(svg(chart).querySelectorAll('[data-chart-marker]').length, 0);
 });
 
-test('stacked and percentage-stacked charts are explicitly unavailable instead of clustered', () => {
+test('a percentage-stacked chart is explicitly unavailable instead of clustered', () => {
   const columnXml = parts.find(([name]) => name === 'xl/charts/chart1.xml')[1];
-  for (const grouping of ['stacked', 'percentStacked']) {
-    const chart = xlsxKit.parseChartXml(columnXml.replace('grouping val="clustered"', `grouping val="${grouping}"`));
-    assert.equal(chart.grouping, grouping);
-    const doc = svg(chart);
-    assert.equal(doc.documentElement.getAttribute('data-chart-status'), 'unsupported');
-    assert.equal(doc.querySelectorAll('rect').length, 0);
-    assert.match(doc.documentElement.textContent, /Open the workbook in Excel/);
-  }
+  const chart = xlsxKit.parseChartXml(columnXml.replace('grouping val="clustered"', 'grouping val="percentStacked"'));
+  assert.equal(chart.grouping, 'percentStacked');
+  const doc = svg(chart);
+  assert.equal(doc.documentElement.getAttribute('data-chart-status'), 'unsupported');
+  assert.equal(doc.querySelectorAll('rect').length, 0);
+  assert.match(doc.documentElement.textContent, /Open the workbook in Excel/);
 });
 
 test('unsupported scatter charts retain their worksheet anchor and visible fallback', () => {
@@ -117,6 +115,18 @@ test('date and logarithmic axes have a visible unsupported state', () => {
   for (const xml of [lineXml.replaceAll('c:catAx', 'c:dateAx'), lineXml.replace('<c:scaling>', '<c:scaling><c:logBase val="10"/>')]) {
     assert.equal(svg(xlsxKit.parseChartXml(xml)).documentElement.getAttribute('data-chart-status'), 'unsupported');
   }
+});
+
+test('a second value axis, a second chart type and an error value each make a chart unsupported', () => {
+  const valAx = lineXml.match(/<c:valAx>[\s\S]*?<\/c:valAx>/)[0];
+  const axes = xlsxKit.parseChartXml(lineXml.replace(valAx, valAx + valAx));
+  assert.ok(axes.unsupported.includes('Multiple value axes'));
+  assert.equal(svg(axes).documentElement.getAttribute('data-chart-status'), 'unsupported');
+  const lineNode = lineXml.match(/<c:lineChart>[\s\S]*?<\/c:lineChart>/)[0];
+  const combo = xlsxKit.parseChartXml(lineXml.replace(lineNode, lineNode + lineNode.replaceAll('c:lineChart', 'c:barChart')));
+  assert.ok(combo.unsupported.includes('Combination charts'));
+  const err = parts.map(([name, xml]) => [name, name === 'xl/worksheets/sheet2.xml' ? xml.replace(/<c r="B4"[^>]*(?:\/>|>[\s\S]*?<\/c>)/, '<c r="B4" t="e"><v>#N/A</v></c>') : xml]);
+  assert.ok(xlsxKit.analyze(err).xl.charts['xl/charts/chart2.xml'].unsupported.includes('Error values in chart data'));
 });
 
 test('invalid or excessively dense axis intervals terminate with a fallback', () => {
@@ -198,4 +208,68 @@ test('tick labels follow the axis number format, locale tags included', () => {
   assert.equal(f(0.125, '0.00%'), '12.50%');
   assert.equal(f(2100, 'General'), '2100');
   assert.equal(f(2100, ''), '2100');
+});
+
+// ---- stacks, data labels, titles and gridlines ------------------------------
+const two = (kind, grouping, a, b, extraA = '', extraB = '') => {
+  const ser = (idx, vals, extra) => `<c:ser><c:idx val="${idx}"/><c:tx><c:v>S${idx}</c:v></c:tx>${extra}` +
+    `<c:cat><c:strLit><c:ptCount val="${vals.length}"/>${vals.map((_, i) => `<c:pt idx="${i}"><c:v>C${i}</c:v></c:pt>`).join('')}</c:strLit></c:cat>` +
+    `<c:val><c:numLit><c:ptCount val="${vals.length}"/>${vals.map((v, i) => `<c:pt idx="${i}"><c:v>${v}</c:v></c:pt>`).join('')}</c:numLit></c:val></c:ser>`;
+  return `<c:chartSpace ${NS}><c:chart><c:plotArea><c:barChart><c:barDir val="${kind}"/><c:grouping val="${grouping}"/>` +
+    `${ser(0, a, extraA)}${ser(1, b, extraB)}</c:barChart><c:catAx/><c:valAx/></c:plotArea></c:chart></c:chartSpace>`;
+};
+const rects = doc => [...doc.querySelectorAll('rect')].map(r => ['x', 'y', 'width', 'height'].reduce((o, k) => ({ ...o, [k]: Number(r.getAttribute(k)) }), {}));
+
+test('a stacked bar chart draws each series after the one before it, in one bar per category', () => {
+  const chart = xlsxKit.parseChartXml(two('bar', 'stacked', [2, 3], [4, 1]));
+  assert.deepEqual(chart.unsupported, []);
+  const r = rects(svg(chart));
+  assert.equal(r.length, 4);
+  const c0 = r.filter((_, i) => i % 2 === 0 ? i === 0 : i === 1);
+  assert.equal(c0[0].y, c0[1].y, 'the two segments of a category share a row');
+  assert.ok(Math.abs(c0[0].x + c0[0].width - c0[1].x) <= 1, 'the second segment starts where the first ends');
+  assert.ok(Math.abs(c0[1].width - 2 * c0[0].width) <= 1, '4 is drawn twice as long as 2');
+});
+
+test('a stacked column chart takes its axis from the stack totals', () => {
+  const chart = xlsxKit.parseChartXml(two('col', 'stacked', [2, 3], [4, 1]));
+  const doc = svg(chart);
+  assert.equal(rects(doc).length, 4);
+  const ticks = [...doc.querySelectorAll('text')].map(t => Number(t.textContent)).filter(Number.isFinite);
+  assert.ok(Math.max(...ticks) >= 6, `the axis reaches the tallest stack: ${ticks}`);
+});
+
+test('data labels show values, a point\'s rich text, and nothing for a deleted point', () => {
+  const dl = '<c:dLbls><c:dLbl><c:idx val="1"/><c:tx><c:rich><a:p><a:r><a:t>Big</a:t></a:r></a:p><a:p><a:r><a:t>one</a:t></a:r></a:p></c:rich></c:tx><c:showVal val="1"/></c:dLbl>' +
+    '<c:dLbl><c:idx val="2"/><c:delete val="1"/></c:dLbl><c:numFmt formatCode="0.0" sourceLinked="0"/><c:showVal val="1"/></c:dLbls>';
+  const chart = xlsxKit.parseChartXml(chartXml('bar', lit([1.25, 2, 3], '', dl)));
+  assert.equal(chart.series[0].labels.points[1].text, 'Big\none');
+  const labels = [...svg(chart).querySelectorAll('[data-chart-label]')].map(t => [...t.querySelectorAll('tspan')].map(s => s.textContent));
+  assert.deepEqual(labels, [['1.3'], ['Big', 'one']]);
+});
+
+test('a stacked segment too small for its label drops it; an empty segment labels the stack\'s end', () => {
+  const dl = '<c:dLbls><c:showVal val="1"/></c:dLbls>';
+  const doc = svg(xlsxKit.parseChartXml(two('bar', 'stacked', [100, 100], [0.5, 0], dl, dl)));
+  const texts = [...doc.querySelectorAll('[data-chart-label]')].map(t => t.textContent);
+  assert.ok(texts.includes('100'));
+  assert.ok(!texts.includes('0.5'), 'a sliver has no room');
+  assert.equal(texts.filter(t => t === '0').length, 1, 'the empty segment is labelled once, past the stack');
+});
+
+test('a title of several paragraphs is drawn a line each', () => {
+  const xml = chartXml('col', lit([1, 2])).replace('<c:chart>', '<c:chart><c:title><c:tx><c:rich><a:p><a:r><a:t>Head</a:t></a:r></a:p><a:p><a:r><a:t>Sub</a:t></a:r></a:p></c:rich></c:tx></c:title>');
+  const chart = xlsxKit.parseChartXml(xml);
+  assert.equal(chart.title, 'HeadSub');
+  assert.deepEqual(chart.titleLines, ['Head', 'Sub']);
+  const texts = [...svg(chart).querySelectorAll('text')].map(t => t.textContent);
+  assert.ok(texts.includes('Head') && texts.includes('Sub'));
+});
+
+test('gridlines are drawn only when the value axis has them', () => {
+  const plain = chartXml('col', lit([1, 2]));
+  const gridded = plain.replace('<c:valAx/>', '<c:valAx><c:majorGridlines/></c:valAx>');
+  const count = xml => svg(xlsxKit.parseChartXml(xml)).querySelectorAll('line[stroke="#bfbfbf"]').length;
+  assert.equal(count(plain), 0);
+  assert.ok(count(gridded) > 0);
 });

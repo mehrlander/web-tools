@@ -1,6 +1,8 @@
 # Organization
 
-Organization keeps the files that describe the owner's repositories and record the work done in them. The files the organization program governs are declared under `programs` in [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's [Programs tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=programs); a program is defined in [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
+Organization owns how the estate, the owner's repositories and everything in them, fits together, both as it stands and as proposed: where pages live, how the Web Tools app is assembled, and how the repositories align.
+
+It keeps the files that describe the owner's repositories and record the work done in them. The files the organization program governs are declared under `programs` in [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's [Programs tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=programs). A program is defined in [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
 
 ## Areas
 
@@ -10,6 +12,7 @@ Organization keeps the files that describe the owner's repositories and record t
 | Registries | the registries declared in [`registries.csv`](../../docs/registries.csv), under the model in [`registries.md`](../../docs/registries.md), with their columns in [`properties.csv`](../../docs/properties.csv) |
 | Session records and chats | the record of each Claude Code session and the archive of exported chats, read in the [Sessions](https://mehrlander.github.io/web-tools/app/?view=sessions) and [Chats](https://mehrlander.github.io/web-tools/app/?view=chats) views |
 | Trackers | each repository's task tracker, written to the schema in [`TRACKER.md`](../../docs/TRACKER.md) |
+| Maps | current-state maps in [`current/`](current/), each checked against its data, and proposals to change them in [`future/`](future/). The first map covers [the estate's pages](current/pages.md) |
 
 ## Processes
 
@@ -21,9 +24,10 @@ A process is a recurring question or duty the program answers for. A session han
 
 ## Measures
 
-| Process | Measure | Working means |
+| Process or area | Measure | Working means |
 | --- | --- | --- |
 | Landing | [`state/landings.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/landings.json) on web-tools-private's `background` branch: each week's sessions in which the owner asks that question | fewer sessions open on it |
+| Repositories | [`state/vendored.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/vendored.json) on web-tools-private's `background` branch: cross-repo vendored copies compared with their upstream sources (`copies_edited`, `sources_ahead` and missing files) | downstream copies stay unedited and current with their sources |
 
 ## Reviewers
 
@@ -33,4 +37,4 @@ A proposed change to a governed file goes to [owner-proxy](../../skills/agents/o
 
 - How a session's work reaches the owner: the [Sessions](../sessions/README.md) program.
 - The wording of documents and how pages look: the [Content](../content/README.md) program.
-- Research write-ups: the [Discovery](../discovery/README.md) program.
+- Inquiry into topics and practices, and its write-ups: the [Discovery](../discovery/README.md) program.

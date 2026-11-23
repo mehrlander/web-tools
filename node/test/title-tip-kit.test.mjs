@@ -18,7 +18,7 @@ const { window } = makeWindow({
   html: `<!doctype html><html><body>
     <span id="a" data-title-tip="Fetched from the repo when opened.">EXTERNAL</span>
     <table><tbody><tr>
-      <td id="b" data-title-tip-bare data-title-tip="First line.&#10;&#10;Second line.">5,000</td>
+      <td id="b" data-title-tip="First line.&#10;&#10;Second line.">5,000</td>
       <td id="c" data-title-tip-look="excel" data-title-tip-lead="slm4303:"
           data-title-tip="input the hours anticipated">5,000</td>
     </tr></tbody></table>
@@ -92,12 +92,47 @@ test('a title-tip that fits says so; the overflow report is a browser measuremen
   TitleTip.close();
 });
 
-test('an empty title-tip advertises nothing: no underline, no tab stop', () => {
+// A TRUNCATED LINE IS WIDER THAN ITS TIP. Centred on its trigger, the tip of a
+// branch row's one-liner opened at the middle of the row, most of a row away
+// from where the pointer entered it. jsdom lays nothing out, so the trigger and
+// the panel are given boxes, and the pointer a position, by hand.
+test('a trigger wider than its tip centres the tip on the pointer, and a narrow one on itself', () => {
+  const panel = window.document.getElementById('wt-title-tip');
+  const el = window.document.createElement('p');
+  el.setAttribute('data-title-tip', 'The title of a pull request, cut short in its row');
+  window.document.body.append(el);
+  const box = (left, width, top = 300, height = 20) =>
+    ({ left, width, right: left + width, top, height, bottom: top + height, x: left, y: top });
+  const move = (x, y) => window.document.dispatchEvent(
+    new window.MouseEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
+  const leftAt = () => {
+    TitleTip.open(el);
+    const l = parseInt(panel.style.left, 10);
+    TitleTip.close();
+    return l;
+  };
+  panel.getBoundingClientRect = () => box(0, 200, 0, 40);   // the tip: 200 wide
+  try {
+    el.getBoundingClientRect = () => box(20, 900);           // a row-wide line, centred at 470
+    move(800, 310);
+    assert.equal(leftAt(), 700, 'on the pointer: 800 less half the tip');
+    move(150, 310);
+    assert.equal(leftAt(), 50, 'near the left end too');
+    move(800, 50);
+    assert.equal(leftAt(), 370, 'a pointer off the trigger (a keyboard focus, a screenshot) centres on the trigger');
+    el.getBoundingClientRect = () => box(600, 120);          // a chip, narrower than the tip
+    move(610, 310);
+    assert.equal(leftAt(), 560, 'a narrow trigger centres on itself, which is under the pointer anyway');
+  } finally {
+    delete panel.getBoundingClientRect;
+    el.remove();
+  }
+});
+
+test('an empty title-tip advertises nothing: no tab stop', () => {
   // A bound title-tip whose expression resolves to '' still carries the attribute.
-  // Drawing the affordance over it promises a title-tip that does not exist, and a
-  // tab stop on it is a stop that announces nothing. 54 of these were live on
+  // A tab stop on it is a stop that announces nothing. 54 of these were live on
   // the Map's Docs tab when this was measured.
-  assert.match(TitleTip.CSS, /\[data-title-tip\]:not\(\[data-title-tip=""\]\)\{[^}]*text-decoration:underline dotted/s);
   const el = window.document.createElement('span');
   el.setAttribute('data-title-tip', '');
   window.document.body.append(el);
@@ -106,11 +141,9 @@ test('an empty title-tip advertises nothing: no underline, no tab stop', () => {
   el.remove();
 });
 
-test('an element with nothing to underline opts out of the affordance', () => {
-  // A table cell is the case: a spreadsheet render draws no underline anywhere
-  // and the dotted rule would land on most of its numeric cells.
-  assert.match(TitleTip.CSS, /\[data-title-tip\]:not\(\[data-title-tip=""\]\)\{[^}]*text-decoration:underline dotted/s);
-  assert.match(TitleTip.CSS, /\[data-title-tip\]\[data-title-tip-bare\]\{text-decoration:none\}/);
+test('nothing marks a title-tip at rest', () => {
+  // No dotted underline: the owner does not want one.
+  assert.doesNotMatch(TitleTip.CSS, /text-decoration:underline/);
 });
 
 test('a lead line is its own bold row above the title-tip, and never markup', () => {
@@ -292,4 +325,62 @@ test('into() installs a copy of the kit in a frame, once', () => {
   TitleTip.into(w);
   assert.equal(w.TitleTip, first, 'a second call keeps the first copy');
   f.remove();
+});
+
+// A SPOKEN NAME. A `title` on an icon-only button was also its accessible name,
+// and aria-describedby reaches the title-tip only while it is open. So the kit
+// names an element that has no name of its own from its tip, and leaves alone
+// one that has.
+const settle = () => new Promise((r) => setTimeout(r, 0));
+
+test('an icon-only control is named from its title-tip, and the name follows a bound tip', async () => {
+  const b = window.document.createElement('button');
+  b.setAttribute('data-title-tip', 'Close');
+  b.innerHTML = '<i class="ph ph-x"></i>';
+  window.document.body.append(b);
+  TitleTip.refresh();
+  assert.equal(b.getAttribute('aria-label'), 'Close');
+  b.setAttribute('data-title-tip', 'Close the panel');
+  await settle();
+  assert.equal(b.getAttribute('aria-label'), 'Close the panel', 'a changed tip renames the control');
+  b.setAttribute('data-title-tip', '');
+  await settle();
+  assert.equal(b.hasAttribute('aria-label'), false, 'an emptied tip withdraws the name it gave');
+  b.remove();
+});
+
+test('an element with a name of its own keeps it', async () => {
+  const withText = window.document.createElement('button');
+  withText.setAttribute('data-title-tip', 'Saves to the branch');
+  withText.textContent = 'Save';
+  const withLabel = window.document.createElement('button');
+  withLabel.setAttribute('data-title-tip', 'Copy the link');
+  withLabel.setAttribute('aria-label', 'Copy');
+  withLabel.innerHTML = '<i class="ph ph-copy"></i>';
+  const withLabelledby = window.document.createElement('button');
+  withLabelledby.setAttribute('data-title-tip', 'Open');
+  withLabelledby.setAttribute('aria-labelledby', 'a');
+  window.document.body.append(withText, withLabel, withLabelledby);
+  TitleTip.refresh();
+  assert.equal(withText.hasAttribute('aria-label'), false, 'text content is the name');
+  assert.equal(withLabel.getAttribute('aria-label'), 'Copy', 'an author\'s aria-label is never replaced');
+  withLabel.setAttribute('data-title-tip', 'Copy the address');
+  await settle();
+  assert.equal(withLabel.getAttribute('aria-label'), 'Copy', 'nor rewritten when the tip changes');
+  assert.equal(withLabelledby.hasAttribute('aria-label'), false);
+  withText.remove(); withLabel.remove(); withLabelledby.remove();
+});
+
+test('text filled in after the first pass replaces the name the kit gave', async () => {
+  // An x-text span is empty when the kit first looks at it; once Alpine writes
+  // its text, the text is the name and the tip goes back to describing it.
+  const s = window.document.createElement('span');
+  s.setAttribute('data-title-tip', '2026-11-16T18:35:02Z');
+  window.document.body.append(s);
+  TitleTip.refresh();
+  assert.equal(s.getAttribute('aria-label'), '2026-11-16T18:35:02Z');
+  s.textContent = '2026-11-16';
+  await settle();
+  assert.equal(s.hasAttribute('aria-label'), false);
+  s.remove();
 });

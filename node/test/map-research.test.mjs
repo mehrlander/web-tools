@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { makeWindow, tick, repoRoot, captureAlpineErrors } from './bootstrap.mjs';
+import { marked } from 'marked';
 
 const { window, problems } = makeWindow({ html: '<div id="map" x-data="map()"></div>' });
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
@@ -13,6 +14,7 @@ window.__shell = Alpine.reactive({ mapTab: 'research', _authState: 'public',
   hasToken(){ return this._authState === 'auth'; } });
 window.history.replaceState({}, '', '?view=map&tab=research&use=codex/research-preview');
 window.TOKEN = '';
+window.marked = marked;
 const hub = 'mehrlander/web-tools', home = 'mehrlander/home';
 const account = (path, label, kind = 'probe') => ({ path, label, kind });
 const manifests = {
@@ -25,7 +27,7 @@ const manifests = {
     { path: 'projects/text/nested', label: 'Nested', tracker: 'boards/text.md' },
     'projects/budget',
   ], research: [
-    account('projects/text/probes/README.md', 'Text findings'),
+    { ...account('projects/text/probes/README.md', 'Text findings'), status: 'measured' },
     account('projects/text/nested/research/README.md', 'Nested findings'),
     account('projects/budget/research/reports/README.md', 'Outside reports', 'exploration'),
     account('projects/text/studies/README.md', '<b>A study</b>'),
@@ -33,12 +35,41 @@ const manifests = {
   'mehrlander/outside': { estate: false, research: [account('research/README.md', 'Excluded')] },
   'mehrlander/gone': null,
 };
+// A program page's reads: the commits that touched each governed path (one
+// shared by both, so the page joins them by sha), and the notes store.
+const commit = (sha, date, message) => ({ sha, html_url: 'https://github.com/' + hub + '/commit/' + sha,
+  commit: { message, committer: { date } } });
+const commits = {
+  'docs/CONVERSATION.md': [commit('c3c3c3c3c3', '2026-11-10T12:00:00Z', 'Both files at once\n\nBody'), commit('c1c1c1c1c1', '2026-11-01T12:00:00Z', 'The oldest')],
+  'python/showing.py': [commit('c3c3c3c3c3', '2026-11-10T12:00:00Z', 'Both files at once\n\nBody'), commit('c2c2c2c2c2', '2026-11-05T12:00:00Z', 'The middle one')],
+};
+const charterAbout = hub + ':programs/surfacing/README.md';
+// A charter whose Areas table the page lists: links resolve from the charter's
+// folder, code stays code, and the table under Measures is not read.
+const charterMd = ['# Surfacing', '', 'The charter, *rendered*.', '', '## Areas', '',
+  '| Area | Covers |', '| --- | --- |',
+  '| Reply | what a reply hands over, in [`CONVERSATION.md`](../../docs/CONVERSATION.md) |',
+  '| Showing | the link, from `showing.py` and the [Map](https://example.com/?view=map) |', '',
+  '## Measures', '', '| Area | Measure |', '| --- | --- |', '| Reply | closings |', ''].join('\n');
+const notes = [
+  { id: 'n1', at: '2026-11-02T10:00:00Z', author: 'owner', about: charterAbout, text: 'The first note' },
+  { id: 'n2', at: '2026-11-03T10:00:00Z', author: 'claude', about: charterAbout + '#scope', text: 'On a section' },
+  { id: 'n3', at: '2026-11-04T10:00:00Z', author: 'owner', about: 'note:n1', text: 'A reply' },
+  { id: 'n4', at: '2026-11-05T10:00:00Z', author: 'owner', about: hub + ':docs/APP.md', text: 'Another file' },
+];
 const asked = [], failures = new Set();
 let heldHub, homeRef = 'main';
 window.GH = class {
   static FRESH = { cache: 'no-store' };
   static refFor(repo){ return repo === home ? homeRef : repo === hub ? 'codex/research-preview' : 'main'; }
   constructor(opts){ this.opts = opts; }
+  async req(url){
+    asked.push({ ...this.opts, file: url });
+    if (url.startsWith('commits?')) return commits[new URLSearchParams(url.slice(8)).get('path')] || [];
+    const paths = this.opts.repo === home ? ['projects/text/probes/README.md', 'projects/text/probes/probes.csv',
+      'projects/text/probes/view.html', 'projects/text/probes/run.py', 'projects/text/other.md'] : [];
+    return { tree: paths.map(path => ({ path, type: 'blob' })) };
+  }
   async get(file, opts){
     asked.push({ ...this.opts, file, cache: opts?.cache });
     if (file === '.web-tools.json') {
@@ -48,14 +79,22 @@ window.GH = class {
     }
     if (file === 'boards/text.csv') return { text: 'id,title,status\na,A,backlog\nb,B,in-progress\nc,C,blocked\nd,D,done\n' };
     if (file === 'tracker/board.csv' && this.opts.repo === hub)
-      return { text: 'id,title,status,project\na,A,backlog,surfacing\nb,B,done,surfacing\nc,C,in-progress,app\n' };
+      return { text: 'id,title,status,project,href\na,A,backlog,surfacing,tasks/a.md\nb,B,done,surfacing,tasks/b.md\n'
+        + 'c,C,in-progress,app,tasks/c.md\ne,Draft the page,in-progress,surfacing,tasks/e.md\n' };
+    if (file === 'programs/surfacing/README.md') return { text: charterMd };
+    if (file === 'programs/plain/README.md') return { text: '# Plain\n\nA charter with [no areas](../../docs/APP.md).\n\n## Measures\n\n| A | B |\n| --- | --- |\n| x | y |\n' };
+    if (file === 'notes/notes.jsonl' && this.opts.repo === 'mehrlander/web-tools-private')
+      return { text: notes.map(n => JSON.stringify(n)).join('\n') + '\n' };
     if (file === 'state/configs.json') return { text: JSON.stringify({ repos:
       Object.fromEntries(Object.entries({ ...manifests, [hub]: { research: [] } })
         .map(([repo, config]) => [repo, { config }])) }) };
     return { text: readFileSync(path.join(repoRoot, file), 'utf8') };
   }
 };
-for (const file of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/vanilla-bundle.js', 'lib/alpineComponents/map.js'])
+// program.js carries window.Programs, the reading of a program declaration the
+// Map's Programs list shares with the Program view.
+for (const file of ['lib/kits/repo-address.js', 'lib/kits/csv.js', 'lib/vanilla-bundle.js',
+  'lib/alpineComponents/program.js', 'lib/alpineComponents/map.js'])
   new window.Function(readFileSync(path.join(repoRoot, file), 'utf8'))();
 Alpine.start();
 const el = window.document.getElementById('map'), data = Alpine.$data(el);
@@ -99,6 +138,35 @@ test('projects may omit a tracker, and research belongs to the nearest project',
   assert.equal(url.searchParams.get('use'), 'codex/research-preview');
 });
 
+test('a folder account lists the files beside its write-up by kind', async () => {
+  await data.loadResearchTrees();
+  const text = data.researchAccounts.find(r => r.label === 'Text findings');
+  assert.deepEqual([...data.researchParts(text).map(p => p.key + ':' + p.files.length)], ['pages:1', 'data:1', 'scripts:1']);
+  assert.deepEqual([...data.researchParts(data.researchAccounts.find(r => r.label === 'Excel findings'))], []);
+  assert.equal(data.researchDate({ path: 'research/2026-11-16-x/README.md' }), '2026-11-16');
+});
+
+test('a declared status rides on the account, and an unknown one invalidates it', () => {
+  assert.equal(data.researchAccounts.find(r => r.label === 'Text findings').status, 'measured');
+  const entry = { path: 'research/x.md', label: 'X', kind: 'probe' };
+  assert.ok(data.validResearchEntry(entry));
+  for (const status of ['living', 'measured', 'record']) assert.ok(data.validResearchEntry({ ...entry, status }));
+  assert.ok(!data.validResearchEntry({ ...entry, status: 'closed' }));
+});
+
+test('a repository on the registry hidden list leaves research, its strip and projects', async () => {
+  window.__shell.estateHidden = [home];
+  try {
+    await tick();
+    assert.deepEqual([...data.workSources.map(s => s.repo)], [hub, home], 'the read is unchanged');
+    assert.deepEqual([...data.researchAccounts.map(r => r.repo)], [hub]);
+    assert.ok(!data.researchRepoItems.some(i => i.key === home));
+    assert.ok(!data.workProjectGroups.some(g => g.repo === home));
+  } finally { window.__shell.estateHidden = []; }
+  await tick();
+  assert.equal(data.researchAccounts.length, 5);
+});
+
 test('project research chooses the populated tab and filters without moving files', () => {
   data.showProjectResearch(data.workProjectGroups.find(g => g.repo === home).projects[2]);
   assert.equal(data.mapTab, 'exploration');
@@ -138,12 +206,58 @@ test('Programs lists each declaration on shared columns, with its open tasks fro
   const p = rows[0];
   assert.equal(p.governs.length, 2);
   data.programTasks(p); await tick(3);
-  assert.equal(data.programTasks(p), 1, 'open rows whose project is the program');
+  assert.equal(data.programTasks(p), 2, 'open rows whose project is the program');
   assert.equal(data.measureName(p.measures[0]), 'closings.json');
   assert.equal(data.programViewLabel(p.views[0]), 'Showing');
   data.openProgramView(p.views[0]);
   assert.equal(data.mapTab, 'showing');
   data.setTab('research');
+});
+
+// A program's page is the Program view since 2026-11-18 (program-view.test.mjs
+// holds the page). The list opens it: a title on its first tab, a measure's
+// name on Measures. A row is its title, one row of flair (an icon and a count
+// each) and its views; a list among the flair opens in the chart panel-tip
+// rather than under the row.
+test("a program's title opens the Program view, and a measure's name opens it on Measures", async () => {
+  const opened = [];
+  window.__shell.goProgram = (name, tab) => opened.push([name, tab]);
+  const tip = () => el.querySelector('[data-map-chart-tip]');
+  try {
+    data.setTab('programs'); await settled();
+    const row = el.querySelector('[data-map-programs] [data-map-program="surfacing"]');
+    row.querySelector('[data-map-program-open]').click();
+    assert.deepEqual(opened.at(-1), ['surfacing', undefined]);
+    const flair = [...row.querySelectorAll('[data-map-program-flair]')];
+    assert.deepEqual(flair.map(f => f.dataset.mapProgramFlair), ['governs', 'tasks', 'measures', 'reviewers'], 'one row, in one order');
+    assert.deepEqual(flair.map(f => f.textContent.trim()), ['2', '2', '1', ''], 'counts, the reviewers by their icons');
+    assert.equal(row.querySelector('[data-map-program-measure]'), null, 'no list sits in the row');
+
+    row.querySelector('[data-map-program-flair="measures"]').click(); await settled();
+    assert.equal(data.chartTip?.key, 'measures:' + hub + ':surfacing');
+    assert.equal(data.chartTip.pinned, true, 'a tap pins it');
+    tip().querySelector('[data-chart-tip-link="measure:owner/private@background:state/closings.json"]').click();
+    assert.deepEqual(opened.at(-1), ['surfacing', 'measures']);
+    assert.equal(data.chartTip, null, 'following a link closes the panel-tip');
+
+    row.querySelector('[data-map-program-flair="governs"]').click(); await settled();
+    assert.deepEqual([...tip().querySelectorAll('[x-blob]')].slice(1).map(a => a.textContent), ['CONVERSATION.md', 'showing.py'],
+      'the governed paths, by folder, each its own link');
+    assert.deepEqual([...data.chartTip.body.groups.map(g => g.dir)], ['docs/', 'python/']);
+    row.querySelector('[data-map-program-flair="governs"]').click(); await settled();
+    assert.equal(data.chartTip, null, 'its own flair closes it again');
+
+    row.querySelector('[data-map-program-flair="reviewers"]').click(); await settled();
+    assert.deepEqual([...data.chartTip.body.links.map(l => l.label)], ['owner-proxy']);
+    data.closeChartTip();
+
+    const views = row.querySelector('[data-map-program-views]');
+    assert.match(views.className, /overflow-x-auto/, 'the views run on one line that scrolls sideways');
+    assert.match(views.className, /flex-nowrap/);
+    assert.equal(el.querySelector('[data-map-program-page]'), null, 'the Map draws no page of its own');
+    assert.equal(el.querySelector('[data-map-programs] [data-program-measures]'), null, 'nor any measure charts');
+    assert.notEqual(el.querySelector('[data-map-programs]').style.display, 'none', 'the list stays');
+  } finally { delete window.__shell.goProgram; data.closeChartTip(); data.setTab('research'); }
 });
 
 test('Docs omits research folders and declared studies while keeping neighboring documents', () => {

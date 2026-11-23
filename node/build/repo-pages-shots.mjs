@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Regenerate pages-gallery thumbnails for ANOTHER repo's `pages` catalog, into
 // the web-tools-private thumb cache. The web-tools sibling of pages-shots.mjs:
-// that one shoots this repo's own pages/ tree into pages/thumbs/ (committed,
-// public); this one shoots a different repo's declared `pages` (its
-// .web-tools.json catalog) into a private cache the app reads token-gated.
+// that one shoots this repo's own pages/ tree into the same cache, under
+// thumbs/mehrlander/web-tools/; this one shoots a different repo's declared
+// `pages` (its .web-tools.json catalog), which the app reads token-gated.
 //
 //   node node/build/repo-pages-shots.mjs --repo <owner/name> --root <checkout> \
 //        --out <thumbs-dir> [page-path ...]

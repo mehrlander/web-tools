@@ -8,12 +8,27 @@ public record Errand(string Id, string Title, string Note, string State,
     string? Message, string? Reply, bool HasOutput, bool IsNew, bool HasLocalOutput = false)
 {
     public string Provider { get; init; } = "Gemini";
-    public string Location => Provider == "Gemini" ? "Laptop" : "";
+    public string Venue { get; init; } = "";
+    public DateTimeOffset? ClaimedAt { get; init; }
+    public string Location => Venue switch {
+        "personal-laptop" => "Laptop", "anthropic-cloud" => "Cloud",
+        "" when Provider == "Gemini" => "Laptop", _ => ""
+    };
     public bool IsOpen => State is "queued" or "claimed" or "reply";
 }
 
 public record ActivitySnapshot(DateTimeOffset ObservedAt, DateTimeOffset? SyncedAt,
-    string? Revision, bool Connected, string? Notice, List<Errand> Errands);
+    string? Revision, bool Connected, string? Notice, List<Errand> Errands)
+{
+    public SyncHealth? Sync { get; init; }
+    public List<string>? SyncNotices { get; init; }
+    public string? RecordNotice { get; init; }
+}
+
+public record FeedHealth(string State = "unknown", DateTimeOffset? AttemptedAt = null,
+    DateTimeOffset? SucceededAt = null, string? ErrorCode = null,
+    DateTimeOffset? NextAttemptAt = null, double? DurationMilliseconds = null);
+public record SyncHealth(FeedHealth Errands, FeedHealth Sessions, FeedHealth Summaries);
 
 public record ApplicationSignal(string Name, string State, string Detail, int Processes);
 public record WorkerActivity(string Kind, string Headline, DateTimeOffset At, string? ItemId = null);
@@ -23,18 +38,28 @@ public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
     DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop",
-    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SourceUrl = null);
+    SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SourceUrl = null,
+    List<LocalSession>? Members = null, int MemberCount = 1, string? ActivityId = null);
 public record WorkSegment(string Id, string Headline, string Summary, DateTimeOffset At,
     DateTimeOffset GeneratedAt, List<string> Evidence);
 public record LocalWork(DateTimeOffset Through, int Agents, List<WorkSegment> Segments, List<string>? Members = null);
 public record SessionTurn(string Prompt, string Response, DateTimeOffset StartedAt, DateTimeOffset UpdatedAt, string LastTool);
 public record WorkLink(string Label, string Url);
 public record CheckpointTurn(int Turn, string Headline, string Summary, int Files, int Pushes, int Agents);
+public record TopicSpan(int Start, int End);
+public record SessionTopic(string Topic, string? Kind, string? Area, bool Minor, int First, int Last, int Turns,
+    List<TopicSpan> Spans, string? Status, string? WaitsOn, string Waiting, string Basis, string Evidence);
 public record SessionCheckpoint(string Summary, string Headline, DateTimeOffset At,
-    DateTimeOffset? AnalyzedAt, List<CheckpointTurn> Turns, List<WorkLink> Links);
+    DateTimeOffset? AnalyzedAt, List<CheckpointTurn> Turns, List<WorkLink> Links, List<SessionTopic>? Topics = null, bool TopicsPartial = false);
 public record SessionSnapshot(List<LocalSession> Items, List<string> Notices);
 public record CloudSnapshot(List<LocalSession> Items, DateTimeOffset? CapturedAt, string? Notice,
-    Dictionary<string, string>? SessionUrls = null);
+    Dictionary<string, string>? SessionUrls = null, Dictionary<string, string>? CapturedRecords = null)
+{
+    // A bounded published-record catalog helps recover a live thread's parent.
+    // The catalog is never serialized into a desktop or phone response.
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<LocalSession>? Catalog { get; init; }
+}
 public record ActivityEvent(string Id, string Provider, string Title, string State,
     DateTimeOffset At, string Detail, string Location, string SessionId);
 public record ActivityChange(string Key, string Id, string Provider, string Title, string State,
@@ -82,14 +107,22 @@ public static class Activity
         var hasResult = result.ValueKind == JsonValueKind.Object;
         var hasClaim = claim.ValueKind == JsonValueKind.Object;
         var state = hasResult
-            ? IsFalse(result, "ok") ? "failed" : IsFalse(data, "settled") ? "reply" : "complete"
+            ? IsFalse(result, "ok") ? "failed" : IsFalse(result, "answered") ? "declined"
+                : IsFalse(data, "settled") ? "reply" : "complete"
             : hasClaim ? "claimed" : "queued";
+        if (state == "declined") updated = Date(result, "closedAt", Date(result, "fulfilledAt", updated));
         if (!hasResult) updated = hasClaim ? Date(claim, "claimedAt", created) : created;
         return new(id, Text(request, "title", id), Text(request, "note"), state,
             created, updated, hasClaim ? Text(claim, "by") : Text(result, "by"),
-            Text(result, "message"), Text(data, "reply"), hasOutput,
-            hasResult && updated > seenThrough) { Provider = provider };
+            Text(result, "message"), Nonblank(Text(data, "reply"), Text(data, "report")), hasOutput,
+            hasResult && updated > seenThrough) {
+                Provider = provider, Venue = Text(run, "venue"),
+                ClaimedAt = hasClaim ? Date(claim, "claimedAt", created) : null
+            };
     }
+
+    public static string Nonblank(string? preferred, string? fallback) =>
+        !string.IsNullOrWhiteSpace(preferred) ? preferred : fallback ?? "";
 }
 
 public static class NavigationPolicy
@@ -112,6 +145,13 @@ public static class NavigationPolicy
 
     public static bool IsLocal(string? address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && uri.GetLeftPart(UriPartial.Path) == LocalUrl && uri.Query.Length == 0;
+
+    public static string? FilesUrl(string? phoneUrl) => Uri.TryCreate(phoneUrl, UriKind.Absolute, out var uri)
+        && uri.Scheme == "https" && uri.IsDefaultPort && uri.UserInfo.Length == 0
+        && Uri.CheckHostName(uri.Host) == UriHostNameType.Dns && uri.Host.Length > ".ts.net".Length
+        && uri.Host.EndsWith(".ts.net", StringComparison.OrdinalIgnoreCase)
+        && uri.AbsolutePath == "/" && uri.Query.Length == 0 && uri.Fragment.Length == 0
+        ? uri.GetLeftPart(UriPartial.Authority) + "/#view=files" : null;
 
     public static string ErrandUrl(string id, bool hasResult = false) => Activity.ValidId(id)
         ? hasResult

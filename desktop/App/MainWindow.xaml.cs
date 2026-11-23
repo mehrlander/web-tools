@@ -204,6 +204,10 @@ public partial class MainWindow : Window
                     }
                     break;
                 case "web": SelectLaptop(false); break;
+                case "files":
+                    var filesUrl = NavigationPolicy.FilesUrl(CompanionAccess.Load().PhoneUrl);
+                    if (filesUrl is null) throw new InvalidOperationException("Private Files is unavailable. Configure the private phone address first.");
+                    OpenExternal(filesUrl); break;
                 case "activity":
                     settings.WebUrl = NavigationPolicy.AppUrl + "?view=sessions";
                     WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false); break;
@@ -220,7 +224,7 @@ public partial class MainWindow : Window
                 case "errand":
                     var job = snapshot?.Activity.Errands.Find(j => j.Id == id);
                     if (job is not null) {
-                        settings.WebUrl = NavigationPolicy.ErrandUrl(id, job.State is "reply" or "complete" or "failed");
+                        settings.WebUrl = NavigationPolicy.ErrandUrl(id, job.State is "reply" or "complete" or "failed" or "declined");
                         WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false);
                     }
                     break;

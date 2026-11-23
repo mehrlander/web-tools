@@ -6,19 +6,19 @@ import { makeWindow, repoRoot } from './bootstrap.mjs';
 import { makeShell } from './shell.mjs';
 
 test('Activity discussion query and filters survive cold links without changing branch-window grammar', async () => {
-  const { shell, events } = makeShell({ search: '?view=sessions&aq=needle&discussion=1&ascope=week&arepo=me%2Ftools&astate=open&window=12h' });
+  const { shell, events } = makeShell({ search: '?view=sessions&aq=needle&discussion=1&ascope=week&arepo=me%2Ftools&astate=open&alaunched=hide&window=12h' });
   shell.goSessions = () => { shell.view = 'sessions'; };
   const parsed = shell.parseUrl();
   assert.equal(parsed.window, 0.5);
   await shell.routeFromUrl(parsed);
   const p = shell.deepLinkParams();
-  for (const [key, value] of Object.entries({ aq: 'needle', discussion: '1', ascope: 'week', arepo: 'me/tools', astate: 'open' }))
+  for (const [key, value] of Object.entries({ aq: 'needle', discussion: '1', ascope: 'week', arepo: 'me/tools', astate: 'open', alaunched: 'hide' }))
     assert.equal(p.get(key), value);
   const seed = events.find(e => e.type === 'web-tools:session-search-seed').detail;
-  assert.deepEqual(seed, { q: 'needle', discussion: true, scope: 'week', repo: 'me/tools', state: 'open' });
+  assert.deepEqual(seed, { q: 'needle', discussion: true, scope: 'week', repo: 'me/tools', state: 'open', launched: 'hide' });
   shell.view = 'search';
   const other = shell.deepLinkParams(p);
-  for (const key of ['aq', 'discussion', 'ascope', 'arepo', 'astate']) assert.equal(other.has(key), false);
+  for (const key of ['aq', 'discussion', 'ascope', 'arepo', 'astate', 'alaunched']) assert.equal(other.has(key), false);
 });
 
 test('Activity filter edits replace one address rather than adding history per keystroke', () => {
@@ -26,9 +26,10 @@ test('Activity filter edits replace one address rather than adding history per k
   shell.view = 'sessions';
   const calls = [];
   for (const op of ['pushState', 'replaceState']) history[op] = () => calls.push(op);
-  shell.setSessionSearch({ q: 'two words', discussion: true, scope: 'day', repo: '', state: '' });
+  shell.setSessionSearch({ q: 'two words', discussion: true, scope: 'day', repo: '', state: '', launched: '' });
   assert.deepEqual(calls, ['replaceState']);
   assert.equal(shell.deepLinkParams().has('ascope'), false, 'Day is retained as the default');
+  assert.equal(shell.deepLinkParams().has('alaunched'), false, 'every session shown is the default, and silent');
 });
 
 test('Search selection and explicit scope snapshots round-trip, including an empty scope', async () => {
@@ -222,4 +223,33 @@ test('only the active session slide may change the shared query', async () => {
   assert.deepEqual(restored[0], [rows[0], undefined, { replace: true }]);
   assert.equal(data._openCard.find, 'forward query');
   assert.equal(data._openCard.start, 0);
+});
+
+// The Sessions view's five tabs (List, Table, Repos, Counts, Areas) ride
+// `&tab=`, the key every other view's tabs ride. They rode `&lens=` until
+// 2026-11-20, and links minted before then are in notes, lists and replies,
+// so an old address still opens its tab and leaves carrying the new key.
+test('the Sessions tab rides &tab=, and an address carrying the old &lens= lands on that tab', async () => {
+  for (const search of ['?view=sessions&tab=repos&item=home', '?view=sessions&lens=repos&item=home']) {
+    const { shell } = makeShell({ search });
+    shell.goSessions = () => { shell.view = 'sessions'; };
+    assert.equal(shell.sessionTab, 'repos', 'seeded at construction from ' + search);
+    assert.equal(shell.sessionReposItem, 'home');
+    await shell.routeFromUrl(shell.parseUrl());
+    assert.equal(shell.sessionTab, 'repos', 'opened from ' + search);
+    const p = shell.deepLinkParams(new URLSearchParams(search));
+    assert.equal(p.get('tab'), 'repos');
+    assert.equal(p.get('item'), 'home');
+    assert.equal(p.has('lens'), false, 'the old key is written back as the new one');
+  }
+  // List is the default, so a bare ?view=sessions still means the pane as it opens.
+  const { shell } = makeShell({ search: '?view=sessions&lens=list' });
+  shell.goSessions = () => { shell.view = 'sessions'; };
+  await shell.routeFromUrl(shell.parseUrl());
+  const p = shell.deepLinkParams(new URLSearchParams('?view=sessions&lens=list'));
+  assert.equal(p.has('tab'), false);
+  assert.equal(p.has('lens'), false);
+  // Another view's `tab` names that view's tab, not a Sessions one.
+  assert.equal(makeShell({ search: '?view=map&tab=kits' }).shell.sessionTab, '');
+  assert.equal(makeShell({ search: '?view=map&tab=repos&item=x' }).shell.sessionReposItem, '');
 });

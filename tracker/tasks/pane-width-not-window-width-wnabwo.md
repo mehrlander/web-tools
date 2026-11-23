@@ -1,7 +1,10 @@
 ---
 id: pane-width-not-window-width-wnabwo
 title: Audit the app's views for viewport breakpoints inside the content pane
-status: backlog
+status: done
+closed: 2026-11-16
+session: claude/pane-container-queries
+errand: claude-2026-11-16-512733
 project: repo
 opened: 2026-08-23
 size: S
@@ -35,7 +38,32 @@ zero, with the undocked layout unchanged at every width.
 each exempt by design and still compose into a corridor. Look for the second
 mechanism, not just the first.
 
-## Related
+## The sweep, 2026-11-16 (PR #1332)
+
+Every route in `docs/app-routes.csv`, every Map tab and the Project tabs were
+opened headless at a 1280px window with the deck docked (a 384px pane) and a
+fixture token, then judged from the screenshot.
+
+**Converted** (viewport rules to container variants on `<main>`: `sm:` to
+`@xl:`, `md:` to `@2xl:`, `lg:` to `@3xl:`, `xl:` to `@4xl:`, `2xl:` to
+`@6xl:`, `max-md:` to `@max-2xl:`): Pages, Project Pages, Repos, Tools, State,
+Config, Public browse, and the Map tabs Overview, Purpose, Icons, Attributes,
+Events, Scheduled, Set, Context, Tests, Agents, Model, Kits, Outposts, Harness.
+
+**Reflowed already:** the repo Overview, Atlas, Files, Project, Stage, Branches,
+Sessions, Writes, Chats, Lists, Search, Traffic, Compactions, Proposals,
+Waiting, Tending, This browser, Local work, Usage, and the other Map tabs.
+
+**No view is fixed-width on purpose.** Three groups were left as they are:
+
+- App view and Atlas frame another page, which sizes itself.
+- Rules seen not to overflow at 384px keep their viewport form: Map Growth's
+  `md:` row grid, Dimensions' and Public's `sm:` row grids, the Comments and
+  Outposts search boxes (`sm:w-80`, `sm:w-64`).
+- Unobserved: Map Watch's scan lists (`lg:columns-2`, `xl:columns-2`,
+  `sm:grid-cols-4`) render only after a scan, which the headless run did not
+  start.
+
 
 - `skills/html-style/references/mechanics.md`: rule 10 already states container sizing
 - Snag `viewport-rule-blind-to-a-docked-pane`, in web-tools-private `lists/snag.json`, its filing note (in `docs/SNAGS.md` until 2026-10-20)
@@ -56,3 +84,5 @@ either reflows or is recorded as deliberately fixed-width.
   asking this task to write its own rule is satisfied), and cut the body from
   581 words. Still unaudited: every view but those three.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
+- 2026-11-16: sent as Claude errand claude-2026-11-16-512733 (session b805c26a, owner's go); the errand's prompt asks the taker to close this task when the branch work is complete.
+- 2026-11-16: Swept every view with the deck docked at 1280; twenty views and tabs converted on `claude/pane-container-queries`, delivered as PR #1332 (errand claude-2026-11-16-512733). Closed.

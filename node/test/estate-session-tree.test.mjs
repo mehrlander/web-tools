@@ -138,17 +138,6 @@ test('the list holds records and stubs together, newest first', () => {
   assert.equal(kinds, 'record,record,stub');
 });
 
-test('Snagged is about a record, so a stub is not in it', () => {
-  // "No failures" and "no record of failures" are different answers, and only
-  // one of them is about the session.
-  set([branch('a', { sessions: [SESS('GHOST')] })],
-      [record('rec1', { agent: SESS('AAA'), }), ]);
-  data.sessionRows_ = [{ ...record('rec1', { agent: SESS('AAA') }), failures: 3 }];
-  data.sessionScope = 'failed';
-  assert.equal(data.sessionNodes.length, 1);
-  assert.equal(data.sessionNodes[0].kind, 'record');
-});
-
 test('the repo chip reaches a node through its branches, not only its checkouts', () => {
   // The flat list could only filter by the repos a record named as a working
   // directory. A branch in a repo the record never chdir-ed into still belongs
@@ -228,7 +217,7 @@ test('a time scope counts last activity, not the opening turn', () => {
 
 // The standing "N of M branches placed" label is retired: it explained the
 // machinery of the join to a reader who came to see what they had been working
-// on. The sentence survives in the Counts lens, where the histograms it
+// on. The sentence survives in the Counts tab, where the histograms it
 // annotates are the join, so what is held here is the sentence's arithmetic.
 test('the join note states what it could not place', () => {
   set([branch('a', { sessions: [SESS('AAA')] }), branch('b')],
@@ -386,12 +375,10 @@ test('the week window takes what the day window leaves', () => {
   assert.equal(data.sessionOrphans.length, 2);
 });
 
-test('a set or a failure scope empties it, since an orphan has no record', () => {
-  // Both name a property of a RECORD. An orphan is a branch no record claims,
-  // so it cannot answer either question, and empty beats unfiltered.
+test('a set empties it, since an orphan has no record', () => {
+  // A set names RECORDS. An orphan is a branch no record claims, so it cannot
+  // be in one, and empty beats unfiltered.
   set([branch('a', { date: ago(0.1) })], [record('r1')]);
-  data.sessionScope = 'failed';
-  assert.equal(data.sessionOrphans.length, 0, 'failed');
   // `set` needs a set to be ACTIVE, or activeSessionScope falls back to the
   // first scope and the block answers a time question instead. The ids are
   // derived from the address (window.__shell.sessionListSpec), so the fixture

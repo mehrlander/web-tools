@@ -136,7 +136,8 @@ def sh(*args, cwd=None, check=False):
     `check=True`. The incidental ones do not: `git rev-parse origin/<branch>`
     on an unpushed branch SHOULD read as empty, which is how `ref_facts` knows
     it is unpushed."""
-    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=True, text=True)
+    r = subprocess.run(args, cwd=cwd or ROOT, capture_output=True, text=True,
+                       encoding="utf-8", errors="replace")
     if check and r.returncode != 0:
         raise GitFailed(args, r.stderr.strip())
     return r.stdout.strip()
@@ -410,7 +411,7 @@ def vendored_copies():
 # model"), and the catalogs .gitattributes merges with the derived-csv driver.
 # Neither side's copy is what the merge produces, so an overlay reads main's
 # and says so, and they do not count against it as files main also changed.
-WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html", "pages/thumbs/",
+WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html",
                    "docs/README.md", "tracker/board.md", "tracker/board.csv", "tracker/board-tags.csv",
                    *vendored_copies())
 
@@ -568,7 +569,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
         # changed page if it has one, since that is what the reader came to
         # see; else the pages index, which renders anywhere.
         inner = next((p for p in paths if p.startswith("pages/") and p.endswith(".html")
-                      and p != "pages/toss-render.html" and not p.startswith("pages/thumbs/")), "pages/index.html")
+                      and p != "pages/toss-render.html"), "pages/index.html")
         why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment, here "
                    + inner + "; any page can take its place after the second #gh=.")
         d = decision("renderer", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)
@@ -767,8 +768,8 @@ def pick_framed(paths, fr, base, sha, slug, hosted, warn, use_git, at="", query=
 
 
 # An MCP-written PR body or comment turns a URL of this many characters or more
-# into literal text (CONVERSATION.md, "Surfacing caption"; measured in
-# environment/capabilities.md). Chat is untouched, so this is a warning about
+# into literal text (measured in docs/github/mcp.md; CONVERSATION.md, "The PR
+# guide", names the check). Chat is untouched, so this is a warning about
 # WHERE the link may go, not about the link.
 MCP_URL_CAP = 150
 
@@ -949,8 +950,8 @@ def address(case, page, sha, slug, view=None, at="", query="", entries=None, pag
         # the app's embeds inherit it (home CLAUDE.md, "Render path").
         # A --query JOINS the view rather than opening a second '?' span, the
         # same way it joins the view on a page above: the framed page reads one query, so
-        # `?view=sessions?lens=table` reaches it as a view named
-        # `sessions?lens=table` and routes nowhere.
+        # `?view=sessions?tab=table` reaches it as a view named
+        # `sessions?tab=table` and routes nowhere.
         q = join_query([("view", view)], query)
         return (f"https://mehrlander.github.io/web-tools/pages/toss-render.html"
                 f"#gh={slug}@{pin}:{page}{q}{frag}")
@@ -1402,6 +1403,15 @@ def main():
             facts = ref_facts(a.ref)
             d = decision("unknown", [], facts["sha"], repo_slug(), hosted_ok(),
                          [], [diff_remedy(e, a.base, a.ref)], facts)
+    # The app routes on its own address, and a framed preview drops every
+    # history entry it writes, so Back leaves the preview instead of walking
+    # the app's views (PR #966). A link to the app is therefore a ?top link.
+    if (not d.get("top") and repo_slug() == "mehrlander/web-tools"
+            and any(l.get("page") == "app/index.html" for l in d.get("links", []))):
+        d = as_tab(d, asked=False)
+        if d.get("top"):
+            d.setdefault("why", []).append("app/index.html routes on its address, so the toss carries ?top: "
+                                           "Back walks the app's views as it does in the deployed app.")
     if a.top and not d.get("top"):
         d = as_tab(d)
     d = warn_cap(host_refs(d, a.refs, a.query))
@@ -1410,4 +1420,6 @@ def main():
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
+    sys.stderr.reconfigure(encoding="utf-8")
     sys.exit(main())

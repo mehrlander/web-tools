@@ -227,8 +227,9 @@ test('the window is a page on the house stack, light, with one scroll region', (
   assert.match(page, /daisyui@5/, 'daisyUI, from the house combine URL');
   assert.match(page, /cdn\.jsdelivr\.net\/combine\//, 'one combine request, not several');
 
-  // LIGHT, pinned rather than following the machine: daisyUI otherwise reads
-  // prefers-color-scheme and the reader uses no dark theme.
+  // LIGHT, pinned on the root (html-style rule 19). daisyUI's CDN build has
+  // no prefers-color-scheme default (5.8.1, measured 2026-11-19), so the pin
+  // chooses the theme; it does not guard against the machine's setting.
   assert.match(page, /<html[^>]*data-theme="light"/, 'the theme is pinned on the root');
 
   // HOUSE RULE 4: the panes divide a viewport, and exactly one opts into
@@ -305,6 +306,16 @@ test('panel-tip.js reports every branch it takes, refusals included', () => {
   w.document.body.dispatchEvent(new w.Event('pointerdown', { bubbles: true, cancelable: true }));
   assert.ok(seen.includes('press:close'));
   assert.equal(closed, 1);
+
+  // A scroll inside the panel is not a reason to close it, and says so.
+  pop.firstElementChild.dispatchEvent(new w.Event('scroll', { bubbles: true }));
+  assert.ok(seen.includes('scroll:inside'), 'the inside-scroll refusal is reported');
+  assert.equal(closed, 1);
+
+  // Escape closes it, and says so.
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.ok(seen.includes('key:esc'), 'the Escape close is reported');
+  assert.equal(closed, 2);
 
   // The trace carries them as card:<door>:<verdict>, which is the shape a
   // reader of the overlay is scanning for.

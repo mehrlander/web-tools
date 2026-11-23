@@ -55,11 +55,11 @@ function viewKeys(src) {
 // deepLinkParams() deletes VIEW_KEYS unconditionally and then lets ONE row
 // stamp, so the address never depends on what the base happened to hold. That
 // promise holds only while the two lists agree. They stopped agreeing for a
-// week: the Sessions row gained `session`, `set`, `lens` and `grain` on
+// week: the Sessions row gained `session`, `set`, `lens` (now `tab`) and `grain` on
 // 2026-09-08 and 09-09, none of them reached VIEW_KEYS, and the four were
 // written but never cleared. They rode onto every later screen, and because
 // each is seeded from location.search at construction, a cold load of one of
-// those addresses armed the Sessions pane with a record and a lens nobody
+// those addresses armed the Sessions pane with a record and a tab nobody
 // asked for.
 //
 // Read out of the source rather than executed, following this file's own
@@ -199,7 +199,17 @@ test('the two sub-tab encodings, counted', () => {
   //
   // 6 to 7 on 2026-11-10: Activity gained Compactions (?view=compactions), the
   // session store's compaction summaries, a list of records beside Chats.
-  assert.equal(flattened, 8, 'sub-tabs addressed as their own ?view= key');
+  //
+  // 7 to 8 on 2026-11-11: Activity gained Local work (?view=local).
+  //
+  // 8 to 9 on 2026-11-13: Activity gained Usage (?view=usage), where token
+  // spending goes across the sessions. Its five readings are pills inside the
+  // pane with no address, so they add nothing to `params` below.
+  //
+  // 9 to 10 on 2026-11-18: a program's page left the Map's Programs tab for a
+  // view of its own (?view=program), which keeps the Map stop lit, since the
+  // Map holds the list every program compares on.
+  assert.equal(flattened, 10, 'sub-tabs addressed as their own ?view= key');
   // 13 to 14 on 2026-08-29: the Map view gained an Aims tab. 14 to 15 on
   // 2026-09-05: it gained a Kits tab. 15 to 16 on 2026-09-08: it gained a Views
   // tab, which is the Routes pane arriving from Activity. 16 to 17 on
@@ -257,7 +267,12 @@ test('the two sub-tab encodings, counted', () => {
   // pages that carry each.
   // 51 to 52 on 2026-11-09: Docs took Comments, the comment blocks and
   // docstrings in code.
-  assert.equal(params, 52, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 52 to 53 on 2026-11-11: Browser took Components, the Alpine component
+  // files, beside Kits.
+  // 53 to 58 on 2026-11-18: the Program view took its five tabs, Areas,
+  // Measures, Changes, Tasks and Notes, which its page had held inside the
+  // Map's Programs tab with no address of their own.
+  assert.equal(params, 58, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
@@ -319,6 +334,16 @@ test('the shell is excluded from attribution and reported on its own', () => {
   assert.equal(s.path, 'shell.html');
   assert.equal(s.routes, 4);
   assert.equal(s.touch.subject, 'router');
+});
+
+test('a route that declares the shell is not dated or filed by it', () => {
+  const m = { ...FIXTURE, routes: [...FIXTURE.routes,
+    { key: 'five', address: '?view=five', label: 'Five', group: 'b', what: '.', files: ['shell.html', 'five.js'] }] };
+  const five = R.rank(m, { touches: { 'shell.html': { date: '2026-08-13', subject: 'router' } } })
+    .find(r => r.key === 'five');
+  assert.equal(five.lastTouch, null);
+  assert.ok(!five.files.map(f => f.path).includes('shell.html'));
+  assert.deepEqual(R.routesTouched(m, ['shell.html']), { on: [], near: [] });
 });
 
 test('a route with no code of its own is a row, flagged, not a gap', () => {
@@ -470,7 +495,7 @@ test('a route opens AT a ref, which is the whole reason to draw the join', () =>
   const stage = manifest.routes.find(r => r.key === 'stage');
   assert.ok(stage, 'the stage route is declared');
   assert.equal(R.viewUrl(stage, 'abc123'),
-    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=stage');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@abc123:app/index.html?view=stage');
   assert.equal(R.viewUrl(stage, ''), 'https://mehrlander.github.io/web-tools/app/?view=stage', 'no ref is the deployed app');
 });
 
@@ -486,7 +511,7 @@ test('a Map hit names the tab most of its files belong to, and the link lands th
   const policy = map(['docs/house-policies.md', 'lib/alpineComponents/map.js']);
   assert.equal(policy.tab, 'policy');
   assert.equal(R.viewUrl(policy, 'abc123'),
-    'https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
+    'https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@abc123:app/index.html?view=map&tab=policy');
   assert.equal(map(['docs/house-policies.md', 'data/csv-census.csv']).tab, undefined, 'a tie names no tab');
   assert.equal(map(['lib/alpineComponents/map.js']).tab, undefined, 'the component itself is every tab');
   assert.equal(R.routesTouched(manifest, ['docs/house-policies.md']).on.find(r => r.key === 'map').tab, undefined,

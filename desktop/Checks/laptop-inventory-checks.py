@@ -3,6 +3,7 @@ import builtins
 import csv
 import io
 import json
+import os
 import shutil
 from pathlib import Path
 import subprocess
@@ -179,11 +180,27 @@ class MetadataChecks(Fixture):
         self.assertEqual((rows['.']['files'], rows['.']['bytes']), ('1', '4'))
 
     def test_cli_failure_omits_git_diagnostics_and_absolute_paths(self):
+        profile = self.base / 'profile'
+        profile.mkdir()
+        env = dict(os.environ)
+        for name in ('GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN',
+                     'GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE'):
+            env.pop(name, None)
+        env.update(HOME=str(profile), USERPROFILE=str(profile), APPDATA=str(profile / 'AppData/Roaming'),
+                   LOCALAPPDATA=str(profile / 'AppData/Local'), CODEX_HOME=str(profile / '.codex'),
+                   GEMINI_CLI_HOME=str(profile / '.gemini'), XDG_CONFIG_HOME=str(profile / '.config'),
+                   GH_CONFIG_DIR=str(profile / '.config/gh'), GIT_CONFIG_GLOBAL=str(profile / '.gitconfig'),
+                   GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_COUNT='0', PYTHONUTF8='1',
+                   GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='Never')
         result = subprocess.run([sys.executable, str(Path(inventory.__file__).with_name('repositories.py')),
                                  '--root', str(self.root), '--state', str(self.base / 'state'),
-                                 '--publish-laptop-files'], capture_output=True, timeout=45)
+                                 '--publish-laptop-files'], capture_output=True, env=env, timeout=45)
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(json.loads(result.stdout), {'state': 'unavailable', 'path': inventory.TARGET})
+        value = json.loads(result.stdout)
+        self.assertEqual(value.pop('activity'), {'state': 'unavailable'})
+        self.assertEqual(value, {'state': 'unavailable', 'path': inventory.TARGET})
+        snapshot = json.loads((self.base / 'state/local-work.json').read_text(encoding='utf-8'))
+        self.assertEqual((snapshot['checkouts'], snapshot['sessions']), ([], []))
         self.assertFalse(result.stderr)
 
     def test_cli_publication_and_fetch_modes_are_exclusive(self):

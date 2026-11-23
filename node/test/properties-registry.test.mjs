@@ -283,6 +283,18 @@ test('a declared id is its registry key, and a declared label draws from a set o
   }
 });
 
+test('a computed property\'s deriver names the property, or the registry it fills', () => {
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const d of decls) {
+    if (d.mode !== 'computed' || !existsSync(path.join(repoRoot, d.deriver))) continue;
+    const src = readFileSync(path.join(repoRoot, d.deriver), 'utf8');
+    const file = byRegistry.get(d.registry)?.file || '';
+    const names = [d.property, d.registry, path.basename(file), path.basename(file, path.extname(file))].filter(Boolean);
+    assert.ok(names.some(n => new RegExp(`\\b${esc(n)}\\b`).test(src)),
+      `${d.registry}.${d.property}: deriver ${d.deriver} names neither the property nor the registry`);
+  }
+});
+
 test('modes are coherent: computed names a real deriver, recorded names none', () => {
   for (const d of decls) {
     if (d.mode === 'computed') {
@@ -376,7 +388,8 @@ test('a registry file is all recorded or all computed, or a named exception', ()
 const PINNED_BROKEN = {
   'doc-overlap-docs': ['docs/forms/branch.md', 'docs/forms/session.md', 'docs/venues.md', ...['branches', 'chats', 'lists', 'map', 'project',
     'proposals', 'repos', 'search', 'sessions', 'state', 'tending', 'tools', 'writes'].map(v => `docs/views/${v}.md`),
-    'programs/surfacing/README.md', 'skills/atomic-decomposition/SKILL.md', 'skills/question-margin/SKILL.md'],
+    'programs/surfacing/README.md', 'research/DOC_CRAFT_STUDY.md', 'research/doc-craft-specimens/2026-09-08-naming-split.md',
+    'research/doc-craft-specimens/APP_living_spec_replacement.md', 'skills/atomic-decomposition/SKILL.md', 'skills/question-margin/SKILL.md'],
 };
 // A key may also name a file git ignores, which exists only once something has
 // made it: content.csv classifies the lockfile npm writes on install, present in

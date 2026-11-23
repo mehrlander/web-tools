@@ -6,9 +6,17 @@ Content governs how the owner's writing and pages read. The files the content pr
 
 | Area | Covers |
 | --- | --- |
-| Writing | the prose rules in [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md), the owner's [peeves](../../skills/peeves/SKILL.md), the [house policies](../../docs/house-policies.md), and the approval of documentation wording under [doc-craft](../../skills/doc-craft/SKILL.md) |
+| Writing | the prose rules in [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md) and the approval of documentation wording under [doc-craft](../../skills/doc-craft/SKILL.md) |
 | Documents | each document's words and edits over time, in [`data/doc-growth/`](../../data/doc-growth/), and the prose repeated across files, in [`themes.csv`](../../docs/themes.csv) |
 | Pages | how a page looks, in the [html-style](../../skills/html-style/SKILL.md) skill, and what a page is built from: the UI codebook in [`data/ui-units/`](../../data/ui-units/codebook.md), which names each page's parts and the layout its main region takes, and the browser modules in [`lib/kits/`](../../lib/kits/), indexed in [`kits.csv`](../../docs/kits.csv) |
+
+## Processes
+
+A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+
+| Process | Starts when |
+| --- | --- |
+| Rule placement | a session is about to add a rule, convention or UI pattern to a living document and asks where that statement or unit already lives |
 
 ## Measures
 

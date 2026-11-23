@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {readFileSync} from 'node:fs';
+import {existsSync,readFileSync} from 'node:fs';
 import vm from 'node:vm';
 
 const handlers = new Map(), stores = new Map();
@@ -29,16 +29,29 @@ await lifecycle('install'); await lifecycle('activate');
 check(claimed && stores.has('another-app') && !stores.has('web-tools-now-shell-old'),'Activation only removes this app’s older interface caches.');
 const entries=[...stores].filter(([key])=>key.startsWith('web-tools-now-shell-')).flatMap(([,values])=>[...values.keys()]);
 check(entries.includes('/') && entries.includes('/computer.js') && entries.every(key=>!key.startsWith('/api/')),'Only explicit interface assets enter Cache Storage.');
+const companion=readFileSync(new URL('../Companion/Program.cs',import.meta.url),'utf8');
+const project=readFileSync(new URL('../Companion/WebTools.Companion.csproj',import.meta.url),'utf8');
+const linked=new Map([...project.matchAll(/<Content Include="([^"]+)" Link="phone\/([^"]+)"/g)].map(([,source,target])=>['/'+target,new URL('../Companion/'+source,import.meta.url)]));
+check(entries.every(path=>companion.includes('["'+path+'"]')),'Every mandatory offline asset has an explicit Companion route.');
+check(project.includes('Include="../phone/**"') && entries.every(path=>existsSync(linked.get(path)||new URL('../phone/'+(path==='/'?'index.html':path.slice(1)),import.meta.url))),'Every mandatory offline asset exists in the build source or a packaged shared/vendor link.');
+const shell=readFileSync(new URL('../phone/index.html',import.meta.url),'utf8');
+const dependencies=[...shell.matchAll(/(?:src|href)="(\/[^"?#]+)"/g)].map(([,path])=>path);
+check(dependencies.every(path=>entries.includes(path)),'Every local shell dependency is saved with the offline interface.');
 check(await request('/api/v1/now') === undefined && await request('/api/v1/computer') === undefined && await request('/api/v1/results/example') === undefined,'Private API requests always bypass the worker.');
 check(await request('/phone.js','POST') === undefined && await request('https://foreign.example/phone.js') === undefined,'Write requests and other origins bypass the interface worker.');
 check(await request('/api/v1/devices') === undefined && await request('/api/v1/devices/stereo/mute','POST') === undefined,'Device observations and media controls bypass the worker without caching or offline replay.');
 check(await request('/api/v1/repositories') === undefined && await request('/api/v1/repositories/all/fetch','POST') === undefined,'Repository observations and fetch actions bypass offline caching and replay.');
+check(await request('/api/v1/files/content?root=outputs&path=sample.png') === undefined
+  && await request('/api/v1/files/content?root=outputs&path=sample.png','HEAD') === undefined,
+  'Private file previews and downloads bypass the interface cache.');
 network='offline';
 check((await(await request('/?version=2')).text()).includes('Interface /'),'A saved interface can reload offline despite a cache-busting page query.');
 check((await(await request('/computer.js')).text()).includes('Interface /computer.js'),'The Computer interface can load offline.');
 check((await(await request('/local-files.js')).text()).includes('Interface /local-files.js'),'The local-files detail interface is available in the saved shell.');
 check((await(await request('/vendor/title-tip.js')).text()).includes('Interface /vendor/title-tip.js'),'Commit tooltips remain available in the saved interface.');
+check((await(await request('/vendor/panel-tip.js')).text()).includes('Interface /vendor/panel-tip.js') && (await(await request('/phone-info.js')).text()).includes('Interface /phone-info.js'),'Touch metric disclosures and their shared dismissal behavior remain available offline.');
 check((await(await request('/devices.js')).text()).includes('Interface /devices.js') && (await(await request('/views.js')).text()).includes('Interface /views.js'),'The Devices interface and shared view navigation can load offline.');
+check((await(await request('/phone-usage.js')).text()).includes('Interface /phone-usage.js') && (await(await request('/phone-usage.css')).text()).includes('Interface /phone-usage.css') && (await(await request('/phone-ui.css')).text()).includes('Interface /phone-ui.css') && (await(await request('/vendor/swipe-deck.js')).text()).includes('Interface /vendor/swipe-deck.js'),'The unified Usage view, native presentation and shared swipe driver remain available offline.');
 network=502;
 check((await(await request('/')).text()).includes('Interface /'),'A temporary proxy/server failure preserves access to the saved interface.');
 for (const status of [403,404]) {

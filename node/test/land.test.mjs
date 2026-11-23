@@ -82,6 +82,10 @@ test('tint:false moves without marking, for the end the reader is already on', (
   assert.equal(Land.mark(d, { tint: false }), true);
   assert.ok(!lit(d));
   assert.ok(!Land.FADE.some(c => d.classList.contains(c)), 'and takes no transition either');
+  const quiet = el();
+  assert.equal(Land.mark(quiet, { tint: false, scroll: false }), true);
+  assert.ok(!lit(quiet), 'tint:false marks nothing even when scrolling is off too');
+  assert.ok(!Land.FADE.some(c => quiet.classList.contains(c)), 'and takes no transition either');
 });
 
 test('clear takes down every mark under a root, timers included', async () => {

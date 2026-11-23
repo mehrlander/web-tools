@@ -90,6 +90,15 @@ test('the logomark path exists in exactly one file', () => {
     `the logomark belongs to ${KIT} alone; these carry their own copy: ${offenders.join(', ')}`);
 });
 
+test('no source file carries the logomark as a bare number sequence, however it is written', () => {
+  const seq = '12 12 12 1.6 12 12 17.62 3.25';
+  const offenders = sourceFiles()
+    .filter(fp => ((readFileSync(fp, 'utf8').match(/\d+(?:\.\d+)?/g) || []).map(Number).join(' ') + ' ').includes(' ' + seq + ' '))
+    .map(fp => path.relative(repoRoot, fp).replaceAll('\\', '/'))
+    .filter(rel => rel !== KIT);
+  assert.deepEqual(offenders, [], `the logomark belongs to ${KIT} alone: ${offenders.join(', ')}`);
+});
+
 // Every consumer reads the kit through an Alpine `x-html`, so its argument is
 // a string in a template that nothing type-checks and no unit test mounts with
 // the pane state needed to render it. Pulling the real expressions out and

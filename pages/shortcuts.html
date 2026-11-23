@@ -99,7 +99,7 @@
     <!-- The header's second line is the filters in the list and the workflow's own
          figures in the detail view: one slot, since a reader is never doing
          both, and a footer cannot hold them without truncating on a phone. -->
-    <div id="meta" class="hidden text-xs opacity-60 font-mono text-pretty"></div>
+    <div id="meta" class="hidden text-xs opacity-60 font-mono"></div>
     <div id="filters" class="flex flex-col sm:flex-row sm:items-center gap-2">
       <input id="q" type="search" placeholder="filter by name" data-slot="frame:search"
              class="input input-sm input-bordered w-full sm:flex-1 sm:min-w-0">
@@ -469,7 +469,7 @@ function paint() {
     const first = node('td', 'align-top');
     first.append(part(nav(link('link link-hover font-medium', href(row),
                           row.name || row.file.replace(/\.json$/, ''))), 'title'));
-    first.append(part(node('div', 'text-xs opacity-60 text-pretty', gist(row)), 'summary'));
+    first.append(part(node('div', 'text-xs opacity-60', gist(row)), 'summary'));
     if (row.targets.length)
       first.append(part(node('div', 'text-xs opacity-40 font-mono', '→ ' + row.targets.join(' · ')), 'meta'));
     // A phone has no room for a column per figure, so the two that are only
@@ -500,7 +500,7 @@ function paint() {
     if (row.name) {
       const t = installTarget(s);
       const b = act('btn btn-xs', installLink(row, t), installLabel(t), 'ph-download-simple');
-      if (t === PASTE && row.settings) b.title = PASTE_NOTE;
+      if (t === PASTE && row.settings) b.dataset.titleTip = PASTE_NOTE;
       bar.append(b);
       bar.append(act('btn btn-xs btn-ghost', runLink(row.name), 'Run', 'ph-play'));
     }
@@ -620,7 +620,7 @@ function detail(row) {
   pane.textContent = '';
   const wrap = node('div', 'px-3 py-3 flex flex-col gap-4');
 
-  wrap.append(node('p', 'text-base leading-relaxed text-pretty', gist(row)));
+  wrap.append(node('p', 'text-base leading-relaxed', gist(row)));
 
   const bar = node('div', 'flex flex-wrap gap-2');
   const s = state(row);
@@ -633,7 +633,7 @@ function detail(row) {
   if (row.name) {
     const t = installTarget(s);
     const b = btn('btn-primary', installLink(row, t), installLabel(t), 'ph-download-simple');
-    if (t === PASTE && row.settings) b.title = PASTE_NOTE;
+    if (t === PASTE && row.settings) b.dataset.titleTip = PASTE_NOTE;
     bar.append(b);
     bar.append(btn('', runLink(row.name), 'Run', 'ph-play'));
   }
@@ -691,7 +691,7 @@ function missing(what) {
   const onDevice = device && device.have.has(what);
 
   if (onDevice) {
-    wrap.append(node('p', 'text-base leading-relaxed text-pretty',
+    wrap.append(node('p', 'text-base leading-relaxed',
       `${what} is on the device, and shortcut-tools has no workflow for it, `
       + 'so there is no plist to install and no build to score.'));
 
@@ -734,7 +734,7 @@ function missing(what) {
       // which is a fact worth stating rather than a gap worth hiding: 89 names
       // were in that gap on 2026-09-19, and no listing exists for any of them
       // until the next dump runs.
-      wrap.append(node('p', 'text-sm opacity-60 text-pretty',
+      wrap.append(node('p', 'text-sm opacity-60',
         'Installed since the last dump'
         + (device.dumped ? ` (${device.dumped})` : '')
         + ', so the survey has no listing for it yet.'));
@@ -745,7 +745,7 @@ function missing(what) {
     // Unread device is not an absent name. Without a token this page can see 77
     // workflows and nothing else, so it says what it checked rather than what it
     // concluded.
-    wrap.append(node('p', 'text-base leading-relaxed text-pretty',
+    wrap.append(node('p', 'text-base leading-relaxed',
       device
         ? `Nothing called ${what}: no workflow by that name, and not on the device.`
         : `No workflow here called ${what}. The device has not been read, so a shortcut `

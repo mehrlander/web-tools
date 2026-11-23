@@ -201,6 +201,18 @@ test('a sheet chosen the moment show() resolves is not overwritten', async () =>
   }
 });
 
+test('the grid has its first sheet drawn when switchMode resolves, and a frame cannot overwrite a later pick', async () => {
+  // No tick between switchMode and the pick, and a wait longer than jsdom's
+  // ~16ms frame afterwards: tick(6) is shorter than a frame, so a mount that
+  // still opened sheet 0 on a frame would pass the test above unnoticed.
+  await wbData.show('book.xlsx', XLSX_URI, { local: true });
+  await wbData.switchMode('xlsx');
+  assert.equal(activeTab(), 0, 'the first sheet is drawn by the time switchMode resolves');
+  wbRoot.__sheets.show(2);
+  await new Promise(r => setTimeout(r, 50));
+  assert.equal(activeTab(), 2, 'a frame after the mount drew over the sheet the host asked for');
+});
+
 test('mounting stayed quiet apart from the failure it was told to report', () => {
   const noise = problems.filter(([, m]) => !/probe module failed to mount/.test(String(m)));
   assert.deepEqual(noise, []);
@@ -352,7 +364,7 @@ test('drawSheet draws an external link as an anchor and an internal one for loca
     assert.equal(a.length, 2, 'the javascript: scheme draws no anchor');
     assert.equal(a[0].getAttribute('href'), 'https://ofm.wa.gov/');
     assert.equal(a[0].getAttribute('target'), '_blank');
-    assert.equal(a[0].getAttribute('title'), 'contacts');
+    assert.equal(a[0].getAttribute('data-title-tip'), 'contacts');
     assert.equal(a[1].getAttribute('data-goto'), "'Data'!A1");
     assert.equal(a[1].textContent, 'Data');
   } finally { kit.sheetLayout = was; }

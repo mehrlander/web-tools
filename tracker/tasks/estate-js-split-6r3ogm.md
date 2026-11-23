@@ -2,6 +2,7 @@
 id: estate-js-split-6r3ogm
 title: Split estate.js into a component per view
 status: backlog
+errand: claude-2026-11-16-39b58c
 opened: 2026-11-10
 size: L
 ---
@@ -59,6 +60,7 @@ requests first. On 2026-11-10 none of the four open pull requests touched it.
 ## Related
 
 - `lib/alpineComponents/estate.js`: the file to split.
+- [The coupling map](https://github.com/mehrlander/web-tools-private/blob/background/errands/output/claude-2026-11-16-39b58c/coupling-map.md) (errand claude-2026-11-16-39b58c, on web-tools-private's `background` branch): step 1's result, per view, at `67ffdaf`.
 - `app/index.html`: the shell, which mounts `estate()` and the other views'
   components.
 - `docs/code-layers.md`: which folder a component and a kit belong in.
@@ -85,3 +87,5 @@ screenshot at desktop and phone width.
 
 - 2026-11-10: filed from the web-tools#1255 session after measuring the file;
   the owner plans to hand it to a fresh session.
+- 2026-11-16: the owner chose "component first" for the order with repos-grid-into-map-reach-1eheiq (session b805c26a): the Repos grid becomes its own component as an early step here, with the estate membership list it builds (entries, which the Branches and Sessions rows and Lists' pin picker also read) moved where every reader can reach it; the Map move then mounts that component. Step 1, the coupling map, went out as Claude errand claude-2026-11-16-39b58c, which also recommends whether Repos or Lists is the pilot.
+- 2026-11-16: step 1 done by Claude errand claude-2026-11-16-39b58c; [the coupling map](https://github.com/mehrlander/web-tools-private/blob/background/errands/output/claude-2026-11-16-39b58c/coupling-map.md) is under Related. It recommends Repos rather than Lists as the pilot, after an `addNote` name collision is fixed (a field at estate.js line 13785 and a method at 14623) and after kits and a membership store for the shared pieces. Next: confirm the order and the pilot, then start step 2.

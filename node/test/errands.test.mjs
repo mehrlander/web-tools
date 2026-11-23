@@ -122,6 +122,17 @@ test('pingNames keeps ping errands, newest day first, and pingStage reads where 
   assert.equal(E.pingStage(a, [a], [a]), 'answered');
 });
 
+test('resultState distinguishes interim, declined, failed and legacy terminal results', () => {
+  assert.equal(E.resultState({ ok: true, data: { settled: false } }), 'reply');
+  assert.equal(E.resultState({ ok: true, answered: false }), 'declined');
+  assert.equal(E.resultState({ ok: true, answered: false, data: { settled: false } }), 'declined', 'a decline closes an unsettled reply');
+  assert.equal(E.resultState({ ok: false, answered: false, data: { settled: false } }), 'failed', 'explicit failure takes precedence');
+  assert.equal(E.resultState({ ok: true, answered: true, data: { settled: true } }), 'complete');
+  assert.equal(E.resultState({ message: 'Legacy result' }), 'complete', 'older writers omit outcome flags');
+  assert.equal(E.resultState({ ok: 'false', answered: 'false', data: { settled: 'false' } }), 'complete', 'strings do not impersonate boolean flags');
+  for (const value of [null, undefined, false, 'unreadable', []]) assert.equal(E.resultState(value), null);
+});
+
 test('statusRequest files a status check the daemon and the Stage accept', () => {
   const r = E.statusRequest({ registry: 'me/reg', now: '2026-10-02T17:00:00Z' });
   assert.match(r.id, /^daemon-2026-10-02-status-[a-z0-9]+$/);
@@ -144,9 +155,11 @@ test('daemonHealth reads the daemon from what it leaves on main', () => {
   const ping = H({ lastTopicsAt: at(1), pings: [{ stage: 'sent', createdAt: at(7) }, { stage: 'sent', createdAt: at(2) }] });
   assert.deepEqual([ping.level, ping.why, ping.at], ['behind', 'ping', at(7)], 'the oldest waiting Ping');
   assert.equal(H({ lastTopicsAt: at(90), pings: [{ stage: 'answered', at: at(3) }] }).level, 'up', 'a reply counts');
+  assert.equal(H({ lastTopicsAt: at(90), pings: [{ stage: 'answered', outcome: 'declined', at: at(1) }] }).level, 'quiet', 'a person cancelling is not daemon activity');
   assert.equal(H({ check: { createdAt: at(1) } }).level, 'checking');
   assert.equal(H({ check: { createdAt: at(6) } }).why, 'check', 'an unanswered check turns behind');
   assert.equal(H({ lastTopicsAt: at(200), check: { createdAt: at(2), closedAt: at(1) } }).level, 'up');
+  assert.equal(H({ lastTopicsAt: at(90), check: { createdAt: at(2), closedAt: at(1), outcome: 'declined' } }).level, 'quiet', 'a cancelled status check does not establish daemon activity');
 });
 
 test('parseScript splits the address, and nothing else', () => {
@@ -195,6 +208,7 @@ test('a read grades itself, and green means complete', () => {
   const tree = E.normalize({ id: 't', action: 'tree', repo: 'me/r', note: 'n' });
   assert.equal(E.verdict(tree, { ok: true, data: { truncated: true, entries: [{}] } }).level, 'amber', 'a truncated listing is not complete');
   assert.equal(E.verdict(tree, { ok: true, data: { truncated: false, entries: [{}, {}] } }).text, '2 entries listed');
+  assert.equal(E.verdict(tree, { ok: true, data: { truncated: false, entries: [] } }).level, 'amber', 'an empty listing is not complete');
 });
 
 test('any other errand is graded against what is staged and what it expects', () => {

@@ -1361,7 +1361,7 @@ window.__audit = {
       const first = el.querySelector(`[data-uid="${CSS.escape(u.uid)}"]`);
       if (u.note && first) {
         const note = document.createElement('div');
-        note.className = 'my-2 rounded-box border-l-4 border-[var(--color-primary)] bg-base-200 px-3 py-2 text-sm leading-6 whitespace-pre-line text-pretty';
+        note.className = 'my-2 rounded-box border-l-4 border-[var(--color-primary)] bg-base-200 px-3 py-2 text-sm leading-6 whitespace-pre-line';
         note.textContent = u.note;
         const block = first.closest('li,p,h1,h2,h3,h4,h5,h6,blockquote,td');
         if (block && /^(LI|TD)$/.test(block.tagName)) block.append(note);
@@ -2183,7 +2183,7 @@ window.__audit = {
              load, and the kit's disable() for good. -->
         <div class="text-xs font-mono w-full opacity-30 leading-tight"
              x-text="reportStatus" x-show="reportStatus"
-             title="this page files its own diagnostics when something goes wrong"></div>
+             data-title-tip="this page files its own diagnostics when something goes wrong"></div>
 
         <!-- Two different objects: the document, tinted by its annotation, or
              the annotation itself as data. How the document is shown (rendered
@@ -2206,11 +2206,11 @@ window.__audit = {
         <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
                 :class="form === 'rendered' ? 'text-primary' : 'text-base-content/35'"
                 :aria-pressed="form === 'rendered'" x-show="view !== 'review'"
-                :title="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
+                :data-title-tip="form === 'rendered' ? 'Rendered; tap for raw' : 'Raw; tap for rendered'"
                 aria-label="rendered" @click="setForm(form === 'rendered' ? 'raw' : 'rendered')">
           <i class="ph-bold ph-eye text-lg"></i></button>
         <button class="btn btn-sm btn-ghost btn-square" @click="deck()" x-show="view !== 'review'"
-                title="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
+                data-title-tip="Read by section" aria-label="Read by section"><i class="ph ph-cards-three text-lg max-sm:text-xl"></i></button>
         <!-- On a phone the pair shrinks to undo and the count, so the deck's
              header keeps its title: redo stays in the unit panel and on the
              keyboard. -->
@@ -2248,7 +2248,7 @@ window.__audit = {
                            box-shadow:inset 2px 0 0 0 rgba(${HUE[k]},${view !== 'review' && off[k] ? 0.2 : 0.9})`"
                   :class="{ 'opacity-40': view !== 'review' && off[k], 'ring-1 ring-[var(--color-base-content)]': view === 'review' && rKey === k }"
                   :aria-pressed="view === 'review' ? rKey === k : null"
-                  :data-title-tip="view === 'review' ? null : noteText(k)" :data-title-tip-lead="noteTitle(k)" data-title-tip-bare
+                  :data-title-tip="view === 'review' ? null : noteText(k)" :data-title-tip-lead="noteTitle(k)"
                   @pointerenter="chipOver(k)" @pointerleave="chipOut()"
                   @click="chipTap(k)">
             <span x-text="k"></span>
@@ -2264,7 +2264,7 @@ window.__audit = {
           <div class="flex items-center" aria-label="unit marks" x-show="view !== 'review'">
             <template x-for="t in [['fill', 'ph-paint-bucket', 'Tint the whole unit'], ['underline', 'ph-text-underline', 'Underline the unit']]" :key="t[0]">
               <button class="inline-grid place-items-center h-7 w-7 cursor-pointer rounded-field focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]"
-                      :aria-label="t[2]" :title="t[2]" :aria-pressed="mark === t[0]"
+                      :aria-label="t[2]" :data-title-tip="t[2]" :aria-pressed="mark === t[0]"
                       :class="mark === t[0] ? 'text-primary' : 'text-base-content/35'"
                       @click="mark = t[0]; paint()"><i class="ph-bold text-lg" :class="t[1]"></i></button>
             </template>
@@ -2308,7 +2308,7 @@ window.__audit = {
     <div x-ref="rbox" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_fit-content(33%)_auto_minmax(0,1fr)]"
          x-show="view === 'review'" x-cloak
          :style="{ height: inDeck ? '100%' : `calc(100dvh - ${hdrH}px)` }">
-      <p class="px-4 pt-2 pb-1.5 text-xs leading-5 text-pretty border-b border-base-300">
+      <p class="px-4 pt-2 pb-1.5 text-xs leading-5 border-b border-base-300">
         <span class="mr-1.5 rounded px-1 font-mono font-medium" :class="rKey === NOTED && 'bg-base-200'"
               :style="rKey === NOTED ? '' : `background:rgba(${HUE[rKey]},.28)`" x-text="rKey === NOTED ? 'Notes' : rKey"></span>
         <span class="opacity-75" x-text="rGloss"></span>
@@ -2334,10 +2334,10 @@ window.__audit = {
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 border-y border-base-300 bg-base-200/60 px-2 py-1 text-xs">
         <div class="flex items-center">
           <button type="button" class="btn btn-ghost btn-sm btn-square" :disabled="rRows.length < 2" @click="rGo(rAt - 1)"
-                  title="Previous" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
+                  data-title-tip="Previous" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
           <span class="font-mono" x-text="rRows.length ? `${rAt + 1} / ${rRows.length}` : '0'"></span>
           <button type="button" class="btn btn-ghost btn-sm btn-square" :disabled="rRows.length < 2" @click="rGo(rAt + 1)"
-                  title="Next" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
+                  data-title-tip="Next" aria-label="Next"><i class="ph ph-caret-right text-lg"></i></button>
         </div>
         <!-- The label as a pill over the platform's own select, and the
              verdict as Keep or Drop, both as in the unit panel. -->

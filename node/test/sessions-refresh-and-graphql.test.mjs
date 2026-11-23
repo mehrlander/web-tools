@@ -87,6 +87,27 @@ test('crawlLabel falls back to activity progress during activityGroupRefreshing'
   assert.equal(label, 'Refreshing activity · 4 of 10 repos');
 });
 
+test('crawlLabel prefers sessions progress over activity while activityGroupRefreshing', async () => {
+  const { window } = makeWindow({
+    html: '<!doctype html><html><body><div id="es" x-data="estate()"></div></body></html>',
+  });
+  window.TOKEN = 'tok';
+  window.GH = FakeGH;
+  window.__shell = {
+    activityGroupRefreshing: true,
+    crawlProgress: {
+      sessions: { verb: 'Reading sessions', done: 1, total: 2, unit: 'files' },
+      activity: { verb: 'Refreshing activity', done: 4, total: 10, unit: 'repos' },
+    },
+  };
+  const Alpine = await startAlpine(window, [
+    'lib/alpine-bundle.js',
+    'lib/alpineComponents/estate.js',
+  ]);
+  const est = Alpine.$data(window.document.getElementById('es'));
+  assert.equal(est.crawlLabel('sessions'), 'Reading sessions · 1 of 2 files');
+});
+
 test('branchesDatedSessions captures query, response, and extracted metadata in window.__graphQLByRepo', async () => {
   const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
   window.GH = class { constructor(conf = {}) { this.repo = conf.repo || ''; this.headers = {}; } };
@@ -109,7 +130,8 @@ test('branchesDatedSessions captures query, response, and extracted metadata in 
     },
   ];
 
-  window.fetch = async () => ({
+  let sentQuery = null;
+  window.fetch = async (url, opts) => { sentQuery = JSON.parse(opts.body).query; return ({
     ok: true,
     json: async () => ({
       data: {
@@ -121,7 +143,7 @@ test('branchesDatedSessions captures query, response, and extracted metadata in 
         },
       },
     }),
-  });
+  }); };
 
   const result = await gh.branchesDatedSessions(10, 10, 8);
   assert.equal(result.branches.length, 1);
@@ -131,6 +153,8 @@ test('branchesDatedSessions captures query, response, and extracted metadata in 
   const captured = window.__graphQLByRepo['owner/test-repo'];
   assert.ok(captured, 'snapshot exists for owner/test-repo');
   assert.equal(captured.repo, 'owner/test-repo');
+  assert.match(sentQuery, /^query BranchesDatedSessions\(/);
+  assert.equal(captured.query, sentQuery, 'the snapshot records the query that was sent');
   assert.equal(captured.branches.length, 1);
   assert.equal(captured.sessions['claude/feat-1'], 'https://claude.ai/code/session_abc123');
   assert.ok(captured.raw, 'raw response data captured');
@@ -154,7 +178,7 @@ test('State view GraphQL Activity Discovery inspector state, methods, and layout
   ]);
 
   const sv = Alpine.$data(window.document.getElementById('sv'));
-  assert.ok(sv.template.includes('lg:grid-cols-2'), 'State view template contains responsive 2-column desktop grid');
+  assert.ok(sv.template.includes('@3xl:grid-cols-2'), 'State view template goes to two columns in a pane of 48rem or more (a container query, so the docked deck\'s narrow pane stays one column)');
   assert.ok(sv.template.includes('BranchesDatedSessions'), 'State view template renders BranchesDatedSessions inspector');
   assert.equal(typeof sv.fetchActivityGraphQL, 'function');
   assert.equal(typeof sv.copyGraphQLText, 'function');

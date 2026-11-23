@@ -449,8 +449,49 @@ test('sessions: joined Activity matches apply only to the requested call and kno
   assert.equal(included.hits[0].onDiscussion, false);
   assert.equal(included.hits[0].matchNote, 'Activity details match');
   assert.equal((await ES.sessions(args)).hits.length, 0, 'the included match never enters the ordinary cache');
-  assert.deepEqual(READ_CALLS, ['state/sessions.json', 'state/sessions-index/2026-08.json'],
-    'all three calls share row and shard reads, with no full-record fetch');
+  assert.deepEqual(READ_CALLS, ['state/sessions.json', 'state/session-topics.json', 'state/sessions-index/2026-08.json'],
+    'all three calls share the row, rollup and shard reads, with no full-record fetch');
+});
+
+test('sessions: the rollup joins summaries, reaches sessions the cache dropped, and says where each matched', async () => {
+  ES.reset(); READ_CALLS = [];
+  const X = window.SessionIndex;
+  FILES = {
+    'state/sessions.json': { rows: [
+      { id: 'aaaa1111', day: '2026-08-02', ask: 'Tidy the orchard notes', files: [['lib/viridian.js', 1]] },
+      { id: 'bbbb2222', day: '2026-08-03', ask: 'Something else', repos: [{ name: 'home' }] },
+    ] },
+    'state/session-topics.json': { sessions: {
+      bbbb2222: { day: '2026-08-03', title: 'Palette work', summary: 'Chose viridian for the header.' },
+      cccc3333: { day: '2026-06-11', title: 'An older viridian session', summary: 'Before the cache.' },
+      dddd4444: { day: '2026-06-12', title: 'Unrelated', summary: 'Nothing to find.' },
+    } },
+    'state/sessions-index/2026-08.json': X.buildShard({ aaaa1111: X.tokens('plain prose'), bbbb2222: X.tokens('plain prose') }),
+    'state/sessions-index/2026-06.json': X.buildShard({ dddd4444: X.tokens('viridian was said here') }),
+  };
+  const args = { q: 'viridian', registry: REGISTRY, token: 'tkn' };
+  // The kit runs in another realm, so its arrays are compared as plain data.
+  const same = (got, want, note) => assert.deepEqual(JSON.parse(JSON.stringify(got)), want, note);
+  const res = await ES.sessions(args);
+  same(res.hits.map(h => h.id), ['bbbb2222', 'aaaa1111', 'cccc3333'], 'newest first, the light row included');
+  const by = Object.fromEntries(res.hits.map(h => [h.id, h]));
+  same(by.aaaa1111.where.map(w => w.in), ['files']);
+  same(by.bbbb2222.where.map(w => [w.in, w.text]), [['summary', 'Chose viridian for the header.']]);
+  same(by.bbbb2222.repos, ['home']);
+  assert.equal(by.cccc3333.title, 'An older viridian session', 'a light row is named by its rollup title');
+  same(by.cccc3333.where.map(w => w.in), ['title']);
+  same([res.searched, res.from, res.fromAll, res.older], [4, '2026-08', '2026-06', false]);
+  assert.ok(!READ_CALLS.includes('state/sessions-index/2026-06.json'), 'an older month is not read by default');
+
+  const all = await ES.sessions({ ...args, older: true });
+  same(all.hits.map(h => h.id), ['bbbb2222', 'aaaa1111', 'dddd4444', 'cccc3333']);
+  same(all.hits.find(h => h.id === 'dddd4444').where.map(w => w.in), ['said']);
+  same([all.from, all.older], ['2026-06', true]);
+
+  ES.reset(); READ_CALLS = [];
+  const plain = await ES.sessions({ ...args, summaries: false });
+  same(plain.hits.map(h => h.id), ['aaaa1111'], 'without the rollup, only the cached rows answer');
+  assert.ok(!READ_CALLS.includes('state/session-topics.json'), 'a consumer with joined rows of its own declines the read');
 });
 
 test('clip: one line of context around the first case-insensitive hit', () => {

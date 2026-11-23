@@ -66,15 +66,18 @@ Usage:
   python3 python/stranded-titles.py [PATH...]      # default: lib/ app/ pages/
   python3 python/stranded-titles.py --all          # every verdict, not just stranded
   python3 python/stranded-titles.py --script       # titles set from script instead
+  python3 python/stranded-titles.py --changed      # only the branch's changed files, in any folder
   npm run stranded-titles
 """
 
+import os
 import re
 import sys
 from collections import Counter
 from pathlib import Path
 
 DEFAULT_ROOTS = ('lib', 'app', 'pages')
+SKIP_DIRS = {'.git', 'node_modules', 'dist', 'archive', '.preview', 'thumbs'}
 SUFFIXES = ('.html', '.js')
 
 # Elements that never nest, so they must not be pushed onto the stack. An
@@ -88,7 +91,12 @@ INTERACTIVE = {'a', 'button', 'summary', 'label', 'select', 'input', 'details'}
 
 CLICKISH = re.compile(r'(:?href=|@click|x-on:click)')
 TAG = re.compile(r'</?\s*([a-zA-Z][\w:-]*)')
-TITLE = re.compile(r'''(:?title)=(["'])(.*?)\2''', re.S)
+# Anchored, so `data-title=` and `data-axis-title=` (data, not tooltips) never match.
+TITLE = re.compile(r'''(?<![\w-])(:?title)=(["'])(.*?)\2''', re.S)
+
+# An <iframe>'s title is the frame's accessible name, which assistive
+# technology needs; it is not a tooltip and stays.
+NOT_TOOLTIP = {'iframe'}
 XTEXT = re.compile(r'''x-text=(["'])(.*?)\1''', re.S)
 
 SCRIPT_SET = re.compile(r'''(?<![\w$])(?!document\b)[\w$]+\.title\s*=(?!=)|setAttribute\(\s*['"]title['"]''')
@@ -264,7 +272,7 @@ def scan(path):
                     del stack[k:]
                     break
             continue
-        tm = TITLE.search(attrs)
+        tm = None if name in NOT_TOOLTIP else TITLE.search(attrs)
         if tm:
             xm = XTEXT.search(attrs)
             xtext = ' '.join(xm.group(2).split()) if xm else None
@@ -303,6 +311,22 @@ def script_titles(path):
             for m in SCRIPT_SET.finditer(masked)]
 
 
+
+def changed_paths(base='main'):
+    """Files the branch changed against `base`, committed or not, anywhere in
+    the tree: the shape `npm run showing` reads, so a page built in dump/ is
+    seen too. Falls back to a plain diff when a shallow clone has no merge base."""
+    import subprocess
+    def git(*a):
+        r = subprocess.run(['git', *a], capture_output=True, text=True)
+        return r.stdout.split('\0') if r.returncode == 0 else None
+    names = git('diff', '--name-only', '-z', '--merge-base', base)
+    if names is None:
+        names = git('diff', '--name-only', '-z', base) or []
+    names += git('ls-files', '-z', '--others', '--exclude-standard') or []
+    return sorted({n for n in names if n and os.path.isfile(n)
+                   and not set(n.split('/')) & SKIP_DIRS})
+
 def files_under(roots):
     for r in roots:
         p = Path(r)
@@ -315,7 +339,13 @@ def files_under(roots):
 def main(argv):
     show_all = '--all' in argv
     show_script = '--script' in argv
-    roots = [a for a in argv[1:] if not a.startswith('-')] or list(DEFAULT_ROOTS)
+    if '--changed' in argv:
+        roots = [f for f in changed_paths() if f.endswith(SUFFIXES)]
+        if not roots:
+            print('stranded-titles: no changed .html or .js files')
+            return 0
+    else:
+        roots = [a for a in argv[1:] if not a.startswith('-')] or list(DEFAULT_ROOTS)
     rows, scripted, counts = [], [], Counter()
     for f in files_under(roots):
         for r in scan(f):

@@ -1,10 +1,11 @@
 // screenshot.mjs interaction scenario: pages/shortcut-log.html as the promoted
 // app view `shortcut-log`, with the shell drawn around it.
 //
-//   npm run shot -- app/index.html --query app=shortcut-log&shell=full \
+//   npm run shot -- app/index.html --query app=shortcut-log&sidebar=1 \
 //     --script node/render/scenarios/shortcut-log-app-view.mjs --width 390 --height 844 --touch
 //
-// The address the dumpers open is app/?app=shortcut-log&shell=full. A headless
+// The address the dumpers open is app/?app=shortcut-log&shell=full, the
+// ?sidebar=1 of the sunset ?shell= preset (still read as an alias). A headless
 // run has no token, so the estate sidebar that resolves the slug is empty; this
 // stages shortcut-tools' promotion (the same fixture shape approve-app-view.mjs
 // uses) and a token the framed page can read, then routes the slug the way a
@@ -47,7 +48,8 @@ export default async function (page) {
   await page.evaluate(async () => {
     const v = await window.__shell.appViewFromUrl({ app: 'shortcut-log' });
     window.__shell.goAppView(v);
-    window.__shell.setShellMode('full');
+    window.__shell.sidebarStart = '1';
+    window.__shell.sidebarOpen = true;
   });
   const frame = async () => {
     for (let i = 0; i < 60; i++) {

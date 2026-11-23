@@ -9,7 +9,7 @@
 //
 //   - the query is the OUTERMOST filter, so the chip counts under it say how
 //     many WOULD be left, which is what makes "Day 0, Week 4" a usable answer;
-//   - one query narrows both row lenses, since the Table lens carried a box of
+//   - one query narrows both row tabs, since the Table tab carried a box of
 //     its own that matched only the visible columns;
 //   - a stub session (named by a branch's commit trailer, carrying no record)
 //     stays findable by that branch name rather than dropping out entirely;
@@ -131,17 +131,16 @@ test('the scope chips recount UNDER the query, so an empty scope says widen', ()
   seedSessions();
   const count = (key) => data.sessionScopes.find(s => s.key === key).count;
   assert.equal(count('day'), 1);
-  assert.equal(count('month'), 2);
   assert.equal(count('all'), 3);
-  // Both "session search" rows are outside Week; one is inside Month's window
-  // only by being today's. The chips are what tell the reader that.
+  // Both "session search" rows are outside Week but for today's. The chips
+  // are what tell the reader that.
   data.activityQuery = 'session search';
   assert.equal(count('day'), 1);
   assert.equal(count('week'), 1);
   assert.equal(count('all'), 2, 'the second pass is 40 days old and still findable');
 });
 
-test('one query narrows both row lenses, which is why the table lost its own box', () => {
+test('one query narrows both row tabs, which is why the table lost its own box', () => {
   seedSessions();
   data.activityQuery = 'session search';
   data.sessionGrain = 'session';
@@ -216,7 +215,7 @@ test('the count says what the query left and what it searched', () => {
   assert.equal(data.sessionQueryCount, '');
 });
 
-test('Discussion stays in Activity; Inspect is the explicit query handoff', async () => {
+test('Discussion stays in Activity; Enter is the explicit query handoff', async () => {
   seedSessions();
   SEARCHES.length = 0;
   data.activityQuery = '  merge guide  ';
@@ -226,7 +225,7 @@ test('Discussion stays in Activity; Inspect is the explicit query handoff', asyn
   window.EstateSearch = { sessions: async () => ({ hits: [], indexed: true, missing: [] }) };
   window.SessionIndex = {};
   await data.refreshSessionDiscussion(true);
-  data.inspectSessionMatches();
+  data.openSessionResults();
   // Field by field: the object crosses the vm boundary, so it is structurally
   // equal to a literal here and never reference-equal to one.
   assert.equal(SEARCHES.length, 1);
@@ -236,7 +235,7 @@ test('Discussion stays in Activity; Inspect is the explicit query handoff', asyn
   assert.equal(data.sessionDiscussion, false);
   // An empty box hands off nothing rather than opening the whole store.
   data.activityQuery = '   ';
-  data.inspectSessionMatches();
+  data.openSessionResults();
   assert.equal(SEARCHES.length, 1);
 });
 

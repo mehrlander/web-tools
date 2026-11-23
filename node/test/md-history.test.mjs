@@ -82,6 +82,21 @@ test('walk traces each block back through the pairing, one read per commit, and 
   assert.equal(title.origin.sha, C3.sha);
 });
 
+test('walk loads jsdiff through md-diff when the page has not loaded it', async () => {
+  const saved = window.Diff, real = window.mdDiff.needDiff;
+  let asked = 0;
+  window.Diff = undefined;
+  window.mdDiff.needDiff = async () => { asked++; window.Diff = saved; return saved; };
+  try {
+    const w = await K.walk(DOC, opts());
+    assert.equal(asked, 1);
+    assert.deepEqual(w.chains[1].steps.map(s => s.text), [NOW, BEFORE, FIRST]);
+  } finally {
+    window.Diff = saved;
+    window.mdDiff.needDiff = real;
+  }
+});
+
 test('the limit bounds the reads, and what it cuts stays open rather than guessed', async () => {
   const o = opts({ limit: 2 });
   const w = await K.walk(DOC, o);
@@ -101,6 +116,19 @@ test('plan keeps the blocks with a predecessor, in document order; compose puts 
   assert.equal(p.count, 1);
   assert.deepEqual(p.blocks[0].chain.map(s => s.text), [NOW, BEFORE, FIRST]);
   assert.equal(K.compose(DOC, p), `# Reading fund 600\n\n${BEFORE}\n\n${UNTOUCHED}\n\n${LATER}\n`);
+});
+
+test('compose puts back two changed blocks when the earlier one\'s predecessor is longer than its current text', async () => {
+  const cur = '# T\n\nAlpha one.\n\nBeta two.\n';
+  const old = '# T\n\nAlpha one, in a much longer earlier wording.\n\nBeta two, before.\n';
+  const src = {
+    async commits() { return [C1, C2]; },
+    async read(p, at) { return at === C2.sha ? old : cur; },
+  };
+  const w = await K.walk(cur, { source: src, path: 'docs/fund.md', ref: 'main' });
+  const p = K.plan(cur, w);
+  assert.equal(p.count, 2);
+  assert.equal(K.compose(cur, p), old, 'later blocks are replaced first so earlier offsets hold');
 });
 
 test('render draws one container per changed block, with the chain, its variants, and the origin underneath', async () => {

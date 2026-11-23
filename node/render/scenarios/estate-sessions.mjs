@@ -51,6 +51,10 @@
 //              instead, which is the link running the other way: the row tick
 //              and the strip mark above it light together, because both carry
 //              the same data-tick column and one rule matches both.
+//
+// LAUNCHED=<n,...> marks those fixture rows (1-based) as started by another
+// Claude session, so the row's robot mark and the launched chip row draw.
+// LAUNCHED_SHOW=only|hide then sets that chip row's filter.
 
 const SESSIONS = [
   {
@@ -384,7 +388,7 @@ const TURNS_RECORD = {
 };
 
 export default async function (page) {
-  await page.evaluate(({ SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane }) => {
+  await page.evaluate(({ SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane, launched, launchedShow }) => {
     // The estate component's own root carries its Alpine scope.
     const host = document.querySelector('[x-data^="estate"]');
     const st = window.Alpine.$data(host);
@@ -461,7 +465,7 @@ export default async function (page) {
       if (c[2]) c[2] = slideClock(c[2], day);
       return c;
     });
-    st.sessionRows_ = SESSIONS.map(r => {
+    st.sessionRows_ = SESSIONS.map((r, i) => {
       const { behindV, ...row } = r;
       if (shift){
         // The clocks first, off the day they were written on, then the two
@@ -478,7 +482,8 @@ export default async function (page) {
       // The behind row keeps NO beats, deliberately: it is the fixture for a
       // row summarised before turn times were carried, so its rail must still
       // shoot as the dashed segment and the lane must still leave it out.
-      return { ...row, v: behindV ? V - 1 : V, ...(behindV ? {} : { beats: beatsOf(r) }) };
+      return { ...row, v: behindV ? V - 1 : V, ...(behindV ? {} : { beats: beatsOf(r) }),
+               ...(launched.includes(i + 1) ? { launched: true } : {}) };
     });
     st.sessionAttention = ATTENTION;
     st.activity = ACTIVITY;
@@ -497,7 +502,10 @@ export default async function (page) {
     st.jotItems = JOTS;
     // The shell gates the header nav and the pane chrome on a token too.
     window.__shell.hasToken = () => true;
-  }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane: process.env.LANE || '' });
+    st.sessionLaunched = launchedShow;
+  }, { SESSIONS, ATTENTION, ACTIVITY, TODOS, JOTS, lane: process.env.LANE || '',
+       launched: String(process.env.LAUNCHED || '').split(',').map(Number).filter(Boolean),
+       launchedShow: ['only', 'hide'].includes(process.env.LAUNCHED_SHOW) ? process.env.LAUNCHED_SHOW : '' });
   await page.waitForTimeout(600);
 
   // The ROUTE CHIPS on the nested branch tiles, seeded the way activity-fake
@@ -531,19 +539,19 @@ export default async function (page) {
   });
   await page.waitForTimeout(300);
 
-  // QUERY=<text> types into the pane's text box, which narrows BOTH row lenses
+  // QUERY=<text> types into the pane's text box, which narrows BOTH row tabs
   // and makes every chip above recount against what it leaves. Typed through
   // the real input rather than set on the component, so the debounce and the
-  // x-model binding are part of what is shot; LENS=table then shows the same
+  // x-model binding are part of what is shot; TAB=table then shows the same
   // query answering in the table, which is the pair worth having in one place.
   if (process.env.QUERY) {
-    if (process.env.LENS) {
-      // Through the component's own setter rather than a click: the lens pills
+    if (process.env.TAB) {
+      // Through the component's own setter rather than a click: the tab pills
       // are one of three tab groups on this pane and the shot is about the box,
       // not about finding the pill.
       await page.evaluate((k) => {
-        window.Alpine.$data(document.querySelector('[x-data^="estate"]')).setLens(k);
-      }, process.env.LENS);
+        window.Alpine.$data(document.querySelector('[x-data^="estate"]')).setSessionTab(k);
+      }, process.env.TAB);
       await page.waitForTimeout(900);
     }
     await page.getByLabel('Filter sessions').fill(process.env.QUERY);

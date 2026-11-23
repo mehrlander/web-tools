@@ -87,9 +87,9 @@ test('five-minute writes cost 1.25 times input, and an unsplit count is one-hour
 });
 
 test('an unknown model gets no price and is named, never guessed', () => {
-  const r = { ...record, responses: [{ ...step('2026-11-03T10:01:00.000Z', 5, 0, 0, 5), model: 'claude-sonnet-5-5' }] };
+  const r = { ...record, responses: [{ ...step('2026-11-03T10:01:00.000Z', 5, 0, 0, 5), model: 'claude-haiku-4-5' }] };
   const { prompts, totals } = U.read(r);
-  assert.deepEqual(totals.unpriced, ['claude-sonnet-5-5']);
+  assert.deepEqual(totals.unpriced, ['claude-haiku-4-5']);
   assert.equal(prompts[0].unpriced, true);
   assert.equal(prompts[0].cost, 0);
   assert.equal(totals.modelled, 0);
@@ -100,4 +100,16 @@ test('a record with no responses is not measured', () => {
   assert.equal(totals.measured, false);
   assert.equal(totals.modelled, null);
   assert.equal(prompts.length, 2);
+});
+
+test('a step at exactly 150,000 tokens of context is not an idle re-load, one over it is', () => {
+  const r = { prompts: [{ at: '2026-11-03T10:00:00.000Z', text: 'only' }], injected: [],
+    responses: [
+      step('2026-11-03T10:00:01.000Z', 0, 0, 1000, 10),
+      step('2026-11-03T10:00:02.000Z', 0, 0, 150000, 10),
+      step('2026-11-03T10:00:03.000Z', 0, 0, 150001, 10),
+    ] };
+  const { prompts, totals } = U.read(r);
+  assert.equal(totals.reloads, 1);
+  assert.equal(prompts[0].reloads, 1);
 });

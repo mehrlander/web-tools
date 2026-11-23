@@ -41,8 +41,11 @@ const { window, problems } = makeWindow({ html: `<!doctype html><html><body>
   <div id="form" x-data="userCallForm(window.__form)"></div></body></html>` });
 window.GH = FakeGH;
 // jsdom has no layout: a scroll is recorded, by the element it would bring into view.
-const scrolled = [];
-window.Element.prototype.scrollIntoView = function () { scrolled.push(this); };
+// A row's tap scrolls the document pane alone (owner, 2026-11-14): the test
+// below records the pane's scrollTo, and scrollIntoView, which would also move
+// the deck's sideways track, is recorded apart so it can be held to none.
+const walked = [];
+window.Element.prototype.scrollIntoView = function () { walked.push(this); };
 window.TOKEN = 'tkn';
 window.gh = { load: async () => {} };
 // The marks are the shared kit's, so the form draws what every call draws.
@@ -80,12 +83,12 @@ window.mdDiff = { render: async (host, a, b, opts) => {
 window.Diff = {};
 window.MdSurface = { patch: (p, a, b) => 'PATCH ' + p + ' ' + JSON.stringify(b) };
 const heads = [];
-window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd) };
+window.__form = { src: STORE + ':user-calls/c0ffee01-doc.json', onHead: (hd) => heads.push(hd), listed: true };
 
 const { default: Alpine } = await import('alpinejs/dist/module.esm.js');
 captureAlpineErrors(Alpine);
 window.Alpine = Alpine;
-for (const k of ['lib/kits/repo-address.js', 'lib/kits/call-answer.js']) {
+for (const k of ['lib/kits/repo-address.js', 'lib/kits/call-answer.js', 'lib/kits/panel-tip.js']) {
   new window.Function('window', readFileSync(path.join(repoRoot, k), 'utf8'))(window);
 }
 for (const p of ['lib/vanilla-bundle.js', 'lib/alpine-bundle.js', 'lib/alpineComponents/user-call-form.js']) {
@@ -120,9 +123,52 @@ test('a deck header names the document, not the kind of call', () => {
   assert.equal(heads.at(-1).action, null, 'no record circle in the header: the Record row under the document records');
 });
 
-test('in the deck a documentation call shows its brief, not its question or a recommendation', () => {
+test('in the deck a documentation call shows neither its question nor a recommendation', () => {
   assert.equal(root().querySelector('[data-call-question]').style.display, 'none', 'the deck header names the document');
   assert.equal(root().querySelector('[data-call-recommend]').style.display, 'none');
+});
+
+// On a card in the session page's list of calls the owner judges a
+// documentation call by its edits (2026-11-21), so the brief the session filed
+// waits behind an icon at the end of the document's head, with nothing of it
+// drawn above the edits. It opens as the house
+// panel-tip (html-style rule 10): a tap pins it, with the kit's ✕, and its ↗
+// is the call's file.
+test("a documentation call's brief is a panel-tip behind an icon in the document's head", async () => {
+  const shown = (el) => { for (let e = el; e && e !== root(); e = e.parentElement) if (e.style.display === 'none') return false; return true; };
+  const text = [...root().querySelectorAll('[data-call-card] p')].filter(shown).map((p) => p.textContent).join(' ');
+  assert.doesNotMatch(text, /Tidy the doc\./, 'no paragraph carries it');
+  const icon = root().querySelector('[data-doc-head] [data-doc-brief]');
+  assert.ok(icon && shown(icon), 'the icon is in the head');
+  const panel = root().querySelector('[data-doc-brief-panel]');
+  assert.equal(panel.style.display, 'none');
+  icon.click();
+  await until(() => panel.style.display !== 'none');
+  assert.match(panel.textContent, /brief\s*↗\s*Tidy the doc\./);
+  assert.equal(panel.querySelector('[data-doc-brief-source]').getAttribute('href'),
+    'https://github.com/me/private/blob/main/user-calls/c0ffee01-doc.json', "the ↗ is the call's file");
+  assert.ok(panel.querySelector('[data-wt-panel-tip-close]'), "pinned, it carries the kit's ✕");
+  assert.equal(icon.getAttribute('aria-expanded'), 'true');
+  icon.click();
+  await until(() => panel.style.display === 'none');
+  assert.equal(panel.style.display, 'none', 'a second tap closes it');
+  icon.click();
+  await until(() => panel.style.display !== 'none');
+  panel.querySelector('[data-wt-panel-tip-close]').click();
+  await until(() => panel.style.display === 'none');
+  assert.equal(data().briefAt, null, 'the ✕ closes it');
+});
+
+// In the deck and on the call's own page the brief is a line above the
+// document again, and the head has no icon (owner, 2026-11-21).
+test("outside the list of calls a documentation call's brief is a line, not an icon", async () => {
+  const shown = (el) => { for (let e = el; e && e !== root(); e = e.parentElement) if (e.style.display === 'none') return false; return true; };
+  data().listed = false;
+  await until(() => root().querySelector('[data-doc-head] [data-doc-brief]').style.display === 'none');
+  const text = [...root().querySelectorAll('[data-call-card] p')].filter(shown).map((p) => p.textContent).join(' ');
+  assert.match(text, /Tidy the doc\./, 'a paragraph carries it');
+  data().listed = true;
+  await until(() => root().querySelector('[data-doc-head] [data-doc-brief]').style.display !== 'none');
 });
 
 test('a documentation call shows no PR readiness, even when the PR has conflicts', async () => {
@@ -136,7 +182,8 @@ test('a documentation call shows no PR readiness, even when the PR has conflicts
 test('the edits are listed at the top, each with its summary, and a tap scrolls the document to it', async () => {
   const rows = [...root().querySelectorAll('[data-doc-row]')];
   assert.equal(rows.length, 4, 'one row per edit');
-  assert.match(rows[0].textContent.replace(/\s+/g, ' ').trim(), /^1 clearer$/, 'its number, then its why when it has no proposal');
+  const line = (r) => r.querySelector('[data-doc-row-n]').parentElement.textContent.replace(/\s+/g, ' ').trim();
+  assert.match(line(rows[0]), /^1 clearer$/, 'its number, then its why when it has no proposal');
   assert.match(rows[0].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary/, 'the number a tinted chip, so the list reads as a count');
   const lead = rows[0].querySelector('[data-doc-kind]'), num = rows[0].querySelector('[data-doc-row-n]');
   assert.equal(lead.dataset.docKind, 'clarify');
@@ -149,26 +196,122 @@ test('the edits are listed at the top, each with its summary, and a tap scrolls 
   assert.deepEqual(kinds(2), [], 'an edit with no notes has no pill');
   assert.match(rows[1].textContent, /Names the order with Second\./, 'its proposal, marks stripped');
   assert.match(rows[3].textContent, /Third\./, 'else the text it puts in');
-  scrolled.length = 0;
+  // The pane at 100, the edit at 300: scrolled from 0, the edit's top lands
+  // 8px below the pane's, where its overhanging label stays in sight.
+  const pane = root().querySelector('[data-doc-scroll]'), scrolled = [];
+  pane.scrollTo = (o) => scrolled.push(Math.round(o.top));
+  pane.getBoundingClientRect = () => ({ top: 100, bottom: 600, height: 500 });
+  box(2).getBoundingClientRect = () => ({ top: 300, bottom: 340, height: 40 });
+  walked.length = 0;
   rows[1].click();
   await tick(2);
-  assert.equal(scrolled.at(-1), box(2), 'the document scrolls to the edit');
+  assert.equal(scrolled.at(-1), 192, 'the document pane scrolls to the edit');
+  assert.equal(walked.length, 0, 'and only the pane: nothing walks the ancestors, so a deck around the call stays on it (owner, 2026-11-14)');
   assert.equal(data().docActive, 1);
-  assert.match(rows[1].className, /inset_3px_0_0_var\(--color-primary\)/, 'and its row is marked by a bar at its edge, not a fill');
+  assert.match(rows[1].className, /bg-primary\/10/, 'and its row is marked by its background (owner, 2026-11-14)');
+  assert.doesNotMatch(rows[1].className, /inset_3px/, 'with no bar at its edge');
   assert.ok(box(2).hasAttribute('data-md-diff-here'), 'its container is selected in md-diff, so the tap shows even with the edit in view');
   assert.equal(root().querySelectorAll('[data-md-diff-here]').length, 1, 'and only it');
-  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary border-\[var\(--color-primary\)\]/, 'its number keeps its tint and gains an outline');
+  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /bg-primary\/15 text-primary/, 'its number keeps its tint');
+  assert.doesNotMatch(rows[1].querySelector('[data-doc-row-n]').className, /border/, 'and takes no outline');
   assert.match(mark(2).className, /border-\[var\(--color-primary\)\] bg-base-100/, 'and so does its label on the container');
   rows[1].click();
   await tick(2);
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'a second tap on the selected row lets it go');
-  assert.match(rows[1].querySelector('[data-doc-row-n]').className, /border-transparent/);
+  assert.doesNotMatch(rows[1].className, /bg-primary\/10/, 'its wash goes');
+  assert.match(rows[1].className, /bg-base-200(?!\/)/, 'and its row stays grey, as the edit in view');
   rows[1].click();
   await tick(2);
+  root().querySelector('[data-doc-unplaced="3"]').getBoundingClientRect = () => ({ top: 500, bottom: 520, height: 20 });
   rows[2].click();
   await tick(2);
-  assert.equal(scrolled.at(-1), root().querySelector('[data-doc-unplaced="3"]'), 'an edit the file cannot place scrolls to its line');
+  assert.equal(scrolled.at(-1), 392, 'an edit the file cannot place scrolls to its line');
+  assert.equal(walked.length, 0, 'through the pane as well');
   assert.equal(root().querySelector('[data-md-diff-here]'), null, 'and selects nothing, having no container');
+});
+
+test('each row ends with the words its edit adds and removes, green and red (owner, 2026-11-14)', () => {
+  const rows = [...root().querySelectorAll('[data-doc-row]')];
+  const shown = (el) => el && el.style.display !== 'none';
+  const words = (r) => [r.querySelector('[data-doc-words-add]'), r.querySelector('[data-doc-words-del]')].map((el) => (shown(el) ? el.textContent : ''));
+  assert.deepEqual(words(rows[0]), ['+1', '−1'], 'One. to First.: a word out, a word in');
+  assert.deepEqual(words(rows[3]), ['+2', '−2'], 'two paragraphs, a word each');
+  assert.match(rows[0].querySelector('[data-doc-words-add]').className, /bg-success\/15/, 'added words in green');
+  assert.match(rows[0].querySelector('[data-doc-words-del]').className, /bg-error\/15/, 'removed words in red');
+  assert.equal(rows[0].querySelector('[data-doc-words]').dataset.titleTip, '1 word added, 1 word removed', 'and the counts say so in a tip');
+  const cap = rows[0].querySelector('[data-doc-words]');
+  assert.match(cap.className, /flex-col/, 'one capsule, green over red, in one column');
+  assert.match(cap.className, /(^|\s)w-6(\s|$)/, 'of one width on every row, so the column is straight: the total\'s, two characters here (owner, 2026-11-14)');
+  assert.ok(rows.every((r) => r.querySelector('[data-doc-words]').className === cap.className), 'the same on every row');
+  assert.equal(data().docSigned(0, 'add'), '0', 'a half that is none reads 0');
+  assert.equal(data().docSigned(999, 'del'), '−999', 'three digits as they are');
+  assert.equal(data().docSigned(1234, 'add'), '+1k', 'a thousand and up in k, so no figure passes four characters');
+  assert.equal(data().docSigned(12600, 'add'), '+13k');
+  assert.match(data().docHalf(0, 'del'), /bg-base-200/, 'in grey');
+  const n = (from, to) => { const { add, del } = data().docWords({ from, to }); return [add, del]; };
+  assert.deepEqual(n('one two three', 'one three four'), [1, 1], 'matched by the longest run of shared words');
+  assert.deepEqual(n('a  b\nc', 'a b c'), [0, 0], 'spacing and line breaks are not words');
+  assert.deepEqual(n('see [the file](a.md)', 'see [the file](b.md)'), [0, 0], 'nor is a link\'s target');
+  assert.equal(data().docWordsTip({ from: 'a\nb', to: 'a b' }), 'No words change');
+  const total = root().querySelector('[data-doc-words-total]');
+  assert.equal(total.textContent.replace(/\s+/g, ' ').trim(), 'words +5 −5', 'the call\'s total names the unit once, its label to the left');
+  assert.match(total.lastElementChild.className, /flex flex-col/, 'in a capsule like the rows\'');
+  assert.equal(total.lastElementChild.className, cap.className.replace(/^shrink-0 /, ''), 'of the rows\' width');
+  const line = total.parentElement;
+  assert.equal(line.dataset.docControlsRow, '', 'on the line of the document\'s controls, at every width');
+  assert.equal(line.lastElementChild, total, 'which it ends, over the rows\' counts');
+  assert.equal(line.firstElementChild.dataset.docControls, '', 'the controls keeping an element of their own');
+  assert.equal(total.dataset.titleTip, '5 words added, 5 removed, across 4 edits');
+});
+
+test('scrolling the document keeps the edit in view on screen in the list (owner, 2026-11-14)', () => {
+  const list = root().querySelector('[data-doc-list]'), row = list.querySelector('[data-doc-row="4"]');
+  const rect = (top, height) => () => ({ top, bottom: top + height, height, left: 0, right: 0, width: 0 });
+  const was = [list.getBoundingClientRect, row.getBoundingClientRect, list.scrollTo];
+  const to = [];
+  list.getBoundingClientRect = rect(100, 80);
+  list.scrollTo = (o) => to.push({ ...o });
+  row.getBoundingClientRect = rect(200, 20);
+  data().docKeepRow(3);
+  assert.deepEqual(to.at(-1), { top: 55, behavior: 'smooth' }, 'a row 40px below the list scrolls it 40px, and three quarters of a row past');
+  list.scrollTop = 55;
+  row.getBoundingClientRect = rect(130, 20);
+  to.length = 0;
+  data().docKeepRow(3);
+  assert.equal(to.length, 0, 'a row already in sight moves nothing');
+  list.scrollTop = 135;
+  row.getBoundingClientRect = rect(60, 20);
+  data().docKeepRow(3);
+  assert.deepEqual(to.at(-1), { top: 80, behavior: 'smooth' }, 'a row above it scrolls the list down to it');
+  [list.getBoundingClientRect, row.getBoundingClientRect, list.scrollTo] = was;
+  list.scrollTop = 0;
+});
+
+test('a seam under the list sets its height, with the estate\'s splitter (owner, 2026-11-14)', async () => {
+  const list = root().querySelector('[data-doc-list]'), seam = root().querySelector('[data-doc-seam]');
+  assert.ok(seam, 'a seam sits under the list');
+  assert.equal(seam.previousElementSibling, list, 'right under it');
+  assert.notEqual(seam.style.display, 'none', 'shown for a call with more than one edit');
+  assert.equal(list.style.maxHeight, '160px', 'the list 160px tall until the seam is dragged');
+  assert.doesNotMatch(list.className, /border-b(?!ase)/, 'and the seam, not the list, draws the rule between them');
+  let opts = null;
+  window.dockSplit = { attach: (el, o) => { opts = o; return { destroy() {}, refresh() {} }; } };
+  await data().docSeamAt(seam);
+  assert.equal(opts.axis, 'row', 'a horizontal seam');
+  assert.equal(opts.from, 'start', 'measured from the list\'s top');
+  const was = [list.getBoundingClientRect, seam.closest('[data-doc-edits]').getBoundingClientRect];
+  list.getBoundingClientRect = () => ({ top: 100, bottom: 260, height: 160, left: 0, right: 400, width: 400 });
+  seam.closest('[data-doc-edits]').getBoundingClientRect = () => ({ top: 0, bottom: 600, height: 600, left: 0, right: 400, width: 400 });
+  opts.onChange(50);
+  await tick(1);
+  assert.equal(data().docListH, 250, 'a drag halfway down the 500px below the list\'s top makes the list 250px');
+  assert.equal(list.style.maxHeight, '250px');
+  [list.getBoundingClientRect, seam.closest('[data-doc-edits]').getBoundingClientRect] = was;
+  seam.dispatchEvent(new window.Event('dblclick'));
+  await tick(1);
+  assert.equal(data().docListH, 160, 'a double-click on the seam goes back to 160px');
+  delete window.dockSplit;
+  data()._seam = null;
 });
 
 test('the list shows in Changes only, the one view that draws the edits', async () => {
@@ -180,14 +323,15 @@ test('the list shows in Changes only, the one view that draws the edits', async 
   assert.ok(await until(() => box(1) && list().style.display !== 'none'), 'back in Changes');
 });
 
-test('an edit md-diff draws as several changes marks each, under the one decision', async () => {
+test('an edit md-diff draws as several changes names it on each, under the one decision', async () => {
   const marks = () => [...root().querySelectorAll('[data-doc-mark][data-doc-edit="4"]')];
   assert.equal(marks().length, 2, 'a two-block edit is two containers');
-  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4', ''], 'named once, on its first container');
+  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4 · 1 of 2', 'Edit 4 · 2 of 2'], 'each container names its edit and its place');
+  assert.ok(marks().every((m) => !m.classList.contains('hidden')), 'no container is left unlabelled');
   act(4, 'Discard');
   await tick(2);
   assert.deepEqual(marks().map((m) => m.dataset.decision), ['discarded', 'discarded'], 'both containers show the decision');
-  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4 · discarded', 'discarded']);
+  assert.deepEqual(marks().map((m) => m.textContent), ['Edit 4 · 1 of 2 · discarded', 'Edit 4 · 2 of 2 · discarded']);
   act(4, 'Discard');
   await tick(2);
 });
@@ -210,6 +354,20 @@ test('nothing records until every staged edit is decided, and a decision stays m
   act(1, 'Keep');
   await tick(2);
   assert.equal(mark(1).dataset.decision, 'open', 'a second tap lets it go');
+});
+
+test('one edit still open with no notes keeps Record disabled and sends nothing', async () => {
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
+  const before = puts.length;
+  assert.equal(send().disabled, true, 'one undecided edit blocks the record');
+  assert.match(send().textContent, /1 to decide/);
+  await data().sendDoc();
+  assert.equal(puts.length, before, 'sendDoc writes nothing while an edit is open');
+  act(1, 'Keep');
+  act(2, 'Discard');
+  await tick(2);
 });
 
 test('Old and New draw the whole file as it stands and as proposed; Changes keeps its decisions', async () => {
@@ -304,4 +462,26 @@ test('the answer line is the one Dictate and the Docs tab write, with the kept e
   assert.equal(line.patch, 'PATCH docs/x.md ' + JSON.stringify('First.\n\nTwo.\n\nThird.\n\nFourth.\n'), 'only the kept edits are in the patch');
   await until(() => data().done);
   assert.equal(data().done, line.answer, 'the form reads as answered');
+});
+
+// The session page's Calls tab mounts a form inside its own scope, where
+// Alpine writes a field no scope declares to the outermost one. Two forms
+// there, each holding its own document, are held to their own fields, and
+// the scope around them keeps its own.
+test('forms mounted inside another scope keep their fields to themselves', async () => {
+  const outer = window.document.createElement('div');
+  outer.setAttribute('x-data', "{ _notes: 'the host\\'s' }");
+  outer.innerHTML = '<div data-n="1" x-data="userCallForm(window.__form)"></div><div data-n="2" x-data="userCallForm(window.__form)"></div>';
+  window.document.body.append(outer);
+  Alpine.initTree(outer);
+  const form = (n) => outer.querySelector(`[data-n="${n}"]`);
+  await until(() => [1, 2].every((n) => Alpine.$data(form(n)).doc.ready && form(n).querySelectorAll('[data-md-diff-change]').length === 4));
+  const host = Alpine.$data(outer);
+  assert.equal(host._notes, "the host's", "a form's notes are not the host's");
+  for (const k of ['_root', '_seam', '_viewsRead', '_jumpTill'])
+    assert.equal(Object.prototype.hasOwnProperty.call(Alpine.closestDataStack(outer)[0], k), false, k + ' is not written on the host');
+  assert.equal(Alpine.$data(form(1))._root, form(1));
+  assert.equal(Alpine.$data(form(2))._root, form(2), 'each form finds its own document');
+  Alpine.destroyTree(outer);
+  outer.remove();
 });

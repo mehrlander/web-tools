@@ -102,10 +102,10 @@
     </span>
 
     <button class="btn btn-sm lg:btn-xs btn-primary shrink-0 gap-1" @click="loadSample()"
-            title="Load the built-in 12-page sample">
+            data-title-tip="Load the built-in 12-page sample">
       <i class="ph ph-file-dashed"></i><span>Sample</span>
     </button>
-    <label class="btn btn-sm lg:btn-xs btn-ghost shrink-0 gap-1" title="Open a PDF">
+    <label class="btn btn-sm lg:btn-xs btn-ghost shrink-0 gap-1" data-title-tip="Open a PDF">
       <i class="ph ph-folder-open"></i><span class="hidden sm:inline">Open</span>
       <input type="file" accept="application/pdf,.pdf" class="hidden"
              @change="loadFile($event.target.files[0])">
@@ -113,11 +113,11 @@
 
     <div class="join shrink-0" x-show="mode==='page'">
       <button class="btn btn-sm lg:btn-xs join-item px-2" @click="go(-1)" :disabled="pageNum<=1"
-              title="Previous page"><i class="ph ph-caret-left"></i></button>
+              data-title-tip="Previous page"><i class="ph ph-caret-left"></i></button>
       <span class="btn btn-sm lg:btn-xs join-item no-animation pointer-events-none font-mono whitespace-nowrap px-2"
             x-text="`${pageNum}/${numPages||'-'}`"></span>
       <button class="btn btn-sm lg:btn-xs join-item px-2" @click="go(1)" :disabled="pageNum>=numPages"
-              title="Next page"><i class="ph ph-caret-right"></i></button>
+              data-title-tip="Next page"><i class="ph ph-caret-right"></i></button>
     </div>
 
     <div class="join shrink-0 hidden lg:flex">
@@ -133,10 +133,10 @@
     </button>
 
     <div class="join shrink-0 hidden lg:flex" x-show="mode==='page'">
-      <button class="btn btn-xs join-item px-2" @click="zoom(-1)" title="Zoom out"><i class="ph ph-minus"></i></button>
+      <button class="btn btn-xs join-item px-2" @click="zoom(-1)" data-title-tip="Zoom out"><i class="ph ph-minus"></i></button>
       <button class="btn btn-xs join-item px-2 font-mono" @click="scaleMode='fit'; redraw()"
-              x-text="scaleMode === 'fit' ? 'fit' : scale.toFixed(1) + 'x'" title="Fit to width"></button>
-      <button class="btn btn-xs join-item px-2" @click="zoom(1)" title="Zoom in"><i class="ph ph-plus"></i></button>
+              x-text="scaleMode === 'fit' ? 'fit' : scale.toFixed(1) + 'x'" data-title-tip="Fit to width"></button>
+      <button class="btn btn-xs join-item px-2" @click="zoom(1)" data-title-tip="Zoom in"><i class="ph ph-plus"></i></button>
     </div>
 
     <span class="text-xs opacity-55 font-mono truncate hidden xl:inline" x-text="status"></span>
@@ -145,7 +145,7 @@
          Absent for the sample and for a drop, which have no address to state. -->
     <a x-show="address" x-cloak :href="addressUrl" target="_blank"
        class="text-xs font-mono truncate hidden lg:inline opacity-55 hover:opacity-100 hover:text-primary transition-opacity"
-       :title="address && (address.repo + (address.ref ? '@' + address.ref : '') + ':' + address.path)">
+       :data-title-tip="address && (address.repo + (address.ref ? '@' + address.ref : '') + ':' + address.path)">
       <i class="ph ph-git-branch align-[-0.1em]"></i>
       <span x-text="address && address.path.split('/').pop()"></span>
     </a>
@@ -170,8 +170,8 @@
       </div>
       <div x-show="mode==='page'"
            class="paper relative inline-block select-none touch-none shrink-0" id="stage"
-           @pointerdown="dragStart($event)" @pointermove="dragMove($event)"
-           @pointerup="dragEnd($event)" @pointercancel="dragEnd($event)"
+           @pointerdown="pointerDown($event)" @pointermove="pointerMove($event)"
+           @pointerup="pointerUp($event)" @pointercancel="pointerUp($event)"
            @pointerleave="clearProbe()">
         <canvas id="page" class="block"></canvas>
         <svg class="layer" id="ov" :width="W" :height="H"></svg>
@@ -240,6 +240,9 @@
           <option value="fit">fit to width</option>
           <option value="1">1x</option><option value="1.5">1.5x</option>
           <option value="2">2x</option><option value="3">3x</option>
+          <template x-if="!['fit', '1', '1.5', '2', '3'].includes(scaleMode)">
+            <option :value="scaleMode" x-text="Number(scaleMode).toFixed(2) + 'x (pinched)'"></option>
+          </template>
         </select>
       </label>
       </div>
@@ -343,12 +346,12 @@
       </div>
       <div class="flex items-center gap-2">
         <button class="btn btn-sm lg:btn-xs btn-ghost px-2" @click="nudge(-1)"
-                :title="`decrease ${axis}`"><i class="ph ph-minus"></i></button>
+                :data-title-tip="`decrease ${axis}`"><i class="ph ph-minus"></i></button>
         <input type="range" class="range range-sm lg:range-xs flex-1"
                :min="axisMeta[axis].min" :max="axisMeta[axis].max" :step="axisMeta[axis].step"
                :value="axisValue" @input="setAxis(+$event.target.value)">
         <button class="btn btn-sm lg:btn-xs btn-ghost px-2" @click="nudge(1)"
-                :title="`increase ${axis}`"><i class="ph ph-plus"></i></button>
+                :data-title-tip="`increase ${axis}`"><i class="ph ph-plus"></i></button>
         <span class="w-14 lg:w-12 text-right font-mono tabular-nums text-sm"
               x-text="Math.round(axisValue) + axisMeta[axis].unit"></span>
       </div>
@@ -373,7 +376,7 @@
               <i class="ph ph-bookmark-simple"></i><span x-text="v.name"></span>
             </button>
             <button class="btn btn-sm lg:btn-xs join-item px-1.5 btn-ghost" @click="removeView(i)"
-                    :title="`forget ${v.name}`"><i class="ph ph-x"></i></button>
+                    :data-title-tip="`forget ${v.name}`"><i class="ph ph-x"></i></button>
           </span>
         </template>
       </div>
@@ -429,11 +432,11 @@
                   @click="trimMode='drop'; drawStack()">drop</button>
         </div>
         <button class="btn btn-sm lg:btn-xs btn-ghost ml-auto gap-1" @click="proposeTrim()"
-                title="Set the bounds from what recurs across pages">
+                data-title-tip="Set the bounds from what recurs across pages">
           <i class="ph ph-magic-wand"></i>propose
         </button>
         <button class="btn btn-sm lg:btn-xs btn-ghost gap-1" @click="copyKept()"
-                title="Copy the text the trim keeps"><i class="ph ph-copy"></i></button>
+                data-title-tip="Copy the text the trim keeps"><i class="ph ph-copy"></i></button>
       </div>
       <div class="text-xs font-mono opacity-65 mt-2" x-text="trimInfo"></div>
       <div class="max-h-40 overflow-auto text-xs font-mono bg-base-200 rounded p-2 mt-1.5" x-show="furniture.length">
@@ -478,6 +481,17 @@ const LAYERS = [
 // So the live objects live here, outside reactivity, and only plain data
 // (counts, strings, the matrix) crosses into the component.
 const S = { doc: null, v: null, items: [], projected: [] };
+
+// Pointers down on the page stage, by id. Kept here rather than on the
+// component for the same reason as S: a Map of live events gains nothing from
+// Alpine's proxy. `pinch` is set while two fingers are down; `spent` holds
+// until the last finger lifts, so the finger left behind after a pinch does
+// not start a selection. `press` is one touch finger before it has declared
+// itself: waiting, then panning or (after a long press) selecting.
+const G = { pts: new Map(), pinch: null, spent: false, press: null };
+// How long a still finger must rest before it selects, and how far it may
+// wander while resting.
+const LONG_PRESS_MS = 400, LONG_PRESS_SLOP = 8;
 
 // What each hue means in the stack. The canvas cannot label itself without
 // becoming unreadable, so the key lives in the panel beside it.
@@ -879,13 +893,21 @@ document.addEventListener('alpine:init', () => Alpine.data('pdfInspect', () => (
       this.scale = Number(this.scaleMode);
     }
     const vp = page.getViewport({ scale: this.scale });
-    this.W = Math.ceil(vp.width); this.H = Math.ceil(vp.height);
+    const w = Math.ceil(vp.width), h = Math.ceil(vp.height);
 
+    // Drawn off screen and swapped in whole, so the page on screen is never a
+    // blank canvas mid-render. The pinch depends on this: it holds its CSS
+    // transform until the swap and drops it in the same task, which is the
+    // only way the sharp page replaces the blurry one without a flash.
+    const off = document.createElement('canvas');
+    off.width = w; off.height = h;
+    const octx = off.getContext('2d');
+    octx.fillStyle = '#fff'; octx.fillRect(0, 0, w, h);
+    await page.render({ canvasContext: octx, viewport: vp }).promise;
+    this.W = w; this.H = h;
     const canvas = document.getElementById('page');
-    canvas.width = this.W; canvas.height = this.H;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, this.W, this.H);
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(off, 0, 0);
 
     // Every coordinate below comes from the kit's projection. Nothing here
     // multiplies by scale or subtracts from height.
@@ -1195,6 +1217,135 @@ document.addEventListener('alpine:init', () => Alpine.data('pdfInspect', () => (
     this.tableInfo = `lattice ${g.rows}×${g.cols} · stream ${streamRows.length}×${cols.length} ` +
       `over the same region · ${this.agree ? 'agree' : 'DIFFER'}` +
       (inferred.length ? ` · inferred: ${inferred.join(', ')}` : '');
+  },
+
+  // Page-stage pointers. A mouse or pen drag selects at once. On touch, one
+  // finger pans the page, two pinch, and a finger held still for a long press
+  // selects. The stage keeps `touch-none` and pans the scroller itself rather
+  // than leaving one finger to the browser: touch-action is fixed when a touch
+  // lands, so a native pan could not hand the finger over to a selection once
+  // the press is long enough, and a browser pan cancels the pointer the pinch
+  // also needs. A handle that wants the one-finger gesture for itself (the
+  // planned column dividers) would claim it here, on `e.target`, before the
+  // press starts waiting, and the pinch would not change.
+  pointerDown(e) {
+    G.pts.set(e.pointerId, e);
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    if (G.pts.size === 1) {
+      G.spent = false;
+      if (e.pointerType !== 'touch') { this.dragStart(e); return; }
+      e.preventDefault();
+      const host = document.getElementById('scroll');
+      G.press = { id: e.pointerId, x: e.clientX, y: e.clientY, stage: e.currentTarget,
+                  sl: host.scrollLeft, st: host.scrollTop, mode: 'wait',
+                  timer: setTimeout(() => this.pressSelect(), LONG_PRESS_MS) };
+      return;
+    }
+    e.preventDefault();
+    this.pressCancel();
+    if (G.pts.size === 2) this.pinchStart(e.currentTarget);
+  },
+  pointerMove(e) {
+    if (G.pts.has(e.pointerId)) G.pts.set(e.pointerId, e);
+    if (G.pinch) { this.pinchMove(); return; }
+    if (G.spent) return;
+    const p = G.press;
+    if (p && p.id === e.pointerId) {
+      const dx = e.clientX - p.x, dy = e.clientY - p.y;
+      if (p.mode === 'wait') {
+        if (Math.hypot(dx, dy) <= LONG_PRESS_SLOP) return;
+        clearTimeout(p.timer); p.mode = 'pan';
+      }
+      if (p.mode === 'pan') {
+        const host = document.getElementById('scroll');
+        host.scrollLeft = p.sl - dx; host.scrollTop = p.st - dy;
+        return;
+      }
+      this.dragMove(e);
+      return;
+    }
+    if (e.pointerType === 'touch') return;
+    this.dragMove(e);
+  },
+  pointerUp(e) {
+    if (!G.pts.delete(e.pointerId)) return;
+    const p = G.press;
+    if (p && p.id === e.pointerId) {
+      clearTimeout(p.timer); G.press = null;
+      if (p.mode === 'select' && e.type !== 'pointercancel') this.dragEnd(e);
+      else this.drag = null;
+    } else if (G.pinch && G.pts.size < 2) this.pinchEnd();
+    else if (e.type === 'pointercancel') this.drag = null;
+    else if (!G.spent && !G.pts.size) this.dragEnd(e);
+    if (!G.pts.size) G.spent = false;
+  },
+  // The press held still long enough: it selects from where it landed.
+  pressSelect() {
+    const p = G.press;
+    if (!p || p.mode !== 'wait') return;
+    p.mode = 'select';
+    navigator.vibrate?.(10);
+    const r = p.stage.getBoundingClientRect();
+    const x = p.x - r.left, y = p.y - r.top;
+    this.drag = { x0: x, y0: y, x1: x, y1: y };
+    this.dragStyle = `left:${x}px;top:${y}px;width:0px;height:0px`;
+  },
+  pressCancel() {
+    if (!G.press) return;
+    clearTimeout(G.press.timer);
+    if (G.press.mode === 'select') this.drag = null;
+    G.press = null;
+  },
+
+  // Pinch. While the fingers are down the stage (canvas, overlay, probe mark
+  // and drag box together, since they are its children) is scaled by a CSS
+  // transform, which costs nothing per frame. When they lift, the page is
+  // drawn again at the new scale and the scroll is set so the point that was
+  // under the fingers stays there. Transforming the stage rather than the
+  // canvas is what keeps the overlay on the ink: the two cannot disagree when
+  // one transform moves both.
+  _two() {
+    const [a, b] = [...G.pts.values()];
+    return { d: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) || 1,
+             x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+  },
+  pinchStart(stage) {
+    this.drag = null; this.clearProbe();
+    G.spent = true;
+    const t = this._two(), r = stage.getBoundingClientRect();
+    // The page point under the midpoint, in render pixels at the old scale.
+    G.pinch = { stage, d0: t.d, s0: this.scale, k: 1, m: t,
+                px: t.x - r.left, py: t.y - r.top, left: r.left, top: r.top };
+    stage.style.transformOrigin = '0 0';
+    stage.style.willChange = 'transform';
+  },
+  pinchMove() {
+    if (G.pts.size < 2) return;
+    const p = G.pinch, t = this._two();
+    // The same clamp the fit computation uses, so a pinch cannot ask for a
+    // canvas the page would never draw.
+    const s = Math.min(3, Math.max(0.4, p.s0 * t.d / p.d0));
+    p.k = s / p.s0; p.m = t;
+    const tx = t.x - p.left - p.px * p.k, ty = t.y - p.top - p.py * p.k;
+    p.stage.style.transform = `translate(${tx}px, ${ty}px) scale(${p.k})`;
+  },
+  async pinchEnd() {
+    const p = G.pinch; G.pinch = null;
+    const s = Math.round(p.s0 * p.k * 100) / 100;
+    const ux = p.px / p.s0, uy = p.py / p.s0;
+    if (Math.abs(s - p.s0) >= 0.01) {
+      this.scaleMode = String(s);
+      await this.redraw();
+      // A render already in flight makes redraw queue rather than wait; the
+      // scale this needs is the queued one's.
+      while (this._rendering || this._queued) await new Promise(r => setTimeout(r, 16));
+    }
+    p.stage.style.transform = ''; p.stage.style.willChange = '';
+    // Put the pinched point back under the last midpoint. A clamp at the
+    // scroller's edge leaves it short, which is the edge doing its job.
+    const host = document.getElementById('scroll'), r = p.stage.getBoundingClientRect();
+    host.scrollLeft += r.left + ux * this.scale - p.m.x;
+    host.scrollTop += r.top + uy * this.scale - p.m.y;
   },
 
   // Drag selection. Screen coordinates go straight to the kit; the only thing

@@ -74,6 +74,11 @@ test('before the member list resolves there is no denominator', () => {
   assert.equal(data.crawlPct('activity'), 0);
 });
 
+test('a running crawl with nothing finished yet still shows its count once the denominator exists', () => {
+  shell.crawlProgress = { activity: P({ done: 0, total: 4, active: ['me/a', 'me/b'] }) };
+  assert.equal(data.crawlLabel('activity'), 'Refreshing activity · 0 of 4 repos');
+});
+
 test('mid-crawl: finished repos over total, every in-flight repo named', () => {
   shell.crawlProgress = { activity: P({ done: 4, total: 11, active: ['me/chat-histories', 'me/home'] }) };
   assert.equal(data.crawlLabel('activity'), 'Refreshing activity · 4 of 11 repos');

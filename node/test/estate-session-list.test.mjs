@@ -7,7 +7,7 @@
 //
 // It is a SCOPE rather than a fourth filter, and that choice is what these
 // tests hold. Being a scope means the deck swipes it for free, since the deck's
-// sequence has always been the visible list; it means the Table lens narrows to
+// sequence has always been the visible list; it means the Table tab narrows to
 // it wherever the grain is built off scopedSessions; and it means the chip row
 // already had somewhere to put it. What a scope does not normally do is carry
 // an order or outrun the pane's own data, and both of those get a test below.
@@ -16,7 +16,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine } from './bootstrap.mjs';
+import { makeWindow, startAlpine, tick } from './bootstrap.mjs';
 
 class StubGH {
   constructor(conf = {}) { this.repo = conf.repo || ''; this.ref = conf.ref || 'main'; }
@@ -31,7 +31,7 @@ const { window } = makeWindow({
 });
 window.TOKEN = 'tkn';
 window.GH = StubGH;
-// The shell holds the spec, exactly as it holds `session` and `lens`; the
+// The shell holds the spec, exactly as it holds `session` and `tab`; the
 // component reads it and never writes it except through setSessionList.
 window.__shell = { REGISTRY_REPO: 'me/registry', DEFAULT_REPO: 'me/tools',
                    quickLinks: [], hasToken: () => true, _authState: 'auth',
@@ -95,6 +95,8 @@ test("the deck's sequence IS the list, which is why no second mechanism exists",
 
 test('the Listed chip leads the row and counts what the ADDRESS listed, not what matched', () => {
   seed('aaa11111,zzz99999');
+  // An id the crawl never held is missing, not hidden by a filter.
+  assert.equal(data.sessionListHidden.join(), '');
   const chips = data.sessionScopes;
   assert.equal(chips[0].key, 'list');
   // Two named, one resolvable. A chip reporting 1 would hide the gap in the one
@@ -117,6 +119,29 @@ test('a listed session the search or a chip leaves off screen is counted, not lo
   assert.equal(data.sessionListHidden.join(), 'bbb22222');
   data.sessionStateFilter = '';
   assert.equal(data.sessionListHidden.join(), '');
+});
+
+test('the count line shows how many listed sessions a chip hides', async () => {
+  // The suite's shell is a plain object, so no template follows it. A reactive
+  // one is what lets the line under the chips redraw.
+  const shell = Alpine.reactive({ ...window.__shell, sessionListSpec: 'aaa11111,bbb22222' });
+  window.__shell = shell;
+  const host = window.document.createElement('div');
+  host.setAttribute('x-data', 'estate()');
+  window.document.body.appendChild(host);
+  await tick(5);
+  const d = Alpine.$data(host);
+  d.activity = { 'acme/widget': { defaultBranch: 'main', scan: { branches: [] } } };
+  d.sessionRows_ = ROWS.map(r => r.id === 'bbb22222' ? { ...r, state: 'merged' } : r);
+  d.sessionStateFilter = 'ready';
+  d.sessionScope = 'list';
+  await tick(5);
+  const line = [...host.querySelectorAll('span')].find(e => (e.getAttribute('x-text') || '').endsWith("'hidden by the search or a chip'") || (e.getAttribute('x-text') || '').endsWith("' hidden by the search or a chip'"));
+  assert.ok(line, 'the hidden count is drawn');
+  assert.notEqual(line.style.display, 'none');
+  assert.equal(line.textContent, '1 hidden by the search or a chip');
+  host.remove();
+  window.__shell = { ...shell };
 });
 
 test('the scope LAPSES when the list goes, so the pane never sits empty under a lit chip', () => {
@@ -162,8 +187,7 @@ test('the list becomes the scope BEFORE a &session= opens, or the deck swipes th
 
 test('the branch grain shows everything under a list, since a branch cannot be in one', () => {
   seed('aaa11111');
-  // Snagged's reasoning, and the same answer: the full list under a scope this
-  // grain cannot answer reads as what it is, where an empty pane under a lit
-  // chip reads as a bug.
+  // The full list under a scope this grain cannot answer reads as what it is,
+  // where an empty pane under a lit chip reads as a bug.
   assert.equal(data.inBranchTableScope({ name: 'feature', date: '2025-01-01' }), true);
 });

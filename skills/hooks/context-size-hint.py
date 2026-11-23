@@ -11,8 +11,10 @@ THE SIZE. The harness writes each model response into the transcript as an
 assistant entry whose message carries a usage object. The context that response
 was given is input_tokens + cache_read_input_tokens +
 cache_creation_input_tokens. The hook takes the last such entry in the main
-conversation, skipping a subagent's (isSidechain), and reads only the tail of
-the file: transcripts run to hundreds of megabytes.
+conversation, skipping a subagent's (isSidechain) and a notice the harness
+writes in the model's place (model <synthetic>, zero usage, such as a rate-limit
+notice), and reads only the tail of the file: transcripts run to hundreds of
+megabytes.
 
 THE BANDS. CONTEXT_HINT_TOKENS (default 400000) is the threshold and
 CONTEXT_HINT_STEP (default 200000) the step. Band 0 starts at the threshold,
@@ -70,8 +72,10 @@ def context_size(transcript):
         usage = message.get("usage") if isinstance(message, dict) else None
         if not isinstance(usage, dict):
             continue
-        return sum(int(usage.get(k) or 0) for k in
-                   ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
+        tokens = sum(int(usage.get(k) or 0) for k in
+                     ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
+        if tokens:  # a notice the harness writes in the model's place counts none
+            return tokens
     return None
 
 

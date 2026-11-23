@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="night">
+<html lang="en" data-theme="winter">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Popup Launcher · setup</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="../lib/kits/title-tip.js"></script>
 <!-- Tells Tailwind these names are colours, so an opacity modifier on one
      generates under a variant. This page does not reach gh-boot, which does the
      same for every page that does; python/dead-opacity.py holds the two in step. -->
@@ -52,7 +53,7 @@
         :type="show ? 'text' : 'password'"
         placeholder="github_pat_…  (optional on public repos)"
         x-model="token" @input="remember && persist()">
-      <button class="btn join-item" @click="show = !show" :title="show ? 'Hide' : 'Show'">
+      <button class="btn join-item" @click="show = !show" :data-title-tip="show ? 'Hide' : 'Show'">
         <i class="ph-bold" :class="show ? 'ph-eye-slash' : 'ph-eye'"></i>
       </button>
     </div>
@@ -91,7 +92,7 @@
   <section class="space-y-3">
     <div class="flex items-center justify-between">
       <label class="text-xs font-bold uppercase tracking-widest text-base-content/50">Your bookmarklet</label>
-      <span x-show="!liveSource" x-cloak class="text-[11px] text-warning/80" title="Couldn't reach the GitHub API; using the bundled copy.">
+      <span x-show="!liveSource" x-cloak class="text-[11px] text-warning/80" data-title-tip="Couldn't reach the GitHub API; using the bundled copy.">
         <i class="ph-bold ph-warning"></i> offline copy
       </span>
     </div>
@@ -106,7 +107,7 @@
         <span x-text="copied ? 'Copied' : 'Copy'"></span>
       </button>
       <a :href="bookmarklet" @click.prevent="hintDrag = true"
-         title="Drag me to your bookmarks bar"
+         data-title-tip="Drag me to your bookmarks bar"
          class="btn btn-outline btn-sm gap-1 cursor-grab active:cursor-grabbing">
         <i class="ph-bold ph-bookmark-simple"></i> Open Popups
       </a>

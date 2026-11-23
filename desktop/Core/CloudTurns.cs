@@ -6,9 +6,8 @@ namespace WebTools.Desktop;
 // Published records describe outcomes. Only explicit hook signals describe a turn.
 public static class CloudTurns
 {
-    public static CloudSnapshot Merge(CloudSnapshot records, IEnumerable<KeyValuePair<string, string>> signals, DateTimeOffset now)
+    public static List<LocalSession> ReadSignals(IEnumerable<KeyValuePair<string, string>> signals, DateTimeOffset now)
     {
-        var items = records.Items.ToDictionary(s => s.Id);
         var latest = new Dictionary<string, LocalSession>();
         foreach (var (path, json) in signals) {
             try {
@@ -45,16 +44,36 @@ public static class CloudTurns
                 if (!latest.TryGetValue(id, out var previous) || previous.UpdatedAt < at) latest[id] = item;
             } catch (Exception e) when (e is JsonException or InvalidOperationException or FormatException) { }
         }
-        foreach (var (id, signal) in latest) {
-            if (items.TryGetValue(id, out var record)) {
-                // A later recorded response supersedes a delayed start/tool publication.
-                if (record.UpdatedAt > signal.UpdatedAt) {
-                    items[id] = record with { Turn = signal.Turn, SourceUrl = record.SourceUrl ?? signal.SourceUrl };
-                    continue;
-                }
-                items[id] = signal with { Title = record.Title, Checkpoint = record.Checkpoint };
-            } else items[id] = signal;
+        return latest.Values.ToList();
+    }
+
+    public static string SelectionKey(IEnumerable<KeyValuePair<string, string>> signals, DateTimeOffset now)
+    {
+        var threads = ReadSignals(signals, now).Select(CloudThreads.Key).Distinct().Order(StringComparer.Ordinal).Take(256);
+        return Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(
+            System.Text.Encoding.UTF8.GetBytes(string.Join("\n", threads))));
+    }
+
+    public static List<LocalSession> TopicCandidates(CloudSnapshot records,
+        IEnumerable<KeyValuePair<string, string>> signals, DateTimeOffset now) =>
+        CloudThreads.Candidates(records, ReadSignals(signals, now));
+
+    public static CloudSnapshot Merge(CloudSnapshot records, IEnumerable<KeyValuePair<string, string>> signals, DateTimeOffset now)
+    {
+        var observed = ReadSignals(signals, now);
+        var candidates = CloudThreads.Candidates(records, observed);
+        var published = candidates.ToDictionary(s => s.Id);
+        var items = new Dictionary<string, LocalSession>(published);
+        foreach (var signal in observed) {
+            if (items.TryGetValue(signal.Id, out var record)) {
+                // A recorded response supersedes a delayed signal for that same
+                // capture, while a sibling's newer work remains independently live.
+                items[signal.Id] = record.UpdatedAt > signal.UpdatedAt
+                    ? record with { Turn = signal.Turn, SourceUrl = record.SourceUrl ?? signal.SourceUrl }
+                    : signal with { Title = record.Title, Checkpoint = record.Checkpoint };
+            } else items[signal.Id] = signal;
         }
-        return records with { Items = items.Values.OrderByDescending(s => s.UpdatedAt).Take(40).ToList() };
+        return records with { Items = CloudThreads.Group(items.Values, published.Keys.ToHashSet(),
+            observed.Select(s => s.Id).ToHashSet()) };
     }
 }

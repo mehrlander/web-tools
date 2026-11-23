@@ -24,6 +24,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import assert from 'node:assert/strict';
 import jsdomPkg from 'jsdom';
 
 const { JSDOM } = jsdomPkg;
@@ -313,3 +314,26 @@ export async function startAlpine(window, componentPaths = []) {
 export const tick = async (n = 2) => {
   for (let i = 0; i < n; i++) await new Promise((r) => setTimeout(r, 0));
 };
+
+// Wait for a CONDITION, not a count. tick(n) guesses how many flushes a chain
+// of dependent effects takes, and the guess ages: one more binding lengthens
+// the chain, and under `npm test` the files share a machine and every flush
+// stretches, so a count that held on its own file fails beside another (snag
+// tick-count-guesses-a-chain). until() polls `read` until it returns something
+// truthy, within a bound of time rather than of flushes, and returns what it
+// read, so the assertion after it fails on the real value. Given `what`, a
+// timeout fails here instead, naming what never arrived. A read that throws
+// (the element is not drawn yet) counts as not yet, except the last one.
+export async function until(read, what, ms = 8000) {
+  const t0 = Date.now();
+  for (;;) {
+    if (Date.now() - t0 > ms) {
+      if (what) assert.fail('timed out waiting for ' + what);
+      return read();
+    }
+    let v;
+    try { v = read(); } catch { v = undefined; }
+    if (v) return v;
+    await new Promise((r) => setTimeout(r, 10));
+  }
+}

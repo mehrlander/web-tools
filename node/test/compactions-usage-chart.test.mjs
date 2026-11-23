@@ -133,7 +133,7 @@ test('a session without an extract draws nothing and says nothing', async () => 
 test('a tap on another compaction\'s mark opens that summary\'s card', async () => {
   const { c } = component({ 'sessions/usage/2026/11/2026-11-04-0ddba11a.json': JSON.stringify(extract) });
   const picks = [];
-  c._swiper = { pick: (id) => picks.push(id) };
+  c._swiper = { pick: (session, via, id) => picks.push(id) };
   const host = card(c, FIRST);
   c.read(FIRST);
   await settle();

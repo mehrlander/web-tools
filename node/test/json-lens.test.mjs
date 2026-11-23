@@ -36,6 +36,12 @@ test('keys and values from loaded JSON are text, never markup', async () => {
   await tick();
   for (const id of ['pwn1', 'pwn2', 'pwn3', 'pwn4']) assert.equal(doc.getElementById(id), null, id);
   assert.match(doc.body.textContent, /<b id=pwn2>x<\/b>/);
+  lens.select(['s']);
+  await tick();
+  assert.equal(doc.getElementById('pwn2'), null, 'a selected string value is text');
+  lens.select(['<img id=pwn1 src=x>']);
+  await tick();
+  assert.equal(doc.getElementById('pwn1'), null, 'a key in the breadcrumb is text');
 });
 
 test('the lens reads a value by what it looks like', async () => {

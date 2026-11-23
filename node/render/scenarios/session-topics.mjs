@@ -7,7 +7,7 @@
 // web-tools-private checkout beside this one. The join itself runs through the
 // pane's own joinSessionTopics, so what is shot is the code path a reader gets.
 //
-//   npm run shot -- app/index.html --query "view=sessions&lens=topics" \
+//   npm run shot -- app/index.html --query "view=sessions&tab=topics" \
 //     --script node/render/scenarios/session-topics.mjs --width 430 --height 932
 //   npm run shot -- app/index.html --query "view=sessions&topic=drs-submittal" \
 //     --script node/render/scenarios/session-topics.mjs --width 430 --height 932
@@ -33,7 +33,7 @@ export default async (page) => {
   const topics = process.env.TOPICS
     ? JSON.parse(readFileSync(path.resolve(process.env.TOPICS), 'utf8'))
     : read('state/session-topics.json');
-  await page.evaluate(({ cache, topics, scope, mode, lens }) => {
+  await page.evaluate(({ cache, topics, scope, mode, tab }) => {
     const st = window.Alpine.$data(document.querySelector('[x-data^="estate"]'));
     st.authed = true;
     st.loading = false;
@@ -43,8 +43,8 @@ export default async (page) => {
     st.takeSessions(cache);
     st.sessionTopicsDoc = topics;
     st.sessionRows_ = st.joinSessionTopics(st.sessionRows_);
-    if (lens) st.setLens(lens);
-  }, { cache, topics, scope: process.env.SCOPE || 'all', mode: process.env.MODE || '', lens: process.env.LENS || 'list' });
+    if (tab) st.setSessionTab(tab);
+  }, { cache, topics, scope: process.env.SCOPE || 'all', mode: process.env.MODE || '', tab: process.env.TAB || 'list' });
   await page.waitForTimeout(1200);
   // ROWTAP=<n> taps the n-th topic line on the first listed row, which opens
   // that session at the topic.

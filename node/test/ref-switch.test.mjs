@@ -75,6 +75,7 @@ test('the switch address carries the ref in the fragment, no shell pin, and the 
   assert.equal(rideUrl({ repo: REPO, path: PATH, ref: '' }), '');
 
   assert.equal(liveUrl({ repo: REPO, path: PATH, query: 'view=stage' }), LIVE + '?view=stage');
+  assert.equal(liveUrl({ repo: REPO, path: PATH, query: '?view=stage' }), LIVE + '?view=stage', 'a leading ? is absorbed on the way back too');
   assert.equal(liveUrl({ repo: 'nope', path: PATH }), '');
 });
 

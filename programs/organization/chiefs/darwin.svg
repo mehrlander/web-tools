@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="Discovery's chief">
+  <title>Discovery's chief</title>
+  <desc>A tortoise in profile, its domed shell marked with one plate, over a body that rises into its head, the chat's 🐢, in Discovery's green-600. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#16a34a">
+    <path fill-rule="evenodd" d="M3 19.5 C3 12 7 7 12.25 7 C17.5 7 21.5 12 21.5 19.5 Z M12.25 10.5 L9.5 12.25 L9.5 15.25 L12.25 17 L15 15.25 L15 12.25 Z"/>
+    <path d="M26.75 14.5 C28.27 14.5 29.5 15.73 29.5 17.25 L29.5 23.5 C29.5 24.6 28.6 25.5 27.5 25.5 L21 25.5 L21 28.5 L17.5 28.5 L17.5 25.5 L10 25.5 L10 28.5 L6.5 28.5 L6.5 25.5 L4.5 25.5 C3.67 25.5 3 24.83 3 24 L3 22 L24 22 L24 17.25 C24 15.73 25.23 14.5 26.75 14.5 Z"/>
+  </g>
+</svg>

@@ -268,7 +268,7 @@
                 class="badge badge-sm badge-primary shrink-0">envelope</span>
           <button x-show="hasNotes" @click="notesOpen = !notesOpen"
                   class="sm:hidden btn btn-ghost btn-xs btn-circle self-center" :class="notesOpen && 'text-primary'"
-                  :title="notesOpen ? 'Tuck the notes away' : 'Show the notes'">
+                  :data-title-tip="notesOpen ? 'Tuck the notes away' : 'Show the notes'">
             <i class="ph ph-info text-base"></i></button>
         </div>
         <p x-show="payload.note" x-text="payload.note" class="text-sm opacity-70 mt-1"
@@ -281,7 +281,7 @@
            payload has three files. -->
       <div x-show="!bleed && items.length > 1" class="shrink-0 flex gap-1 overflow-x-auto pb-1 px-[10px] sm:px-0">
         <template x-for="(it, i) in items" :key="i">
-          <button @click="open(i)" :title="it.note || it.name"
+          <button @click="open(i)" :data-title-tip="it.note || it.name"
                   class="btn btn-sm shrink-0 font-mono font-normal"
                   :class="sel === i ? 'btn-primary' : 'btn-ghost'">
             <span x-text="label(it)"></span>
@@ -298,7 +298,7 @@
            mirroring the FAB's bottom-right. -->
       <button x-show="bleed" x-cloak @click="bleed = false"
               class="fixed bottom-2 left-2 z-40 btn btn-ghost btn-sm btn-circle bg-base-100/70 border border-base-300 shadow-sm"
-              title="Back to the page chrome">
+              data-title-tip="Back to the page chrome">
         <i class="ph ph-arrows-in-simple text-base"></i></button>
 
       <!-- the shared viewer, embedded: bindStore false so it doesn't track a
@@ -329,7 +329,7 @@ window.DEMO_PAYLOAD = {
     {
       name: 'shape.json',
       view: 'tree',
-      note: 'JSON opens in the tree editor; the table mode is offered too when it is an array.',
+      note: 'JSON opens in the tree; the table mode is offered too when it is an array.',
       content: '{\n  "source": "demo",\n  "grain": "plan",\n  "columns": ["plan", "members", "employer_rate", "employee_rate"],\n  "nested": { "note": "the tree mode is the one worth having for shapes like this" }\n}'
     },
     {

@@ -4,7 +4,7 @@ import {JSDOM} from 'jsdom';
 const read=p=>readFileSync(new URL(p,import.meta.url),'utf8');
 const dom=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window,doc=w.document,timers=new Map(),requests=[];
-let id=0,top=0,offline=false,denied=false,checks=0,hold;
+let id=0,top=0,offline=false,denied=false,checks=0,hold,holdRoot;
 const at=new Date().toISOString(),key='a'.repeat(24),comp={branch:'work',state:'behind',ahead:0,behind:6};
 const checkout={key,name:'project',branch:'work',changed:0,untracked:0,conflicts:0,tracked:comp,main:{...comp,branch:'main',behind:61}};
 checkout.localFiles={key,name:'project',state:'ready',observedAt:at,partial:false,notice:null,entries:[
@@ -20,44 +20,78 @@ const folders=new Map([
  ['project/cache',listing('project/cache',[entry('x.txt','file','ignored')])],
  ['project/src',listing('project/src',[entry('<img onerror=x>.txt','file','tracked')])]
 ]);
+const downloads=new Map([
+ ['',{...listing('',[entry('existing.png','file'),entry('photos')]),rootName:'Downloads'}],
+ ['photos',{...listing('photos',[entry('holiday.png','file')]),rootName:'Downloads'}],
+]);
 w.setTimeout=(fn,delay)=>{timers.set(++id,{fn,delay});return id;};w.clearTimeout=k=>timers.delete(k);
 Object.defineProperty(w,'scrollY',{get:()=>top});w.scrollTo=(_x,y)=>{top=y;};w.AbortController=AbortController;
 w.matchMedia=()=>({matches:false});w.eval(read('../../lib/kits/title-tip.js'));
 w.fetch=async(path,options={})=>{
  requests.push({path,...options});if(offline)throw new Error();
- const isFiles=path.startsWith('/api/v1/files'),folder=isFiles?new URL(path,w.location).searchParams.get('path'):null;
- if(isFiles&&hold)await hold;
- return {ok:!denied,status:denied?403:200,headers:{get:()=>''},json:async()=>structuredClone(isFiles?folders.get(folder):snapshot)};
+ const isFiles=path.startsWith('/api/v1/files'),url=new URL(path,w.location),folder=isFiles?url.searchParams.get('path'):null;
+ if(isFiles&&hold&&(!holdRoot||(url.searchParams.get('root')||'gh')===holdRoot))await hold;
+ return {ok:!denied,status:denied?403:200,headers:{get:()=>''},json:async()=>structuredClone(isFiles?(url.searchParams.get('root')==='downloads'?downloads:folders).get(folder):snapshot)};
 };
-w.eval(read('../phone/local-files.js'));w.eval(read('../phone/repositories.js'));w.eval(read('../phone/views.js'));
+w.eval(read('../phone/local-files.js'));w.eval(read('../phone/repositories.js'));w.eval(read('../../lib/kits/swipe-deck.js'));w.eval(read('../phone/views.js'));
+const position=()=>w.NowViews.scrollPosition(w.NowViews.current());
+const setTop=value=>w.NowViews.scrollTo(value,w.NowViews.current());
 const flush=async()=>{await new Promise(r=>setImmediate(r));await new Promise(r=>setImmediate(r));};
 const check=(condition,message)=>{assert.ok(condition,message);checks++;};
 const click=selector=>{assert.ok(doc.querySelector(selector),selector);doc.querySelector(selector).click();};
+const selectedRoot=()=>doc.querySelector('[data-file-root][aria-selected="true"]')?.dataset.fileRoot;
 const poll=async()=>{w.dispatchEvent(new w.Event('online'));await flush();};
-click('[data-view=files]');await flush();top=220;
+click('[data-view=files]');await flush();setTop(220);
+check(w.location.hash==='#view=files'&&selectedRoot()==='downloads'&&doc.querySelector('[data-file="existing.png"]'),'Bare Files opens the existing files in Downloads.');
+check(doc.querySelectorAll('[role=tablist][aria-label="File locations"] [role=tab]').length===3&&!doc.querySelector('select[data-file-root]')
+  &&doc.getElementById('file-location-panel')?.getAttribute('aria-labelledby')===doc.querySelector('[data-file-root="downloads"]').id,
+  'The three sibling file locations use tabs with a correctly labelled shared panel rather than a dropdown.');
+check(doc.querySelector('#local-breadcrumb').textContent==='Downloads'&&!doc.querySelector('[data-repository],[data-fetch]'),'Downloads uses the existing plain explorer without repository controls.');
+click('[data-folder="photos"]');await flush();
+check(new URLSearchParams(w.location.hash.slice(1)).get('root')==='downloads'&&doc.querySelector('[data-file="photos/holiday.png"]'),'Downloads folder navigation retains its root.');
+setTop(72);click('[data-file-root="gh"]');await flush();
 click('[data-folder=""]');await flush();
-check(w.location.hash==='#view=files'&&doc.querySelector('#view-title').textContent==='Files','Files has a root route within the shared app shell.');
+check(w.location.hash==='#view=files&root=gh'&&doc.querySelector('#view-title').textContent==='Files','Repository folders use an explicit root within the shared Files view.');
 check(doc.querySelector('#local-breadcrumb').textContent==='repos'&&doc.querySelector('[data-folder=project]')&&doc.querySelector('[data-folder=ordinary]'),'The root shows actual sibling folders, including non-Git folders, under its real root name.');
 check(doc.querySelector('#local-results').textContent.includes('work')&&doc.querySelectorAll('[data-commit]').length===2&&!doc.querySelector('#local-results').textContent.includes('61'),'Working folders show their selected branch and only its tracked synchronization pair.');
 check(doc.querySelector('#file-filters').hidden,'Git filters are omitted at the estate root.');
-top=160;click('[data-folder=project]');await flush();
+setTop(160);click('[data-folder=project]');await flush();
 check(doc.querySelector('#local-breadcrumb').textContent==='repos/project'&&!doc.querySelector('#file-filters').hidden&&doc.querySelectorAll('#local-results>div').length===4,'Opening a folder replaces the directory listing and shows its breadcrumb and Git filters.');
+check(new URL(doc.getElementById('web-tools-link').href).searchParams.get('repo')==='fixture/project'&&new URL(doc.getElementById('web-tools-link').href).searchParams.get('ref')==='work','The header bridges the selected local working folder to its GitHub repository and branch.');
+checkout.branch='unpublished';checkout.tracked={branch:'unpublished',state:'remote-missing',ahead:null,behind:null};await poll();
+let destination=new URL(doc.getElementById('web-tools-link').href);
+check(destination.searchParams.get('repo')==='fixture/project'&&!destination.searchParams.has('ref')&&!destination.searchParams.has('view'),'An unpublished branch opens the repository overview without inventing a remote branch.');
+checkout.tracked={...comp,branch:'main'};await poll();
+destination=new URL(doc.getElementById('web-tools-link').href);
+check(destination.searchParams.get('ref')==='main'&&destination.searchParams.get('ref')!==checkout.branch,'A configured remote comparison uses its established GitHub branch instead of the unpublished local branch.');
+checkout.branch='work';checkout.tracked=comp;await poll();
 click('[data-file-filter=ignored]');check(doc.querySelector('#local-results').textContent.includes('cache')&&!doc.querySelector('#local-results').textContent.includes('README'),'Ignored filtering selects the immediate ignored entries.');
 check(doc.querySelector('[data-folder="project/src/deep-cache"]')&&doc.querySelector('#local-results').textContent.includes('3 files · 5 KB'),'Ignored filtering retains nested inventory entries and measured folder metadata.');
+setTop(110);click('[data-file-root="downloads"]');await flush();
+check(selectedRoot()==='downloads'&&new URLSearchParams(w.location.hash.slice(1)).get('folder')==='photos'&&position()===72,
+  'A sibling tab restores the Downloads subfolder and its independent reading position.');
+click('[data-file-root="gh"]');await flush();
+check(selectedRoot()==='gh'&&new URLSearchParams(w.location.hash.slice(1)).get('folder')==='project'
+  &&new URLSearchParams(w.location.hash.slice(1)).get('filter')==='ignored'&&doc.querySelector('[data-file-filter=ignored]').getAttribute('aria-pressed')==='true'
+  &&position()===110&&doc.querySelector('[data-folder="project/src/deep-cache"]')&&!doc.querySelector('[data-file="project/README.md"]'),
+  'Repositories restores its own folder, Git filter, listing and reading position independently of Downloads.');
 click('[data-folder="project/cache"]');await flush();
 check(doc.querySelector('#local-breadcrumb').textContent==='repos/project/cache'&&doc.querySelector('#local-results').textContent.includes('x.txt'),'Ignored directories can be browsed normally.');
+destination=new URL(doc.getElementById('web-tools-link').href);
+check(destination.searchParams.get('repo')==='fixture/project'&&!destination.searchParams.has('path')&&!destination.searchParams.has('view'),'A known ignored local-only folder opens its repository overview rather than guessing a GitHub folder.');
 click('[data-folder=project]');await flush();click('[data-file-filter=all]');
-const search=doc.querySelector('[data-local-search]');search.value='note';search.dispatchEvent(new w.Event('input',{bubbles:true}));search.focus();top=90;
+const search=doc.querySelector('[data-local-search]');search.value='note';search.dispatchEvent(new w.Event('input',{bubbles:true}));search.focus();setTop(90);
 folders.get('project').observedAt=new Date().toISOString();await poll();
-check(doc.querySelector('[data-local-search]')===search&&doc.activeElement===search&&search.value==='note'&&top===90&&doc.querySelector('#local-results').textContent.includes('note.md')&&!doc.querySelector('#local-results').textContent.includes('README'),'Background updates preserve search, keyboard focus and reading position.');
+check(doc.querySelector('[data-local-search]')===search&&doc.activeElement===search&&search.value==='note'&&position()===90&&doc.querySelector('#local-results').textContent.includes('note.md')&&!doc.querySelector('#local-results').textContent.includes('README'),'Background updates preserve search, keyboard focus and reading position.');
 search.value='';search.dispatchEvent(new w.Event('input',{bubbles:true}));click('[data-folder="project/src"]');await flush();
 check(doc.querySelector('#local-results').textContent.includes('<img onerror=x>.txt')&&!doc.querySelector('#local-results img,[onerror]'),'Untrusted filenames render as escaped text.');
+check(new URL(doc.getElementById('web-tools-link').href).searchParams.get('path')==='src','Folder navigation updates the Web Tools link to the corresponding relative GitHub path.');
 click('#repository-back');
 for(let n=0;n<5;n++){for(const [key,value] of [...timers])if(!value.delay){timers.delete(key);value.fn();}await flush();}
-check(new URLSearchParams(w.location.hash.slice(1)).get('folder')==='project'&&top===90,'Back restores the preceding folder and its own scroll position.');
+check(new URLSearchParams(w.location.hash.slice(1)).get('folder')==='project'&&position()===90,'Back restores the preceding folder and its own scroll position.');
 click('[data-folder=""]');await flush();
-const indicator=doc.querySelector('[data-commit]');indicator.focus();top=130;await poll();
-check(doc.activeElement.dataset.commit===indicator.dataset.commit&&doc.querySelector('#wt-title-tip').hasAttribute('data-open')&&top===130,'Explorer branch tooltips and focus stay anchored through repository polling.');
+const indicator=doc.querySelector('[data-commit]');indicator.focus();setTop(130);await poll();
+check(doc.activeElement.dataset.commit===indicator.dataset.commit&&doc.querySelector('#wt-title-tip').hasAttribute('data-open')&&position()===130,'Explorer branch tooltips and focus stay anchored through repository polling.');
 doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
 
 const mainCopy={...checkout,key:'e'.repeat(24),name:'project-main',branch:'main',localFiles:null,tracked:{...comp,branch:'main',behind:0}};
@@ -72,8 +106,8 @@ const mainRow=()=>doc.querySelector('[data-checkout="'+mainCopy.key+'"]');
 check(!mainRow().querySelector('[data-file-branch],[data-commit]'),'A normal main row omits its repeated branch label and zero commit counts.');
 click('[data-branch-signal="'+mainCopy.key+'"]');
 check(!doc.getElementById('branch-'+mainCopy.key).hidden&&doc.getElementById('branch-'+mainCopy.key).textContent.includes('project-main')&&doc.getElementById('branch-'+mainCopy.key).textContent.includes('In sync')&&doc.getElementById('branch-'+mainCopy.key).textContent.includes('GitHub checked'),'The repository icon reveals the actual main folder, branch, comparison and observation time.');
-mainRow().querySelector('[data-branch-signal]').focus();top=145;await poll();
-check(doc.activeElement.dataset.branchSignal===mainCopy.key&&top===145&&!doc.getElementById('branch-'+mainCopy.key).hidden,'The main-folder detail panel preserves focus and reading position during updates.');
+mainRow().querySelector('[data-branch-signal]').focus();setTop(145);await poll();
+check(doc.activeElement.dataset.branchSignal===mainCopy.key&&position()===145&&!doc.getElementById('branch-'+mainCopy.key).hidden,'The main-folder detail panel preserves focus and reading position during updates.');
 doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
 check(doc.getElementById('branch-'+mainCopy.key).hidden&&doc.activeElement.dataset.branchSignal===mainCopy.key,'Escape dismisses main-folder details and returns focus to its icon.');
 mainCopy.tracked.behind=3;await poll();
@@ -87,8 +121,8 @@ check(mainRow().querySelector('[data-commit]').getAttribute('data-title-tip').in
 snapshot.repositories[0].notice=null;await poll();
 check(group().hidden&&toggle().textContent.trim()==='2'&&toggle().getAttribute('aria-expanded')==='false','Secondary folders start collapsed under an icon and exact count.');
 check(doc.getElementById('workfolders-other').hidden&&doc.querySelector('[data-workfolders=other]').textContent.includes('Other files'),'Ordinary folders and root files are grouped separately and collapsed.');
-toggle().click();toggle().focus();top=165;await poll();
-check(!group().hidden&&toggle().getAttribute('aria-expanded')==='true'&&doc.activeElement.dataset.focus===groupKey+':workfolders'&&top===165,'Background updates preserve group expansion, trigger focus and reading position.');
+toggle().click();toggle().focus();setTop(165);await poll();
+check(!group().hidden&&toggle().getAttribute('aria-expanded')==='true'&&doc.activeElement.dataset.focus===groupKey+':workfolders'&&position()===165,'Background updates preserve group expansion, trigger focus and reading position.');
 click('[data-folder=project-review]');await flush();
 check(new URLSearchParams(w.location.hash.slice(1)).get('folder')==='project-review'&&doc.querySelector('#local-context').textContent.includes('review'),'A grouped task folder opens its real path and selected branch.');
 click('[data-folder=""]');await flush();
@@ -101,18 +135,24 @@ rootSearch.value='';rootSearch.dispatchEvent(new w.Event('input',{bubbles:true})
 check(group().hidden,'Clearing search restores the collapsed root.');
 click('[data-workfolders=other]');check(!doc.getElementById('workfolders-other').hidden&&doc.querySelector('[data-folder=ordinary]'),'Other files remain available through their own group.');
 
+let release;hold=new Promise(resolve=>release=resolve);holdRoot='gh';
+click('[data-folder=project]');await flush();click('[data-file-root="downloads"]');await flush();release();hold=undefined;holdRoot=undefined;await flush();
+check(selectedRoot()==='downloads'&&doc.querySelector('[data-file="photos/holiday.png"]')&&!doc.querySelector('[data-folder="project/cache"]')
+  &&requests.some(request=>String(request.path).startsWith('/api/v1/files')&&new URL(request.path,w.location).searchParams.get('root')!=='downloads'&&request.signal?.aborted),
+  'A delayed repository folder response cannot replace the selected Downloads tab or its entries.');
+click('[data-file-root="gh"]');await flush();click('[data-folder=""]');await flush();
 offline=true;await poll();check(doc.querySelector('#local-observed').textContent.includes('Saved')&&doc.querySelector('[data-folder=project]'),'A lost connection labels and retains the observed folder listing.');
-const reloaded=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/#view=files',runScripts:'outside-only',pretendToBeVisual:true}),saved=reloaded.window;
+const reloaded=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/#view=files&root=gh',runScripts:'outside-only',pretendToBeVisual:true}),saved=reloaded.window;
 saved.localStorage.setItem('web-tools-repositories-snapshot',w.localStorage.getItem('web-tools-repositories-snapshot'));
 saved.localStorage.setItem('web-tools-files-root',w.localStorage.getItem('web-tools-files-root'));
 saved.localStorage.setItem('web-tools-files-snapshot',JSON.stringify(folders.get('project/src')));
 saved.scrollTo=()=>{};saved.setTimeout=()=>1;saved.clearTimeout=()=>{};saved.AbortController=AbortController;saved.matchMedia=()=>({matches:false});saved.fetch=async()=>{throw new Error('Offline');};
-saved.eval(read('../../lib/kits/title-tip.js'));saved.eval(read('../phone/local-files.js'));saved.eval(read('../phone/repositories.js'));saved.eval(read('../phone/views.js'));await flush();
+saved.eval(read('../../lib/kits/title-tip.js'));saved.eval(read('../phone/local-files.js'));saved.eval(read('../phone/repositories.js'));saved.eval(read('../../lib/kits/swipe-deck.js'));saved.eval(read('../phone/views.js'));await flush();
 check(saved.document.querySelector('[data-folder=project]')&&saved.document.querySelector('#local-observed').textContent.includes('Saved'),'An offline reload opens the saved root even when a deeper folder was last visited.');
 reloaded.window.close();
 offline=false;denied=true;await poll();
 check(!w.localStorage.getItem('web-tools-files-snapshot')&&!w.localStorage.getItem('web-tools-files-root')&&!w.localStorage.getItem('web-tools-repositories-snapshot')&&!doc.querySelector('[data-folder=project]'),'An access denial discards saved private root, folder and repository observations.');
 denied=false;await poll();click('[data-view=now]');
-check(doc.querySelector('#repositories').hidden,'Leaving Files returns to the selected main view.');
+check(doc.querySelector('#panel-files').inert,'Leaving Files returns to the selected main view.');
 check(requests.every(r=>!r.method||r.method==='GET'),'Browsing only issues read requests.');
 console.log(`${checks} explorer routing, filtering, refresh and privacy checks passed.`);dom.window.close();

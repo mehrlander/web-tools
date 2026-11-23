@@ -3,26 +3,15 @@
 _Generated from tasks/. Do not hand-edit._
 
 ## On deck
-- 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md) · L
-- 🎫 [Reach the take-away menu from the app's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md) · S
-- 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) · S
 - 🎫 [Split estate.js into a component per view](tasks/estate-js-split-6r3ogm.md) · L
-- 🎫 [Decide a shared component for expanding rows, and replace the Idea board and ACFR modals](tasks/expanding-rows-and-modals-kits-1r7is4.md) · M
-- 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md) · S
 - 🎫 [Explore a fuller file history in the Branch view](tasks/file-history-in-branch-view-hxtdep.md) · ? (awaiting: owner to choose a direction; open-ended by request, bolder ideas welcome)
-- 🎫 [Build the lineup, the form for choosing one of several working options](tasks/lineup-choice-form-9vz5w0.md) · L (awaiting: sign-off on the mark's entry in docs/favicons/README.md; the forms README's naming of the lineup waits on documentation call bb564bb3-lineup-forms (web-tools #1151))
-- 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) · M
-- 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) · S
-- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) · M
+- 🎫 [Build the lineup, the form for choosing one of several working options](tasks/lineup-choice-form-9vz5w0.md) · L (awaiting: sign-off on the mark's entry in docs/favicons/README.md (scope item 4), not yet drafted)
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Move the Repos grid into Map › Reach](tasks/repos-grid-into-map-reach-1eheiq.md) · L
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
-- 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md) · M
-- 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) · M
-- 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md) · L
 
 ## In progress
-- (none)
+- 🎫 [Select tests by what each file reads, and log what each costs](tasks/test-selection-by-reach-p2xtc5.md) · L (`codex/test-cost-and-selection`) (awaiting: final documentation wording review after implementation)
 
 ## Blocked
 - (none)
@@ -30,6 +19,7 @@ _Generated from tasks/. Do not hand-edit._
 ## Done
 - 🎫 [Add a task-tracker skill](tasks/add-task-tracker-skill-iwr1ay.md) (`claude/agent-file-retrieval-skill-tv4can`)
 - 🎫 [Build an agent-assisted file-retrieval skill](tasks/agent-file-retrieval-skill-c5u2jy.md) (`claude/agent-file-retrieval-skill-tv4can`)
+- 🎫 [Align the Map view's names, addresses, and warning vocabulary](tasks/align-map-view-cleanup-40afu8.md)
 - 🎫 [Give an app view one address key and an identity of its own](tasks/app-view-address-and-icon-tc1a91.md) (`claude/budget-drs-web-tools-tcpcq6`)
 - 🎫 [The FAB drawer should let you pick which layer it describes](tasks/app-view-fab-subject-1evnwv.md) (`claude/toss-url-shorthand-dz0xpt`)
 - 🎫 [App views - designate a page as an estate-level view](tasks/app-views-estate-level-btp6m4.md) (`claude/web-tools-app-views-m3pkyo`)
@@ -40,6 +30,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Make the branch page a navigation target, swipeable from the lists](tasks/branch-page-as-navigation-adi9ha.md) (`claude/project-pages-docs-udzi51`)
 - 🎫 [Show the branch lifespan in the per-repo branch review too](tasks/branch-review-lifespan-0g4znz.md) (`claude/project-pages-docs-udzi51`)
 - 🎫 [Branch-review view in show-repo](tasks/branch-review-view-show-repo-rwwmrj.md) (`claude/web-tools-branch-tracking-n1zawm`)
+- 🎫 [Reach the take-away menu from the app's Pages gallery](tasks/brief-from-the-pages-gallery-7d4031.md)
 - 🎫 [The build-on-commit hook did not fire, and nothing said so](tasks/build-on-commit-hook-silent-bokkl3.md)
 - 🎫 [Teach the guide region a delimiter that survives an agent's readback](tasks/caption-guide-region-delimiter-w9dpyv.md) (`claude/budget-drs-tracker-review-s64mc6`)
 - 🎫 [Fold chat-results into the surface schema, or keep it a sibling](tasks/chat-results-surface-profile-q4m8ra.md) (`claude/web-tools-project-tracker-reo5qo`)
@@ -52,11 +43,14 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Reclaim the phone viewport in data-view](tasks/data-view-mobile-chrome-x5plcv.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [Read-tracking for docs: which files sessions actually open](tasks/docs-read-tracking-sn9nj8.md) (`claude/show-repo-progress-b8l63x`)
 - 🎫 [A multi-method harness for extracting structure from scanned documents](tasks/document-structure-harness-4mz7wk.md)
+- 🎫 [Gate house-style rule 1 (stat cards) and widen scanner roots](tasks/enforce-house-style-ryz0z5.md) (`claude/house-style-stat-cards-title-tips`)
 - 🎫 [Estate activity signals from a registry activity cache](tasks/estate-activity-signals-cache-38eze9.md) (`claude/branches-view-api-caching-ef4l5d`)
 - 🎫 [Estate cards still carry the retired three-icon cluster](tasks/estate-cards-icon-cluster-txr3os.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [Read estate.js's commentary the way show-repo.html's was read](tasks/estate-js-commentary-read-mymt4u.md)
 - 🎫 [Update estate tests to the groupSections layout](tasks/estate-rows-tests-stale-7r39ry.md) (`claude/viewer-button-dropdown-0h4u57`)
+- 🎫 [Decide a shared component for expanding rows, and replace the Idea board and ACFR modals](tasks/expanding-rows-and-modals-kits-1r7is4.md)
 - 🎫 [Extract drop-zone as a reusable Alpine component](tasks/extract-drop-zone-component-ckg7l1.md) (`claude/tracker-summary-nu74te`)
+- 🎫 [Persist FAB captures, the write path to state/captures/](tasks/fab-capture-button-f6q38m.md)
 - 🎫 [Generalize FAB embed handling to declared embeds](tasks/fab-declared-embeds-1jtpll.md)
 - 🎫 [Let the FAB collect a toss subject's page actions, not just the shell's](tasks/fab-subject-side-actions-t7r4nc.md)
 - 🎫 [Give the file-review collapsed row more than a name and a count](tasks/file-review-collapsed-density-2rvxfn.md) (`claude/show-repo-progress-b8l63x`)
@@ -74,7 +68,10 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Live-confirm the BranchSessions query](tasks/live-confirm-graphql-queries-7maacy.md)
 - 🎫 [Stop dual-storing SURFACING under the default skill](tasks/one-copy-of-the-conventions-i9i931.md)
 - 🎫 [One parser for the owner/repo\[@ref\]:path address](tasks/one-repo-address-parser-5gtv92.md) (`claude/web-tools-tracker-review-bw48ga`)
+- 🎫 [Build our own JSON tree for display, keep vanilla-jsoneditor for editing](tasks/own-json-tree-retire-vje-i0lcj2.md) (`claude/json-tree-native-view`)
+- 🎫 [Audit the app's views for viewport breakpoints inside the content pane](tasks/pane-width-not-window-width-wnabwo.md) (`claude/pane-container-queries`)
 - 🎫 [pdf.flow's `start` does not survive the column's own layout](tasks/pdf-flow-start-does-not-hold-461ldz.md) (`claude/budget-drs-kits-analysis-krcugt`)
+- 🎫 [Pinch-zoom and pan for pdf-inspect's page view](tasks/pdf-inspect-pinch-zoom-5wz3kt.md) (`claude/pdf-inspect-pinch-zoom`)
 - 🎫 [Close open table perimeters in the pdf kit's lattice](tasks/pdf-lattice-open-perimeter-h4kx9r.md) (`claude/open-ended-exploration-9zkc1y`)
 - 🎫 [Make the PR bodies' open threads readable as one list](tasks/pr-body-open-threads-z5o66p.md)
 - 🎫 [Private-repo landing federation via the home registry](tasks/private-repo-landing-federation-u50nns.md)
@@ -102,8 +99,10 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Propagate the stage link's new grammar to the portable docs](tasks/stage-link-grammar-portable-docs-jukn37.md) (`claude/stage-link-grammar-docs-jukn37`)
 - 🎫 [Move StageLink.read onto the shared fragment-first param read](tasks/stage-link-onto-url-params-u9o7ny.md) (`claude/web-tools-project-tracker-reo5qo`)
 - 🎫 [Stage links and the main-area explorer in show-repo](tasks/stage-links-main-area-explorer-7a6gd7.md) (`claude/task-tracker-discussion-wg27xv`)
+- 🎫 [Give the stage a way to carry part of a file](tasks/stage-partial-file-selection-k8mtou.md)
 - 🎫 [Converge the stage and surface item schemas](tasks/stage-surface-convergence-kgtosz.md)
 - 🎫 [Stand up the project tracker](tasks/stand-up-project-tracker-3t7h04.md) (`claude/tracker-concept-assessment-yto1m1`)
+- 🎫 [Convert the title attributes outside the app to title-tips](tasks/stranded-titles-panel-or-drop-o6hqom.md) (`claude/house-style-stat-cards-title-tips`)
 - 🎫 [Make the cache-to-surface dependency checkable, not prose](tasks/surface-census-feeds-relation-anle6b.md) (`claude/surface-census-feeds-relation-1v5n23`)
 - 🎫 [Carry commentary on a stage (prompts= link field, seed of a surface schema)](tasks/surface-schema-commentary-on-stage-hqz0uu.md) (`claude/web-tools-diff-review-s0nrq7`)
 - 🎫 [Hold CONVERSATION.md to conversation.csv by content, not by lead-in](tasks/surfacing-gate-content-okwnp6.md) (`claude/elegant-feynman-yp1ox0-retire-csv`)
@@ -117,3 +116,4 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Type the subject on screen, and give the showing axis a registry](tasks/typed-subject-registry-xys5g4.md) (`claude/serene-einstein-dyr03b`)
 - 🎫 [Load the ?use= bundle by fetch + blob-import instead of jsDelivr](tasks/use-blob-import-bundle-dtuqjo.md) (`claude/loading-behavior-tracker-aqbf4f`)
 - 🎫 [Extend fetch + blob-import to the gh-api.js-chain ?use= boot](tasks/use-gh-api-chain-blob-import-y2hwqe.md)
+- 🎫 [Split the app reference by view and form, and make the registries one model](tasks/views-forms-and-key-primitive-k5ngay.md)

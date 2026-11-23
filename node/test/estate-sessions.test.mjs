@@ -181,7 +181,7 @@ function seed(rows) {
   data.sessionRepoFilter = '';
 }
 
-test('scopes count off the full list and Snagged is its own axis, not a time window', () => {
+test('scopes count off the full list, and every scope is a time window or All', () => {
   seed([
     rec({ short: 'aaa', started: ago(1), ended: ago(1), failures: 0 }),
     rec({ short: 'bbb', started: ago(10), ended: ago(10), failures: 2 }),
@@ -189,12 +189,9 @@ test('scopes count off the full list and Snagged is its own axis, not a time win
   ]);
   const by = Object.fromEntries(data.sessionScopes.map(s => [s.key, s.count]));
   assert.equal(by.week, 1);
-  assert.equal(by.month, 2);
   assert.equal(by.all, 3);
-  assert.equal(by.failed, 2, 'a snagged session counts however old it is');
-
-  data.sessionScope = 'failed';
-  assert.deepEqual(data.sessionRows.map(r => r.id), ['bbb', 'ccc']);
+  assert.equal(data.sessionScopes.map(s => s.key).join(','), 'day,three,week,all',
+    'the Snagged and Month scopes are gone; the failure count stays on the row');
 });
 
 test('the repo filter lapses back to All when the scope no longer holds that repo', () => {
@@ -428,7 +425,7 @@ test('copySessionPointer writes the block, with this estate\'s store and the pan
 
 test('the pointer draws on a record row, a stub gets none, and nothing links the page', async () => {
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   // One record, and one stub beside it: a branch whose commit trailer names a
@@ -468,7 +465,7 @@ test("the rail's legend hangs on the day, not on the whole card", async () => {
   // fix (html-style mechanics.md, "Title-tips and panel-tips"). What is held here is
   // the attachment point, which did not move.
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.activity = {};
@@ -493,7 +490,7 @@ test("the rail's legend hangs on the day, not on the whole card", async () => {
 
 async function sessionRow(row) {
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.activity = {};
@@ -649,7 +646,7 @@ test('the glyph is a control on the row, and carries no native title beside it',
   // things: the failure the rail's legend already made and the day now carries.
   const row = statesRow([['ready', '🟢 **Ready to continue:** go.', '12:00:00']]);
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.sessionStateFilter = '';
@@ -889,7 +886,7 @@ test('the state counts sit inside the repo filter, so a chip never overcounts', 
 test('a stub drops out under a state filter rather than riding along', async () => {
   // A stub has no record, so it cannot answer the question the filter asks.
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.sessionStateFilter = '';
@@ -934,7 +931,7 @@ test('the histogram keeps the two absences out of the ordering and apart', () =>
     stateRow({ short: 'c1' }),
     { ...stateRow({ short: 'd1' }), v: V - 1 },
   ];
-  const h = data.lensClosingStates;
+  const h = data.countsClosingStates;
   assert.deepEqual(plain(h.bars.map(b => [b.key, b.n])), [['choice', 1], ['merged', 2]],
     'bars are states only, in vocabulary order');
   assert.equal(h.none.n, 1, 'closed in no state');
@@ -947,24 +944,12 @@ test('the histogram keeps the two absences out of the ordering and apart', () =>
 });
 
 test('the histogram reads the whole store, not the scoped list', () => {
-  // The list's chips narrow; this lens is the distribution, so a scope that
+  // The list's chips narrow; this tab is the distribution, so a scope that
   // hides half the records must not silently reshape it.
   data.sessionRows_ = [withState('a1', 'merged'), withState('b1', 'ready')];
   data.sessionScope = 'day';
-  assert.equal(data.lensClosingStates.total, 2);
+  assert.equal(data.countsClosingStates.total, 2);
   data.sessionScope = 'all';
-});
-
-test('the star panel names a session the way a row does', () => {
-  const row = withState('a1', 'ready');
-  data.sessionScope = 'all';
-  data.sessionRepoFilter = '';
-  data.sessionStateFilter = '';
-  data.sessionRows_ = [row];
-  const star = data.lensStars[0];
-  assert.equal(star.id, 'a1');
-  assert.equal(star.label, data.sessionLabel(row), 'the same name the list row draws');
-  assert.equal(data.sessionStateMark(star), '🟢', 'and the same glyph');
 });
 
 test('a rebuilt row reaches the screen, rather than freezing at first paint', async () => {
@@ -976,7 +961,7 @@ test('a rebuilt row reaches the screen, rather than freezing at first paint', as
   // And a summarizer bump heals rows in place, so a new field landed in the
   // cache and not on screen, which is exactly what ROW_V 10 does.
   shell.view = 'sessions';
-  data.sessionLens = 'list';
+  data.sessionTab = 'list';
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.activity = {};
@@ -1858,5 +1843,130 @@ test('the topics join re-seats an open deck\'s rows in place and re-titles the s
     assert.deepEqual(titles, ['Gemini names it'], 'the header takes the title the slide was owed');
   } finally {
     data.sessionDeck = null; data._sDeck = null; FILES = {};
+  }
+});
+
+// ── Launched sessions: labelled, and filtered only on request ──────────────
+// A session another Claude session started (create_session) carries
+// `launched` on its row. The owner asked for them labelled and filterable, not
+// left out: on 2026-11-08 and 09 sixty-nine reader and test sessions inflated
+// home's count on the Repos tab, and four others like them did real work. So
+// the default shows every session and every count stays what it was, and the
+// filter narrows the rows every tab is drawn from, the Repos tab's included.
+
+const LAUNCH = 'claude_code_mcp_seed';
+const startedBy = (short, client, repo) => window.RepoSessionsCache.summarize(rec({
+  short, session_id: short + '-x', agent_session: 'https://claude.ai/code/session_' + short,
+  repos: [{ name: repo, branch: 'claude/' + short + '-1', lines: 1 }],
+  prompts: [{ at: '2026-08-05T13:00:00Z', text: 'an ask', line: { clientPlatform: client } }],
+}), 'sha-' + short);
+function seedLaunched() {
+  shell.view = 'sessions';
+  data.sessionTab = 'list';
+  data.sessionGrain = 'session';
+  data.sessionScope = 'all';
+  data.sessionRepoFilter = '';
+  data.sessionStateFilter = '';
+  data.sessionLaunched = '';
+  data.activityQuery = '';
+  data.activity = {};
+  data.sessionRows_ = [
+    startedBy('own00001', 'ios', 'web-tools'), startedBy('own00002', 'web_claude_ai', 'web-tools'),
+    startedBy('bot00001', LAUNCH, 'home'), startedBy('bot00002', LAUNCH, 'home'), startedBy('bot00003', LAUNCH, 'home'),
+  ];
+}
+const shownMarks = () => [...window.document.querySelectorAll('[data-session-launched-mark]')]
+  .filter(el => el.style.display !== 'none');
+
+test('a launched session is labelled in the List, and every session shows by default', async () => {
+  seedLaunched();
+  await Alpine.nextTick();
+  assert.equal(data.sessionNodes.length, 5, 'none is left out by default');
+  assert.equal(data.shownSessionRows, data.allSessionRows, 'the default is no filter at all, so no count moves');
+  assert.equal(shownMarks().length, 3, 'the List marks the three launched rows and no other');
+  for (const el of shownMarks()) {
+    assert.ok(el.querySelector('i.ph-robot'), 'the mark is the robot');
+    assert.match(el.getAttribute('data-title-tip') || '', /another Claude session/);
+  }
+  data.sessionRows_ = [];
+});
+
+test('the launched filter shows only them or leaves them out, on every tab', async () => {
+  seedLaunched();
+  // A stub too: a session named only by a branch's commit trailer, which has
+  // no record to say who started it.
+  data.activity = { 'acme/widget': { defaultBranch: 'main', scan: { branches: [
+    { name: 'ghost-work', group: 'active', date: '2026-08-05', sessions: ['https://claude.ai/code/session_GHOST'] },
+  ] } } };
+  const ids = () => plain(data.sessionNodes.map(n => n.kind === 'stub' ? 'stub' : n.id).sort());
+  const reposRows = () => plain(data.sessionReposCfg.rows().map(r => r.id).sort());
+  try {
+    assert.deepEqual(plain(data.sessionLaunchedCounts), { all: 5, launched: 3, rest: 2 });
+    assert.equal(data.showLaunchedChips, true);
+    const allKey = data.sessionReposCfg.key();
+    assert.equal(reposRows().length, 5);
+
+    data.sessionLaunched = 'only';
+    assert.deepEqual(ids(), ['bot00001', 'bot00002', 'bot00003'], 'a stub cannot say, so it goes');
+    assert.deepEqual(plain(data.sessionRepos), [{ repo: 'home', count: 3 }], 'the repo chips recount under it');
+    assert.deepEqual(reposRows(), ['bot00001', 'bot00002', 'bot00003'], 'the Repos tab folds only these');
+    assert.notEqual(data.sessionReposCfg.key(), allKey, 'and refolds when the filter moves');
+    assert.equal(data.countsClosingStates.total, 3, 'Counts follows');
+    assert.equal(data.countsBranchesPerSession.reduce((n, b) => n + b.n, 0), 3);
+    assert.deepEqual(plain(data.sessionLaunchedCounts), { all: 5, launched: 3, rest: 2 },
+      'its own chips count what each would leave, so they do not move under it');
+
+    data.sessionLaunched = 'hide';
+    assert.deepEqual(ids(), ['own00001', 'own00002', 'stub'], 'a stub stays when launched sessions are left out');
+    assert.deepEqual(plain(data.sessionRepos), [{ repo: 'web-tools', count: 2 }]);
+    assert.deepEqual(reposRows(), ['own00001', 'own00002'], 'home no longer counts the batches');
+    assert.equal(data.countsClosingStates.total, 2);
+
+    // The Table at the session grain is built off the same rows.
+    data.sessionTab = 'table';
+    assert.deepEqual(plain(data.grainRows.map(r => r.id).sort()), ['own00001', 'own00002']);
+    // At the branch grain the rows are branches, so the chips stand down.
+    data.sessionGrain = 'branch';
+    assert.equal(data.showLaunchedChips, false);
+    data.sessionGrain = 'session';
+
+    data.sessionLaunched = '';
+    assert.equal(ids().length, 6, 'and All brings every one back');
+  } finally {
+    data.sessionLaunched = '';
+    data.sessionTab = 'list';
+    data.activity = {};
+    data.sessionRows_ = [];
+  }
+});
+
+test('the launched chips hide with one option, and stay while lit', () => {
+  seedLaunched();
+  data.sessionRows_ = data.sessionRows_.slice(0, 2);
+  assert.equal(data.showLaunchedChips, false, 'no launched session in view, so a filter would be furniture');
+  data.sessionLaunched = 'only';
+  assert.equal(data.showLaunchedChips, true, 'lit, it stays in reach of the reader who wants it off');
+  assert.equal(data.sessionNodes.length, 0);
+  data.sessionLaunched = '';
+  data.sessionRows_ = [];
+});
+
+test('the launched filter rides the address as a session search field', async () => {
+  seedLaunched();
+  const seeds = [];
+  shell.setSessionSearch = (seed) => seeds.push(seed);
+  try {
+    data.sessionLaunched = 'hide';
+    await Alpine.nextTick();
+    assert.equal(seeds.at(-1)?.launched, 'hide', 'the stamp carries it');
+    data.applySessionSearchSeed({ q: '', scope: 'all', launched: 'only' });
+    assert.equal(data.sessionLaunched, 'only', 'and a cold link restores it');
+    data.applySessionSearchSeed({ q: '', scope: 'all', launched: 'everything' });
+    assert.equal(data.sessionLaunched, '', 'a value it does not know shows every session');
+  } finally {
+    delete shell.setSessionSearch;
+    data.sessionLaunched = '';
+    data.sessionScope = 'all';
+    data.sessionRows_ = [];
   }
 });

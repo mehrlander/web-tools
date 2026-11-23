@@ -4,12 +4,12 @@
 //     --script node/render/scenarios/branch-address.mjs \
 //     --out node/.preview/addr.png --width 430 --height 932
 //
-// The keys exist because the surfacing caption stopped enumerating a turn's
-// files in chat on 2026-08-26 and started linking here instead, so a reply that
-// points at one file needs an address that LANDS on that file. jsdom can say
-// the option reached the slide (estate-detail-address, branch-brief-address);
-// only a browser can say a deck really mounted on top of the branch, which is
-// the whole claim the link makes.
+// The keys exist because a reply stopped enumerating a turn's files in chat on
+// 2026-08-26 and started linking here instead (its session detail caption only
+// counts them), so a reply that points at one file needs an address that LANDS
+// on that file. jsdom can say the option reached the slide
+// (estate-detail-address, branch-brief-address); only a browser can say a deck
+// really mounted on top of the branch, which is the whole claim the link makes.
 //
 // One address per run: the deck closes through history, and re-opening it by
 // hand between cases lets the previous close land on top of the next open,

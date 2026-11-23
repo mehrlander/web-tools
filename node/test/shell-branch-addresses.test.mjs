@@ -180,3 +180,15 @@ test('the config crawl reads every repo at main while the reader browses a branc
   assert.ok(log.some(o => o.save === 'state/configs.json' && o.repo === REGISTRY),
     'the rebuilt cache commits to the registry');
 });
+
+test('ensureBrowser on the open repo at another ref re-picks once, and lands on that ref', async () => {
+  const store = { repo: 'me/home', ref: 'main', defaultRef: 'main', gh: { ref: 'main' } };
+  const calls = [];
+  const { shell, doc } = makeShell({ browserStore: store });
+  doc.getElementById = (id) => (id === 'repo' ? repoElement(store, calls) : null);
+  shell._setup = true;
+  shell.runChecks = () => {};
+  await shell.ensureBrowser('me/home', BRANCH);
+  assert.deepEqual(calls, [['me/home', BRANCH]], 'the same repo at a different ref is still picked');
+  assert.equal(store.ref, BRANCH);
+});

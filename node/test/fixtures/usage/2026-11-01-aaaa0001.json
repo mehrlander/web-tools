@@ -1,0 +1,25 @@
+{
+ "schema": "usage/1",
+ "session": "aaaa0001-0000-4000-8000-000000000001",
+ "short": "aaaa0001",
+ "day": "2026-11-01",
+ "agent_session": "https://claude.ai/code/session_fixture_1",
+ "opening_ask": "A made-up session: three prompts, one idle re-load and one compaction.",
+ "harness_cost": 13.5,
+ "last_step_at": "2026-11-01T12:00:00.000Z",
+ "context_now": 400000,
+ "last_step_model": "claude-opus-5-5",
+ "prompts": [
+  {"at": "2026-11-01T08:00:00.000Z", "index": 0, "steps": 1, "context": 1101000, "reloads": 0, "models": {"claude-opus-5-5": {"input": 1000, "output": 10000, "cache_read": 1000000, "cache_write_1h": 100000}}},
+  {"at": "2026-11-01T10:30:00.000Z", "index": 1, "steps": 3, "context": 800000, "reloads": 1, "models": {"claude-opus-5-5": {"output": 5000, "cache_read": 2000000, "cache_write_1h": 300000, "reload_written": 250000, "reload_write_1h": 250000}}},
+  {"at": "2026-11-01T11:00:00.000Z", "index": 2, "steps": 20, "context": 400000, "reloads": 0, "models": {"claude-opus-5-5": {"output": 50000, "cache_read": 10000000, "cache_write_1h": 500000}}},
+  {"at": "2026-11-01T12:30:00.000Z", "index": 3, "steps": 0, "context": null, "reloads": 0, "models": {}}
+ ],
+ "unowned": null,
+ "compactions": [
+  {"at": "2026-11-01T10:45:00.000Z", "chars": 20000, "context_before": 800000, "context_after": 100000, "trigger": "auto", "gap_ms": 120000, "steps_after": 100, "reloads_after": 0, "model": "claude-opus-5-5", "write_1h": 100000, "write_5m": 0}
+ ],
+ "idle_reloads": [
+  {"at": "2026-11-01T10:30:05.000Z", "gap_ms": 7200000, "ender": "owner", "model": "claude-opus-5-5", "write_1h": 250000, "write_5m": 0}
+ ]
+}

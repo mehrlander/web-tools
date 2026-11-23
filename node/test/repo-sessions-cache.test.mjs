@@ -143,6 +143,32 @@ test('summarize carries `attached`, and an older record gets [] not a guess', ()
   assert.deepEqual(S.summarize(record(), 'x').attached, []);
 });
 
+// A session another Claude session started with the create_session tool. The
+// record says so on its first prompt's line, and the row carries one flag for
+// it, present only where true, so a row that lacks the key (every row built
+// before ROW_V 26) reads as a session nobody launched rather than breaking.
+test('summarize marks a session another session launched, from its first prompt only', () => {
+  const prompt = (clientPlatform, text = 'an ask') =>
+    ({ at: '2026-11-08T00:45:32.603Z', text, line: { clientPlatform } });
+  const seeded = S.summarize(record({ prompts: [prompt('claude_code_mcp_seed', 'You are reader A')] }), 'x');
+  assert.equal(seeded.launched, true);
+
+  for (const [why, over] of [
+    ['an owner session from the phone', { prompts: [prompt('ios')] }],
+    ['an owner session from the web', { prompts: [prompt('web_claude_ai')] }],
+    ['a record whose first prompt carries no line', { prompts: [{ at: 'x', text: 'an ask' }] }],
+    ['a record with no prompts', { prompts: [] }],
+    ['a record from before prompts were kept', {}],
+    // The opening turn is what says who started the session; a later turn
+    // arriving from the tool is a session writing into one the owner began.
+    ['a launch client on a later turn', { prompts: [prompt('ios'), prompt('claude_code_mcp_seed')] }],
+  ]) assert.equal('launched' in S.summarize(record(over), 'x'), false, why);
+
+  // The flag survives the fold that strips the prose from a stored row.
+  assert.equal(S.leanRow(seeded).launched, true);
+  assert.ok(S.ROW_V >= 26, 'a new field reaches the stored rows only through a version bump');
+});
+
 test('summarize carries each repo position against main, keeping null apart from absent', () => {
   // Record schema 13. The recorder writes null where git could not answer (a
   // shallow clone past the fork point, most often) and leaves the keys out of
@@ -1719,4 +1745,57 @@ test('carriesTopic: the filter takes a topic name or an area', () => {
   assert.ok(S.carriesTopic(A_ROWS[0], 'Toss render'));
   assert.ok(!S.carriesTopic(A_ROWS[1], 'Toss render'));
   assert.ok(S.carriesTopic(A_ROWS[1], ''), 'no filter passes everything');
+});
+
+// ── Topic status (rollup 3, web-tools-private sessions/topics format 7) ─────
+const STATUS_DOC = { sessions: { s7000001: {
+  title: 'T', topics: ['Share sheet', 'Doc wording'],
+  agenda: [
+    { topic: 'Share sheet', kind: 'new', turns: [0, 1], state: { glyph: '🟣', name: 'Merged', line: '🟣 **Merged:** x' }, prs: ['web-tools#8'] },
+    { topic: 'Doc wording', kind: 'improve', turns: [2, 3], state: null, prs: [] },
+  ],
+  topic_status: [
+    { topic: 'Share sheet', status: 'done', waits_on: 'owner', waiting: 'ignored', basis: 'pr', evidence: 'web-tools#8 merged' },
+    { topic: 'Doc wording', status: 'open', waits_on: 'owner', waiting: 'sign-off on the wording', basis: 'model' },
+    { topic: 'Bad', status: 'stalled' },
+  ],
+} } };
+
+test('withTopics joins topic status and the open count; off-list statuses are dropped', () => {
+  const [row] = S.withTopics([{ id: 's7000001' }], STATUS_DOC);
+  assert.equal(row.topicOpen, 1);
+  assert.deepEqual(row.topicStatus.map(t => [t.topic, t.status, t.waits_on, t.waiting]),
+    [['Share sheet', 'done', null, ''], ['Doc wording', 'open', 'owner', 'sign-off on the wording']]);
+  assert.deepEqual(row.topicAgenda[0].prs, ['web-tools#8']);
+  const [old] = S.withTopics([{ id: 'd456b017' }], TOPICS_DOC);
+  assert.ok(!('topicStatus' in old) && !('topicOpen' in old));
+});
+
+test('topicList carries each topic\'s status; statusNote says it to the owner', () => {
+  const [row] = S.withTopics([{ id: 's7000001' }], STATUS_DOC);
+  const list = S.topicList(row.topicAgenda, row.topicStatus);
+  assert.deepEqual(list.map(t => t.status && t.status.status), ['done', 'open']);
+  assert.equal(S.statusNote(list[1].status), 'Waits on you: sign-off on the wording');
+  assert.equal(S.statusNote(list[0].status), '');
+  assert.equal(S.statusNote({ status: 'dropped' }), 'Dropped');
+  assert.equal(S.topicList(row.topicAgenda)[0].status, null);
+});
+
+test('carriesTopic takes status:open and status:open:<who> beside names and areas', () => {
+  const [row] = S.withTopics([{ id: 's7000001' }], STATUS_DOC);
+  assert.ok(S.carriesTopic(row, 'status:open'));
+  assert.ok(S.carriesTopic(row, 'status:open:owner'));
+  assert.ok(!S.carriesTopic(row, 'status:open:session'));
+  assert.ok(S.carriesTopic(row, 'status:done'));
+  assert.ok(!S.carriesTopic(row, 'status:dropped'));
+  assert.ok(S.carriesTopic(row, 'Doc wording'));
+  assert.equal(S.statusSpec('status:nope'), null);
+});
+
+test('statusMark gives an open topic one mark per waiting party, and none otherwise', () => {
+  assert.equal(S.statusMark({ status: 'open', waits_on: 'owner' }).icon, 'ph-user-circle');
+  assert.equal(S.statusMark({ status: 'open', waits_on: 'session' }).tip, 'Waits on the session');
+  assert.equal(S.statusMark({ status: 'open', waits_on: null }).icon, 'ph-hourglass-medium');
+  assert.equal(S.statusMark({ status: 'done' }), null);
+  assert.equal(S.statusMark(null), null);
 });

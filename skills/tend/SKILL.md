@@ -3,9 +3,8 @@ name: tend
 description: >-
   Cultivate a workspace toward recognized objectives: investigate branches,
   pull requests, trackers and snags, store each conclusion as a finding, and
-  bring the owner a prepared user call only where the next step needs their
-  word. Run when the owner invokes /tend, or when a session receives a
-  /tend prod request.
+  list in the reply each prepared step that needs the owner's word. Run when
+  the owner invokes /tend, or when a session receives a /tend prod request.
 disable-model-invocation: true
 ---
 
@@ -36,37 +35,18 @@ Tend deletes no branch and proposes no deletion. `findings.py` sits beside
 this file; [`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/findings.js) states the
 record.
 
-1. **Reassess.** Check out each repository an open finding names, in the
-   folder that holds the other checkouts; `check` reads a witness in any other
-   repository as unverifiable. `findings.py check` names the findings whose
-   witnesses changed. Reread each and reply with `findings.py update`: revise
-   it, confirm it with fresh witnesses, or renew attention on a settled one
-   (`status: "open"`, a new `next`). An update replaces each field it carries,
-   so send whole lists.
-2. **Select.** `findings.py candidates` lists what mechanical signals raise and
-   marks those a holding finding covers. Each subject below adds its own. A
-   signal is a reason to investigate, never a finding.
+1. **Reassess.** Reread each open finding. [`findings.py check`](findings.py) lists them, each with the subjects that changed since its last update. Pull request updates and branch pushes come from web-tools-private's [`state/activity.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/activity.json). File commits come from the checkouts beside web-tools-private. `check` names any checkout too shallow to read. Reply with `findings.py update` where a finding changed, or where a subject changed and the finding still holds (`"finding": {}` confirms it). Send `subjects` and `evidence` whole: an update replaces every field it includes.
+2. **Select.** `findings.py candidates` lists what mechanical signals raise. It marks a candidate covered when a finding names its branch or pull request. It marks a covered one for reassessment when that subject changed after the finding's last update. Give a settled finding that needs work again `status: "open"` and a new `next`. Each subject section below adds its own signals.
 3. **Investigate** each candidate not marked covered until the conclusion
    would survive the owner's first question.
-4. **Write** one finding per conclusion with `findings.py add`: its subjects,
-   why it matters, a next step concrete enough to execute, evidence, and
-   witnesses. A step that needs the owner's word, such as closing a pull
-   request, is prepared, then filed with like steps as one user call
-   (`user-calls/user-call.py` in the registry) that the finding names among
-   its subjects; the Waiting view shows it. A next step that is new work,
-   rather than landing work that exists, joins that call as a question to the
-   owner: file it as a task or drop it; either answer settles the finding.
-   Witnesses include what lies outside the subjects, such as main's copy of a
-   file the work was compared against. Choose as a witness the narrowest file
-   that holds the claim: a file edited daily brings the finding back on every
-   pass.
+4. **Write** one finding per conclusion with `findings.py add`: its subjects, why it matters, a next step concrete enough to execute, and evidence. Prepare a step that needs the owner's word, such as closing a pull request, for the list in step 6. For a next step that is new work, rather than landing work that exists, ask in the reply whether to file it as a task or drop it; either answer settles the finding. Name as subjects the files the conclusion rests on, including those outside the work. One example is main's copy of a file the work was compared against. Name the narrowest file that holds the claim.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
 6. **Reply** with what the pass did and its sidesteps: where the work did
-   something other than what the owner asked. Put each user call it filed in
-   the reply as its question, recommendation and link, and offer one answer
-   that accepts every recommendation, so the calls can close in the session.
+   something other than what the owner asked. List each step that needs the
+   owner's word with its recommendation and, for a pull request, a link to
+   its branch view, and offer one answer that accepts every recommendation.
 
 Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 `gh` or `curl`.
@@ -76,7 +56,7 @@ Act unasked only on a mechanical test. Read GitHub through the GitHub MCP, not
 | Kind | Means |
 | --- | --- |
 | `unreached` | Useful work never reached the owner. *Next* says how to land it. |
-| `answer` | The owner's word decides it. Its user call holds the question. |
+| `answer` | The owner's word decides it; ask for it in the reply. |
 | `overlap` | Separate efforts could be brought together. *Next* says how. |
 | `superseded` | The work landed or was overtaken elsewhere. *Evidence* names where. |
 
@@ -99,16 +79,10 @@ its class:
 | residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 
-`branches.py`, beside this file, applies the table to every remote branch in
-the checkouts and lists the novel and orphan ones, the novel with their
-residue. `--since` takes the previous pass's date.
+[`branches.py`](branches.py), beside this file, applies the table to every remote branch in the checkouts, old ones included. Its list names the novel and orphan branches, each novel one with its residue, as **Find** below defines it. It marks a novel branch covered or for reassessment as step 2 describes. A finding covers a branch by naming it as `owner/repo@branch`.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
-- **Find:** a novel branch. Its residue is the lines it added
-  (`git diff -U0 <merge-base> origin/<b> -- <path>`) that
-  `git show origin/main:<path>` lacks. Name its origin (`Claude-Session`
-  trailer, session record, or pull request) as a subject. Branches share a
-  finding when they share its conclusion, whichever session made them.
+- **Find:** a novel branch not marked covered. Its residue is the lines it added (`git diff -U0 <merge-base> origin/<b> -- <path>`) that `git show origin/main:<path>` lacks. Name its origin (`Claude-Session` trailer, session record, or pull request) as a subject. Branches share a finding when they share its conclusion, whichever session made them.
 
 ## Trackers
 
@@ -123,14 +97,32 @@ premises against the tree, not only its body.
 
 ## Pull requests
 
-Read `## Open threads` in merged pull requests, back to the previous tend pass
-or as far as threads stay live, and state the window. 🟢 and 🟡 items are open;
-check each against `main`. Read open pull requests too, testing each head as
-Branches does.
+Read the open topics of sessions that ended since the previous tend pass, and
+state the window. Each row of the registry's
+[`state/session-topics.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/session-topics.json)
+is one session. Its `topic_status` holds the session's topics, with fields that
+web-tools-private
+[`sessions/topics/README.md`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/topics/README.md)
+defines. Check
+each open topic against `main` and against the pull requests its agenda lists
+under `prs`. Read open pull requests too, testing each head as Branches does.
 
+- **Act:** mark an open topic done when all three hold:
+  1. its `basis` is `closing` or `model`;
+  2. its agenda lists at least one pull request, and each has merged;
+  3. no such pull request's body lists an item under `## Open threads`.
+
+  Append the status with [`topic_correct.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/topic_correct.py) from
+  a web-tools-private checkout. The row's key is `<short>`, and the topic's
+  name is `<name>`:
+  `python3 sessions/tools/topic_correct.py status <short> --by tend --topic "<name>" --status done`.
 - **Find:** an open pull request `main` has overtaken, one holding work `main`
   lacks, one whose 🛵 or ✴️ ask `main` has since answered, one nobody is moving,
-  one that sidesteps an ask, and a live thread.
+  and one that sidesteps an ask.
+- **Find:** an open topic whose pull requests have no commit since the previous
+  pass, and an open topic that lists no pull request.
+- **Propose:** in the pass's user call, `dropped` for an open topic whose work
+  `main` or another session's topic has since done.
 - **Owner only:** design direction; closing or merging any pull request. Do
   not edit merged bodies.
 
@@ -148,11 +140,20 @@ reading and triggers nothing.
 ## Prod
 
 `/tend prod` asks each session with open work to tend its own work. List the
-account's sessions and send this message to each one that is idle, last showed
-activity between 30 minutes and a week ago, and has an open pull request or a
-blocked or review-ready status. The owner can name sessions to skip, or a
-different window. `<sha>` is a commit that carries this section, since a
-session's checkout or plugin copy may predate it:
+account's sessions and take each one that is idle, last showed activity
+between 30 minutes and a week ago, and has an open pull request, a blocked
+or review-ready status, or a last reply that closed on
+[❇️ or 🟢](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply).
+A message to
+a session idle for more than 55 minutes
+makes it write its whole context to the prompt cache again
+([`docs/environment/container.md`](https://github.com/mehrlander/web-tools/blob/main/docs/environment/container.md#the-prompt-cache)).
+Leave out a session idle that long whose usage record (`sessions/usage/` in
+the session archive) puts `context_now` at 150,000 tokens or more, and list it
+for the owner with that figure. Send every other session this message. The
+owner can name sessions to skip, or a different window. `<sha>` is a commit
+that carries this section, since a session's checkout or plugin copy may
+predate it:
 
 > The user in session <id> ran /tend prod. Tend this session's own work as
 > the Prod section of the tend skill defines it (mehrlander/web-tools,
@@ -180,12 +181,14 @@ before sending it.
 
 Then reply with the sessions messaged and the sessions skipped, each with its
 title, its open work and the lines added to its message, and for a skipped one
-the reason. As the one-line reports arrive, report what each session left
-waiting on the owner.
+the reason; then the sessions left out for their context, each with its
+title, its open work and its `context_now`. As the one-line reports arrive,
+report what each session left waiting on the owner.
 
 A session that receives it works through whichever of these apply, under the
 principles above:
 
+- **Take the step a ❇️ or 🟢 closing named,** if the owner has not written since.
 - **Land what is already approved,** up to a pull request ready to merge:
   merge main into the branch, fix conflicts and failing checks, sync the
   body.

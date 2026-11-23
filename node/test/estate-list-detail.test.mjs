@@ -13,7 +13,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeWindow, startAlpine, deckGeometry } from './bootstrap.mjs';
+import { makeWindow, startAlpine, deckGeometry, until } from './bootstrap.mjs';
 
 const REGISTRY = 'me/registry';
 const NOTES = 'notes/notes.jsonl';
@@ -100,16 +100,8 @@ const reg = () => new FakeGH({ repo: REGISTRY });
 // The strip settles over a few animation frames and Alpine flushes between
 // them, so every step waits for what it expects to see, never for a count of
 // milliseconds: a fixed wait is a guess that fails when the machine is busy.
-async function until(check, what, ms = 8000) {
-  const t0 = Date.now();
-  for (;;) {
-    let ok = false;
-    try { ok = !!check(); } catch { ok = false; }
-    if (ok) return;
-    if (Date.now() - t0 > ms) assert.fail('timed out waiting for ' + what);
-    await new Promise(r => setTimeout(r, 10));
-  }
-}
+// until() (bootstrap.mjs) is that wait, and each call here names what it
+// waits for, so a timeout fails on the spot.
 // What a reader sees: the text of everything x-show has not hidden.
 const text = (el) => {
   if (!el) return '';
@@ -453,6 +445,37 @@ test('what is typed in a note box stays with its snag across cards, and through 
   assert.equal(FILES[NOTES], lines, 'nothing was written');
   assert.equal(noteBox(card()).value, 'not saved yet', 'and the text is still in the box');
   assert.equal(data.snagNoteBusy, false, 'which can be sent again');
+});
+
+test('text typed in a snag note box while its note is being saved is kept, and is not saved with it', async () => {
+  await open('snag', 'a-count-off-by-one');
+  const card = () => cardOf('snag', 'a-count-off-by-one');
+  await until(() => noteBox(card()), 'the note box');
+  const id = 'a-count-off-by-one';
+  data.snagNoteDrafts[id] = 'first';
+  const req = FakeGH.prototype.req;
+  FakeGH.prototype.req = async function (path, opts) {
+    if (opts?.method === 'PUT') data.snagNoteDrafts[id] = 'first and more';
+    return req.call(this, path, opts);
+  };
+  try { await data.addSnagNote(data.snagItems.find(x => x.id === id)); } finally { FakeGH.prototype.req = req; }
+  assert.equal(lastNote().text, 'first', 'only what was sent is saved');
+  assert.equal(data.snagNoteDrafts[id], 'first and more', 'the text typed during the save is still the draft');
+  await until(() => noteBox(card()).value === 'first and more', 'the box to keep it');
+});
+
+test('a reply whose save is refused stays in its draft', async () => {
+  await open('note', 'n3');
+  const before = FILES[NOTES];
+  data.replyDrafts.n3 = 'my reply';
+  const req = FakeGH.prototype.req;
+  FakeGH.prototype.req = async function (path, opts) {
+    if (opts?.method === 'PUT') throw Object.assign(new Error('500'), { status: 500 });
+    return req.call(this, path, opts);
+  };
+  try { await data.addReply({ id: 'n3' }); } finally { FakeGH.prototype.req = req; }
+  assert.equal(data.replyDrafts.n3, 'my reply', 'the text is still there to send again');
+  assert.equal(FILES[NOTES], before, 'nothing was written');
 });
 
 test('deleting the snag in view hands the card to the row that took its place', async () => {

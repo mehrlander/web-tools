@@ -5,7 +5,8 @@
 // `#at=`, `&item=` and the Cost tab's links address; the parse reads the facts
 // and the nine sections from the object. The list shows one row per session,
 // with a tab per compaction where there is more than one, over one card per
-// summary.
+// summary: kits/linked-swiper.js's items and sub-items, mounted here without a
+// strip, so a card is drawn once and a pick redraws it.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -17,6 +18,7 @@ const { window } = makeWindow();
 let factory = null;
 window.Alpine = { data: (name, f) => { if (name === 'compactions') factory = f; } };
 window.esc = (s) => String(s);
+new window.Function(readFileSync(path.join(repoRoot, 'lib/kits/linked-swiper.js'), 'utf8'))();
 new window.Function(readFileSync(path.join(repoRoot, 'lib/alpineComponents/compactions.js'), 'utf8'))();
 window.document.dispatchEvent(new window.Event('alpine:init'));
 // Results come from the jsdom realm; copied out so deepEqual compares values.
@@ -48,6 +50,15 @@ test('a file is read as JSON: every key but text is a fact, text is the summary'
     assert.equal(d.sections[0].text, '   - point 1');
     assert.equal(d.lead, '', 'the harness lead and closing instruction are left out');
   }
+});
+
+test('a far-ahead numbered line inside a section is not taken for a later head', () => {
+  const text = NINE.map((n, i) => `${i + 1}. ${n}:\n   - point ${i + 1}`).join('\n\n')
+    .replace('   - point 1', '   - point 1\n9. The user asked for the next step: ship it');
+  const d = parseDoc({ ...FILE, text: 'Summary:\n' + text });
+  assert.deepEqual(d.sections.map((s) => s.n), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.equal(d.nine, true);
+  assert.ok(d.sections[0].text.includes('9. The user asked for the next step'));
 });
 
 test('a summary in another shape is drawn whole, and null sizes stay null', () => {
@@ -104,6 +115,18 @@ async function listed(get) {
   c.rows = await c.list();
   return c;
 }
+// The component on the kit, as its template mounts it. Nothing is read, so
+// the summaries' cache stays as the card tests below expect it.
+function mounted(c) {
+  c.read = () => {};
+  const root = window.document.createElement('div');
+  root.innerHTML = '<div data-t="list"></div><div data-t="card"></div>';
+  window.document.body.append(root);
+  c.$refs = { root, list: root.querySelector('[data-t="list"]'), card: root.querySelector('[data-t="card"]') };
+  c.mount();
+  return c.$refs;
+}
+const tap = (el) => el.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
 
 test('the list has one row per session, the latest compaction first, with a tab per compaction where there is more than one', async () => {
   const c = await listed();
@@ -112,28 +135,35 @@ test('the list has one row per session, the latest compaction first, with a tab 
   assert.deepEqual(own(c.groups[0].items.map((r) => r.id)), ids);
   assert.deepEqual(own(c.order), [...ids, C1 + '-20261106T133000Z'],
     "the cards run session by session, a session's summaries in the order they were written");
-  const host = window.document.createElement('div');
-  host.innerHTML = c.rowHtml(c.groups[0]) + c.rowHtml(c.groups[1]);
-  const [many, once] = host.children;
-  assert.equal(many.getAttribute('data-cmp-row'), B);
-  assert.equal(many.hasAttribute('data-cmp'), false, 'a row with tabs is not itself a pick: its tabs are');
-  assert.deepEqual([...many.querySelectorAll('[role="tab"]')].map((t) => [t.textContent, t.getAttribute('data-cmp')]), ids.map((id, i) => [String(i + 1), id]));
+  c.sel = ids[0];
+  const { list } = mounted(c);
+  assert.deepEqual(own(c._swiper.slides().map((x) => x.sub)), own(c.order), "the kit's cards run in that order");
+  const [many, once] = list.children;
+  assert.equal(many.getAttribute('data-cmp'), B, 'a row is its session');
+  assert.deepEqual([...many.querySelectorAll('[role="tab"]')].map((t) => [t.textContent, t.getAttribute('data-ls-sub')]), ids.map((id, i) => [String(i + 1), id]));
+  assert.match(many.querySelector('[role="tab"]').getAttribute('aria-label'), /^Compaction 1 of 3, /);
   assert.doesNotMatch(many.textContent, /×/);
-  assert.equal(once.getAttribute('data-cmp'), C1 + '-20261106T133000Z', 'a session compacted once is picked by its row');
+  assert.equal(once.getAttribute('data-cmp'), C1, 'a session compacted once is picked by its row');
   assert.equal(once.querySelector('[role="tab"]'), null);
 });
 
-test('a tap on a row outside its tabs opens the session\'s first summary', async () => {
+test("a tap on a row outside its tabs opens the session's first summary, a tap on a tab that one, and the head carries its number", async () => {
   const c = await listed(async () => { throw new Error('404'); });
-  const host = window.document.createElement('div');
-  host.innerHTML = c.rowHtml(c.groups[0]);
-  host.addEventListener('click', (e) => c.rowTap(e));
-  window.document.body.append(host);
   c.sel = B + '-20261107T130000Z';
-  host.querySelector('[role="tab"]:nth-child(2)').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
-  assert.equal(c.sel, B + '-20261107T130000Z', "a tab's tap is the list kit's to answer, not this one's");
-  host.querySelector('.truncate').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  const { list, card } = mounted(c);
+  const row = (g) => list.querySelector(`[data-cmp="${g}"]`);
+  const pill = () => card.querySelector('[data-ls="head"] [data-ls-pill]')?.textContent ?? '';
+  assert.equal(row(B).querySelector('[role="tab"]:nth-child(3)').getAttribute('aria-selected'), 'true', "the open summary's tab is the active one");
+  assert.equal(row(B).getAttribute('aria-selected'), 'true', 'and its row is tinted');
+  assert.equal(pill(), '3', "the card's head carries its compaction's number");
+  tap(row(B).querySelector('[role="tab"]:nth-child(2)'));
+  assert.equal(c.sel, B + '-20261105T032503Z');
+  tap(row(B).querySelector('.truncate'));
   assert.equal(c.sel, B + '-20261104T010000Z');
+  assert.equal(pill(), '1');
+  tap(row(C1));
+  assert.equal(c.sel, C1 + '-20261106T133000Z');
+  assert.equal(pill(), '', 'a session compacted once has no number to give');
 });
 
 test('a card is the chart\'s room and the summary, every section open under a heading that sticks, and nothing scrolls sideways', async () => {
@@ -162,9 +192,6 @@ test('a card is the chart\'s room and the summary, every section open under a he
     "a heading is the section's name, without the number the reordering would scramble");
   assert.deepEqual(secs.map((x) => x.querySelector('h3 [data-sec-count]')?.textContent || ''), ['(1)', '(1)', '(1)', '(1)', '(1)', '(1)', '', '(1)', '(1)'],
     'beside the name, how many items its list has; the section rewritten as a code block and a table line has none');
-  assert.equal(c.nameOf(id).pill, 3, "the card's head carries its compaction's number, for a pill");
-  assert.equal(c.nameOf(B + '-20261104T010000Z').pill, 1);
-  assert.equal(c.nameOf(C1 + '-20261106T133000Z').pill, '', 'a session compacted once has no number to give');
   for (const x of secs) assert.match(x.firstElementChild.className, /\bsticky\b.*--cmp-pad.*\bbg-base-100\b/, 'a heading sticks to the top and covers what scrolls under it');
   assert.ok(box.style.getPropertyValue('--cmp-pad') !== '', "the headings are told the scroller's top padding");
   assert.ok(el.querySelector('[data-sec="3"] pre'), 'a technical section is drawn without being opened');

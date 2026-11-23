@@ -36,13 +36,13 @@
     const thread = item.key?.startsWith('session:Codex:') ? item.key.slice(14) : item.id;
     const direct = errand ? '' : sessionUrl(item.sessionUrl || item.sourceUrl || (key === 'codex' ? `codex://threads/${thread}` : ''),key,desktop);
     const id = item.key?.startsWith('errand:') ? item.key.slice(7) : item.id;
-    const result = ['reply','complete','failed'].includes(item.state);
+    const result = ['reply','complete','failed','declined'].includes(item.state);
     const saved = item.url || (desktop && errand && /^[A-Za-z0-9][A-Za-z0-9.-]{0,95}$/.test(id) && !id.includes('..') ? 'https://mehrlander.github.io/web-tools/app/?' + (result ? 'repo=mehrlander/web-tools-private&ref=background&view=files&file=' + encodeURIComponent(`errands/results/${id}.json`) : 'view=stage&errand=' + encodeURIComponent(id)) : '');
     const web = safeLink(saved)?.startsWith('https://mehrlander.github.io/web-tools/') ? safeLink(saved) : '';
     const actions = [], owner = escape(item.key), cls = 'inline-flex min-h-9 items-center rounded-md border border-stone-200 bg-white px-2.5 text-xs text-emerald-900 hover:bg-stone-50';
     const link = (url,label,type) => `<a data-${type}="${owner}" href="${escape(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${label} ↗</a>`;
     if (direct) actions.push(link(direct,`Open in ${{codex:'Codex',gemini:'Antigravity',claude:'Claude'}[key]}`,'session-link'));
-    if (web) actions.push(link(web,errand ? result ? 'Open result' : 'Open errand' : 'Web Tools detail','external'));
+    if (web) actions.push(link(web,errand ? result ? 'Open result' : 'Open errand' : 'Open captured record','external'));
     if (!direct && !errand) actions.unshift(link(assistants[key].url,`Open ${key === 'codex' ? 'ChatGPT' : assistants[key].name}`,'session-home'));
     if (!errand) actions.push(`<button data-copy-title="${owner}" class="${cls}">${copied ? 'Copied' : 'Copy session title'}</button>`);
     const note = errand && !web ? 'Saved errand destination unavailable.' : !direct && !errand ? key === 'codex' && !desktop ? 'Direct mobile thread link unavailable. Find this conversation in ChatGPT’s Codex tab.' : 'Direct session link unavailable. Use the session title to find the conversation.' : '';
@@ -55,7 +55,7 @@
     const latest = turns[0];
     const facts = latest ? [[latest.files,latest.files === 1 ? 'file edited' : 'files edited'],[latest.pushes,latest.pushes === 1 ? 'branch pushed' : 'branches pushed'],[latest.agents,latest.agents === 1 ? 'agent task' : 'agent tasks']]
       .filter(([n]) => Number.isSafeInteger(n) && n > 0).map(([n,label]) => `<span class="rounded bg-violet-50 px-2 py-1 text-xs text-violet-900">${n} ${label}</span>`).join('') : '';
-    return density(`<section class="mt-5 border-t border-stone-200 pt-4"><h3 class="text-sm font-semibold text-violet-900">Published checkpoint</h3><p class="mt-1 text-xs text-stone-500">${escape(stamp(cp.at))}</p>${cp.summary ? `<p class="mt-3 text-pretty text-base leading-7">${escape(cp.summary)}</p>` : ''}${facts ? `<p class="mt-3 text-xs text-stone-500">Latest exchange</p><div class="mt-1 flex flex-wrap gap-2" aria-label="Recorded activity in the latest exchange">${facts}</div>` : ''}${cp.links?.length ? `<div class="mt-3 flex flex-wrap gap-2">${cp.links.map((l,i) => safeLink(l.url) ? link(l,i) : '').join('')}</div>` : ''}${turns.length ? `<ol class="mt-5 space-y-4">${turns.map(t => `<li><h4 class="text-sm font-medium text-stone-700">${escape(t.headline || `Exchange ${t.turn + 1}`)}</h4><p class="mt-1 text-pretty text-base leading-7 text-stone-600">${escape(t.summary)}</p></li>`).join('')}</ol>` : ''}</section>`, compact);
+    return density(`<section class="mt-5 border-t border-stone-200 pt-4"><h3 class="text-sm font-semibold text-violet-900">Published checkpoint</h3><p class="mt-1 text-xs text-stone-500">${escape(stamp(cp.at))}</p>${cp.summary ? `<p class="mt-3 text-base leading-7">${escape(cp.summary)}</p>` : ''}${facts ? `<p class="mt-3 text-xs text-stone-500">Latest exchange</p><div class="mt-1 flex flex-wrap gap-2" aria-label="Recorded activity in the latest exchange">${facts}</div>` : ''}${cp.links?.length ? `<div class="mt-3 flex flex-wrap gap-2">${cp.links.map((l,i) => safeLink(l.url) ? link(l,i) : '').join('')}</div>` : ''}${turns.length ? `<ol class="mt-5 space-y-4">${turns.map(t => `<li><h4 class="text-sm font-medium text-stone-700">${escape(t.headline || `Exchange ${t.turn + 1}`)}</h4><p class="mt-1 text-base leading-7 text-stone-600">${escape(t.summary)}</p></li>`).join('')}</ol>` : ''}</section>`, compact);
   }
   function turn(value, {stamp, compact = false}) {
     if (!value) return '';

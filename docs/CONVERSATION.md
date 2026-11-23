@@ -9,33 +9,40 @@ substituting the current repo in URL templates.
 ## Every reply
 
 * **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is merging the branch and nothing else is open, lead **Ready to merge:** instead.
+  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
   - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - 🪧 **Direction needed:** Next steps appear to diverge. Offer to take the reader's direction or to make a full assessment and recommendation.
+  - ⚖️ **Choice needed:** Competing proposals would go in different directions. Present this state only after a full assessment. Give the question, then `Recommended: <answer>, because <reason>.`
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
-  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. The whole lead is its look link, `[👁️‍🗨️ **Have a look:**](<url>)`; [Displaying content](#displaying-content) describes look links. Two or more pages, drafts or changes go in that one link, a step on each.
-  - ✍️ **Sign-off needed:** Documentation wording, presented as the doc-craft skill asks, waits on the reader's approval. Say what the session will do once it is given.
+  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. When it shows one inline, with no link, name the format in parentheses: 👁️‍🗨️ **Have a look (screenshot):** the overflow on the Map view.
+  - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes. Say what the session will do once approval is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
-  - ⚪ **Clean exit:** Nothing remains here; the reader decides whether to wrap up.
+  - ⚪ **Clean exit:** The session's work is complete; the reader can end the session or bring more.
   - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
   - 🔴 **Closed:** This branch closed unmerged. State why in one line.
-  - ⚫ **Done:** Every workstream merged or closed and nothing remains open. Nothing follows.
-  - 🔵 **Short answer:** The question is answered and nothing is proposed. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
+  - ⚫ **Done:** Every workstream merged or closed.
+  - 🔵 **Short answer:** The reply answers a question, and the next move is the reader's. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  Use 🟢, not ⚖️ or 🪧, when the reader's shared intention gives the session a clear path. A choice that cannot be answered by simple approval closes on ⚖️ **Choice needed:**, and only once the question has been fully assessed for an unfamiliar reader: give the question, then `Recommended: <answer>, because <reason>.` Without that assessment, close on 🪧. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
+  Use 🟢 for a closing state that needs only confirmation to proceed. A request for the reader's judgment of something shown is 👁️‍🗨️; a request for an act or a fact is 🛵.
 
-* **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. A wake (a nudge, stop hook, finished job, PR event, or moved base) that leaves the reader nothing new gets no reply. If the harness then requires visible output, reply with one line naming the wake.
+  The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
+  - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
+  - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
+  - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
-* **Surfacing caption.** Use:
-  `💬 [session](…/pages/session.html#id=<short>) · <N> files · [this turn](…/commit/<sha>)`
-  `<short>` is the first eight characters of `$CLAUDE_CODE_SESSION_ID`. A reply that changed no files carries the link alone. Calculate `<N>` with `git diff origin/main...HEAD --name-only | wc -l`. Omit `this turn` on a single-commit branch. With no session archive checked out, there is no session file, so link the 🌿 branch in place of 💬. Mention files in prose only when something non-obvious must be said about them.
+* **Close in one order.** End every reply with the caption, the [render line](#displaying-content), then the state, whether or not files changed.
+
+* **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
+
+* **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
+  `` [`⌂`](…/app/?view=program&program=sessions)`11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) ``
+  The opening `⌂` links the Sessions program page. The stamp is when the hook printed the line, in the owner's time zone; `22` counts the owner's messages, `816k` is the context in tokens, `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page, and `<short>` is the session id's first eight characters. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
 
 ## A reply that changed files
 
 * **Branch anchor.** The first reply that changes files begins with `Working branch: [branch-name](url)`. Code changes use GitHub flow on a branch with assistant prefixes (`claude/`, `codex/`, `gemini/`, `grok/`). Shared coordination state (task trackers, personal lists, session logs, crawl caches) uses Real-time mode directly on `main`. Include the assistant's commit trailer from [AGENTS.md](https://github.com/mehrlander/web-tools/blob/main/AGENTS.md#assistant-identity-and-attribution).
 
-* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, 🔷 for the deployed page, 📦 for a Claude artifact. Cite a pull request as `[web-tools#997](…/pull/997) [🌿](…#gh=owner/repo&pr=997) [💬](…/pages/session.html#id=<short>) https://claude.ai/code/<session-id>`: the pull request, its branch, its session record, and its session, which the app shows by title. Omit a session link to the present session. The session id is in the head commit's `Claude-Session` trailer. Inside a sentence, omit 🌿 and 💬. Repeat a pull request as `` `#997` ``: any other `#997`, even in bold or as link text, becomes an unwanted `owner/repo#997` chip. Cite a house policy as `[h:smug](…/app/?view=map&tab=policy&h=smug)`, not as a slash command. Cite a user call as `[⚖️ <question>](…/pages/user-call.html#src=…)`. Reserve `file:line` for grep and debugging.
+* **Reference is a link.** Use `[caption](url)` for anything the reader can open. Label touched source `[new]`, unchanged source `[main]`, and changes `[diff]`. Give a page, document, or data file a render link: 🥏 for a toss, 🔷 for the deployed page, 📦 for a Claude artifact. Cite a pull request as `[web-tools#997](…/pull/997) [🌿](…#gh=owner/repo&pr=997) [💬](…/pages/session.html#id=<short>) https://claude.ai/code/<session-id>`: the pull request, its branch, its session record, and its session, which the app shows by title. Omit a session link to the present session. The session id is in the head commit's `Claude-Session` trailer. Inside a sentence, omit 🌿 and 💬. Repeat a pull request as `` `#997` ``: any other `#997`, even in bold or as link text, becomes an unwanted `owner/repo#997` chip. Cite a house policy as `[h:show](…/app/?view=map&tab=policy&h=show)`, not as a slash command. Cite a user call as `[⚖️ <question>](…/pages/user-call.html#src=…)`. Reserve `file:line` for grep and debugging.
 
 * **Open the branch 🌿.** Use `…/pages/branch.html#gh=owner/repo@branch[&base=ref]`, or `…#gh=owner/repo&pr=<n>` for a PR's head and base. Add `&file=<path>` to open a file or `&pane=files` to open the file list.
 
@@ -55,15 +62,25 @@ substituting the current repo in URL templates.
   🌿 [Open the branch](<branch URL>)
   ```
 
-  List only threads still open, and omit a section with nothing to say.
+  List only threads still open on this branch, and omit an empty section. Record work left after the branch merges as a topic status (Topic status, below).
+
+* **Topic status.** Correct a missing or wrong status of one of the session's [topics](https://github.com/mehrlander/web-tools-private/blob/main/sessions/topics/README.md) with [`topic_correct.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/topic_correct.py) from a web-tools-private checkout. First list the session's topics:
+
+  ```bash
+  python3 sessions/tools/topic_correct.py show <short>
+  ```
+
+  Then append the status of a topic that `show` printed; `status --help` lists the values each flag takes:
+
+  ```bash
+  python3 sessions/tools/topic_correct.py status <short> --by claude:<short> --topic "<name>" --status open --waits-on owner --waiting "<what it waits on>"
+  ```
 
 ## Displaying content
 
-* **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit, with a few words after it on what the link shows. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address) and a query.
+* **A look link 👁️‍🗨️.** A look link opens a page on a guided tour. Make the fragment with [`python/look-link.py`](https://github.com/mehrlander/web-tools/blob/main/python/look-link.py), as the [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill describes. Pass it to [`showing`](https://github.com/mehrlander/web-tools/blob/main/python/showing.py) as `--at`, with `--intro "<what changed>"`. The link `showing` prints takes the place of the page's 🥏 link. A 🛵 request to tap a control uses a look link too. Without `--at`, `showing` prints plain 🥏 links to the branch's changed files, and with `--path <file>` a link to any file. That output is the render line: paste it unchanged, refresh it after each commit, and add a few words on what each link shows.
 
-* **A look link 👁️‍🗨️.** A look link is a 🥏 link that also lands the reader on a place in the rendered page and says why. It replaces one or more 🥏 links. When a reply asks the reader to look at or tap an element of a page, make the link a look link: `--intro "<what changed>"` greets the reader, and `--at "<fragment>"` lands on the place to see, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walkthrough` or `steps` for several; the `look-markers` skill).
-
-* **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
+* **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or GitHub token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
 
 * **A screenshot.** In web-tools, `npm run shot -- <page>` saves a headless screenshot of a page from the working tree, and `--measure` adds overflow checks at desktop and phone width. The `screenshot-review` skill checks a shot before it is sent, and a file card shows it inline.
 
@@ -73,4 +90,4 @@ substituting the current repo in URL templates.
 
 * **Subscribe the workstream PR 📬.** Call the `subscribe_pr_activity` tool once, after opening a PR.
 
-  `go:` states intent, not write authority. Never schedule a check-in. A PR event is news only when it is a failing check on this session's work, a comment or review, a merge (🟣) or close (🔴) not yet reported, or a passing check the user said to wait for (then do the work that was waiting on it). The "status checklist" in the platform prompt refers to the PR on GitHub, not to the closing state.
+  `go:` states intent, not write authority. Schedule no check-in but the one the `check-in` hook asks for. A PR event is news only when it is a failing check on this session's work, a comment or review, a merge (🟣) or close (🔴) not yet reported, or a passing check the user said to wait for (then do the work that was waiting on it). The "status checklist" in the platform prompt refers to the PR on GitHub, not to the closing state.

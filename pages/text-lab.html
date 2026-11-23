@@ -11,11 +11,12 @@
 <!--
   text-lab.html — the front page of home's Text project (projects/text), the
   estate's text analysis as one reading surface. Five panes over one subject: what we tried, the variants we
-  retained, what we read with, what we read against, and what came out.
+  retained, what we read with, what we read against, and what came out. The
+  exemplars have their own page, pages/skill-lab.html.
 
   Named Text LAB, not Text Instruments. That name collided twice: with Texas
   Instruments on sight, which no amount of context undoes, and with this page's
-  own `instruments` tab, so the whole and one of its five parts wore one word.
+  own `instruments` tab, so the whole and one of its parts wore one word.
   `-lab` is the suffix the tools themselves already use (termlab, registerlab,
   entitylab, concept-lab), so it names the whole without renaming a part.
 
@@ -87,12 +88,14 @@
   Address params:
     ?use=<ref>   pins this page's own lib chain to a ref.
     ?data=<ref>  pins which ref of home is read (defaults to main).
-    ?pane=<name> opens one pane.
+    ?pane=<name> opens one pane: probes, variants, instruments, resources
+                 or runs.
     ?q=<text>    searches the variants.
     ?author=<name> and ?purpose=<word> filter variant rows.
     ?variant=<id> opens one variant and implies the variants pane.
-    ?deck=variants or ?deck=run:<dir>, with ?at=<n>, reopens a deck on a
-                 slide. The variants deck reads the filters beside it.
+    ?deck=variants or ?deck=run:<dir>, with ?at=<n>,
+                 reopens a deck on a slide. The variants deck reads the
+                 filters beside it.
     ?run=<dir>   marks one run in the runs pane and implies that pane.
     ?proposal=<id> and ?pane=proposals are the pre-2026-09-27 names; both are
                  read and the address is rewritten to the new form.
@@ -495,7 +498,7 @@
       // grouping changed the rows. Without the kit the card still shows the
       // selected row, and a tap on a row still picks it.
       mountDetail() {
-        const kind = this.pane === 'probes' ? 'probe' : this.pane === 'runs' ? 'run' : '';
+        const kind = { probes: 'probe', runs: 'run' }[this.pane] || '';
         if (!kind || !this.listDetail) return;
         const d = this.detailSpec(kind), ids = d.ids();
         if (!ids.includes(d.sel())) d.set(ids[0] || '');
@@ -601,6 +604,9 @@
         const pane = this.PANES.includes(name) ? name : 'probes';
         this.pane = pane;
         this.syncPaneAddress();
+        // Five tabs overflow a phone's strip, so the open one is kept in view.
+        this.$nextTick(() => document.querySelector('[role="tab"][aria-selected="true"]')
+          ?.scrollIntoView({ inline: 'nearest', block: 'nearest' }));
         try {
           if (pane === 'variants') await this.loadVariants();
           // With the registry the pane is already drawn, and the collection is
@@ -1135,8 +1141,8 @@
                 + `${f.variants} ${run.unit}`));
             const notes = (f.drafter || f.audit) && h('details', { class: 'mb-5 text-base leading-7' },
               h('summary', { class: 'cursor-pointer font-mono text-xs opacity-60' }, 'What changed, and what the audit restored'),
-              h('p', { class: 'mt-2 text-pretty' }, f.drafter || ''),
-              h('p', { class: 'mt-2 text-pretty opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
+              h('p', { class: 'mt-2' }, f.drafter || ''),
+              h('p', { class: 'mt-2 opacity-70' }, f.audit ? `Audit: ${f.audit}` : ''));
             const doc = h('div', {}, h('span', { class: 'loading loading-dots loading-md opacity-60' }));
             slide.append(...[head, notes, doc].filter(Boolean));
             this.renderRunFile(doc, f);
@@ -1294,7 +1300,7 @@
     <div x-show="pane === 'variants'" class="flex items-center gap-2 min-w-0">
       <label class="input input-sm input-bordered flex items-center gap-2 grow min-w-0 max-w-md">
         <i class="ph ph-magnifying-glass opacity-70"></i>
-        <input type="search" class="grow min-w-0" data-find-box
+        <input type="search" class="grow min-w-0" data-find-input
                aria-label="Search variants" placeholder="search variants"
                x-model="variantQ"
                @input.debounce.250ms="variantOpen = ''; syncVariantAddress()"
@@ -1459,7 +1465,7 @@
             </h2>
             <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-10 max-sm:w-10"
                     :aria-label="'Read the ' + g.purpose + ' variants one at a time'"
-                    :title="'Read the ' + g.all.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
+                    :data-title-tip="'Read the ' + g.all.length.toLocaleString() + ' ' + g.purpose + ' variants one at a time'"
                     @click="openVariantDeck(g.all, 0, g.purpose + ' · ' + (variantAuthor || 'every author'))">
               <i class="ph ph-cards-three text-lg"></i>
             </button>
@@ -1474,7 +1480,7 @@
                      :id="'variant-' + p.id"
                      :class="variantOpen === p.id && 'bg-base-200/30'">
               <div class="min-w-0" x-init="lazyPair($el, p)">
-                <div class="text-lg leading-7 text-pretty text-base-content/50" x-text="variantPreview(p.from.text, 300)"></div>
+                <div class="text-lg leading-7 text-base-content/50" x-text="variantPreview(p.from.text, 300)"></div>
               </div>
               <!-- The facts and the acts, under the pair, as in both decks. A
                    proposal chip rides this line too (data-variant-proposals). -->
@@ -1566,7 +1572,7 @@
                       x-show="!!r.locator && !resourceUrl(r.locator)" x-text="r.locator"></span>
               </div>
 
-              <p class="text-lg leading-7 text-pretty mt-0.5" x-text="r.note"></p>
+              <p class="text-lg leading-7 mt-0.5" x-text="r.note"></p>
 
               <div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 font-mono text-xs mt-2">
                 <template x-for="p in list(r.rates)" :key="p">
@@ -1599,7 +1605,7 @@
             <article :id="'run-' + r.name" class="border-b border-base-300 py-5 flex items-start gap-5"
                      :class="r.name === runFocus && 'bg-primary/5'">
               <div class="grow min-w-0">
-                <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
+                <div class="text-lg leading-7 font-medium" x-text="r.title"></div>
                 <div class="mt-1 font-mono text-xs opacity-70 tabular-nums"
                      x-text="r.date + ' · ' + r.files.length + ' files · ' + r.variants.toLocaleString() + ' ' + r.unit"></div>
               </div>
@@ -1608,7 +1614,7 @@
                    :href="treeUrl(r.dir)" target="_blank" rel="noopener">files<i class="ph ph-arrow-square-out ml-1"></i></a>
                 <button class="btn btn-square btn-sm btn-ghost text-primary max-sm:h-11 max-sm:w-11"
                         :aria-label="'Read ' + r.files.length + ' files one at a time'"
-                        :title="'Read ' + r.files.length + ' files one at a time'"
+                        :data-title-tip="'Read ' + r.files.length + ' files one at a time'"
                         @click="openRunDeck(r)">
                   <i class="ph ph-cards-three text-lg"></i>
                 </button>
@@ -1623,8 +1629,8 @@
       <template x-for="r in RUNS" :key="r.dir">
         <article class="border-b border-base-300 py-5 flex items-start gap-5">
           <div class="grow min-w-0">
-            <div class="text-lg leading-7 font-medium text-balance" x-text="r.title"></div>
-            <div class="text-lg leading-7 text-pretty" x-text="r.line"></div>
+            <div class="text-lg leading-7 font-medium" x-text="r.title"></div>
+            <div class="text-lg leading-7" x-text="r.line"></div>
             <div class="mt-1 font-mono text-xs opacity-70" x-text="r.date"></div>
           </div>
           <div class="flex flex-col items-end gap-1 font-mono text-xs shrink-0">
@@ -1650,8 +1656,8 @@
     <template x-if="tip && tip.kind === 'info'">
       <div class="pr-6 grid gap-1.5">
         <div><span class="font-medium" x-text="tip.v.purpose"></span><span class="text-base-content/50" x-text="' · ' + tip.v.author"></span></div>
-        <p class="text-base-content/70 text-pretty" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></p>
-        <p class="text-base-content/70 text-pretty italic" x-show="purposeDef(tip.v.purpose)?.prompt" x-text="purposeDef(tip.v.purpose)?.prompt"></p>
+        <p class="text-base-content/70" x-show="purposeDef(tip.v.purpose)?.gloss" x-text="purposeDef(tip.v.purpose)?.gloss"></p>
+        <p class="text-base-content/70 italic" x-show="purposeDef(tip.v.purpose)?.prompt" x-text="purposeDef(tip.v.purpose)?.prompt"></p>
         <!-- Where the original stands, from home's occurrences snapshot. -->
         <div class="grid gap-0.5 mt-1" x-show="tip.v.at && tip.v.at.length">
           <template x-for="loc in (tip.v.at || [])" :key="loc">

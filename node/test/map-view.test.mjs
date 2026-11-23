@@ -75,7 +75,7 @@ const ctxLinksCsv = readFileSync(path.join(repoRoot, 'docs', 'context-links.csv'
 const ctxHooksJson = readFileSync(path.join(repoRoot, 'skills', 'hooks', 'hooks.json'), 'utf8');
 const explainCsv = readFileSync(path.join(repoRoot, 'data', 'checks-reading', 'explanations.csv'), 'utf8');
 // The Events view's three files, read from the working tree like the rest.
-const automationFiles = Object.fromEntries(['docs/harness.csv', 'docs/hook-legs.csv', 'docs/hook-events.csv']
+const automationFiles = Object.fromEntries(['docs/harness.csv', 'docs/commit-rules.csv', 'docs/hook-events.csv']
   .map(p => [p, readFileSync(path.join(repoRoot, p), 'utf8')]));
 // The private registry's sessions cache, trimmed to the rollup the Docs tab
 // reads. Paths are repo-qualified there and hub-relative in the registry, which
@@ -552,7 +552,7 @@ test('the conversation icon family reads its glyphs from CONVERSATION.md, on dem
   const bullets = [...surfDoc.split('\n---\n')[1].matchAll(/^\* \*\*(.+?)\*\*/gm)].map(m => m[1]);
   assert.deepEqual([...data.convRules.map(p => p.lead)], bullets, 'one rule per bullet, in the doc\'s order');
   const rule = (t) => data.convRules.find(p => p.title === t);
-  assert.equal(rule('A rendered view').glyph, '🥏', 'the glyph that ends a lead-in is drawn apart');
+  assert.equal(rule('Open the branch').glyph, '🌿', 'the glyph that ends a lead-in is drawn apart');
   assert.equal(rule('Closing state').glyph, '', 'a lead-in with no glyph has none');
   // Read from the doc, not counted: the family is one member per glyph that
   // ends a lead-in, so a glyph the doc drops (🧭, 2026-11) leaves it too.
@@ -1597,8 +1597,8 @@ test('Events lays out every kind of event in the order a change meets them, with
     assert.deepEqual([...git.events.map(e => e.event)].slice(0, 2), ['pre-commit', 'commit-msg'], 'git events in the order a commit meets them');
     const preCommit = git.events[0].hooks[0];
     assert.equal(preCommit.name, '.githooks/pre-commit', 'a git file is named by its path, not by its event again');
-    assert.equal(preCommit.steps.length, automationFiles['docs/hook-legs.csv'].split('\n').slice(1).filter(Boolean).length,
-      'the commit hook lists every step, open');
+    assert.equal(preCommit.rules.length, automationFiles['docs/commit-rules.csv'].split('\n').slice(1).filter(Boolean).length,
+      'the commit hook lists every rule, open');
     const ci = kinds.find(k => k.key === 'ci');
     const push = ci.events.find(e => e.event === 'push');
     assert.ok(push.hooks.some(h => h.path === '.github/workflows/test.yml'), 'a workflow sits under each event in its on: block');
@@ -1621,7 +1621,7 @@ test('Events lays out every kind of event in the order a change meets them, with
     assert.ok(commitMsg.runs.some(r => r.path === 'skills/hooks/commit-consent.py'), 'an event lists what its file runs');
     await tick(2);
     assert.equal(host.querySelectorAll('[data-event-kind]').length, 4);
-    assert.ok(host.querySelector('[data-event-kind="git"] [data-hook-legs]'), 'the steps are drawn under pre-commit');
+    assert.ok(host.querySelector('[data-event-kind="git"] [data-hook-rules]'), 'the rules are drawn under pre-commit');
     state.pickTrigger(state.automationTriggers.find(t => t.k === 'hand'));
     assert.equal(state.mapTab, 'harness');
     assert.ok(state.harnessDirFiles.length, 'a file trigger lands on a folder holding its files');
@@ -1667,6 +1667,10 @@ test('the shell stamps ?tab= for every tab but the default', () => {
 
   shell.goMapTab('docs');
   assert.match(stamped.at(-1), /view=map&tab=docs|tab=docs/);
+
+  shell.goMapTab('bogus');
+  assert.equal(shell.mapTab, 'docs', 'a tab tap naming an unknown tab is refused');
+  assert.doesNotMatch(stamped.at(-1), /tab=bogus/);
 
   // The nav button calls goMap() with nothing and must KEEP the open tab;
   // only a route call (which always passes url.tab) is authoritative.
@@ -1746,14 +1750,40 @@ test('an address that does not open Context arms none of its keys', () => {
 });
 
 test("a policy link's entry rides with the Policies tab alone", async () => {
-  const { shell } = makeShell({ search: '?view=map&tab=policy&h=smug' });
-  assert.equal(shell.mapCtx.h, 'smug', 'an address that opens Policies arms its entry');
+  const { shell } = makeShell({ search: '?view=map&tab=policy&h=show' });
+  assert.equal(shell.mapCtx.h, 'show', 'an address that opens Policies arms its entry');
   await shell.routeFromUrl(shell.parseUrl());
-  assert.equal(shell.deepLinkParams().get('h'), 'smug', 'the entry survives the stamp');
+  assert.equal(shell.deepLinkParams().get('h'), 'show', 'the entry survives the stamp');
   shell.goMapTab('docs');
   assert.equal(shell.deepLinkParams().has('h'), false, 'h rode onto another tab');
-  const other = makeShell({ search: '?view=map&tab=docs&h=smug' }).shell;
+  const other = makeShell({ search: '?view=map&tab=docs&h=show' }).shell;
   assert.equal(other.mapCtx.h, '', 'an address that does not open Policies arms none of its keys');
+});
+
+// A program's page left the Programs tab for a view of its own on
+// 2026-11-18 (?view=program, alpineComponents/program.js). Opening one from
+// the list is a new entry, so Back returns to the list, and its key rides with
+// that view alone.
+test("a program opened from the Programs tab is a view of its own, and Back returns to the list", async () => {
+  const { shell, history } = makeShell({ search: '?view=map&tab=programs' });
+  await shell.routeFromUrl(shell.parseUrl());
+  assert.equal(shell.view, 'map');
+  const calls = [];
+  history.pushState = (a, b, url) => calls.push(['push', url]);
+  history.replaceState = (a, b, url) => calls.push(['replace', url]);
+  shell.goProgram('testing', 'measures');
+  assert.equal(calls.at(-1)[0], 'push', 'a page opened is an entry Back returns from');
+  const q = new URLSearchParams(calls.at(-1)[1].split('?')[1]);
+  assert.equal(q.get('view'), 'program');
+  assert.equal(q.get('program'), 'testing');
+  assert.equal(q.get('tab'), 'measures');
+  shell.goProgramTab('changes');
+  assert.equal(calls.at(-1)[0], 'push', 'a tab tap is an entry too');
+  shell.goMapTab('docs');
+  shell.goMap('docs');
+  assert.equal(shell.deepLinkParams().has('program'), false, 'program rode onto the Map');
+  const other = makeShell({ search: '?view=map&tab=programs&program=sessions' }).shell;
+  assert.equal('program' in other.mapCtx, false, 'the Map holds no program key of its own');
 });
 
 test("a form link's row rides with the Forms tab alone", async () => {
@@ -2334,7 +2364,7 @@ test('Peeves presents the reviewed list and resolves merged IDs through their re
   const before = data.peeveQ;
   try {
     data.peeveQ = '';
-    assert.equal(data.peeveRows.length, 31);
+    assert.equal(data.peeveRows.length, 35);
     const names = Array.from(data.peeveRows, p => p.name);
     assert.deepEqual(names, [...names].sort((a, b) => a.localeCompare(b)), 'all active entries share one alphabetical list');
     assert.equal(data.peeveRows.find(p => p.id === 'P10').name, 'Term loading');

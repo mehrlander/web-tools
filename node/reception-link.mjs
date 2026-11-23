@@ -20,6 +20,7 @@
 
 import { readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
+import { parse } from 'acorn';
 
 const PAGE = 'https://mehrlander.github.io/web-tools/pages/reception.html';
 const USAGE = 'Usage: npm run -s reception-link -- <fn.js> --note "<what is wanted>" [--label "<label>"] [--dest <owner/repo[@ref]:folder>] [--file <name>] [--page <url>]';
@@ -42,7 +43,17 @@ if (opt.dest && !/^[^/@:\s]+\/[^/@:\s]+(?:@[^:\s]+)?:\S+$/.test(opt.dest)) fail(
 if (opt.file && !opt.dest) fail('--file names the result for --dest; give --dest too');
 
 const fn = readFileSync(src, 'utf8').trim();
-try { new Function('return (' + fn + ')'); } catch (e) { fail(`${src} does not parse as a function: ${e.message}`); }
+try {
+  new Function('return (' + fn + ')');
+  // Compilation accepts nonfunctions too. Inspect the returned expression
+  // without running the source, in the same function context as the receiver.
+  const tree = parse('function reception(){return (' + fn + ')}', { ecmaVersion: 'latest' });
+  const body = tree.body[0].body.body;
+  if (tree.body.length !== 1 || body.length !== 1 || body[0].type !== 'ReturnStatement'
+      || !['ArrowFunctionExpression', 'FunctionExpression'].includes(body[0].argument?.type)) {
+    throw new Error('expected one function expression');
+  }
+} catch (e) { fail(`${src} does not parse as a function: ${e.message}`); }
 
 const spec = Object.fromEntries(Object.entries({ label: opt.label, note: opt.note, fn, dest: opt.dest, file: opt.file }).filter(([, v]) => v));
 const gz = gzipSync(Buffer.from(JSON.stringify(spec))).toString('base64url');

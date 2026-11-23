@@ -42,6 +42,13 @@ test('a rule further down the file is a rule, not a fence', () => {
   assert.equal(R.stripFrontmatter(md), md);
 });
 
+test('a body with two rules further down is not read as a fence pair', () => {
+  // Only a fence that OPENS the file counts; an unanchored match would close
+  // the pair between the two mid-file rules and swallow what lies before it.
+  const md = '# T\n\ntext\n\n---\n\nmid\n\n---\n\nend\n';
+  assert.equal(R.stripFrontmatter(md), md);
+});
+
 test('a document with no frontmatter is returned unchanged', () => {
   for (const md of ['# Title\n', '', 'plain text', '--- not a fence\n']) {
     assert.equal(R.stripFrontmatter(md), md);
@@ -189,6 +196,33 @@ test('long centred text spills the same distance each way, about its own centre'
   assert.ok(Number(m[2]) <= 60, 'and no further than the narrower side allows');
 });
 
+// Row groups: rows 2-3 fold under summary row 4, and the margin's +/- box
+// and level buttons fold and unfold them in place.
+test('a row group draws a +/- box on its summary row and folds its rows in place', () => {
+  const row = (n, level, hidden) => ({ row: n, height: 20, level, hidden, cells: [
+    { col: 0, text: String(n), numeric: false, style: null, raw: null, cf: null,
+      colSpan: 1, rowSpan: 1, spillLeft: 0, spillRight: 0 }] });
+  const layout = {
+    cols: [{ index: 0, width: 60 }], maxCol: 0, freeze: null, truncated: null, images: [], cfSkipped: 0, empty: false,
+    rows: [row(1, 0, false), row(2, 1, true), row(3, 1, true), row(4, 0, false)],
+    outline: { levels: 1, summaryBelow: true, groups: [{ level: 1, r1: 2, r2: 3, summary: 4, collapsed: true }] },
+  };
+  const prev = window.xlsxKit;
+  window.xlsxKit = { sheetLayout: () => layout, colLetter: (n) => String.fromCharCode(65 + n), cellStyle: () => null };
+  let el;
+  try { el = R.drawSheet({ name: 'S', merges: [] }, {}, 'sheet1'); } finally { window.xlsxKit = prev; }
+  const hidden = () => [...el.querySelectorAll('tbody tr.xl-ol-hid')].map(tr => tr.querySelector('th').dataset.r);
+  const box = el.querySelector('tr:last-child .xl-ol-btn');
+  assert.ok(box, 'the summary row carries the box');
+  assert.equal(box.textContent, '+');
+  assert.deepEqual(hidden(), ['2', '3'], 'folded as the file saved it');
+  box.dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.deepEqual(hidden(), [], 'the box unfolds the group');
+  assert.equal(box.textContent, '\u2212');
+  el.querySelector('.xl-ol-lv[data-lv="1"]').dispatchEvent(new window.MouseEvent('click', { bubbles: true }));
+  assert.deepEqual(hidden(), ['2', '3'], 'level 1 folds every group');
+});
+
 test('a conditional format reaches the page as its own rule, not an inline style', () => {
   const html = drawWith(layoutWith({ cf: 3 }));
   assert.match(html, /td\.cf3\{[^}]*background:#ff0000/, 'the dxf became a rule');
@@ -259,15 +293,6 @@ test('everything a commented cell knows arrives in one note, in reading order', 
     'the comment first, the form\'s own instruction after, separated by a blank line');
   assert.match(html, /data-title-tip-lead="Shields, Sharon \(OFM\):"/,
     'the author took the lead line, so the form\'s own title comes back inline');
-});
-
-test('a sheet cell opts out of the title-tip kit\'s underline', () => {
-  // The kit underlines a `data-title-tip` element by default. Excel underlines
-  // nothing, the render\'s claim is that it looks like Excel, and the stored-
-  // value note lands on most numeric cells, so the underline would be on half
-  // the sheet.
-  const html = drawWith(commented());
-  assert.match(html, /data-title-tip-bare(="")?[ >]/);
 });
 
 test('a fact never rides in a title attribute', () => {

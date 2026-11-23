@@ -136,9 +136,8 @@
 // The chart and its arithmetic are kits/doc-growth.js, which the Map's Docs →
 // Growth tab draws with too; this page holds the state and the controls.
 function growth() {
-  const dark = matchMedia('(prefers-color-scheme: dark)').matches;
   return {
-    HUE: dark ? DocGrowth.DARK : DocGrowth.LIGHT,
+    HUE: DocGrowth.HUES,
     data: null, err: '', t: 0, playing: false, raf: 0, trails: true,
     picked: null, hovered: null, tipX: 0, tipY: 0, view: 'chart',
     visible: 0, groups: [], _pts: [],

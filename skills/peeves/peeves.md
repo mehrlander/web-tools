@@ -6,19 +6,19 @@ Each entry names a behavior the owner has corrected an assistant for repeatedly,
 
 ### Documentation bloat · `P01`
 
-Instructions growing through rationale, duplicated claims, correction notes and comments that explain readable code.
+Instructions growing through rationale, excess detail, history and comments that explain readable code.
 
-**Look for:** a doc edit that adds a paragraph; sentences explaining why a rule exists, what a section is about, or how it came to be written
+**Look for:** non-dispositive content of any kind. UI play-by-play, correction notes, soapboxing. New content not minimally woven in.
 
 **Owner:** web-tools CLAUDE.md (before adding to a doc, ask whether another document owns it)
 
 **Area:** writing · **Detector:** reader · **Sessions:** 100 · **Status:** active
 
-### Dramatic prose · `P04`
+### Chat style · `P04`
 
-Slogans, posturing, emphatic absolutes and sentences that sound profound while saying little.
+Carefully avoid the informal voice of online writing. The best model is a statement of facts from a legal brief: short, crisp sentences, using common terms in their most basic sense.
 
-**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little
+**Look for:** a maxim or truism, such as 'Hold inferences loosely, and keep their hedges when you retell them'; a one-line closing punch; a metaphor where a literal word exists; 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work'; 'deliberately' or 'never' used for emphasis; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 35 · **Status:** active
 
@@ -26,7 +26,7 @@ Slogans, posturing, emphatic absolutes and sentences that sound profound while s
 
 Claims a reader cannot check, unnamed subjects and pronouns whose referents the reader has to recover.
 
-**Look for:** 'a file here', 'some cases', 'it is complicated'; a sentence that cannot be checked; two replies that disagree silently
+**Look for:** 'a file here', 'some cases', 'it is complicated'; 'thing', 'whatever' or 'something' in place of a noun the sentence could name, as in 'a second thing to look at' or 'whatever view is on screen'; a sentence that cannot be checked; two replies that disagree silently
 
 **Owner:** docs/QUALIFIED-WRITING.md (rules 3 and 4)
 
@@ -298,9 +298,9 @@ Source paragraphs broken across lines at an arbitrary width. Paragraphs remain c
 
 ### Percussive negation and contrast · `P64`
 
-Repeated denials of outcomes the reader never expected, or repeated contrasts that manufacture an alternative to reject. Percussive negation and percussive contrast spend attention on those rejected alternatives. A necessary comparison or correction can still state a contrast.
+Emphasizing distinctions of unclear relevance, or shadow-boxing with implausible suppositions. Watch for any blanket negation: the word "nothing" is often a flag that the preceding statement leaves some conspicuous gap that the term then tries to paper over. Close the gap, and avoid the patch.
 
-**Look for:** 'draws no underline', 'adds no claim', 'names no file', 'open no new ones', 'nothing opens it'; several in one passage; excludes have, be and there is; repeated 'not X, but Y' contrasts; rejecting an alternative the reader never raised
+**Look for:** 'draws no underline', 'adds no claim', 'names no file', 'open no new ones', 'nothing opens it', 'leaves the reader nothing new', 'there is nothing to act on'; repeated 'not X, but Y' contrasts; rejecting an alternative the reader never raised
 
 **Area:** writing · **Detector:** reader · **Sessions:** 5 · **Status:** active
 
@@ -324,7 +324,7 @@ Calling a list a ledger, census, catalog or similar term and expecting the word 
 
 ### Modal dialogs · `P67`
 
-Avoid modal dialogs; consider a panel-tip, the deck takeover, or another more fluid alternative.
+Avoid modal dialogs; consider a panel-tip, the Swipe Deck takeover, or another more fluid alternative.
 
 **Look for:** showModal(), modal-box, a dimmed backdrop
 
@@ -338,8 +338,6 @@ A sentence that turns on "so", presenting one cause as forcing one result.
 
 **Look for:** 'checks passed, so there's nothing to act on'; 'the data keys stay, so no markup or coding changes'; 'that is the prose the house style rules out, so it should go'; ', so a reader can stop there'
 
-**Owner:** docs/house-policies.md (h:smug)
-
 **Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
 ### Diluting the owner's message · `P69`
@@ -349,6 +347,38 @@ Edits that weaken guidance that exists to steer away from model intuition. The p
 **Look for:** a line that steers against model intuition, cut or reworded into a general statement, such as 'especially use of 🟢 where direction has already been set' dropped from a policy urging the assistant to proceed; a caveat, exception or conventional rationale added beside such a line that restores the intuition, such as 'acting on it waits for the owner's word'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
+
+### Bare admonishment · `P70`
+
+Direction with an unclear standard and weak support. Broad guidance can be useful when surrounded by more detailed considerations. Otherwise, a directive that points the reader back to their own judgment is typically better left unsaid.
+
+**Look for:** directive language, often not to take some action, based on subjective judgment; a last sentence of a paragraph punctuating an idea without adding clarity
+
+**Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
+### Domain page links to GitHub, chats · `P71`
+
+A page of a domain app, an app such as budget-drs's whose subject is a field of work, linking to or referencing GitHub or a chat. This peeve does not concern the Web Tools app, which focuses on interaction with GitHub and AI.
+
+**Look for:** a link on a domain app page that opens github.com, claude.ai or chatgpt.com; a figure's source given as a chat
+
+**Area:** page-design · **Detector:** reader · **Sessions:** 1 · **Status:** active
+
+### Wall-of-text paragraphs · `P72`
+
+Long, undifferentiated paragraphs in documents or replies that pack several subjects into one block of prose instead of giving distinct topics, mechanisms or steps separate paragraphs or tables.
+
+**Look for:** one long paragraph covering several subjects (such as architecture, clone reads and build outputs in one block); a reply or README passage that shifts topic without a paragraph break
+
+**Area:** writing · **Detector:** reader · **Sessions:** 3 · **Status:** active
+
+### Death by sentence · `P74`
+
+A sentence that won’t end. Find bite size ideas that build into the larger point. If support is needed, add it after the period. Break up complex sentences, remove excessive detail, and scrutinize for clear flow of ideas. Consider moving up a level.
+
+**Look for:** a second complete claim joined on with ", and", ", which", ", so" or ", because"; a clause opening on an -ing verb tacked onto the end; conditions stacked before the main clause; a qualifier added to answer a reviewer's question, as in 'When a view's `data-find-input` element also carries `data-find-submit`, naming a method of the view, the find pill's bar shows a Results button, and Enter or that button passes the text typed in the bar to the method.'; a short sentence that names many things and describes code where the effect would do, as in 'Enter or the Results button calls the named method with the bar's text.'
+
+**Area:** writing · **Detector:** reader · **Sessions:** 1 · **Status:** active
 
 ## Combined entries
 
@@ -420,9 +450,9 @@ Name things for what they are, not by metaphor or vague umbrella.
 
 ### Link what you mention · `P24`
 
-Link every file, PR, session or page you mention.
+Link every file, folder, PR, session or page you mention; in a directory listing or index, link each entry to the file that resolves what that entry is.
 
-**Look for:** a path or PR number in prose without a link
+**Look for:** a path, folder entry or PR number in prose without a link; a directory bullet that names a folder with no link to the folder's README, page or script
 
 **Owner:** docs/CONVERSATION.md (reference is a link)
 

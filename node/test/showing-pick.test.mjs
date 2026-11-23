@@ -33,6 +33,43 @@ function run(files, extra = []) {
   return JSON.parse(out);
 }
 
+test('UTF-8 subprocess output and failure messages survive a Windows text decoder', () => {
+  // Use real child pipes: only the locale-selected decoder is changed, so
+  // PYTHONUTF8 in the test runner cannot hide an implicit encoding in sh().
+  const probe = `
+import json, runpy, sys
+from unittest.mock import patch
+showing = runpy.run_path(sys.argv[1])
+with patch('subprocess._text_encoding', return_value='cp1252'):
+    output = showing['sh'](sys.executable, '-c',
+        "import sys; sys.stdout.buffer.write(bytes.fromhex('20f09fa58fff20'))")
+    try:
+        showing['sh'](sys.executable, '-c',
+            "import sys; sys.stderr.buffer.write(bytes.fromhex('20f09fa58fff20')); sys.exit(3)",
+            check=True)
+    except showing['GitFailed'] as error:
+        failure = error.err
+    else:
+        raise AssertionError('the failed child must raise GitFailed')
+print(json.dumps([output, failure]))
+`;
+  const output = execFileSync('python3', ['-c', probe, SCRIPT], {
+    cwd: repoRoot, encoding: 'utf8', env: { ...process.env, PYTHONUTF8: '1' },
+  });
+  assert.deepEqual(JSON.parse(output), ['🥏�', '🥏�'],
+    'decode UTF-8 on stdout and stderr, replace malformed bytes, and trim surrounding whitespace');
+});
+
+test('UTF-8 plain render links print when the inherited stdout encoding is cp1252', () => {
+  const output = execFileSync('python3', [SCRIPT, '--files', 'pages/session.html'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+    env: { ...process.env, PYTHONUTF8: '0', PYTHONIOENCODING: 'cp1252' },
+  });
+  assert.ok(output.includes(`🥏 [pages/session.html](https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:pages/session.html)`),
+    'the text a session pastes retains its glyph and render URL');
+});
+
 // A diff fixture, since the top-level-document test reads hunks rather than
 // paths: the same file is showable or not depending on what the change DOES.
 // The tossed page's own ?query, which rides inside the fragment after its path.
@@ -51,7 +88,7 @@ test('a lib change resolves to a toss of the page that draws it, which is the ca
   assert.ok(app, 'the app is the subject, since app-routes.csv declares the file as its code');
   // The toss supersedes ?use= as the preview link (docs/showing-consolidation.md):
   // tossed at the branch, the untouched page boots the branch's library.
-  assert.equal(app.url, `https://mehrlander.github.io/web-tools/pages/toss-render.html#gh=mehrlander/web-tools@${Z12}:app/index.html`);
+  assert.equal(app.url, `https://mehrlander.github.io/web-tools/pages/toss-render.html?top#gh=mehrlander/web-tools@${Z12}:app/index.html`);
   assert.equal(d.sha, ZERO, 'the JSON keeps the whole commit; only the link is short');
   // Not seven links. A page importing the pre-build LOADS every component and
   // renders few, so those are reported as carried rather than offered.
@@ -249,8 +286,9 @@ test('a walkthrough whose steps name pages opens as the tab, each step at its ad
   // starting on one starts on the data viewer's own address.
   const doc = run('docs/showing.md', ['--at', walk]);
   assert.match(doc.links[0].url, new RegExp(`^https://mehrlander\\.github\\.io/web-tools/pages/data-view\\.html\\?src=mehrlander/web-tools@${Z12}:docs/showing\\.md#steps=`));
-  // The control: steps on one page stay framed.
-  const one = run('app/index.html', ['--at', steps([{ at: 'text:Set' }, { at: 'text:Showing' }])]);
+  // The control: steps on one page stay framed. Not the app, whose links
+  // carry ?top whatever the walkthrough, since it routes on its address.
+  const one = run('pages/idea-board.html', ['--at', steps([{ at: 'text:Set' }, { at: 'text:Showing' }])]);
   assert.equal(one.top, undefined);
   assert.doesNotMatch(one.links[0].url, /\?top/);
 });
@@ -551,7 +589,7 @@ test('a lib change on a branch behind main, touching nothing main touched, is an
   assert.equal(d.case, 'merge');
   assert.equal(d.links.find(l => l.page === 'app/index.html').url,
     'https://mehrlander.github.io/web-tools/pages/toss-render.html'
-    + `?refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/alpineComponents/estate.js`
+    + `?top&refs=mehrlander/web-tools@${B12}&refs=mehrlander/web-tools@${Z12}:lib/alpineComponents/estate.js`
     + `#gh=mehrlander/web-tools@${B12}:app/index.html`, 'main is pinned, the build left out, the one file over it');
   assert.ok(d.warnings.some(w => /150\+ characters/.test(w)), 'an overlay still passes the MCP body cap, and says so');
   assert.ok(d.why.some(w => /9 commit\(s\) behind main.*a merge would produce/.test(w)));

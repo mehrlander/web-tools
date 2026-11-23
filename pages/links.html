@@ -354,7 +354,7 @@
                     <!-- Inline flow, not a flex row: a long qualifier wraps and
                          hangs under the title instead of truncating. -->
                     <div class="group relative pl-[18px] pr-4 py-[1px] text-[13.5px] leading-[1.45]"
-                         :title="it.note || ''" data-part="item">
+                         :data-title-tip="it.note || ''" data-part="item">
 
                       <a x-show="href(it)" :href="href(it)" target="_blank" rel="noopener"
                          class="absolute -inset-x-1.5 inset-y-0" :aria-label="it.title"></a>
@@ -410,7 +410,7 @@
                   </button>
                   <button class="px-0.5 opacity-35 hover:opacity-100" @click="move(a, it, -1)"><i class="ph ph-caret-up text-xs"></i></button>
                   <button class="px-0.5 opacity-35 hover:opacity-100" @click="move(a, it, 1)"><i class="ph ph-caret-down text-xs"></i></button>
-                  <button class="px-1 opacity-30 hover:opacity-100" @click="addDoor(it)" title="Add a door">
+                  <button class="px-1 opacity-30 hover:opacity-100" @click="addDoor(it)" data-title-tip="Add a door">
                     <i class="ph ph-door-open text-xs"></i>
                   </button>
                   <button class="px-1 text-error opacity-60 hover:opacity-100" @click="remove(a, it)"><i class="ph ph-x text-xs"></i></button>

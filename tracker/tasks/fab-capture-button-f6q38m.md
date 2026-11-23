@@ -1,7 +1,9 @@
 ---
 id: fab-capture-button-f6q38m
 title: Persist FAB captures, the write path to state/captures/
-status: backlog
+status: done
+closed: 2026-11-16
+resolution: stale
 project: app
 opened: 2026-07-26
 size: S
@@ -57,3 +59,4 @@ one viewer, in one browser, on one open.
   history in this log, and the stale `next:` tag is dropped.
 - 2026-09-18: Added ## Related (paths / sibling tasks / premise PRs).
 - 2026-10-06: Pointed at page-report.js, whose send() is the write path. Tending pass.
+- 2026-11-16: refinement close (session b805c26a, owner's go): the copy is still clipboard-only, but the one consumer, live-confirm-graphql-queries, closed 2026-09-18, and the Probe's Send (#642) already files page captures to logs/page through PageReport.send.

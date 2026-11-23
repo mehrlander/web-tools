@@ -49,6 +49,8 @@ test('a path into a user folder is refused, in code and prose alike, naming the 
     ['node/render/crop.mjs', "const dir = 'C:/Users/someone/.gemini/x';\n", 'a Windows user folder'], // machine-path-ok
     ['tools/run.ps1', 'Set-Location C:\\Users\\someone\\Code\n', 'a Windows user folder'], // machine-path-ok
     ['notes.md', 'Saved under /Users/someone/Desktop/out.png\n', 'a macOS user folder'], // machine-path-ok
+    ['research/probe-2026/notes.md', 'Saved under /Users/someone/Desktop/out.png\n', 'a macOS user folder'], // machine-path-ok
+    ['tools/lower.ps1', 'cd c:/users/someone/x/f\n', 'a Windows user folder'], // machine-path-ok
     ['data/rows.csv', 'a,/home/someone/data.csv\n', 'a Linux home folder'], // machine-path-ok
     ['x.py', "ART = 'antigravity/brain/26c2bc15'\n", 'an Antigravity conversation folder'], // machine-path-ok
   ]) {

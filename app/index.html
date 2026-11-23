@@ -295,7 +295,7 @@
    directly. The phone was already right, a true fullscreen takeover, and
    spending 3.5rem of a short screen on a nav row the reader is not using would
    have been a regression dressed as consistency. syncDeckFrame() measures the
-   header rather than restating its h-14, since it is conditional (shellMode)
+   header rather than restating its h-14, since it is conditional (headerOn)
    and a hidden header measures 0 for free. */
 @media (min-width:1024px){:root{--deck-top:var(--deck-head,0px)}}
 @media (min-width:1024px){:root[data-deck-pane="inset"]{--deck-left:var(--deck-side,0px);--deck-border:1px}}
@@ -361,9 +361,9 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
      files, stage, branches — plus pinned and recent shortcuts; the actual folder/file
      navigation lives in the main area (breadcrumb + listing, file content
      beneath). The sidebar shows or hides at every width, out by default on a
-     wide screen and away on a phone; ?shell= sets how much of this frame a link
-     opens with. See the design notes at the end of this file. -->
-<body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content [&_*::highlight(find-pill)]:bg-[rgb(250_204_21/0.45)]" x-data="app()" x-cloak>
+     wide screen and away on a phone; ?header= and ?sidebar= set how much of
+     this frame a link opens with. See the design notes at the end of this file. -->
+<body class="h-dvh flex flex-col overflow-hidden bg-base-100 text-base-content [&_*::highlight(find-pill)]:bg-[rgb(250_204_21/0.45)]" x-data="app()" x-cloak :aria-busy="_booted ? 'false' : 'true'">
 
 <!-- App-wide drag cue. Purely visual (pointer-events-none), so the drop still
      lands on the window handler wireAppDrop() registered. It stands down on the
@@ -440,15 +440,15 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
      is doing work; two copies of it on one screen were the redundancy, not the
      mark itself. What the header buys is the width.
 
-     THE WHOLE HEADER IS CONDITIONAL under ?shell=none, which is what makes an
+     THE WHOLE HEADER IS CONDITIONAL under ?header=0, which is what makes an
      unframed link possible at all: every other view here is the shell's own,
      with no standalone page behind it to link to the way an app view or a
      custom landing has one. The way back is the FAB's Render tab, which
-     carries the mode as a bar. ─────────────────────────────────────────── -->
+     carries the header as a toggle. ─────────────────────────────────────────── -->
 <!-- z-[35], one past the Map's pinned tab strip (z-30 below lg), which would
      otherwise paint over the find pill's bar hung from this header; still
      under the sidebar's backdrop (z-40). -->
-<header x-show="shellMode !== 'none'" class="relative shrink-0 z-[35] bg-base-100 border-b border-base-300">
+<header x-show="headerOn" class="relative shrink-0 z-[35] bg-base-100 border-b border-base-300">
   <div class="max-w-full px-4">
     <div class="h-14 flex items-center gap-0.5">
       <!-- App-level views: Activity / Repos / Stage / Tools / Map, the
@@ -600,8 +600,16 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                          class="grow min-w-0 text-base [&::-webkit-search-cancel-button]:hidden"
                          :placeholder="placeholder"
                          x-model="q" @input="push()" @focus="expand()" @blur="collapse()"
-                         @keydown.enter.prevent="$el.blur()" @keydown.escape.prevent="clear(); $el.blur()">
+                         @keydown.enter.prevent="enter($el)" @keydown.escape.prevent="clear(); $el.blur()">
                   <span x-show="q && shown" class="shrink-0 text-sm tabular-nums text-base-content/50" x-text="shown"></span>
+                  <!-- Where a view's box declares a results page for its term
+                       (data-find-submit), Enter opens it, and this is the same
+                       act for a pointer. Its place is held while there is no
+                       term, so the count beside it does not move. -->
+                  <button type="button" x-show="submit" @pointerdown.prevent @click="enter($refs.box)"
+                          :class="q.trim() ? '' : 'invisible'" data-find-submit-button
+                          class="shrink-0 h-8 px-2 flex items-center gap-1 rounded-md bg-primary/10 text-primary text-sm font-medium">
+                    <i class="ph ph-arrow-elbow-down-left text-base leading-none"></i>Results</button>
                   <button type="button" x-show="q" @pointerdown.prevent @click="clear()" aria-label="Clear the filter"
                           class="shrink-0 -mr-1 h-8 w-8 grid place-items-center rounded-md text-base-content/50 hover:text-base-content">
                     <i class="ph ph-x-circle text-lg leading-none"></i>
@@ -698,7 +706,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
            second permanent control for a verb reachable by a gesture is the
            kind of thing that accretes until nothing on the row is findable.
            pasteAnywhere() is untouched and still the one implementation. -->
-      <button @click="toggleSidebar()"
+      <button @click="toggleSidebar()" data-at="sidebar-open"
               class="shrink-0 p-1 rounded-lg transition-colors"
               :class="[sidebarOpen ? 'text-primary bg-primary/10' : 'hover:bg-base-200',
                        !showSidebar && 'lg:hidden']"
@@ -717,7 +725,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
 
   <!-- ── Sidebar: repo views + the file tree. One boolean at every width
        (sidebarOpen), overlaying below lg and sitting as a column at lg and up;
-       ?shell= decides which way it starts. ────────────────────────────────── -->
+       ?sidebar= decides which way it starts. ────────────────────────────────── -->
   <div x-show="sidebarOpen" @click="sidebarOpen=false" x-transition.opacity
        class="fixed inset-0 bg-black/30 z-40 lg:hidden" x-cloak></div>
 
@@ -741,6 +749,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
        that one modifier was the whole reason the desktop sidebar could not be
        put away. -->
   <aside class="fixed inset-y-0 left-0 w-72 max-w-[85vw] z-50 bg-base-100 border-r border-base-300 shadow-xl flex flex-col transition-transform duration-200 ease-out lg:static lg:z-auto lg:shadow-none lg:w-80 xl:w-[22rem] lg:shrink-0"
+         data-at-open="sidebar-open"
          :class="[sidebarOpen ? 'translate-x-0' : '-translate-x-full', (!showSidebar || !sidebarOpen) && 'lg:hidden']">
     <!-- Sidebar top bar: in a repo, a CRUMB TRAIL (crumbBar, sidebarCrumbs).
          Two crumbs earn the bar back. The mark is the route to the dashboard,
@@ -921,7 +930,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          side, hits opening the Sessions pane's paged reader. Any bare printable
          key reaches it, `/` included, through the shell's own router
          (wireAppTypeahead) rather than a listener of the component's; a view
-         carrying its own search box (data-find-box) takes the keystroke first.
+         carrying its own search box (data-find-input) takes the keystroke first.
          Branch and session hits travel the web-tools:open-branch-detail and
          web-tools:open-session events, consumed in estate.js beside the &detail=
          deep link they mirror. -->
@@ -1132,7 +1141,48 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
       </div>
 
       <div class="border-t border-base-200"
-           x-show="estateCtx && estateRepos.length && sidebarAppViews.length"></div>
+           x-show="estateCtx && estateRepos.length && sidebarPrograms.length"></div>
+
+      <!-- PROGRAMS, after the repos and their projects: every declared program
+           (lib/alpineComponents/program.js reads the declarations, for the
+           Map's Programs list and the Program view too), the hub's first. A row
+           is the project row's shape: the program's own icon drawn in its own
+           colour, its label (and its repository where that is not the hub),
+           and its folder on GitHub, whose peek is the charter. The name opens
+           the Program view; the header's icon opens the Map's Programs tab,
+           where every program compares with the others. Signed out the config
+           cache is not read, so the hub's own programs stand alone. -->
+      <div class="flex flex-col gap-0.5" x-show="estateCtx && sidebarPrograms.length" data-sidebar-programs>
+        <div class="flex items-center gap-1.5 px-2 pb-0.5">
+          <span class="text-base font-mono uppercase tracking-widest text-base-content/40">Programs</span>
+          <div class="grow"></div>
+          <button @click="goMap('programs')" data-title-tip="Compare them in the Map's Programs tab"
+                  class="text-base-content/30 hover:text-primary transition-colors">
+            <i class="ph ph-gauge text-base leading-none"></i></button>
+        </div>
+        <template x-for="p in sidebarPrograms" :key="p.key">
+          <div class="flex items-center rounded-lg transition-colors hover:bg-base-200" :data-sidebar-program="p.name"
+               :class="sidebarProgramKey===p.key && 'bg-primary/10'">
+            <button @click="goProgram(p.name)" :data-title-tip="p.repo + ': ' + (p.path || p.name)"
+                    class="flex items-center gap-2 min-w-0 flex-1 px-2 py-1.5 text-base text-left transition-colors"
+                    :class="sidebarProgramKey===p.key ? 'text-primary font-semibold' : 'text-base-content/80'">
+              <span class="flex size-4 shrink-0 items-center justify-center">
+                <img x-show="programIconSrc(p)" :src="programIconSrc(p)" alt="" class="block size-3.5">
+                <i x-show="!programIconSrc(p)" class="ph text-base text-base-content/40" :class="p.icon"></i></span>
+              <span class="truncate" x-text="p.label"></span>
+              <span x-show="p.repo !== DEFAULT_REPO" x-cloak class="min-w-0 truncate font-mono text-sm font-normal text-base-content/40" x-text="p.repo.split('/').pop()"></span>
+            </button>
+            <a x-show="p.path" :href="projectGithubUrl(p.repo, p)" :data-peek="projectReadmePeek(p.repo, p)"
+               target="_blank" rel="noopener" @click.stop
+               :data-title-tip="p.path + ' on GitHub'"
+               class="wt-row-btn shrink-0 h-8 flex items-center justify-center text-base-content/30 hover:text-primary transition-colors">
+              <i class="ph ph-github-logo text-base leading-none"></i></a>
+          </div>
+        </template>
+      </div>
+
+      <div class="border-t border-base-200"
+           x-show="estateCtx && (estateRepos.length || sidebarPrograms.length) && sidebarAppViews.length"></div>
 
       <!-- App views: pages a repo promotes to an estate-level entry (appView:true,
            e.g. News), rendered live in the main area through toss-render. The
@@ -1459,7 +1509,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          renders both and switches on the shell view, so both share this lazy
          mount. Full width, so the repo grid runs three cards wide like the
          pages index; the Stage constrains its own column. -->
-    <div x-show="isEstate" data-pane="estate" data-find-hoist class="h-full [&_label:has(>input[data-find-box])]:hidden"
+    <div x-show="isEstate" data-pane="estate" data-find-hoist class="h-full [&_label:has(>input[data-find-input])]:hidden"
          :class="listsFill ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'">
       <!-- w-full is load-bearing under listsFill and inert without it. An auto
            inline margin on a flex ITEM sizes it to its content instead of
@@ -1489,7 +1539,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
 
     <!-- Public browse: the no-token jsDelivr file browser (estate-level, beside
          Repos / Stage). Lazy-mounted on first visit. -->
-    <div x-show="view==='public'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='public'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-input])]:hidden">
       <div class="mx-auto px-6 py-8 !max-w-none">
         <template x-if="publicSeen">
           <div x-data="publicBrowse()"></div>
@@ -1512,7 +1562,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
 
     <!-- Pages: web-tools' own catalog, or any repo's `pages` entries, reached
          at ?view=pages or via the repo sidebar/tabs. -->
-    <div x-show="view==='pages'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='pages'" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-input])]:hidden">
 
       <div class="!max-w-none px-6 py-8">
 
@@ -1548,10 +1598,10 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                 <div class="grow"></div>
                 <label class="input input-bordered flex items-center gap-1.5 w-48" data-slot="frame:search">
                   <i class="ph ph-magnifying-glass opacity-50"></i>
-                  <!-- data-find-box: the Pages view's own filter, so a bare
+                  <!-- data-find-input: the Pages view's own filter, so a bare
                        keystroke narrows this list instead of opening the
                        sidebar finder (wireAppTypeahead). -->
-                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-box data-find-noun="page" :data-find-count="filteredGroups.reduce((n, g) => n + g.items.length, 0)" class="grow min-w-0">
+                  <input type="search" x-model.debounce="q" placeholder="Pages by name, title or note" data-find-input data-find-noun="page" :data-find-count="filteredGroups.reduce((n, g) => n + g.items.length, 0)" class="grow min-w-0">
                 </label>
               </div>
 
@@ -1566,7 +1616,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                     <i class="ph ph-folder"></i><span x-text="g.label"></span>
                     <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                   </h2>
-                  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
                     <template x-for="p in g.items" :key="p.href">
                       <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
 
@@ -1654,7 +1704,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
             <button @click="toggleRepoMenu($store.browser.repo, $event.currentTarget, 'repos', { align: 'left' })"
                     class="relative shrink-0 size-9 rounded-xl flex items-center justify-center transition-colors bg-primary/10 text-primary hover:bg-primary/20"
                     :aria-expanded="!!repoMenuAt && menuKind === 'repos'" aria-haspopup="menu"
-                    :data-title-tip="'Switch repository'" :aria-label="'Switch repository'" data-repo-switch>
+                    :data-title-tip="'Switch repository'" :aria-label="'Switch repository'" data-repo-switch data-at="repo-menu-open">
               <i class="ph-duotone text-xl" :class="repoGlyph($store.browser.repo)"></i>
               <i class="ph-bold ph-caret-down absolute -bottom-0.5 -right-0.5 text-[10px] leading-none rounded-full bg-base-100 p-0.5 text-base-content/60"></i>
             </button>
@@ -1849,7 +1899,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                           <i class="ph ph-folder"></i><span x-text="g.label"></span>
                           <span class="badge badge-ghost badge-sm" x-text="g.items.length" data-part="meta"></span>
                         </h2>
-                        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3">
                           <template x-for="p in g.items" :key="p.href">
                             <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
                               <div class="relative bg-base-200/40 border-b border-base-300 aspect-[16/10] overflow-hidden" data-part="body">
@@ -1926,7 +1976,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          same as a repo's custom landing), every other project gets its README.
          Pages and Docs are DERIVED rather than declared: see projectPages and
          loadProjectDocs below. -->
-    <div x-show="view==='project'" data-find-hoist class="h-full flex flex-col [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='project'" data-find-hoist class="h-full flex flex-col [&_label:has(>input[data-find-input])]:hidden">
         <template x-if="project">
           <div class="flex flex-col h-full min-h-0">
             <div class="shrink-0 px-4 sm:px-6 pt-3">
@@ -2011,9 +2061,9 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                 <i class="ph ph-files text-sm"></i>Docs<span x-show="projectDocsCount" class="opacity-60 tabular-nums" x-text="projectDocsCount"></span></button>
               <label x-show="projectTab==='docs'" class="ml-auto input input-xs input-bordered flex items-center gap-1 w-44 max-w-[45%]" data-slot="frame:search">
                 <i class="ph ph-magnifying-glass opacity-50"></i>
-                <!-- data-find-box: Docs' own filter, so a bare keystroke narrows
+                <!-- data-find-input: Docs' own filter, so a bare keystroke narrows
                      the tree instead of opening the sidebar finder. -->
-                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-box data-find-noun="doc" :data-find-count="projectDocsGroups.reduce((n, g) => n + g.files.length, 0)" class="grow min-w-0"></label>
+                <input type="search" x-model.debounce="projectDocsQ" placeholder="Docs by path" data-find-input data-find-noun="doc" :data-find-count="projectDocsGroups.reduce((n, g) => n + g.files.length, 0)" class="grow min-w-0"></label>
             </div>
             </div>
 
@@ -2166,7 +2216,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
                 <p x-show="!projectPages.length" class="text-base-content/40 italic text-base py-8">
                   No pages in this workspace yet. A page the repo's .web-tools.json lists under this folder, or with this folder as its project, appears here.
                 </p>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-pattern="card-grid" data-part="list">
+                <div class="grid gap-4 @xl:grid-cols-2 @3xl:grid-cols-3" data-pattern="card-grid" data-part="list">
                   <template x-for="pg in projectPages" :key="pg.key">
                     <div class="card bg-base-100 border border-base-300 shadow-sm overflow-hidden" data-part="item">
                       <template x-if="pg.route === null">
@@ -2341,12 +2391,22 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
          repo-owned scope story plus a live adoption read. The operational face
          of the constellation doctrine. Estate-level, its own component and lazy
          mount. -->
-    <div x-show="view==='map'" data-pane="map" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-box])]:hidden">
+    <div x-show="view==='map'" data-pane="map" data-find-hoist class="h-full overflow-y-auto [&_label:has(>input[data-find-input])]:hidden">
       <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
         <template x-if="mapSeen">
           <div x-data="map()"></div>
         </template>
       </div>
+    </div>
+
+    <!-- The Program view: one declared program in its own space, shaped as the
+         Project view is, a masthead beside its tab row over the tab
+         (lib/alpineComponents/program.js). Estate-level, its own component and
+         lazy mount; the pane does not scroll, the tab under the masthead does. -->
+    <div x-show="view==='program'" data-pane="program" class="h-full overflow-hidden">
+      <template x-if="programSeen">
+        <div x-data="program()" class="h-full"></div>
+      </template>
     </div>
 
     <!-- The Proposals view: cross-repo edits an agent session proposed but
@@ -2386,13 +2446,14 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
       </div>
     </div>
 
-    <!-- The Tools view: a curated gallery of the owner's utility pages (the
-         text-diff tool and the like), fed from the hub's docs/tools.csv.
-         Estate-level, public (no token), its own component and lazy mount. -->
-    <div x-show="view==='tools'" data-pane="tools" class="h-full overflow-y-auto">
-      <div class="mx-auto px-4 lg:px-6 pt-4 pb-8 lg:pt-6 !max-w-none">
+    <!-- The Tools view: every page the estate declares, in a list beside a
+         live preview, with the hub utilities from docs/tools.csv among them.
+         Estate-level, its own component and lazy mount. The pane does not
+         scroll: the list and the preview each scroll on their own. -->
+    <div x-show="view==='tools'" data-pane="tools" class="h-full overflow-hidden">
+      <div class="h-full flex flex-col px-4 lg:px-6 pt-4 pb-4 lg:pt-6 !max-w-none">
         <template x-if="toolsSeen">
-          <div x-data="tools()"></div>
+          <div x-data="tools()" class="flex-1 min-h-0"></div>
         </template>
       </div>
     </div>
@@ -2460,7 +2521,7 @@ html.dk-dragging main[data-pattern="host"]{transition:none !important}
      The pointer handlers are the other half of hover-to-open: entering the
      panel cancels the countdown a trigger's mouseleave started, so the trip
      across the 2 px gap does not close what it is heading for. ─────────── -->
-<div x-show="repoMenuAt" x-cloak @click.outside="repoMenuAt = null"
+<div x-show="repoMenuAt" x-cloak @click.outside="repoMenuAt = null" data-at-open="repo-menu-open"
      @mouseenter="cancelMenuClose()" @mouseleave="hoverLeaveMenu()"
      class="fixed z-[55] max-h-[60vh] overflow-y-auto rounded-lg border border-base-300 bg-base-100 shadow-lg"
      :style="repoMenuStyle">
@@ -2537,6 +2598,9 @@ const PROJECT_ICONS_ASKED = new Set();
 // mark files repoMarkHtml reads, by file.
 const HUB_MARKS_ASKED = new Set();
 const REPO_MARKS_ASKED = new Set();
+// And whether the sidebar's Programs has asked for the hub's own manifest
+// (sidebarPrograms), once a page.
+const HUB_MANIFEST_ASKED = { done: false };
 
 // The links board's item kinds, as the shell renders them. It carries only the
 // glyph fallbacks pages/links.html uses, since the shell shows a rail item as a
@@ -2551,7 +2615,7 @@ const RAIL_KIND = { link: 'ph-arrow-up-right', action: 'ph-lightning', repo: 'ph
 // subview it lands on; every other address is a subview and keeps the key it
 // was first published at, so an old ?tab= link still lands where it pointed.
 const MAP_TABS = ['overview', 'reach', 'research', 'harness', 'model', 'docs', 'data', 'watch'];
-const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'units', 'forms', 'patterns', 'dimensions', 'views', 'kits', 'showing', 'fab', 'growth', 'policy', 'themes', 'comments', 'registries', 'relations', 'attributes', 'public', 'names'];
+const MAP_SUBVIEWS = ['aims', 'icons', 'projects', 'distribution', 'outposts', 'exploration', 'events', 'scheduled', 'programs', 'set', 'tests', 'skills', 'agents', 'peeves', 'context', 'lifetimes', 'units', 'forms', 'patterns', 'dimensions', 'views', 'kits', 'components', 'showing', 'fab', 'growth', 'policy', 'themes', 'comments', 'registries', 'relations', 'attributes', 'public', 'names'];
 const MAP_ROUTES = [...MAP_TABS, ...MAP_SUBVIEWS];
 // Where a bare ?view=map lands, and so the one address its URL never stamps:
 // the Overview, every address with its sentence. Reach held it until
@@ -2563,12 +2627,21 @@ const MAP_HOME = 'overview';
 // source, Set's question, Growth's corpus, and the Policies tab's entry.
 const MAP_CTX_TAB = { ctxlens: 'context', ctxsort: 'context', ctxtopic: 'context', ctxsource: 'context', setintent: 'set',
                       growthrepo: 'growth', h: 'policy', form: 'forms', about: 'comments' };
+// The Program view's tabs, in their order; a program shows those it has
+// something for (lib/alpineComponents/program.js, tabs).
+const PROGRAM_TABS = ['areas', 'measures', 'changes', 'tasks', 'notes'];
 const mapCtxOf = get => Object.fromEntries(Object.keys(MAP_CTX_TAB).map(k => [k, get(k) || '']));
 // The Lists view's tab keys: a built-in list's name (to-do, jot, pin, snag,
 // ping, note) or a created list's file name without .json, which is the
 // lists kit's slug. To-do is where a bare ?view=lists lands.
 const LISTS_HOME = 'to-do';
 const LISTS_TAB = /^[a-z0-9][a-z0-9-]{0,80}$/;
+// The Sessions view's tab off an address. Its key is `tab`, as every view's
+// sub-address is; until 2026-11-20 it was `lens`, which an older address
+// still carries, so that is read when `tab` is absent and the next stamp
+// writes it back as `tab`. Only on ?view=sessions, since another view's
+// `tab` names that view's tab.
+const sessionTabOf = p => p.get('view') === 'sessions' ? p.get('tab') || p.get('lens') || '' : '';
 
 // marked, loaded once on demand for the overview README render. kits/md-doc.js
 // rides with it, because every one of these renders lands in a fixed-width
@@ -2680,54 +2753,47 @@ function app(){ return {
   _appDrag: 0,
   _dragNote: '',
 
-  // ── The shell mode: how much of the app is drawn around the view ──────────
+  // ── The header, and which way the sidebar starts: ?header= and ?sidebar= ──
   //
-  // A READING parameter, in the class ?use= and ?window= belong to:
-  // it says how to PRESENT the screen, not which screen, so it gets no VIEWS
-  // row and is stamped beside whatever the view table stamps. `full` is the
-  // default and stays out of the URL, so every existing link is unchanged.
+  // READING parameters, in the class ?use= and ?window= belong to: they say
+  // how to PRESENT the screen, not which screen, so they get no VIEWS row and
+  // are stamped beside whatever the view table stamps. Each takes 0 or 1, and
+  // absent means the default, so the parameter has three states: absent, on
+  // and off. A default never appears in the URL, so a bare link stays bare.
   //
-  //   full  header, and the sidebar at its per-width default
-  //   nav   header, sidebar closed at every width (open it from the header)
-  //   none  neither; the view alone, which is what an unframed link wants
+  //   ?header=0    the view alone, no header (absent or 1: the header shows)
+  //   ?sidebar=1   the sidebar starts open; 0, it starts closed. Absent, it
+  //                starts at the default: open on a wide screen, closed on a
+  //                phone, closed on an app view and with the header off.
   //
-  // THE DEFAULT IS PER VIEW, not one constant. An app view opens at `none`:
-  // it is one page some repo promoted, framed whole, and a reader who
-  // addressed it by name asked for that page rather than for the app around
-  // it. A home-screen tile is the case that makes it obvious. Every other
-  // route IS the app and keeps its header.
+  // ?sidebar= says how the sidebar STARTS, not whether it exists: the
+  // header's hamburger toggles it either way, and toggling is not stamped.
   //
-  // Derived per view rather than latched at boot, and that is the whole of why
-  // this is a getter. A latched default would follow the reader out of the app
-  // view and strand the estate dashboard with no nav, reachable only through
-  // the FAB. Deriving it means the shell leaves when you enter an app view and
-  // comes back when you leave, with nothing to remember or clear.
+  // THE TWO ARE NOT INDEPENDENT. The hamburger lives in the header, so with
+  // ?header=0 the only way back to the sidebar is to bring the header back,
+  // from the FAB's Render tab or the launcher's long-press menu. An explicit
+  // ?sidebar=1 is still honored with the header off; nothing then closes a
+  // desktop column but the header's return.
   //
-  // It also keeps the ADDRESS minimal in both directions, since the stamp
-  // compares against this rather than against a constant: `?app=budget-drs`
-  // carries no `shell` key and opens with nav chrome, and turning the header off there
-  // stamps `shell=none`, which is the honest reading of a screen showing the
-  // promoted page bare.
+  // THE SIDEBAR'S DEFAULT IS PER VIEW. An app view opens with it closed: one
+  // page some repo promoted, framed whole, with the header kept for
+  // navigation. Derived per view rather than latched at boot, so the sidebar
+  // comes back when the reader leaves the app view, with nothing to clear.
   //
-  // `none` is not a trap: the FAB's Render tab carries this as a bar (the
-  // `modes` contract below), beside the ref and width bars, since which ref,
-  // what width, and how much shell are three readings of one question. That is
-  // the way back, and it is the same control that sets the mode in the first
-  // place, so nothing needs a second escape hatch parked on the page.
+  // SUNSET(2027-02-01): ?shell=full|nav|none, the preset these two replace,
+  // still reads (readDisplayParams) and is rewritten to them at the next
+  // syncUrl, since links to it sit in PR bodies and artifacts.
   //
-  // Named `shell` because that is already this app's word for the header and
-  // sidebar around a view (the ?shell= parameter in docs/APP.md, and window.__shell
-  // is this object). `chrome` was the first name and was dropped: in a browser
-  // the chrome is the BROWSER's, which is the one thing this cannot touch.
-  // `frame` was dropped too, since the Render tab's width bar already means a
-  // frame, and two meanings in one tab is how a bar gets misread.
-  SHELL_MODES: ['full', 'nav', 'none'],
-  // The reader's explicit choice, '' for none made. Held apart from the mode
-  // because the two answer different questions: what was asked for, and what
-  // this screen opens as when nothing was.
-  _shellChoice: '',
-  get defaultShellMode(){ return this.view === 'app' ? 'nav' : 'full'; },
-  get shellMode(){ return this._shellChoice || this.defaultShellMode; },
+  // The header's choice: '' for none made, '0' hidden, '1' shown. Shown is
+  // every view's default, so a stored choice that agrees with it is cleared
+  // (setHeader), which keeps a toggle from following the reader to the next
+  // view and keeps the state and the address agreeing.
+  _headerChoice: '',
+  get headerOn(){ return this._headerChoice !== '0'; },
+  // How the sidebar starts: '' the default, '1' open, '0' closed. Named for
+  // what it holds, since sidebarOpen (the live state) and showSidebar (whether
+  // there is anything to show) are taken.
+  sidebarStart: '',
 
   // Whether the sidebar is showing. One boolean at every width, which is the
   // whole of the mobile/desktop difference now: below lg it is an overlay with
@@ -2840,8 +2906,20 @@ function app(){ return {
   waitingCall: new URLSearchParams(location.search).get('call') || '',
   userCallIndex: {},      // call id -> the call, from the badge's read
   tendingSeen: false,
+  // The Program view (lib/alpineComponents/program.js): one declared program,
+  // named by &program=, with its tab as &tab= and the area its Areas tab's
+  // side panel is narrowed to as &area=. Held here because the URL is the
+  // shell's to own, as the Project view's path and tab are.
+  programSeen: false,
+  programName: '',
+  programTab: '',   // '' is the program's first tab (Areas where it has a charter)
+  programArea: '',  // an area's name, picked on a wide pane; '' is every area
+  // The hub's own manifest, read once for the sidebar's Programs where the
+  // config cache has not given one (signed out, or the hub not the open repo).
+  hubManifest: null,
   compactionsSeen: false,
   compactionsItem: '', // the open summary's file name, without .json, once a reader picks one
+  usageSeen: false, // mount the Usage pane on its first visit, and keep it
   tendingTab: '',   // '' (Open) | 'settled'
   tendingItem: '',  // a finding's note id, when a link names one
   tendingRepo: '',  // a filter handed in from a card or a row; not stamped
@@ -2918,8 +2996,8 @@ function app(){ return {
   async init(){
     window.__shell = this;
     // Read before anything paints, so the shell never flashes its full self on
-    // the way to a ?shell=none load. Same read on popstate (restoreFromUrl).
-    this.readShellMode();
+    // the way to a ?header=0 load. Same read on popstate (restoreFromUrl).
+    this.readDisplayParams();
     // Settled once the address has been routed, so a warm that keys on
     // `view` (the auth watcher's) waits for the view to be the linked one.
     this._routed = new Promise(r => { this._routedResolve = r; });
@@ -3087,15 +3165,14 @@ function app(){ return {
       this.routeAuthFail(fail);
     }
 
-    // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the mode this
-    // arrival settled on is the one change the shellMode watcher never sees.
-    // Re-derive once, here, where the view is final. Without it a cold `?app=`
-    // opened with the header correctly gone (x-show reads the mode live) and
-    // the sidebar still standing as a column beside it, a pairing no navigation
-    // inside the app can produce. Found in a browser, not by the suite, which
-    // is the shape of this bug: every unit was right and only the order was
-    // wrong.
-    this.sidebarOpen = this.defaultSidebarOpen;
+    // THE BOOT ROUTE RUNS BEFORE THE WATCHERS BELOW ARE WIRED, so the start
+    // this arrival settled on is the one change the sidebarStartsOpen watcher
+    // never sees. Re-derive once, here, where the view is final. Without it a
+    // cold `?app=` opened with the sidebar standing as a column beside the
+    // view, a state no navigation inside the app can produce. Found in a
+    // browser, not by the suite, which is the shape of this bug: every unit
+    // was right and only the order was wrong.
+    this.sidebarOpen = this.sidebarStartsOpen;
 
     // A PASTE TAKEN SOMEWHERE ELSE, arriving. The fab's paste row runs on every
     // page carrying the launcher, and off this app there is no Stage to put
@@ -3126,13 +3203,13 @@ function app(){ return {
     this.__installDeckPane();
     this.$watch('sidebarOpen', () => this.syncDeckFrame());
     this.$watch('showSidebar', () => this.syncDeckFrame());
-    // The sidebar re-derives whenever the MODE changes, which is the half a
-    // per-view default cannot do on its own: entering an app view puts the
-    // sidebar away with the header, leaving brings back whatever that width
-    // opens with. Toggling it WITHIN a mode stays the reader's and is not
+    // The sidebar re-derives whenever how it should START changes, which is
+    // the half a per-view default cannot do on its own: entering an app view or
+    // hiding the header puts it away, leaving brings back whatever that width
+    // opens with. Toggling it in between stays the reader's and is not
     // touched here. Ordered before syncDeckFrame, which reads sidebarOpen.
-    this.$watch('shellMode', () => {
-      this.sidebarOpen = this.defaultSidebarOpen;
+    this.$watch('sidebarStartsOpen', () => {
+      this.sidebarOpen = this.sidebarStartsOpen;
       this.syncDeckFrame();
     });
 
@@ -5062,6 +5139,7 @@ function app(){ return {
   projectPath: '',
   projectTab: 'overview',   // 'overview' | 'app' | 'outpost' | 'board' | 'pages' | 'files' | 'docs' (Files' Docs mode)
   powershellOutpostItem: '', // the PowerShell outpost view's selected file (repo path), stamped as &item=
+  powershellOutpostTab: '',  // that file's tab, where a link or a click names one, stamped as &itemtab=
   projectIcons: {},         // repo@ref:file -> the project icon as a data URL ('' until read, or when the read failed)
   hubMarks: {},             // hub path -> a drawn mark as a data URL ('' until read, or when the hub has no such file)
   repoMarks: {},            // repo@ref:path of a mark file -> its read (RepoMark.load's svg: drawable, or null); absent until read
@@ -5108,11 +5186,11 @@ function app(){ return {
     const t = this.projectTab, p = this.project;
     return (t === 'app' && !p?.landing) || (t === 'outpost' && !p?.powershellOutpost) ? 'overview' : t;
   },
-  goProject(path, tab, item){
+  goProject(path, tab, item, itemtab){
     const p = String(path || '').replace(/\/+$/, '');
     if (!p) return;
     if (p !== this.projectPath) {
-      this.projectDocsQ = ''; this.powershellOutpostItem = ''; this.projectDocSel = ''; this.projectDocsOpen = {};
+      this.projectDocsQ = ''; this.powershellOutpostItem = ''; this.powershellOutpostTab = ''; this.projectDocSel = ''; this.projectDocsOpen = {};
       this.projectAppRoute = '';
     }
     this.projectPath = p;
@@ -5125,7 +5203,7 @@ function app(){ return {
     // and App opens the app at its route, a page query. The App tab with no
     // item is the app's own front.
     if (typeof item === 'string' && item) {
-      if (this.projectTab === 'outpost') this.powershellOutpostItem = item;
+      if (this.projectTab === 'outpost') { this.powershellOutpostItem = item; this.powershellOutpostTab = itemtab || ''; }
       if (this.projectTab === 'docs' && item.startsWith(p + '/')) this.projectDocSel = item.slice(p.length + 1);
     }
     if (this.projectTab === 'app') this.projectAppRoute = typeof item === 'string' ? item.replace(/^\?/, '') : '';
@@ -6202,6 +6280,10 @@ function app(){ return {
   get repoMenuItems(){
     if (this.menuKind === 'github') return this.githubMenuItems;
     if (this.menuKind === 'projects') return this.projectMenuItems;
+    if (this.menuKind === 'programs') return this.programMenuItems;
+    // The Program view's views, opened from the Map's mark on its masthead:
+    // every row is the caller's, each with its own run.
+    if (this.menuKind === 'views') return this.menuExtra;
     if (this.menuKind === 'repos') return this.estateRepoMenuItems;
     if (this.menuKind !== 'repo') return [...this.menuExtra, ...this.repoActionItems];
     // THE REPO, TWICE, then where it goes on GitHub, as one FLAT list. The two
@@ -6261,6 +6343,15 @@ function app(){ return {
                 title: 'Task board: ' + open.board, run: () => this.openProjectBoard(repo, open) },
     ].filter(Boolean);
   },
+  // The Program view's switcher, opened from the program mark: every program
+  // under its own icon and nothing else, the open one's label in primary. A
+  // program opens on the tab in view where it has one.
+  get programMenuItems(){
+    const open = this.view === 'program' ? this.sidebarPrograms.find(p => p.name === this.programName) : null;
+    return this.sidebarPrograms.map(p => ({ key: 'program:' + p.key, label: p.label, title: p.repo + ': ' + (p.path || p.name),
+      icon: p.icon, img: window.Programs?.iconSrc(p) || '', current: !!open && p.key === open.key,
+      run: () => this.goProgram(p.name, this.programTab) }));
+  },
   // Rows the CALLER contributed for this opening, ahead of the standard ones.
   // A menu about a repo is opened from somewhere, and that somewhere sometimes
   // has an action only it can offer: the Activity view's chip contributes
@@ -6268,7 +6359,8 @@ function app(){ return {
   // meaningless from the sidebar, and an estate card with a nested -private
   // companion contributes its face switch. Each carries its own `run`, so the
   // shell hosts them without knowing what they do. Accepted for the actions
-  // and repo kinds alike; the GitHub list stays purely destinations.
+  // and repo kinds alike, and the whole of the views kind (the Program view's
+  // views); the GitHub list stays purely destinations.
   menuExtra: [],
   // Things you do TO a repo, not inside one, and by now a SHORT list, because
   // every row that left had somewhere better to be:
@@ -6574,12 +6666,15 @@ function app(){ return {
     // ?repo= already stamped; a non-default pill rides as &tab= so "open
     // budget-wa's docs" is one link.
     { key: 'project', when: u => !!u.project,
-      open(u){ this.goProject(u.project, u.tab, u.item); },
+      open(u){ this.goProject(u.project, u.tab, u.item, u.itemtab); },
       ready(){ return !!this.projectPath; },
       stamp(p){
         p.set('project', this.projectPath);
         if (this.projectTab && this.projectTab !== 'overview') p.set('tab', this.projectTab);
-        if (this.projectTab === 'outpost' && this.powershellOutpostItem) p.set('item', this.powershellOutpostItem);
+        if (this.projectTab === 'outpost' && this.powershellOutpostItem) {
+          p.set('item', this.powershellOutpostItem);
+          if (this.powershellOutpostTab) p.set('itemtab', this.powershellOutpostTab);
+        }
         if (this.projectTab === 'docs' && this.projectDocSel) p.set('item', this.projectPath + '/' + this.projectDocSel);
         if (this.projectTab === 'app' && this.projectAppRoute) p.set('item', this.projectAppRoute);
       } },
@@ -6618,10 +6713,18 @@ function app(){ return {
       } },
     { key: 'sessions',
       open(u = {}){
+        // The tab, its grain and the Repos tab's repo are read back here, so
+        // Back and Forward restore them as they restore the record and list.
+        // `lens` is the tab's key before 2026-11-20 (sessionTabOf).
+        const tab = u.tab || u.lens || '';
+        this.sessionTab = tab;
+        this.sessionGrain = u.grain || '';
+        this.sessionReposItem = tab === 'repos' ? (u.item || '') : '';
         this.sessionSpec = u.session || '';
         this.sessionFind = this.sessionSpec ? String(u.find || '').trim() : '';
         this.sessionSearchSeed = { q: u.aq || '', discussion: u.discussion === '1',
-          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '' };
+          scope: u.ascope || 'day', repo: u.arepo || '', state: u.astate || '',
+          launched: u.alaunched || '' };
         document.dispatchEvent(new CustomEvent('web-tools:session-search-seed', { detail: this.sessionSearchSeed }));
         this.goSessions();
         if (this._restoring) document.dispatchEvent(new CustomEvent('web-tools:restore-session', {
@@ -6644,6 +6747,9 @@ function app(){ return {
         if (search?.scope && search.scope !== 'day') p.set('ascope', search.scope);
         if (search?.repo) p.set('arepo', search.repo);
         if (search?.state && search.state !== 'all') p.set('astate', search.state);
+        // The launched filter: `only` the sessions another session started, or
+        // `hide` them. Showing every session is the default and stays silent.
+        if (search?.launched) p.set('alaunched', search.launched);
         // The LIST, which is the pane's scope rather than one open record, so it
         // outlives the deck: closing a swiper drops `session=` and leaves the
         // reader on the list they arrived with, not on whatever the default
@@ -6656,8 +6762,10 @@ function app(){ return {
         if (this.sessionTopicSpec) p.set('topic', this.sessionTopicSpec);
         // The default of each is silent, so the shortest address that means
         // "the Sessions pane as it opens" is still ?view=sessions alone.
-        if (this.sessionLens && this.sessionLens !== 'list') p.set('lens', this.sessionLens);
+        if (this.sessionTab && this.sessionTab !== 'list') p.set('tab', this.sessionTab);
         if (this.sessionGrain && this.sessionGrain !== 'session') p.set('grain', this.sessionGrain);
+        // The repo open in the Repos tab (lib/alpineComponents/session-repos.js).
+        if (this.sessionTab === 'repos' && this.sessionReposItem) p.set('item', this.sessionReposItem);
       } },
     { key: 'writes',   open(){ this.goWrites(); } },
     { key: 'chats',    open(){ this.goChats(); } },
@@ -6673,6 +6781,10 @@ function app(){ return {
       } },
     { key: 'map',
       open(u){
+        // A program's page was the Programs tab's until 2026-11-18, at
+        // ?view=map&tab=programs&program=<name>; that address opens the
+        // Program view now, which stamps its own.
+        if (u.tab === 'programs' && u.program) return this.goProgram(u.program);
         // A restore onto Context re-reads its sub-address; onto any other tab
         // the held one stays, as the component's own state does.
         if (Object.values(MAP_CTX_TAB).includes(u.tab)) this.mapCtx = mapCtxOf(k => u.tab === MAP_CTX_TAB[k] && u[k]);
@@ -6688,6 +6800,17 @@ function app(){ return {
         // tab and view.
         for (const [k, tab] of Object.entries(MAP_CTX_TAB))
           if (tab === this.mapTab && this.mapCtx[k]) p.set(k, this.mapCtx[k]);
+      } },
+    // A program is estate-level, so its link stands alone, as Waiting's does:
+    // the name, a tab other than its first, and on that first tab the area
+    // its side panel is narrowed to.
+    { key: 'program', when: u => !!u.program,
+      open(u){ this.goProgram(u.program, u.tab, u.area); },
+      ready(){ return !!this.programName; },
+      stamp(p){
+        p.set('program', this.programName);
+        if (this.programTab && this.programTab !== PROGRAM_TABS[0]) p.set('tab', this.programTab);
+        else if (this.programArea) p.set('area', this.programArea);
       } },
     // The repo's Files view: its tree beside the file it opens
     // (alpineComponents/file-browser.js). It was folded into Search until
@@ -6714,6 +6837,9 @@ function app(){ return {
     { key: 'compactions',
       open(u){ this.goCompactions({ item: u.item }); },
       stamp(p){ if (this.compactionsItem) p.set('item', this.compactionsItem); } },
+    // Usage: where token spending goes across the sessions, an Activity pill.
+    // Its five readings are pills inside the pane, with no address.
+    { key: 'usage', open(){ this.goUsage(); } },
     // The Search view's address carries the ran search (sq + friends, stamped
     // from searchSeed, which the view updates on each run) AND the file open in
     // it (sfile, an owner/repo[@ref]:path address), so the screen can be shared
@@ -6821,32 +6947,34 @@ function app(){ return {
   // `file` and `path` are the retired Files view's keys, kept in the delete
   // list so a stale one is cleared rather than carried into a screen that does
   // not mean it; nothing stamps them now. `ref` is deleted here and re-stamped
-  // above, being repo-scoped rather than any view's.
+  // above, being repo-scoped rather than any view's. `lens` is the same case:
+  // the Sessions tab's key until 2026-11-20, read on arrival (sessionTabOf)
+  // and cleared here, so the address leaves with `tab` in its place.
   // `on` is here to be DELETED and never written: it is the query fallback for
   // the subject's own params (appViewUrl), and the fragment is where they
   // belong, so an address arriving with ?on= leaves with '#'. That is the
   // self-heal, and it is why the key is in this list rather than a stamp.
   //
   // THE SESSIONS ROW'S FOUR ARRIVED LATE AND WERE MISSING FOR A WEEK.
-  // `session` and `list` (`set` until 2026-10-11) name the record and the scope; `lens` and `grain` are
+  // `session` and `list` (`set` until 2026-10-11) name the record and the scope; `lens` (`tab` from 2026-11-20) and `grain` are
   // how it is read. All four are stamped (PR #636 and #641, 2026-09-08 and
   // 09-09) and none was listed here, so they were written and never cleared:
   // leaving Sessions with a record open put `&session=…&set=…&lens=…&grain=…`
   // on the Map, on the Atlas, and on every address copied afterwards. The
   // second harm is worse than the untidiness, because these four are seeded
   // from `location.search` at construction: a cold load of one of those
-  // polluted addresses arms the Sessions pane with a record and a lens the
+  // polluted addresses arms the Sessions pane with a record and a tab the
   // reader never asked for, which appears the next time they open it.
   //
   // The rule this list states is not "list what looks stale". It is that a key
   // ANY row can stamp must be here, or the address carries it out of the only
   // screen that means it. node/test/app-routes.test.mjs now holds the two to
   // each other, so a stamp added without its key fails rather than drifts.
-  VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'call', 'window',
+  VIEW_KEYS: ['file', 'col', 'row', 'view', 'path', 'ref', 'project', 'tab', 'detail', 'item', 'itemtab', 'call', 'window',
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'skind', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
-              'aq', 'discussion', 'ascope', 'arepo', 'astate',
-              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h',
+              'aq', 'discussion', 'ascope', 'arepo', 'astate', 'alaunched',
+              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h', 'program', 'area',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   routeFor(view){ return this.VIEWS.find(r => r.key === view); },
@@ -6890,11 +7018,14 @@ function app(){ return {
              sextra: p.get('sextra') || '',
              aq: p.get('aq') || '', discussion: p.get('discussion') || '',
              ascope: p.get('ascope') || '', arepo: p.get('arepo') || '', astate: p.get('astate') || '',
+             alaunched: p.get('alaunched') || '',
              session: p.get('session') || '', find: p.get('find') || '',
+             lens: p.get('lens') || '', grain: p.get('grain') || '',
              next: p.get('next') || '',
+             program: p.get('program') || '', area: p.get('area') || '',
              ...mapCtxOf(k => p.get(k)),
              pane: p.get('pane') || '', card: p.get('card'),
-             item: p.get('item') || '', call: p.get('call') || '',
+             item: p.get('item') || '', itemtab: p.get('itemtab') || '', call: p.get('call') || '',
              window: this.parseWindowParam(p.get('window')) };
   },
 
@@ -6915,8 +7046,11 @@ function app(){ return {
     // survives a view change and travels with the address the header's ref
     // switch mints (which starts from an empty base, where ?use= must not
     // survive but this must, or a ref switch would silently reframe the page).
-    if (this.shellMode !== this.defaultShellMode) p.set('shell', this.shellMode);
-    else p.delete('shell');
+    if (!this.headerOn) p.set('header', '0'); else p.delete('header');
+    if (this.sidebarStart && (this.sidebarStart === '1') !== this.defaultSidebarOpen)
+      p.set('sidebar', this.sidebarStart);
+    else p.delete('sidebar');
+    p.delete('shell'); // SUNSET(2027-02-01): the preset rewrites to the two above
     for (const k of this.VIEW_KEYS) p.delete(k);
     // The browsed ref rides beside the repo, not on a view. It was the Files
     // view's key while the Files view was the only thing that read it; the
@@ -6954,18 +7088,34 @@ function app(){ return {
   // shared one, because the two decks hold different objects and a link that
   // said `detail=` for either would have to be disambiguated by the ?view= it
   // rides with, which is a rule nobody reading the address could apply.
-  // The Sessions pane's lens and, inside the table lens, its grain. Held here
+  // The Sessions pane's tab and, inside the Table tab, its grain. Held here
   // for the reason mapTab is: the URL is the shell's to own, and a view whose
   // state it does not carry cannot be linked. That was not academic. The render
-  // link handed over for this pane opened it on the List lens twice while the
+  // link handed over for this pane opened it on the List tab twice while the
   // thing under review was the table, so the reply had to end "now tap Table".
   //
   // Defaults stay OUT of the address (see the stamp below), so a plain
   // ?view=sessions link keeps meaning what it has always meant.
-  sessionLens: new URLSearchParams(location.search).get('lens') || '',
+  sessionTab: sessionTabOf(new URLSearchParams(location.search)),
   sessionGrain: new URLSearchParams(location.search).get('grain') || '',
-  goSessionLens(lens, grain){
-    if (lens !== undefined) this.sessionLens = lens || '';
+  sessionReposItem: (p => sessionTabOf(p) === 'repos' ? p.get('item') || '' : '')(new URLSearchParams(location.search)),
+  // The Repos tab picked a repo. Browsing (a list tap, a swipe, a step)
+  // updates the address in place, so Back leaves the tab in one step;
+  // following a link (a companion tapped in the orbit) adds an entry, so Back
+  // returns to the repo the reader followed it from. All repos is the
+  // default and stays out of the address.
+  setSessionReposItem(id, { push = false } = {}){
+    id = id && id !== '*' ? id : '';
+    if (id === this.sessionReposItem) return;
+    this.sessionReposItem = id;
+    if (this.view !== 'sessions') return;
+    const restoring = this._restoring;
+    this._restoring = restoring || !push;
+    try { this.syncUrl(); } finally { this._restoring = restoring; }
+  },
+  goSessionTab(tab, grain){
+    if (tab !== undefined) this.sessionTab = tab || '';
+
     if (grain !== undefined) this.sessionGrain = grain || '';
     this.syncUrl();
   },
@@ -6974,8 +7124,10 @@ function app(){ return {
   sessionSearchSeed: (() => {
     const p = new URLSearchParams(location.search);
     return { q: p.get('aq') || '', discussion: p.get('discussion') === '1',
-      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '' };
+      scope: p.get('ascope') || 'day', repo: p.get('arepo') || '', state: p.get('astate') || '',
+      launched: p.get('alaunched') || '' };
   })(),
+
   setSessionSearch(seed){
     this.sessionSearchSeed = seed;
     const restoring = this._restoring;
@@ -7045,7 +7197,7 @@ function app(){ return {
     { param: 'u', carries: 'inline' }, { param: 'src', carries: 'reference' },
   ],
   VISIT_TOSS_ROUTES: [
-    { key: 'audit' }, { key: 'chat-results' }, { key: 'data' }, { key: 'passage-reading' }, { key: 'pdf' }, { key: 'shorter' },
+    { key: 'audit' }, { key: 'chat-results' }, { key: 'data' }, { key: 'inspection' }, { key: 'passage-reading' }, { key: 'pdf' }, { key: 'shorter' },
   ],
 
   visits: [],
@@ -7248,7 +7400,7 @@ function app(){ return {
       if (url && url.window) this.branchWindow = url.window;
       // Back out of a mode change the way you back out of a view change: the
       // address is the whole state, so a restore re-reads this too.
-      this.readShellMode();
+      this.readDisplayParams();
       await this.ensureBrowser(url?.repo, url?.ref);
       // A miss here is a real address the table cannot open, so land somewhere
       // honest rather than leaving the previous screen up under a new URL.
@@ -7315,7 +7467,7 @@ function app(){ return {
   // isEstate gates the estate component (it renders the grid and the Stage,
   // switching on this.view, sharing the one lazy mount); estateCtx is the
   // wider context test the sidebar switches on.
-  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'local', 'compactions', 'state', 'traffic'].includes(this.view); },
+  get isEstate(){ return ['repos', 'stage', 'lists', 'branches', 'activity', 'sessions', 'writes', 'chats', 'local', 'compactions', 'usage', 'state', 'traffic'].includes(this.view); },
   // The Lists view is the one estate pane that FILLS rather than flows: the
   // open list scrolls inside itself, so the page must not scroll and the chain
   // from the pane down to the component root has to carry a definite height.
@@ -7324,18 +7476,21 @@ function app(){ return {
   // classes are the shell's markup, not the component's.
   // Compactions fills too, for the same reason: its list and its strip each
   // scroll inside themselves (html-style rule 11).
-  get listsFill(){ return this.view === 'lists' || this.view === 'compactions'; },
+  get listsFill(){ return this.view === 'lists' || this.view === 'compactions' || (this.view === 'sessions' && this.sessionTab === 'repos'); },
   // App views are estate-level (peers of Repos/Stage), so they share
   // the estate sidebar context: the per-repo view list stays hidden and the
   // header reads "Repositories".
-  get estateCtx(){ return this.isEstate || this.view === 'map' || this.view === 'tools' || this.view === 'search' || this.view === 'state' || this.view === 'app' || this.view === 'public' || this.view === 'here' || this.view === 'tending'; },
+  get estateCtx(){ return this.isEstate || this.view === 'map' || this.view === 'program' || this.view === 'tools' || this.view === 'search' || this.view === 'state' || this.view === 'app' || this.view === 'public' || this.view === 'here' || this.view === 'tending'; },
   // Whether the pinned desktop sidebar has anything to show: always in a repo
   // (its views / pins / recents), and in the estate whenever it has repo-sourced
   // content — the Repos index or the app views (News). Both are token-gated, so
   // a signed-out estate has neither and the dashboard takes the full width. It
   // is about CONTENT, not about the viewer's choice: sidebarOpen carries that,
-  // and the aside is gone from a wide screen when either says so.
-  get showSidebar(){ return !this.estateCtx || this.estateRepos.length > 0 || this.sidebarAppViews.length > 0; },
+  // and the aside is gone from a wide screen when either says so. The Program
+  // view keeps it signed out too, where the Programs section is the way
+  // between programs.
+  get showSidebar(){ return !this.estateCtx || this.estateRepos.length > 0 || this.sidebarAppViews.length > 0
+    || (this.view === 'program' && this.sidebarPrograms.length > 0); },
   // The sidebar Repos index, folded into its groups (core / data / tools …) in
   // the sorted order estateRepos already carries, so each group's rows stay
   // contiguous under one label, matching the Repos grid. Ungrouped repos ride an
@@ -7385,7 +7540,7 @@ function app(){ return {
       // ?view=branches resolves to Branches, and the pill row leads with
       // Sessions, since a chip that moves is a target a reader has to
       // learn twice.
-      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'local', 'compactions', 'state', 'traffic', 'tending'],
+      { view: 'sessions', views: ['sessions', 'branches', 'writes', 'chats', 'local', 'compactions', 'usage', 'state', 'traffic', 'tending'],
         icon: 'ph-pulse',    label: 'Activity', go: () => this.goSessions() },
       // Waiting: the owner's queue, user calls and proposed edits. Standing
       // with a token, since proposed edits are rarely none and counting them
@@ -7406,7 +7561,9 @@ function app(){ return {
       // `search`: an address is not a label, and every ?view=search link ever
       // shared still opens it.
       { view: 'search',   icon: 'ph-magnifying-glass', label: 'Search', go: () => this.goSearch() },
-      { view: 'map',      icon: 'ph-compass',      label: 'Map',      go: () => this.goMap() },
+      // A program's page lights Map, where every program is listed beside
+      // the others, though the page is a view of its own.
+      { view: 'map', views: ['map', 'program'], icon: 'ph-compass', label: 'Map', go: () => this.goMap() },
       // State: what the estate keeps derived, and how old each piece is. A
       // standing entry rather than a conditional one (Proposals is the only
       // conditional): the answer to "is what I am looking at current" has to be
@@ -7855,6 +8012,9 @@ function app(){ return {
     this._restoring = true;
     try { this.syncUrl(); } finally { this._restoring = restoring; }
   },
+  // Usage reads the session store's usage extracts itself, on its first
+  // visit; mounted then and kept (usageSeen), as Compactions is.
+  goUsage(){ this.estateSeen = true; this.usageSeen = true; this.view = 'usage'; this.syncUrl(); },
   // `repo` is a filter a Repos card or a branch row hands in, deliberately not
   // stamped: it narrows a reading, and a shared link should open the whole set.
   goTending(opts = {}){
@@ -7862,6 +8022,35 @@ function app(){ return {
     this.tendingTab = opts.tab === 'settled' ? 'settled' : '';
     this.tendingItem = opts.item || '';
     if ('repo' in opts) this.tendingRepo = opts.repo || '';
+    this.syncUrl();
+  },
+  // One program's own view. A tab it has nothing for falls back to its first
+  // when drawn (program.js, tabOf), so a tab kept from another program, as
+  // the switcher keeps it, costs nothing. An area is one program's, so only
+  // an address that names it keeps one.
+  goProgram(name, tab, area){
+    const n = String(name || '').trim();
+    if (!n) return this.goMap('programs');
+    this.programName = n;
+    this.programTab = PROGRAM_TABS.includes(tab) && tab !== PROGRAM_TABS[0] ? tab : '';
+    this.programArea = !this.programTab && area ? String(area) : '';
+    this.programSeen = true; this.view = 'program'; this.syncUrl();
+  },
+  // A tab tap from inside program(): stamped, so back and forward walk the
+  // tabs. A tab leaves the picked area behind, as the address does.
+  goProgramTab(tab){
+    if (!PROGRAM_TABS.includes(tab)) return;
+    const next = tab === PROGRAM_TABS[0] ? '' : tab;
+    if (next !== this.programTab) this.programArea = '';
+    this.programTab = next;
+    this.syncUrl();
+  },
+  // An area picked on the Areas tab, or '' for every area: stamped, so Back
+  // clears it.
+  goProgramArea(name){
+    const a = String(name || '');
+    if (a === this.programArea) return;
+    this.programArea = a;
     this.syncUrl();
   },
   goPages(){ this.view = 'pages'; this.syncUrl(); },
@@ -8130,7 +8319,7 @@ function app(){ return {
       if (pct >= 20 && pct <= 80) root.style.setProperty('--deck-dock-left', `calc(100vw - ${pct}vw)`);
     } else root.style.removeProperty('--deck-dock-left');
     // MEASURED, not stated. The header is h-14 plus a border, but it is also
-    // conditional (shellMode) and a second copy of its height here would be a
+    // conditional (headerOn) and a second copy of its height here would be a
     // number to keep in step with a class nobody would think to look at. A
     // hidden header measures 0, which is the right answer for free. This sets
     // --deck-head; the CSS maps it into --deck-top only at lg and up, so a
@@ -8356,12 +8545,12 @@ function app(){ return {
   // and this rule is a superset of that one, so the component's listener is gone
   // rather than coordinated with; a page that mounts quickFind without this
   // shell wires its own. The box declares itself with an id the router names
-  // (`quick-find-box`), and a VIEW's own box declares itself with
-  // `data-find-box`.
+  // (`quick-find-input`), and a VIEW's own box declares itself with
+  // `data-find-input`.
   //
   // THE VIEW'S BOX WINS WHERE IT IS ON SCREEN. Typing while looking at a list
   // and its filter means "narrow this", not "search the estate", so a visible
-  // `data-find-box` takes the keystroke and the sidebar never opens. Visibility
+  // `data-find-input` takes the keystroke and the sidebar never opens. Visibility
   // is `getClientRects()`, not `offsetParent`, which is null for any fixed
   // element and so would have reported the phone's sidebar hidden while it was
   // out.
@@ -8404,7 +8593,7 @@ function app(){ return {
       if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey && (e.key === 'f' || e.key === 'F')) {
         if (window.swipeDeck?.stack?.length || document.querySelector('dialog[open]')) return;
         const pill = document.getElementById('find-pill-box');
-        const to = Array.from(document.querySelectorAll('[data-find-box]')).find(el => el.getClientRects().length)
+        const to = Array.from(document.querySelectorAll('[data-find-input]')).find(el => el.getClientRects().length)
           || (pill && pill.getClientRects().length ? pill : null);
         if (!to || document.activeElement === to) return;
         e.preventDefault();
@@ -8430,14 +8619,14 @@ function app(){ return {
       if (window.swipeDeck?.stack?.length) return;
       if (document.querySelector('dialog[open]')) return;
 
-      // WHICH BOX MAY WEAR data-find-box: a VIEW's own primary search, over the
+      // WHICH BOX MAY WEAR data-find-input: a VIEW's own primary search, over the
       // content that view is showing. Only one view is on screen, so at most
       // one such box is ever visible and `first visible` is not a race. A box
       // inside something that OVERLAYS a view is disqualified for exactly that
       // reason: the fab drawer's debug console carries a filter, and marking it
       // would put two boxes on screen at once with DOM order deciding between
       // them. The membership is held by app-typeahead.test.mjs.
-      const own = Array.from(document.querySelectorAll('[data-find-box]'))
+      const own = Array.from(document.querySelectorAll('[data-find-input]'))
         .find(el => el.getClientRects().length);
       if (own) { own.focus(); return; }
       // Below sm a hoisting pane hides its own box, and the header's find
@@ -8452,7 +8641,7 @@ function app(){ return {
       // reader's eye already is, which is nowhere. Measured 2026-09-04: without
       // this gate the seeded character landed in a box that stayed
       // display:none, and focus never moved.
-      const box = document.getElementById('quick-find-box');
+      const box = document.getElementById('quick-find-input');
       if (!box || !this.showSidebar) return;
       if (this.sidebarOpen) { box.focus(); return; }
       e.preventDefault();
@@ -9141,58 +9330,99 @@ function app(){ return {
     if (v && v.key && !list.some(x => x.key === v.key)) list.unshift(v);
     return list;
   },
-  // ── The shell mode, and the sidebar it decides the opening state of ───────
+  // The sidebar's Programs: every estate repository's `programs` declarations,
+  // read through window.Programs (lib/alpineComponents/program.js) as the Map's
+  // Programs list and the Program view read them, the hub's first. Signed in
+  // they come from the config cache the Repos index already read; signed out
+  // that cache is not read, so the hub's own manifest stands in (the open
+  // repo's when the hub is open, else one read of it), and web-tools' programs
+  // still show.
+  get sidebarPrograms(){
+    if (!window.Programs) return [];
+    const s = Alpine.store('browser'), hub = this.DEFAULT_REPO;
+    const hubCfg = this.estateConfigs?.[hub] || (s.repo === hub ? s.config : null) || this.hubManifest;
+    if (!hubCfg && s.repo !== hub && !HUB_MANIFEST_ASKED.done) {
+      HUB_MANIFEST_ASKED.done = true;
+      queueMicrotask(() => this.loadHubManifest());
+    }
+    const sources = [hubCfg && { repo: hub, ref: '', config: hubCfg },
+      ...this.estateRepos.filter(r => r.repo !== hub).map(r => ({ repo: r.repo, ref: '', config: this.estateConfigs?.[r.repo] }))];
+    return window.Programs.rows(sources.filter(x => x && x.config));
+  },
+  // A program's own icon, an SVG drawn in its own colour like a project's.
+  programIconSrc(p){ return window.Programs?.iconSrc(p) || ''; },
+  async loadHubManifest(){
+    if (!window.GH) return;
+    try {
+      const cfg = JSON.parse((await new window.GH({ token: this.hasToken() ? window.TOKEN : '', repo: this.DEFAULT_REPO }).get('.web-tools.json')).text);
+      if (cfg && typeof cfg === 'object' && !Array.isArray(cfg)) this.hubManifest = cfg;
+    } catch {}
+  },
+  // The program the Program view shows, as the sidebar has it: the first row
+  // of that name, the hub's where two repositories declare one.
+  get sidebarProgramKey(){
+    if (this.view !== 'program') return '';
+    return this.sidebarPrograms.find(p => p.name === this.programName)?.key || '';
+  },
+  // ── ?header= and ?sidebar=, read and set ──────────────────────────────────
   //
   // Read straight from location.search rather than through parseUrl(), which
   // returns null when the address names no repo, file, or view: a bare
-  // `?shell=none` on the estate is a real link and would otherwise be dropped
+  // `?header=0` on the estate is a real link and would otherwise be dropped
   // on the floor.
-  // Stores whatever valid mode arrived, WITHOUT setShellMode's agreement rule,
+  // Stores whatever valid value arrived, WITHOUT setHeader's agreement rule,
   // because this runs before the route resolves: `this.view` is still the
-  // landing and every address would look like it agreed with `full`. So
-  // `?shell=full&app=budget-drs` would have its own request thrown away. A
-  // redundant incoming mode costs nothing instead: the stamp drops it at the
-  // next syncUrl and the address self-heals.
-  readShellMode(){
-    const v = (new URLSearchParams(location.search).get('shell') || '').trim();
-    this._shellChoice = this.SHELL_MODES.includes(v) ? v : '';
-    this.sidebarOpen = this.defaultSidebarOpen;
+  // landing, so a redundant-looking value cannot be judged yet. A redundant
+  // value costs nothing: the stamp drops it at the next syncUrl and the
+  // address self-heals. A value other than 0 or 1 reads as absent, so a
+  // hand-edited or truncated link cannot hide the header with no way back.
+  readDisplayParams(){
+    const q = new URLSearchParams(location.search);
+    const bit = k => { const v = (q.get(k) || '').trim(); return v === '0' || v === '1' ? v : ''; };
+    let header = bit('header'), sidebar = bit('sidebar');
+    // SUNSET(2027-02-01): the ?shell= preset, read only where the new
+    // parameters say nothing. `full` was the header with the sidebar at its
+    // per-width default, which on an app view meant open on a wide screen, so
+    // the alias asks for that explicitly; `nav` was the header with the
+    // sidebar closed; `none` was neither.
+    const preset = (q.get('shell') || '').trim();
+    const alias = { full: { header: '', sidebar: this.wideViewport ? '1' : '' },
+                    nav:  { header: '', sidebar: '0' },
+                    none: { header: '0', sidebar: '' } }[preset];
+    if (alias) {
+      if (!q.has('header')) header = alias.header;
+      if (!q.has('sidebar')) sidebar = alias.sidebar;
+    }
+    this._headerChoice = header;
+    this.sidebarStart = sidebar;
+    this.sidebarOpen = this.sidebarStartsOpen;
   },
-  // Desktop opens with the sidebar out, a phone with it away, and only the
-  // `full` mode takes that default: the other two are asking for the view.
-  // Matched to the lg breakpoint the sidebar's own classes switch on, so the
-  // default and the layout cannot disagree about what "desktop" means.
+  // What the sidebar opens as when the address names nothing: out on a wide
+  // screen, away on a phone, and away on an app view or with the header off,
+  // which are both asking for the view. Matched to the lg breakpoint the
+  // sidebar's own classes switch on, so the default and the layout cannot
+  // disagree about what "desktop" means.
   get defaultSidebarOpen(){
-    return this.shellMode === 'full' && this.wideViewport;
+    return this.headerOn && this.view !== 'app' && this.wideViewport;
+  },
+  get sidebarStartsOpen(){
+    return this.sidebarStart ? this.sidebarStart === '1' : this.defaultSidebarOpen;
   },
   get wideViewport(){
     try { return window.matchMedia('(min-width: 1024px)').matches; } catch { return true; }
   },
-  setShellMode(mode){
-    if (!this.SHELL_MODES.includes(mode) || mode === this.shellMode) return;
-    if (mode === 'none') this._shellReturn = this.shellMode;
-    // A CHOICE THAT AGREES WITH THE VIEW'S DEFAULT IS NOT A CHOICE, and
-    // clearing it is what keeps a toggle local to the screen it was made on.
-    // Turning the header off on an app view says "this page, bare", which is
-    // already what that view does; latching it as a choice carried `shell=none`
-    // out to the dashboard and left the estate with no nav and only the fab as
-    // the way back. Measured in a browser: two taps on one app view and the
-    // whole app had lost its chrome.
-    //
-    // It also keeps the state and the address agreeing by construction, since
-    // deepLinkParams stamps against exactly this comparison.
-    this._shellChoice = mode === this.defaultShellMode ? '' : mode;
-    this.sidebarOpen = this.defaultSidebarOpen;
+  // A CHOICE THAT AGREES WITH THE DEFAULT IS NOT A CHOICE, and clearing it is
+  // what keeps a toggle local to the screen it was made on. Shown is the
+  // default everywhere, so only hiding is stored. The sidebar's start is a
+  // separate reading and is left alone, so a ?sidebar=0 link whose header goes
+  // off and comes back keeps its sidebar closed rather than springing it out.
+  setHeader(on){
+    on = !!on;
+    if (on === this.headerOn) return;
+    this._headerChoice = on ? '' : '0';
+    this.sidebarOpen = this.sidebarStartsOpen;
     this.syncUrl();
   },
-  // Which header-bearing mode to come back to. The drawer offers ONE control, a
-  // header on/off (see `toggles`), which is a projection of three modes onto
-  // two, so coming back is ambiguous and this holds the answer. Without it,
-  // someone who opened a ?shell=nav link, hid the header and brought it back
-  // would land on `full` and have the sidebar spring out at them, a state they
-  // never asked for and would have to put away by hand.
-  _shellReturn: 'full',
-  setHeader(on){ this.setShellMode(on ? (this._shellReturn || 'full') : 'none'); },
   // Deliberately NOT stamped into the URL. syncUrl pushes a history entry per
   // distinct address, so an addressable sidebar would put one on the stack
   // every time the drawer was tapped and make Back walk them; and the mode
@@ -9212,15 +9442,15 @@ function app(){ return {
   //
   // ONE CONTROL, not three, and the sidebar is deliberately not among them.
   // The sidebar already has two owners a reader can reach: the header's
-  // hamburger in the app, and ?shell=nav in the address. A third copy in the
+  // hamburger in the app, and ?sidebar= in the address. A third copy in the
   // drawer would be a control for the thing standing next to it. What is left
   // is the only part of the shell with no in-app control, since the header
   // cannot carry the button that hides the header.
   get toggles(){
-    const on = this.shellMode !== 'none';
+    const on = this.headerOn;
     return [{
       key: 'header', label: 'Header', icon: 'ph-layout', on,
-      title: on ? 'Hide the header and show the view alone (?shell=none)'
+      title: on ? 'Hide the header and show the view alone (?header=0)'
                 : 'Bring the header back, and its sidebar toggle with it',
       set: v => this.setHeader(v),
     }];
@@ -9236,7 +9466,7 @@ function app(){ return {
   // none. The claim is now true rather than deleted, since the reason it gave
   // was the right one.
   get menu(){
-    const on = this.shellMode !== 'none';
+    const on = this.headerOn;
     return [{
       label: on ? 'Hide the header' : 'Show the header',
       icon: 'ph-layout',
@@ -9482,7 +9712,10 @@ function gallery(){
       this.loaded = false;
       if (isDefault){
         // web-tools: the generated page catalog. Live preview is the deployed
-        // page at ?use=main; thumbnails are the committed shots. Flat since
+        // page at ?use=main; a row's thumb names its shot in the registry's
+        // thumbs/ (node/build/shot-store.mjs), read under a token by loadThumbs,
+        // since a page can show private data. With no token a card keeps its
+        // no-screenshot face. Flat since
         // 2026-08-16, so the grouping the gallery renders is rebuilt here from
         // each row's own `top` and `group` rather than arriving as nesting.
         try {
@@ -9494,13 +9727,14 @@ function gallery(){
             g.items.push({
               ...p,
               href: REBASE + p.href,
-              thumb: REBASE + p.thumb,
+              thumb: '', shot: p.thumb,
               live: REBASE + p.href + '?use=main',
               repo, path: null,
-              view: 'shot', source: '', shotMissing: false,
+              view: 'shot', source: '', shotMissing: true,
             });
           }
           this.groups = [...byGroup.values()];
+          this.loadThumbs(this.groups.flatMap(g => g.items));
         } catch(e){
           this._loadKey = null;
           notify('Could not load the pages catalog: ' + (e?.message || e));
@@ -9577,7 +9811,7 @@ function gallery(){
       if (!shell?.hasToken?.() || !window.GH) return;
       const reg = new window.GH({ token: window.TOKEN, repo: shell.REGISTRY_REPO, ref: 'main' });
       await Promise.all(items.map(async it => {
-        const rel = catalogThumbPath(it.repo, it.path, it.query);
+        const rel = it.shot || catalogThumbPath(it.repo, it.path, it.query);
         try {
           const data = await reg.req('contents/' + rel + '?ref=main');
           if (data && data.content) {
@@ -9657,7 +9891,7 @@ function gallery(){
 
 // ── Find pill: a view's filter box, hoisted into the header ─────────────────
 // The pill owns no query. It writes to the open view's own box (the
-// [data-find-box] input inside a view marked data-find-hoist, which that view
+// [data-find-input] input inside a view marked data-find-hoist, which that view
 // hides) and dispatches `input`, so each view's x-model, filtering and URL
 // stamp run exactly as if typed there. What it adds is placement: no row of
 // the view, one place for every view's filter, below lg a full-width 16px
@@ -9699,12 +9933,12 @@ function findPill(){
   };
   const scope = () => { const s = window.__shell; return s ? s.view + (s.view === 'map' ? ':' + s.mapTab : '') : ''; };
   return {
-    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [],
+    has: false, open: false, q: '', placeholder: 'Filter', shown: '', also: [], recents: [], submit: '',
 
     // Retried because a view mounts its component lazily on first visit.
     resolve(){ this.$nextTick(() => [0, 250, 1000, 2500].forEach(ms => setTimeout(() => this.find(), ms))); },
     find(){
-      const hit = [...document.querySelectorAll('[data-find-hoist] input[data-find-box]')]
+      const hit = [...document.querySelectorAll('[data-find-hoist] input[data-find-input]')]
         .find(live) || null;
       // The placeholder is read even when the box is the same one: Activity's
       // four panes share a box whose placeholder follows the pane.
@@ -9717,7 +9951,7 @@ function findPill(){
       watch?.disconnect();
       if (box) {
         watch = new MutationObserver(() => this.mark());
-        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also'] });
+        watch.observe(viewOf(box), { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['style', 'class', 'data-find-count', 'data-find-noun', 'data-find-also', 'data-find-submit'] });
       }
       this.mark();
     },
@@ -9830,12 +10064,13 @@ function findPill(){
         let also = [];
         try { also = JSON.parse(d.findAlso || '[]'); } catch {}
         this.also = also.filter(a => a.n > 0).map(a => ({ ...a, text: this.phrase(a.n, a.noun) }));
+        this.submit = d.findSubmit || '';
         if (!box || !terms.length) { reg?.delete('find-pill'); return; }
         const root = this.listOf() || box.closest('section') || viewOf(box);
         if (!reg) return;
         const ranges = [], walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         for (let n = walk.nextNode(); n && ranges.length < 500; n = walk.nextNode()) {
-          if (!n.data.trim() || n.parentElement?.closest('label:has(>input[data-find-box])') || !seen(n.parentElement)) continue;
+          if (!n.data.trim() || n.parentElement?.closest('label:has(>input[data-find-input])') || !seen(n.parentElement)) continue;
           const text = n.data.toLowerCase();
           for (const t of terms)
             for (let i = text.indexOf(t); i !== -1; i = text.indexOf(t, i + t.length)) {
@@ -9851,6 +10086,16 @@ function findPill(){
     phrase(n, noun = 'match|matches'){
       const [one, many] = noun.includes('|') ? noun.split('|') : [noun, noun + 's'];
       return n + ' ' + (n === 1 ? one : many);
+    },
+    // Enter closes the bar, as it always has. Where the view's box names a
+    // results page for its term (data-find-submit, a method of the view's own
+    // component, as an Also entry's `go` is), Enter opens that page with the
+    // term as typed: the view's own model may be debounced behind it.
+    enter(el){
+      const t = this.q.trim(), go = this.submit;
+      const view = t && go && box && window.Alpine?.$data(box);
+      el.blur();
+      if (typeof view?.[go] === 'function') view[go](t);
     },
     // An Also entry names a method of the view's own component (the box's
     // scope) and its argument, so the view decides what opening its other
