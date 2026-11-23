@@ -189,7 +189,8 @@ test('a branch line opens the branch panel-tip, which draws the whole tile', asy
   const line = [...doc.querySelectorAll('[data-branch-line]')]
     .find(el => (el.getAttribute('aria-label') || '').endsWith('/feat/a'));
   assert.ok(line, 'the branch is one line under its session');
-  assert.ok(line.textContent.includes('work a'), 'saying what the branch is');
+  assert.ok(line.textContent.trim().startsWith('tools'), 'led by the repo, as a PR citation is');
+  assert.ok(line.textContent.includes('work a'), 'then saying what the branch is');
   assert.equal(line.querySelectorAll('button, a').length, 0, 'with no controls of its own');
   const settle = async () => { await new Promise(r => setTimeout(r, 0)); await Alpine.nextTick(); };
 
