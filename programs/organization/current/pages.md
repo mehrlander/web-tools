@@ -2,7 +2,12 @@
 
 The estate is the owner's repositories and everything in them.
 
-This map answers four questions about the estate's HTML pages: what each page is and whether it is a tool, how it relates to the Web Tools app, whether it is public and whether its source names a private repository, and which catalogues list it.
+This map answers four questions about the estate's HTML pages:
+
+1. What is each page, and is it a tool?
+2. How does it relate to the Web Tools app?
+3. Is it public, and does its source name a private repository?
+4. Which catalogues list it?
 
 A catalogue here is a file that lists pages; the six are under [Catalogues](#catalogues). The map covers every page that at least one of them names. An HTML file that no catalogue names is outside the map; the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists those.
 
@@ -57,13 +62,15 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | record | is kept for history or provenance and no longer does its job |
 <!-- /pages-map:standing -->
 
-**Job** takes the values that [`codes.csv`](../../../data/ui-units/codes.csv) lists on its `job` axis. [The forms README](../../../docs/forms/README.md#jobs) defines them. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. That page's job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+**Job** takes the values that [`codes.csv`](../../../data/ui-units/codes.csv) lists on its `job` axis. [The forms README](../../../docs/forms/README.md#jobs) defines them. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. [`page-jobs.csv`](page-jobs.csv) leaves that page's job blank.
 
-A **tool** is a product page whose job includes make: the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
+`basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+
+A **tool** is a product page whose job includes make, the job in which the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
 
 **Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
-**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. The script does not read the source of a page in a private repository. That page's cell is blank.
+**names_private** applies to a page in a public repository. It lists the private repositories the page's source names as `owner/repo`. It reads `none` when the source names none. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. The script does not read the source of a page in a private repository. That page's cell is blank.
 
 ## The map
 
