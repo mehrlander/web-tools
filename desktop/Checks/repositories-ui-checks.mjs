@@ -212,6 +212,41 @@ check(/checking|automatic|update/i.test(phase('checking').getAttribute('aria-lab
  'The per-repository phase has a touch and accessible explanation naming its repository.');
 syncStrip().focus();setTop(160);await poll();
 check(panelOpen()&&doc.activeElement===syncStrip()&&position()===160,'Live queue polling preserves the open sync panel, trigger focus and reading position.');
+// JSDOM has no layout: model a tall popup whose native scroll range depends on
+// its current height, including clamping when a resize enlarges its viewport.
+const panelScroll=new WeakMap(),panelContentHeight=960;
+const elementPrototype=w.Element.prototype,stylePrototype=Object.getPrototypeOf(doc.createElement('div').style);
+const panelProperties=Object.fromEntries(['scrollTop','clientHeight','scrollHeight'].map(name=>[name,Object.getOwnPropertyDescriptor(elementPrototype,name)]));
+const originalMaxHeight=Object.getOwnPropertyDescriptor(stylePrototype,'maxHeight');
+const panelViewport=panel=>Math.min(panelContentHeight,parseFloat(panel.style.maxHeight)||panelContentHeight);
+const clampPanelScroll=panel=>{const value=Math.max(0,Math.min(panelScroll.get(panel)||0,panelContentHeight-panelViewport(panel)));panelScroll.set(panel,value);return value;};
+try{
+ for(const name of ['scrollTop','clientHeight','scrollHeight'])Object.defineProperty(elementPrototype,name,{
+  configurable:true,get(){return this.id==='repository-sync-panel'?(name==='scrollTop'?clampPanelScroll(this):name==='clientHeight'?panelViewport(this):panelContentHeight):panelProperties[name].get.call(this);},
+  ...(name==='scrollTop'?{set(value){if(this.id!=='repository-sync-panel')return panelProperties.scrollTop.set.call(this,value);panelScroll.set(this,Number(value));clampPanelScroll(this);}}:{})
+ });
+ Object.defineProperty(stylePrototype,'maxHeight',{...originalMaxHeight,set(value){originalMaxHeight.set.call(this,value);const panel=syncPanel();if(panel?.style===this)clampPanelScroll(panel);}});
+ w.HTMLElement.prototype.getBoundingClientRect=function(){return this.matches('[data-sync-strip]')?new w.DOMRect(12,280,340,32):originalRectangle.call(this);};
+ w.dispatchEvent(new w.Event('resize'));
+ const scrolledPanel=syncPanel(),focusedLink=scrolledPanel.querySelector('[data-focus]');
+ focusedLink.focus();scrolledPanel.scrollTop=180;
+ assert.equal(scrolledPanel.scrollTop,180,'The constrained popup must have a nonzero scroll range before polling.');
+ await poll();
+ check(syncPanel()!==scrolledPanel&&panelOpen()&&syncPanel().scrollTop===180
+  &&doc.activeElement.dataset.focus===focusedLink.dataset.focus&&syncPanel().contains(doc.activeElement)&&position()===160,
+  'Polling preserves the sync popup scroll and focused link when its replacement initially has no height constraint.');
+ const bottom=syncPanel().scrollHeight-syncPanel().clientHeight;
+ syncPanel().scrollTop=bottom;w.dispatchEvent(new w.Event('resize'));
+ check(syncPanel().scrollTop===bottom,'Repositioning an open sync popup preserves its bottom scroll position.');
+ await poll();
+ check(panelOpen()&&syncPanel().scrollTop===bottom&&syncPanel().contains(doc.activeElement)
+  &&doc.activeElement.dataset.focus===focusedLink.dataset.focus&&position()===160,
+  'A later poll preserves the sync popup bottom position, focused link and Files reading position.');
+}finally{
+ for(const [name,descriptor] of Object.entries(panelProperties))Object.defineProperty(elementPrototype,name,descriptor);
+ Object.defineProperty(stylePrototype,'maxHeight',originalMaxHeight);
+ w.HTMLElement.prototype.getBoundingClientRect=originalRectangle;
+}
 const jsonBefore304=repositoryJsonReads;repositoryStatus=304;await poll();
 check(phase('checking')&&panelOpen()&&repositoryJsonReads===jsonBefore304
  &&requests.filter(r=>r.path==='/api/v1/repositories').at(-1).headers['If-None-Match']==='"fixture-repositories"',
