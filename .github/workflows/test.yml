@@ -121,6 +121,9 @@ jobs:
       - name: Check bounded repository subprocesses
         run: python3 desktop/Checks/repository-process-checks.py
 
+      - name: Check repository observation caching
+        run: python3 desktop/Checks/repository-cache-checks.py
+
   edit-policy:
     # A job of its own because it needs what the suite's checkout leaves out:
     # history back to the merge base with main, which the default depth-one
