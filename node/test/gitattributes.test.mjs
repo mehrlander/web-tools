@@ -83,8 +83,7 @@ test('every file a commit rule rebuilds whole is regenerated, and every regenera
   }).flatMap(s => files.filter(f => f === s || f.startsWith(s.replace(/\/$/, '') + '/')));
   assert.ok(whole.length, 'no rule has an output, so this test checks nothing');
   assert.deepEqual(whole.filter(f => edit[f] !== 'regenerated').sort(), [], 'rebuilt whole by a rule but not edit=regenerated');
-  // The reverse: a regenerated file is a rule's output, or is a page thumbnail,
-  // which `npm run pages-shots` rebuilds once a session (CLAUDE.md, "Per-session refresh").
-  const built = (f) => staged.some(s => f === s || f.startsWith(s.replace(/\/$/, '') + '/')) || f.startsWith('pages/thumbs/');
+  // The reverse: a regenerated file is a rule's output.
+  const built = (f) => staged.some(s => f === s || f.startsWith(s.replace(/\/$/, '') + '/'));
   assert.deepEqual(files.filter(f => edit[f] === 'regenerated' && !built(f)).sort(), [], 'edit=regenerated with no rule that builds it');
 });

@@ -182,6 +182,14 @@
     return wrap;
   };
 
+  // A note as a file to keep: the name is ready for the button's title, the
+  // text is built only when the reader taps Download.
+  const noteFile = i => ({
+    name: NOTES[i].title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '.md',
+    type: 'text/markdown',
+    bytes: () => `# ${NOTES[i].title}\n\n${NOTES[i].paras.join('\n\n')}\n`,
+  });
+
   function openDeck(extra = {}) {
     const start = extra.start || 0;
     current = window.swipeDeck.open({
@@ -192,6 +200,7 @@
       icon: 'ph-notebook',
       link: { href: 'https://github.com/mehrlander/web-tools/blob/main/lib/kits/swipe-deck.js',
               title: 'The kit source', icon: 'ph-code' },
+      download: noteFile(start),
       index: i => ({ title: NOTES[i].title, subtitle: NOTES[i].subtitle,
                      icon: NOTES[i].icon, group: NOTES[i].group }),
       actions: [
@@ -201,7 +210,7 @@
           onClick: (deck, btn) => { flag(deck.active()); btn.classList.add('text-primary'); } },
       ],
       subheader: chapterStrip(start),
-      onSlide: i => { say(i); current?.setSubheader(chapterStrip(i)); },
+      onSlide: i => { say(i); current?.setSubheader(chapterStrip(i)); current?.setDownload(noteFile(i)); },
       onClose: () => { current = null; },
       ...extra,
     });
@@ -311,8 +320,10 @@ const deck = swipeDeck.open({        // the takeover
   count: notes.length, render, title: 'Field notes', icon: 'ph-notebook',
   index: i =&gt; ({ title: notes[i].title, group: notes[i].group }),
   actions: [{ icon: 'ph-shuffle', title: 'Random', onClick: d =&gt; d.go(pick()) }],
+  download: { name: 'ridge-cut.md', type: 'text/markdown', bytes: () =&gt; text },
 });
 deck.setSubheader(strip);            // chrome belonging to the slide
+deck.setDownload(fileOf(i));         // the file in view; null withdraws it
 swipeDeck.drill(deck, { count: 4, render: readings });   // one level down
 deck.close();</code></pre>
   </section>
