@@ -9,23 +9,21 @@ The estate is the owner's repositories and everything in them. This map answers 
 | [`pages.csv`](pages.csv) | the measured facts, one row per page | [`pages-map.mjs`](pages-map.mjs), from the catalogues, the app's code, the source of each page in a public repository, and GitHub's list of public repositories |
 | [`page-jobs.csv`](page-jobs.csv) | each page's standing and job, judged by hand | hand |
 
-`node programs/organization/current/pages-map.mjs` rewrites `pages.csv` and the generated blocks of this document. With `--check`, it reports what is stale instead, and it also fails when `page-jobs.csv` lacks a row for a page or breaks a rule under [Terms](#terms).
+`node programs/organization/current/pages-map.mjs` rewrites `pages.csv` and the generated blocks of this document. With `--check`, it reports what is stale instead. The check also fails when `page-jobs.csv` lacks a row for a page or breaks a rule under [Terms](#terms).
 
 Either form reads two kinds of checkout beside this one:
 
 - [web-tools-private](https://github.com/mehrlander/web-tools-private), whose `state/configs.json` holds the app's crawl of every repository's `.web-tools.json`;
 - a clone of each other public repository that declares pages, whose page sources the script reads.
 
-When a judgment in `page-jobs.csv` is wrong, correct its row.
-
 ## Catalogues
 
 | Catalogue | File | Lists | The app shows it in |
 | --- | --- | --- | --- |
 | gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under `pages/`, the kit demos under `lib/kits/demos/` and the skill demos | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
-| manifest | `pages` in each repository's `.web-tools.json` | the pages a repository declares, its own or another repository's | the Tools view, the repository's Pages view, and the sidebar for a page marked `appView` |
-| landing | `projects[].landing` in each `.web-tools.json` | a project's front page | the Project view's App tab |
-| tools | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the Tools view, in the web-tools group |
+| manifest | `pages` in each repository's `.web-tools.json` | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar for a page marked `appView` |
+| landing | `projects[].landing` in each `.web-tools.json` | a project's front page | the [Project view](https://mehrlander.github.io/web-tools/app/?view=project)'s App tab |
+| tools | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
 | units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
 | forms | [`docs/forms/README.md`](../../../docs/forms/README.md) | the pages it names as forms | the Map view's [Forms tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=forms) |
 
@@ -36,14 +34,12 @@ When a judgment in `page-jobs.csv` is wrong, correct its row.
 <!-- pages-map:app -->
 | Value | The page |
 | --- | --- |
-| view | is marked `appView` in a manifest, or is a project's landing, so the app shows it inside its own frame as a destination |
+| view | is marked `appView` in a manifest or is a project's landing; the app shows it inside its own frame as a destination |
 | full-app | is marked `fullApp`: it brings its own header and navigation and opens outside the app |
 | framed | is named in the `files` of a row of `docs/app-routes.csv`, as `pages/repo-atlas.html` draws the Atlas view and `pages/toss-render.html` renders every app view |
 | linked | is named by a line of code in `app/index.html` or `lib/`, comment lines and demo folders excepted |
 | standalone | meets none of these: the app reaches it only through a catalogue listing |
 <!-- /pages-map:app -->
-
-The Tools view previews any listed page in a frame. That preview does not make a page framed.
 
 **Standing**, in `page-jobs.csv`:
 
@@ -63,7 +59,7 @@ A **tool** is a product page whose job includes make: the reader works on someth
 
 **Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
-**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. For a page in a private repository, the cell is blank, because the script does not read its source.
+**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. The script does not read the source of a page in a private repository, and leaves its cell blank.
 
 ## The map
 
