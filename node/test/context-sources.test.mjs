@@ -82,9 +82,12 @@ test('every hook the plugin registers has a row', () => {
   const scripts = new Set();
   for (const entries of Object.values(hooks))
     for (const e of entries) for (const h of e.hooks)
-      for (const m of h.command.matchAll(/hooks\/([\w.-]+\.sh)/g)) scripts.add('skills/hooks/' + m[1]);
+      for (const m of h.command.matchAll(/hooks\/([\w.-]+\.(?:sh|py))/g)) scripts.add('skills/hooks/' + m[1]);
   const claimed = new Set(rows.map(r => r.path));
-  for (const s of scripts) assert.ok(claimed.has(s), s + ' enters sessions but has no row in docs/context-sources.csv');
+  // Registered .py hooks that have no row yet: a known gap, not a license.
+  // Delete an entry when its row lands; a new hook gets a row, not an entry.
+  const unrowed = new Set(['session-activity.py', 'check-in.py', 'session-detail-caption.py'].map(n => 'skills/hooks/' + n));
+  for (const s of [...scripts].filter(s => !unrowed.has(s))) assert.ok(claimed.has(s), s + ' enters sessions but has no row in docs/context-sources.csv');
 });
 
 test('every topic a row names is declared, and every declared topic is used', () => {

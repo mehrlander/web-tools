@@ -106,6 +106,54 @@ check(requests.filter(r=>r.method==='POST').length===1,'Overlapping taps cannot 
 const request=requests.find(r=>r.method==='POST');check(request.path==='/api/v1/repositories/'+repoKey+'/fetch'&&request.headers['X-WebTools-Action']==='1'&&!request.body,'The check reuses the discovered repository key and existing deliberate-action header.');
 release();hold=null;await flush();check(doc.querySelector('[role=status][data-popup]')?.textContent==='GitHub check queued.'&&doc.querySelector('[data-fetch=all] .animate-spin'),'A queued check has quiet action feedback and a real progress icon.');
 data.refreshing=[];await poll();postStatus=500;click('[data-fetch=all]');await flush();check(doc.querySelector('[role=status][data-popup]')?.textContent==='GitHub check unavailable.','A failed manual check reports its result without claiming the local folder changed.');
+const beforeMainSync=structuredClone(c),syncChecked=new Date(Date.now()-120000).toISOString(),syncUpdated=new Date(Date.now()-180000).toISOString();
+const postCount=requests.filter(r=>r.method==='POST').length;
+c.branch='main';c.upstream='origin/main';c.tracked=comp('current',0,0,'main');c.main=comp('current',0,0,'main');c.branchStatus={state:'main'};
+delete repo.mainSync;await poll();click(`[data-branch-signal="${key}"]`);
+const primaryIcon=()=>row().querySelector(`[data-branch-signal="${key}"]`);
+check(!indicator('ahead')&&!indicator('behind')&&!branchPanel().querySelector('[data-main-sync]')&&!primaryIcon().getAttribute('aria-label').includes('automatic'),
+ 'A legacy snapshot keeps zero differences hidden without claiming an automatic update was observed.');
+repo.mainSync=null;await poll();check(!branchPanel().querySelector('[data-main-sync]'),'A null optional update result remains unknown.');
+repo.mainSync={state:'updated',reason:null,folder:c.name,checkedAt:syncChecked,updatedAt:syncUpdated};
+primaryIcon().focus();setTop(160);await poll();
+check(!branchPanel().hidden&&!indicator('ahead')&&!indicator('behind')&&branchPanel().textContent.includes('Default folder project was updated automatically.')
+ &&branchPanel().textContent.includes('Automatic check')&&branchPanel().textContent.includes('Last automatic update')&&branchPanel().textContent.includes('GitHub checked')
+ &&primaryIcon().getAttribute('aria-label').includes('Default folder project was updated automatically.')&&doc.activeElement===primaryIcon()&&position()===160,
+ 'A successful zero-count update remains accessible through the existing repository icon, with independent times and polling focus retained.');
+repo.mainSync={...repo.mainSync,state:'current',updatedAt:null};await poll();
+check(branchPanel().textContent.includes('was current at the automatic check')&&!branchPanel().textContent.includes('was updated automatically'),
+ 'An already-current folder is distinguished from an observed automatic update.');
+repo.mainSync={...repo.mainSync,state:'blocked',reason:'active-session'};c.tracked=comp('behind',0,4,'main');await poll();
+check(primaryIcon().classList.contains('text-amber-700')&&indicator('behind').textContent==='4'
+ &&indicator('behind').getAttribute('data-title-tip').includes('session activity was detected')&&indicator('behind').getAttribute('aria-label').includes('Automatic check')
+ &&branchPanel().textContent.includes('Automatic update of project was blocked')&&!row().querySelector('[data-menu]').classList.contains('text-amber-700'),
+ 'A blocked automatic update marks its repository icon and arrow detail without changing numeric comparisons or GitHub-check freshness.');
+repo.mainSync={...repo.mainSync,state:'failed',reason:'update-unavailable'};await poll();
+check(primaryIcon().classList.contains('text-amber-700')&&branchPanel().textContent.includes('update result could not be confirmed'),
+ 'An unconfirmed update reports a separate failed outcome without claiming success.');
+click(`[data-menu="${key}"]`);check(menu().querySelectorAll('[role=menuitem]').length===2&&menu().textContent==='Check GitHubOpen on GitHub',
+ 'Automatic update details add no explanatory rows or new actions to the existing menu.');
+click(`[data-workfolders="${repoKey}"]`);click(`[data-branch-signal="${otherKey}"]`);
+check(!doc.querySelector('#branch-'+otherKey).querySelector('[data-main-sync]')&&!doc.querySelector(`[data-branch-signal="${otherKey}"]`).getAttribute('aria-label').includes('automatic'),
+ 'A group update result is not presented as an update to another work folder.');
+repo.mainSync={...repo.mainSync,folder:other.name,state:'updated',reason:null};other.branchStatus={state:'main'};await poll();
+check(!doc.querySelector('[data-main-sync]'),'A stale branch-state label cannot attach a default-folder success to a known feature branch.');
+delete other.branchStatus;repo.mainSync={...repo.mainSync,folder:c.name,state:'blocked',reason:'constructor'};await poll();click(`[data-branch-signal="${key}"]`);
+check(branchPanel().textContent.includes('a safe update could not be confirmed')&&!branchPanel().textContent.includes('native code'),
+ 'An unfamiliar reason, including a prototype property name, receives fixed generic wording.');
+for(const value of [{...repo.mainSync,state:'updating'},{...repo.mainSync,checkedAt:'not a time'},{...repo.mainSync,updatedAt:'not a time'},
+ {...repo.mainSync,reason:'<img src=x onerror=alert(1)>'},{...repo.mainSync,state:'updated',reason:null,folder:null}]){
+ repo.mainSync=value;await poll();
+ check(!branchPanel().querySelector('[data-main-sync]')&&!primaryIcon().classList.contains('text-amber-700')&&indicator('behind').textContent==='4',
+  'Malformed optional update metadata leaves the valid repository observation and comparison readable.');
+}
+Object.assign(c,beforeMainSync);repo.mainSync={state:'blocked',reason:'activity-unavailable',folder:null,checkedAt:syncChecked,updatedAt:null};await poll();
+check(branchPanel().textContent.includes('Repository automatic update was blocked: session activity could not be checked.')
+ &&!branchPanel().textContent.includes('Default folder project was updated'),
+ 'A result without a selected default folder uses repository-wide wording in the fallback branch popup.');
+delete repo.mainSync;await poll();
+check(requests.filter(r=>r.method==='POST').length===postCount,'Observing automatic-update metadata never initiates a manual fetch or update action.');
+
 offline=true;await poll();const before=requests.length;click('[data-fetch=all]');
 check(requests.length===before&&doc.querySelector('[data-fetch=all]').disabled&&doc.querySelector('#connection').textContent==='Saved','Saved observations remain readable but cannot start a GitHub check.');
 click('[data-view=now]');check(position()===250,'Now retains its independent reading position.');click('[data-view=files]');await flush();check(position()===160,'The folder root retains its reading position.');

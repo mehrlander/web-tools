@@ -12,8 +12,10 @@ public record RepositoryBranchStatus(string State, string? Url, int? Number, str
 public record RepositoryCheckout(string Key, string Name, string Branch, string? Upstream,
     int? Changed, int? Untracked, int? Conflicts, RepositoryComparison Tracked, RepositoryComparison Main,
     RepositoryFileInventory? LocalFiles = null, RepositoryBranchStatus? BranchStatus = null);
+public record RepositoryMainSync(string State, string? Reason, string? Folder,
+    DateTimeOffset CheckedAt, DateTimeOffset? UpdatedAt);
 public record RepositoryGroup(string Key, string Name, string? Url, DateTimeOffset? CheckedAt,
-    DateTimeOffset? AttemptedAt, string? Notice, List<RepositoryCheckout> Checkouts);
+    DateTimeOffset? AttemptedAt, string? Notice, List<RepositoryCheckout> Checkouts, RepositoryMainSync? MainSync = null);
 public record RepositorySnapshot(int SchemaVersion, string MachineName, DateTimeOffset ObservedAt,
     List<RepositoryGroup> Repositories, List<string> Refreshing, string? Notice = null);
 public record FolderEntry(string Name, string Kind, string? GitState, long? Bytes,
