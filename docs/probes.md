@@ -13,15 +13,7 @@ The folder's README links the term probes to this file and says only what is par
 
 ## Status
 
-A probe's status, from the docs catalog's [vocabulary](README.md), says how its write-up is kept:
-
-- `living`: corrected in place, and kept correct.
-- `measured`: dated observations, corrected by re-probing.
-- `record`: preserves a moment. [`.gitattributes`](../.gitattributes) marks it `edit=write-once`, and a note corrects it.
-
-A [research declaration](manifest.md#research-declarations)'s `status` field holds the status of the probe or folder the declaration names.
-
-A probe that is no longer maintained, as distinct from a record, is archived: moved to an [`archive/`](../archive/) folder.
+A probe's [research declaration](manifest.md#research-declarations) gives its `status`: `living`, `measured` or `record`, as the [docs catalog](README.md) defines them. A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
 
 ## Sources
 
