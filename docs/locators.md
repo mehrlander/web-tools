@@ -150,19 +150,22 @@ trap).
 - The path grammar and its parser,
   [`repo-address.js`](../lib/kits/repo-address.js). The notes locator reads it
   and extends it with `owner/repo#N` and `note:<id>`.
-  [`note.py`](../skills/notes/note.py) keeps a copy of the patterns, held to
-  the same answers by [`notes-kit.test.mjs`](../node/test/notes-kit.test.mjs).
-- Fragment locators in the content registry.
-- Spans pinned by a document hash in standoffs.
-- Quote anchors on notes.
-- Content-addressed passages.
+  [`note.py`](../skills/notes/note.py) keeps a copy of the patterns, and
+  [`notes-kit.test.mjs`](../node/test/notes-kit.test.mjs) checks that the copy
+  gives the same answers.
+- Fragment locators in the [content registry](../lib/kits/content-registry.js).
+- Spans pinned by a document hash in standoffs ([annotation.md](annotation.md)).
+- Quote anchors on notes ([annotate.js](../lib/kits/annotate.js)).
+- Content-addressed passages
+  ([`passages.jsonl`](https://github.com/mehrlander/home/blob/main/projects/text/passages.jsonl)
+  in home).
 - Notes addressed to any locator, with `note.py show <about>` as the inbound
   lookup for notes.
 - The broken test with its verdicts in
   [`dead-links.py`](../python/dead-links.py).
 - [`python/annotate/anchors.py`](../python/annotate/anchors.py), which tests
-  quotes on notes and spans in standoffs. The pre-commit hook runs it on what
-  a commit changes.
+  quotes on notes and spans in standoffs. The
+  [pre-commit hook](../.githooks/pre-commit) runs it on what a commit changes.
 
 **Does not exist yet:** a declared stance per kind of reference; stored witnesses
 on anything but standoffs; the cascade; an inbound index across kinds of

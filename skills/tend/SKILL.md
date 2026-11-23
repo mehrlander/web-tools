@@ -48,8 +48,7 @@ record.
    request. It marks a covered one for reassessment when that subject
    changed after the finding's last update; give a settled finding that needs
    work again `status: "open"` and a new `next`. Each subject section below
-   adds its own signals. Treat a signal as a reason to investigate; only a
-   conclusion becomes a finding.
+   adds its own signals.
 3. **Investigate** each candidate not marked covered until the conclusion
    would survive the owner's first question.
 4. **Write** one finding per conclusion with `findings.py add`: its subjects,
@@ -60,8 +59,7 @@ record.
    task or drop it; either answer settles the finding.
    Name as subjects the files the conclusion rests on, including those
    outside the work, such as main's copy of a file the work was compared
-   against. Name the narrowest file that holds the claim: a later pass
-   rereads the finding whenever a subject changes.
+   against. Name the narrowest file that holds the claim.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
