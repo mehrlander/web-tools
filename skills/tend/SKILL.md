@@ -36,19 +36,20 @@ this file; [`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob
 record.
 
 1. **Reassess.** Reread each open finding. `findings.py check` lists them,
-   each with the subjects that changed since its last update: a pull request
-   updated or a branch pushed, per the crawl's cache, or a file committed to,
-   per the checkouts beside the notes store. It names any checkout too
-   shallow to read. Reply with `findings.py update` where a finding changed,
-   or where a subject did and the finding still holds (`"finding": {}`
-   confirms it). An update replaces each field it carries, so send whole
-   lists.
+   each with the subjects that changed since its last update. It reads when
+   a pull request was updated and a branch pushed from web-tools-private's
+   `state/activity.json`, and when a file was committed to from the
+   checkouts beside web-tools-private. It names any checkout too shallow to
+   read. Reply with `findings.py update` where a finding changed, or where a
+   subject did and the finding still holds (`"finding": {}` confirms it). An
+   update replaces each field it includes, so send whole lists.
 2. **Select.** `findings.py candidates` lists what mechanical signals raise.
    It marks a candidate covered when a finding names its branch or pull
-   request, and due again when that subject changed after the finding's last
-   update; renew a settled finding that is due with `status: "open"` and a
-   new `next`. Each subject below adds its own. A signal is a reason to
-   investigate, never a finding.
+   request. It marks a covered one for reassessment when that subject
+   changed after the finding's last update; give a settled finding that needs
+   work again `status: "open"` and a new `next`. Each subject section below
+   adds its own signals. A signal is a reason to investigate, never a
+   finding.
 3. **Investigate** each candidate not marked covered until the conclusion
    would survive the owner's first question.
 4. **Write** one finding per conclusion with `findings.py add`: its subjects,
@@ -57,10 +58,11 @@ record.
    request, for the list in step 6. For a next step that is new work, rather
    than landing work that exists, ask in the reply whether to file it as a
    task or drop it; either answer settles the finding.
-   Subjects include what lies outside the work, such as main's copy of a file
-   the work was compared against: a later pass rereads the finding when a
-   subject changes. Choose the narrowest file that holds the claim: a file
-   edited daily brings the finding back on every pass.
+   Name as subjects the files the conclusion rests on, including those
+   outside the work, such as main's copy of a file the work was compared
+   against. A later pass rereads the finding when a subject changes, so name
+   the narrowest file that holds the claim; a file edited daily would have
+   every pass reread it.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
@@ -101,10 +103,10 @@ its class:
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 
 `branches.py`, beside this file, applies the table to every remote branch in
-the checkouts and lists the novel and orphan ones, the novel with their
-residue. It marks a novel branch covered when a finding names it as
-`owner/repo@branch`, and due again when it was pushed after that finding's last
-update. A novel branch no finding names has not been examined, however old.
+the checkouts, whatever its age, and lists the novel and orphan ones, the novel
+with their residue. It marks a novel branch covered when a finding names it as
+`owner/repo@branch`. It marks a covered branch for reassessment when the branch
+was pushed after that finding's last update.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
 - **Find:** a novel branch not marked covered. Its residue is the lines it
