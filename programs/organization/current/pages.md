@@ -9,7 +9,7 @@ This map answers four questions about the estate's HTML pages:
 3. Is it public, and does its source name a private repository?
 4. Which catalogues list it?
 
-A catalogue here is a file that lists pages; the six are under [Catalogues](#catalogues). The map covers every page that at least one of them names. An HTML file that no catalogue names is outside the map; the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists those.
+A catalogue here is a file that lists pages; the six are under [Catalogues](#catalogues). The map covers every page that at least one of them names. The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists the HTML files that none of them names.
 
 ## Files
 
@@ -70,7 +70,7 @@ A **tool** is a product page whose job includes make. In the make job, the reade
 
 **Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
-**names_private** applies to a page in a public repository. For a page in a private repository it is blank. The script does not read that page's source. It lists the private repositories the page's source names as `owner/repo`. It reads `none` when the source names none.
+**names_private** is a column for pages in public repositories. For such a page, the column lists the private repositories that the page's source names as `owner/repo`, or holds `none` when the source names none. For a page in a private repository, the column is blank. The script does not read that page's source.
 
 A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names.
 
