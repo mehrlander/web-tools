@@ -4,11 +4,11 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 ## 1. Make the Tools view hold tools
 
-**What the map shows.** The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools) lists every page that a repository's `.web-tools.json` declares under `pages` ([web-tools' own](../../../.web-tools.json) is one): 64 pages, of which 15 are tools. [`docs/tools.csv`](../../../docs/tools.csv) gives five web-tools pages a utility icon. Seven other web-tools pages are tools: [`annotate`](../../../pages/annotate.html), [`dictate`](../../../pages/dictate.html), [`gist-editor`](../../../pages/gist-editor.html), [`launcher`](../../../pages/launcher.html), [`links`](../../../pages/links.html), [`reception`](../../../pages/reception.html) and [`xlsx-picker`](../../../pages/xlsx-picker.html).
+**What the map shows.** The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools) lists every page that a repository's `.web-tools.json` declares under `pages` ([web-tools' own](../../../.web-tools.json) is one): 64 pages, of which 15 are tools as the map defines a tool. The map's generated Tools list names every tool. [`docs/tools.csv`](../../../docs/tools.csv) gives five web-tools pages a utility icon. Seven other web-tools pages are tools: [`annotate`](../../../pages/annotate.html), [`dictate`](../../../pages/dictate.html), [`gist-editor`](../../../pages/gist-editor.html), [`launcher`](../../../pages/launcher.html), [`links`](../../../pages/links.html), [`reception`](../../../pages/reception.html) and [`xlsx-picker`](../../../pages/xlsx-picker.html).
 
 **The change.** List only the tools in the Tools view. Each repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) still lists every page it declares. The alternative is to keep the list and rename the view for what it holds.
 
-**The decision.** Recommended: list only the tools. Then retire [`tools.csv`](../../../docs/tools.csv) once the Tools view reads the tool test from the map. The test would then select what [`tools.csv`](../../../docs/tools.csv) selects by hand.
+**The decision.** Recommended: list only the tools. Then retire [`tools.csv`](../../../docs/tools.csv) once the Tools view reads, from the map, which pages are tools. The map would then select what [`tools.csv`](../../../docs/tools.csv) selects by hand.
 
 ## 2. Show products first in the gallery
 
@@ -32,4 +32,4 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 **The change.** Remove the three declarations from the `pages` lists of [wa-bills' `.web-tools.json`](https://github.com/mehrlander/wa-bills/blob/main/.web-tools.json) and [fn-data's](https://github.com/mehrlander/fn-data/blob/main/.web-tools.json). The files stay where they are.
 
-**The decision.** Recommended: remove the three declarations, and keep [`delivery.html`](../../../pages/delivery.html) in the gallery. The gallery lists what the tree holds. A record is still part of the tree.
+**The decision.** Recommended: remove the three declarations, and keep [`delivery.html`](../../../pages/delivery.html) in the gallery. The gallery lists every HTML file under `pages/`, records included.
