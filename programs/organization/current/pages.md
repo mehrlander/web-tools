@@ -18,7 +18,7 @@ A catalogue here is a file that lists pages; the six are under [Catalogues](#cat
 | [`pages.csv`](pages.csv) | the measured facts, one row per page | [`pages-map.mjs`](pages-map.mjs), from the catalogues, the app's code, the source of each page in a public repository, and GitHub's list of public repositories |
 | [`page-jobs.csv`](page-jobs.csv) | each page's standing and job | hand |
 
-`node programs/organization/current/pages-map.mjs` rewrites [`pages.csv`](pages.csv) and the generated blocks of this document. With `--check`, it reports what is stale instead. The check also fails when [`page-jobs.csv`](page-jobs.csv) lacks a row for a page or breaks a rule under [Terms](#terms).
+Run as `node programs/organization/current/pages-map.mjs`, [`pages-map.mjs`](pages-map.mjs) rewrites [`pages.csv`](pages.csv) and the generated blocks of this document. With `--check`, it reports what is stale instead. The check also fails when [`page-jobs.csv`](page-jobs.csv) lacks a row for a page or breaks a rule under [Terms](#terms).
 
 The script, run either way, reads two kinds of checkout beside the web-tools checkout it runs in:
 
