@@ -277,7 +277,7 @@ function buildHtml() {
     Browser-based tools and demos. Cards show
     <a href="${BLOB}/node/build/pages-shots.mjs" target="_blank"
        class="underline decoration-dotted underline-offset-2 hover:text-base-content/80">screenshots pre-rendered headless</a>
-    (<code class="text-xs">npm run pages-shots</code>); toggle each to a
+    (<code class="text-xs">npm run pages-shots</code>) to a signed-in reader; toggle each to a
     <span class="font-medium">live</span> preview or the <span class="font-medium">source</span>.
   </p>
 
