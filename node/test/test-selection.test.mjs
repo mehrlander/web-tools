@@ -70,6 +70,30 @@ test('opaque and missing-row tests remain in the always-run population', () => {
   assert.ok(result.tests.find(row => row.path === beta).reasons.some(reason => reason.includes('No observed')));
 });
 
+test('external module miss metadata permits selection while older opaque module failures stay selected', () => {
+  const observed = snapshot({ tests: [
+    row(alpha, { files: [alpha, 'lib/alpha.js'], opaque: ['module-resolution-failed'] }),
+    row(beta, { module_misses: [{ specifier: 'canvas', parent: 'node_modules/jsdom/lib/jsdom/utils.js' }] }), row(gate),
+  ] });
+  const result = plan({ snapshot: observed, changedPaths: [] });
+  assert.equal(result.mode, 'selected');
+  assert.deepEqual(picked(result), [alpha, gate]);
+  assert.ok(result.tests.find(row => row.path === alpha).reasons.some(reason => reason.includes('untracked')));
+});
+
+test('malformed external module miss metadata cannot narrow a baseline', () => {
+  const miss = { specifier: 'canvas', parent: 'node_modules/jsdom/lib/jsdom/utils.js' };
+  for (const module_misses of [null, {}, undefined, [null], [{ ...miss, specifier: '../outside' }],
+    [{ ...miss, specifier: 'file:///outside.js' }], [{ ...miss, specifier: 'canvas/../outside' }],
+    [{ ...miss, parent: 'lib/project.js' }], [{ ...miss, parent: '../node_modules/jsdom/utils.js' }],
+    [{ ...miss, parent: 'node_modules\\jsdom\\utils.js' }], [{ ...miss, unexpected: true }]]) {
+    const result = plan({ snapshot: snapshot({ tests: [row(alpha, { module_misses }), row(beta), row(gate)] }) });
+    assert.equal(result.mode, 'full', JSON.stringify(module_misses));
+    assert.match(result.reason, /malformed/);
+    assert.deepEqual(picked(result), [alpha, beta, gate]);
+  }
+});
+
 test('unobserved code and shared test infrastructure expand to the complete suite', () => {
   for (const changedPaths of [['lib/unseen.js'], ['node/test/bootstrap.mjs'],
     ['package.json'], ['nested/package.json'], ['nested/package-lock.json'], ['nested/.npmrc'],

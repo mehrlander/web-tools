@@ -104,6 +104,22 @@ test('public reach retains dependencies and provenance without per-run timings',
   assert.equal((await publishReach({ ...run, complete: false }, held)).published, false);
 });
 
+test('external module misses survive private captures and public reach projection', async () => {
+  const run = record(), module_misses = [{ specifier: 'canvas', parent: 'node_modules/jsdom/lib/jsdom/utils.js' }];
+  run.tests[0].module_misses = module_misses;
+  const privateStore = store();
+  const result = await publishRun(run, privateStore);
+  const read = (held, file) => JSON.parse(Buffer.from(held.files.get(file).content, 'base64').toString());
+  assert.deepEqual(read(privateStore, result.capturePath).tests[0].module_misses, module_misses);
+  assert.deepEqual(read(privateStore, 'data/tests/reach.json').tests[0].module_misses, module_misses);
+  const publicStore = store('main');
+  assert.equal((await publishReach(run, publicStore)).published, true);
+  const published = read(publicStore, 'data/tests/reach.json');
+  assert.deepEqual(published.tests[0].module_misses, module_misses);
+  assert.equal(published.tests[0].elapsed_ms, null);
+  assert.equal(Object.hasOwn(reachSnapshot(record()).tests[0], 'module_misses'), false);
+});
+
 test('a newer run on the same source can refresh dependency and runtime observations', async () => {
   const held = store('main'), first = record();
   await publishReach(first, held);
@@ -117,6 +133,9 @@ test('malformed reach and incomplete runtime provenance cannot become baselines'
     { runtime: { ...record().runtime, dependency_fingerprint: '' } },
     { runtime: { ...record().runtime, arch: '' } },
     { tests: [{ ...record().tests[0], files: ['../outside'] }] },
+    { tests: [{ ...record().tests[0], module_misses: [{ specifier: 'canvas', parent: 'lib/project.js' }] }] },
+    { tests: [{ ...record().tests[0], module_misses: [{ specifier: '../canvas', parent: 'node_modules/jsdom/utils.js' }] }] },
+    { tests: [{ ...record().tests[0], module_misses: null }] },
     { tests: [record().tests[0], record().tests[0]] },
     { finished_at: 'not a date' },
   ]) assert.equal(baselineEligible({ ...record(), ...changed }), false);

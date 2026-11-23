@@ -2,12 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
 import { repoRoot as defaultRoot } from '../repo-root.mjs';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { parseCsv } from '../build/registries-load.mjs';
 import { planSelection, changesSince, testFiles } from './select.mjs';
-import { collectObservations, buildRunRecord, dependencyFingerprint, gitSource, writeRecord } from './records.mjs';
+import { collectObservations, buildRunRecord, dependencyFingerprint, gitSource, writeRecord, normalizeModuleMisses } from './records.mjs';
 import { baselineEligible } from './publish.mjs';
 
 const pathKey = value => process.platform === 'win32' ? path.resolve(value).toLowerCase() : path.resolve(value);
@@ -115,6 +116,21 @@ function printPlan(plan, runtime, snapshot) {
   }
 }
 
+export function verifyModuleMisses(root, snapshot) {
+  const checked = new Set();
+  for (const row of snapshot.tests) {
+    for (const miss of Object.hasOwn(row, 'module_misses') ? normalizeModuleMisses(row.module_misses) : []) {
+      const key = miss.parent + '\0' + miss.specifier;
+      if (checked.has(key)) continue;
+      checked.add(key);
+      let absent = false;
+      try { createRequire(path.resolve(root, miss.parent)).resolve(miss.specifier); }
+      catch (error) { absent = error.code === 'MODULE_NOT_FOUND'; }
+      if (!absent) throw new Error(`dependency lookup changed: ${miss.specifier}`);
+    }
+  }
+}
+
 function choosePlan({ root, tests, runtime, snapshot, snapshotError, base }) {
   let source = null;
   let plan;
@@ -125,6 +141,7 @@ function choosePlan({ root, tests, runtime, snapshot, snapshotError, base }) {
       plan = planSelection({ snapshot, tests, gates, changedPaths: [], runtime });
       // Reject an incompatible baseline before starting Git subprocesses.
       if (plan.mode !== 'full') {
+        verifyModuleMisses(root, snapshot);
         const changedPaths = changesSince(root, snapshot.source.checkout_sha);
         if (base) {
           source = gitSource(root, base);

@@ -16,6 +16,38 @@ export function relativePath(value, { directory = false } = {}) {
   return normalized;
 }
 
+export function normalizeModuleMisses(value) {
+  if (!Array.isArray(value)) throw new Error('Invalid observation module_misses');
+  const component = /^[a-z\d][a-z\d._-]*$/i;
+  const pairs = new Map();
+  for (const row of value) {
+    if (!row || typeof row !== 'object' || Array.isArray(row) ||
+        Object.keys(row).length !== 2 || !Object.hasOwn(row, 'specifier') || !Object.hasOwn(row, 'parent') ||
+        typeof row.specifier !== 'string' || typeof row.parent !== 'string') {
+      throw new Error('Invalid observation module_misses entry');
+    }
+    const parts = row.specifier.split('/');
+    const packageLength = row.specifier.startsWith('@') ? 2 : 1;
+    const packageParts = packageLength === 2 ? [parts[0].slice(1), parts[1]] : [parts[0]];
+    if (packageParts.some(part => !component.test(part || '')) ||
+        parts.slice(packageLength).some(part => !/^[a-z\d._-]+$/i.test(part) || part === '.' || part === '..')) {
+      throw new Error('Invalid observation module_misses specifier');
+    }
+    const parent = relativePath(row.parent);
+    const parentParts = parent.split('/');
+    const external = parentParts.slice(parentParts.lastIndexOf('node_modules') + 1);
+    const scoped = external[0]?.startsWith('@');
+    if (parent !== row.parent || !parentParts.includes('node_modules') ||
+        external.length < (scoped ? 3 : 2) ||
+        !(scoped ? component.test(external[0].slice(1)) && component.test(external[1]) : component.test(external[0]))) {
+      throw new Error('Invalid observation module_misses parent');
+    }
+    const result = { specifier: row.specifier, parent };
+    pairs.set(JSON.stringify([parent, row.specifier]), result);
+  }
+  return [...pairs].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([, row]) => row);
+}
+
 function validateObservation(row) {
   if (!row || row.schema !== OBSERVATION_SCHEMA) throw new Error('Unsupported observation schema');
   const result = { ...row, path: relativePath(row.path) };
@@ -33,6 +65,7 @@ function validateObservation(row) {
   }
   if (!Array.isArray(row.opaque) || row.opaque.some(value => typeof value !== 'string')) throw new Error('Invalid opaque reasons');
   result.opaque = [...new Set(row.opaque)].sort();
+  if (Object.hasOwn(row, 'module_misses')) result.module_misses = normalizeModuleMisses(row.module_misses);
   return result;
 }
 

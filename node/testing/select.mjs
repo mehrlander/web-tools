@@ -2,6 +2,7 @@
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { normalizeModuleMisses } from './records.mjs';
 
 const RUN_SCHEMA = 'web-tools-test-run/1';
 const PLAN_SCHEMA = 'web-tools-test-selection/1';
@@ -38,6 +39,10 @@ function opaque(row) {
 }
 
 function validRow(row) {
+  if (row && Object.hasOwn(row, 'module_misses')) {
+    try { normalizeModuleMisses(row.module_misses); }
+    catch { return false; }
+  }
   return row && typeof row === 'object' && relativePath(row.path) &&
     (row.elapsed_ms === null || (Number.isFinite(row.elapsed_ms) && row.elapsed_ms >= 0)) &&
     row.exit_code === 0 && row.complete === true &&

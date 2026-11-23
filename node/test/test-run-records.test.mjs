@@ -7,7 +7,7 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import * as nodeModule from 'node:module';
 import { collectObservations, buildRunRecord, dependencyFingerprint, gitSource, writeRecord, relativePath, repositoryName } from '../testing/records.mjs';
-import { boundSelection, childProfile, createOwnedTemp, removeOwnedTemp } from '../testing/run.mjs';
+import { boundSelection, childProfile, createOwnedTemp, removeOwnedTemp, verifyModuleMisses } from '../testing/run.mjs';
 
 const cli = fileURLToPath(new URL('../testing/run.mjs', import.meta.url));
 const observer = fileURLToPath(new URL('../testing/observe.cjs', import.meta.url));
@@ -58,6 +58,48 @@ test('missing, duplicate, unexpected and malformed workers cannot produce comple
   assert.equal(malformed.complete, false);
 });
 
+test('optional external module misses are canonicalized and retained without changing older observations', t => {
+  const canvas = { specifier: 'canvas', parent: 'node_modules/jsdom/lib/jsdom/utils.js' };
+  const scoped = { specifier: '@example/optional/feature.js', parent: 'node_modules/@example/consumer/index.cjs' };
+  const nested = { specifier: 'optional-package', parent: 'node_modules/consumer/node_modules/dependency/index.js' };
+  const directory = box(t);
+  fs.writeFileSync(path.join(directory, 'worker.json'), JSON.stringify(observation({ module_misses: [canvas, scoped, canvas, nested] })));
+  const collected = collectObservations(directory);
+  assert.deepEqual(collected.errors, []);
+  assert.deepEqual(collected.observations[0].module_misses, [scoped, nested, canvas]);
+  const captured = record({ observations: collected.observations });
+  assert.equal(captured.complete, true);
+  assert.deepEqual(captured.tests[0].module_misses, [scoped, nested, canvas]);
+  assert.deepEqual(record({ observations: [observation({ module_misses: [] })] }).tests[0].module_misses, []);
+  const older = record({ observations: [observation({ opaque: ['module-resolution-failed'] })] });
+  assert.equal(Object.hasOwn(older.tests[0], 'module_misses'), false);
+  assert.deepEqual(older.tests[0].opaque, ['module-resolution-failed']);
+});
+
+test('malformed external module misses make worker observations incomplete', t => {
+  const parent = 'node_modules/jsdom/lib/jsdom/utils.js';
+  const miss = { specifier: 'canvas', parent };
+  const invalid = [null, {}, 'canvas', undefined, [null], [miss, { specifier: 'canvas' }],
+    [{ ...miss, unexpected: true }],
+    ...['', './canvas', '../canvas', '/canvas', 'C:/canvas', 'node:fs', 'https://example.test/canvas',
+      '#canvas', '@scope', '@scope/', 'canvas/', 'canvas/../outside', 'canvas/./feature',
+      'canvas\\feature', 'canvas\0feature', 'canvas%2ffeature', 'canvas?query'].map(specifier => [{ specifier, parent }]),
+    ...['lib/utils.js', 'node_modules/jsdom', 'node_modules/@scope/jsdom', '../node_modules/jsdom/file.js',
+      '/node_modules/jsdom/file.js', 'C:/node_modules/jsdom/file.js', 'node_modules/jsdom/../file.js',
+      'node_modules\\jsdom\\file.js', 'node_modules//jsdom/file.js'].map(parent => [{ ...miss, parent }]),
+  ];
+  for (const module_misses of invalid) {
+    const captured = record({ observations: [observation({ module_misses })] });
+    assert.equal(captured.complete, false, JSON.stringify(module_misses));
+    assert.match(captured.observation_errors.join(' '), /module_misses|repository-relative path/);
+  }
+  const directory = box(t);
+  fs.writeFileSync(path.join(directory, 'malformed.json'), JSON.stringify(observation({ module_misses: [{ ...miss, parent: '../outside.js' }] })));
+  const collected = collectObservations(directory);
+  assert.deepEqual(collected.observations, []);
+  assert.equal(collected.errors.length, 1);
+});
+
 test('shadow cost sums current picked worker elapsed time and leaves missing observations unknown', () => {
   const candidate = { schema: 'web-tools-test-selection/1', mode: 'selected', tests: [{ path: workerPath }], total: 2, selected: 1 };
   const full = record({ expectedTests: [workerPath, 'node/test/b.test.mjs'],
@@ -98,6 +140,27 @@ test('records write atomically and dependency fingerprints change with package o
   writeRecord(output, record({ exitCode: 1 }));
   assert.equal(JSON.parse(fs.readFileSync(output)).exit_code, 1);
   assert.deepEqual(fs.readdirSync(path.dirname(output)), ['run.json']);
+});
+
+test('external module misses are rechecked after a manual dependency install without executing package code', t => {
+  const root = path.join(box(t), 'repo');
+  const parent = 'node_modules/optional-host/index.cjs';
+  const specifier = 'web-tools-optional-module-miss-fixture';
+  fs.mkdirSync(path.dirname(path.join(root, parent)), { recursive: true });
+  fs.writeFileSync(path.join(root, parent), '// Optional dependency consumer.\n');
+  fs.writeFileSync(path.join(root, 'package.json'), '{}');
+  const captured = record({ observations: [observation({ module_misses: [{ specifier, parent }] })] });
+  const fingerprint = dependencyFingerprint(root);
+  assert.doesNotThrow(() => verifyModuleMisses(root, record()), 'older rows can omit module miss metadata');
+  assert.throws(() => verifyModuleMisses(root, { tests: [{ module_misses: null }] }), /Invalid observation module_misses/);
+  assert.doesNotThrow(() => verifyModuleMisses(root, captured));
+  const installed = path.join(root, 'node_modules', specifier), executed = path.join(root, 'executed.txt');
+  fs.mkdirSync(installed);
+  fs.writeFileSync(path.join(installed, 'package.json'), JSON.stringify({ name: specifier, main: 'index.cjs' }));
+  fs.writeFileSync(path.join(installed, 'index.cjs'), `require('node:fs').writeFileSync(${JSON.stringify(executed)}, 'executed');\n`);
+  assert.equal(dependencyFingerprint(root), fingerprint, 'manual install did not alter dependency manifests');
+  assert.throws(() => verifyModuleMisses(root, captured), /dependency lookup changed/);
+  assert.equal(fs.existsSync(executed), false, 'lookup revalidation resolves package paths without running package code');
 });
 
 test('large selected argument lists fall back to the portable full-suite glob', () => {

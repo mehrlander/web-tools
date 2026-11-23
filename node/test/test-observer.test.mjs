@@ -142,6 +142,34 @@ test('module resolution observes an imported repository module when hooks are av
   if (!row.opaque.includes('module-resolution-unavailable')) assert.ok(row.files.includes('dependency.mjs'));
 });
 
+test('missing CommonJS dependencies retain guarded lookup evidence without blanket opacity', t => {
+  const f = fixture(t), dependency = path.join(f.root, 'node_modules/optional-host');
+  mkdirSync(dependency, { recursive: true });
+  writeFileSync(path.join(dependency, 'package.json'), '{"main":"index.cjs"}');
+  writeFileSync(path.join(dependency, 'index.cjs'), "try { require('absent-optional-canvas'); } catch (e) { if (e.code !== 'MODULE_NOT_FOUND') throw e; } module.exports = 42;");
+  const r = run(f, "import value from 'optional-host'; if (value !== 42) throw new Error('wrong export');");
+  assert.equal(r.status, 0, r.stderr);
+  const row = rows(f)[0];
+  if (!row.opaque.includes('module-resolution-unavailable')) {
+    assert.deepEqual(row.module_misses, [{ specifier: 'absent-optional-canvas', parent: 'node_modules/optional-host/index.cjs' }]);
+    assert.equal(row.opaque.includes('module-resolution-failed'), false);
+  }
+});
+
+test('failed dependency ESM imports and project CommonJS lookups remain opaque', t => {
+  const f = fixture(t), dependency = path.join(f.root, 'node_modules/esm-host');
+  mkdirSync(dependency, { recursive: true });
+  writeFileSync(path.join(dependency, 'package.json'), '{"type":"module","main":"index.mjs"}');
+  writeFileSync(path.join(dependency, 'index.mjs'), "try { await import('absent-esm-peer'); } catch {} export default 42;");
+  const r = run(f, "import value from 'esm-host'; import { createRequire } from 'node:module'; try { createRequire(import.meta.url)('absent-project-peer'); } catch {} if (value !== 42) throw new Error('wrong export');");
+  assert.equal(r.status, 0, r.stderr);
+  const row = rows(f)[0];
+  if (!row.opaque.includes('module-resolution-unavailable')) {
+    assert.ok(row.opaque.includes('module-resolution-failed'));
+    assert.equal(row.module_misses, undefined);
+  }
+});
+
 test('failed optional module resolution cannot look like complete empty reach', t => {
   const f = fixture(t);
   const r = run(f, `try { await import('./optional-module.mjs'); } catch (e) { if (e.code !== 'ERR_MODULE_NOT_FOUND') throw e; }`);

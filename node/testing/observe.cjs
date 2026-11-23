@@ -19,6 +19,7 @@ if (output && path.isAbsolute(output) && entry && /\.test\.mjs$/.test(entry) && 
   const root = path.resolve(process.env.WEB_TOOLS_TEST_ROOT || process.cwd());
   const destination = path.resolve(output);
   const sets = { files: new Set(), directories: new Set(), missing: new Set(), opaque: new Set() };
+  const moduleMisses = new Map();
   const original = Object.fromEntries(Object.keys(fs).filter(k => typeof fs[k] === 'function').map(k => [k, fs[k]]));
   const write = original.writeFileSync;
   const mkdir = original.mkdirSync;
@@ -46,6 +47,27 @@ if (output && path.isAbsolute(output) && entry && /\.test\.mjs$/.test(entry) && 
   function within(base, target) {
     const relative = path.relative(base, target);
     return relative === '' || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith('..' + path.sep));
+  }
+
+  const packagePart = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
+  const bareModule = /^(?:@[a-zA-Z0-9][a-zA-Z0-9._-]*\/)?[a-zA-Z0-9][a-zA-Z0-9._-]*(?:\/[a-zA-Z0-9][a-zA-Z0-9._-]*)*$/;
+  function dependencyModuleMiss(specifier, context, error) {
+    if (error.code !== 'MODULE_NOT_FOUND' || !Array.isArray(context.conditions) ||
+        !context.conditions.includes('require') || typeof specifier !== 'string' || !bareModule.test(specifier)) return false;
+    try {
+      const parentFile = fileURLToPath(context.parentURL);
+      if (!within(root, parentFile)) return false;
+      const parent = path.relative(root, parentFile).split(path.sep).join('/');
+      const pieces = parent.split('/'), at = pieces.lastIndexOf('node_modules'), tail = pieces.slice(at + 1);
+      if (at < 0 || tail.length < 2 || !pieces.every(part => part && part !== '.' && part !== '..')) return false;
+      if (tail[0].startsWith('@')) {
+        if (tail.length < 3 || !packagePart.test(tail[0].slice(1)) || !packagePart.test(tail[1])) return false;
+      } else if (!packagePart.test(tail[0])) return false;
+      // Optional CommonJS dependencies are guarded negative lookups. The
+      // selector rechecks availability before using this observation.
+      moduleMisses.set(parent + '\0' + specifier, { specifier, parent });
+      return true;
+    } catch { return false; }
   }
 
   function absolute(value) {
@@ -225,7 +247,7 @@ if (output && path.isAbsolute(output) && entry && /\.test\.mjs$/.test(entry) && 
         let resolved;
         try { resolved = next(specifier, context); }
         catch (error) {
-          sets.opaque.add('module-resolution-failed');
+          if (!dependencyModuleMiss(specifier, context, error)) sets.opaque.add('module-resolution-failed');
           if (typeof specifier === 'string' && (/^\.{1,2}\//.test(specifier) || specifier.startsWith('file:'))) {
             try { note(new URL(specifier, context.parentURL), 'missing'); } catch { /* Opacity remains explicit. */ }
           }
@@ -245,6 +267,7 @@ if (output && path.isAbsolute(output) && entry && /\.test\.mjs$/.test(entry) && 
       started_at: new Date(performance.timeOrigin).toISOString(), finished_at: new Date(finished).toISOString(),
       elapsed_ms: Math.max(0, Math.round(performance.now())), exit_code: code, complete: true,
       ...Object.fromEntries(Object.entries(sets).map(([name, values]) => [name, [...values].sort()])),
+      ...(moduleMisses.size ? { module_misses: [...moduleMisses.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([, value]) => value) } : {}),
     };
     try {
       mkdir(destination, { recursive: true });

@@ -45,6 +45,7 @@ export function reachSnapshot(record) {
     tests: record.tests.map(row => ({
       path: row.path, complete: true, exit_code: 0, elapsed_ms: null,
       files: row.files, directories: row.directories, missing: row.missing, opaque: row.opaque,
+      ...(Object.hasOwn(row, 'module_misses') ? { module_misses: row.module_misses } : {}),
     })),
   };
 }
