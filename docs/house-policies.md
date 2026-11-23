@@ -104,15 +104,14 @@ Common cases that are found to benefit from owner attention are set up with a fo
 
 **Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
 
-### Align now · `h:align`
+### Align on sight · `h:align`
 
-Align names, text or structure that disagree with each other or with what is true as soon as you notice them. Do it in the same session, before the mismatch causes any confusion.
+When names, text or structure disagree with each other or with what is true, propose a correction; do not set it aside. An alignment problem is something to fix as soon as possible.
 
-- Carry a rename to every place the name appears, including links to it in our own repos.
-- Fix unclear or inconsistent wording where you meet it, including text held in code.
-- When alignment cannot finish in this session, say so and make it the next step.
+- A correction carries a rename to every place the name appears, including links to it in our own repos.
+- A correction reaches unclear wording wherever it lives, including text held in code.
 
-The caution in [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives) against improvements addressing hypothetical problems is meant for new guards, rules and channels. A check added after a session errs once is one such guard.
+The caution in [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives) against improvements addressing hypothetical problems is meant for new guards and rules.
 
 **Backed by:** the peeves [P38, Unfinished work](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#unfinished-work--p38), [P65, Compatibility clutter](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#compatibility-clutter--p65) and [P12, One name per thing](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#one-name-per-thing--p12).
 
