@@ -24,13 +24,13 @@ harness,callers,computed,node/build/tools-index.mjs,none,list,yes,,,locator,"wha
 harness,emits,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,writes a file: a generator rather than a reader
 harness,named,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,its path or basename appears in tracked prose
 harness,tested,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,a file under node/test/ exercises it
-hook-legs,order,computed,node/build/tools-index.mjs,value,column,yes,,,value,"the step's position in the hook, which is the order the steps run in; a later step can read what an earlier one wrote"
-hook-legs,gloss,computed,node/build/tools-index.mjs,value,column,yes,,,value,"the step's own header line in the hook, after its name: what it reads and what it keeps current"
-hook-legs,watches,computed,node/build/tools-index.mjs,none,list,yes,,,locator,the paths whose pending change runs the step in an ordinary commit; empty for a step that runs on every commit
-hook-legs,runs,computed,node/build/tools-index.mjs,value,list,yes,,,value,the npm scripts and python scripts the step invokes
-hook-legs,stages,computed,node/build/tools-index.mjs,none,list,yes,,,locator,the files the step regenerates and adds to the commit; empty for a step that only warns
-hook-legs,mode,computed,node/build/tools-index.mjs,value,column,yes,regenerates;warns,,label,"regenerates when the step stages a file, warns when it only prints"
-hook-legs,in_repair,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,"whether npm run artifacts:refresh, the repair pass refresh-derived.yml runs on main, runs the step"
+commit-rules,order,recorded,,value,column,yes,,,value,the rule's position in the run; a rule can read what an earlier rule wrote
+commit-rules,kind,recorded,,value,column,yes,build;generate;package;check,,label,"build for a bundle, generate for a catalog, registry or index, package for a copy a plugin ships, check for a warning that writes nothing"
+commit-rules,sources,recorded,,none,list,yes,,,locator,git pathspecs whose pending change runs the rule in a commit; empty for a rule that runs on every commit
+commit-rules,command,recorded,,value,column,yes,,,value,"the command the rule runs, from the repository root"
+commit-rules,outputs,recorded,,none,list,yes,,,locator,the files the command writes and the rule stages when it succeeds; empty for a check
+commit-rules,repair,recorded,,value,column,yes,yes;no,,label,"whether --all runs the rule, as npm run artifacts:refresh and refresh-derived.yml on main do"
+commit-rules,description,recorded,,value,column,yes,,,value,"what the outputs are, or what the check looks for"
 components,names,computed,node/build/components-index.mjs,value,column,yes,,,value,"every name the file registers with Alpine.data, in file order; x-data mounts the component by one of these. Blank is the warning state: a file in the component folder that registers nothing"
 components,gloss,computed,node/build/components-index.mjs,counted,column,yes,,,value,"the first sentence of the component's own description property, or of its leading comment where it has none. Read rather than authored; blank where neither opens with a sentence"
 components,lines,computed,node/build/components-index.mjs,value,column,yes,,,value,file length
@@ -371,10 +371,10 @@ icon-families,icon_column,recorded,,none,column,yes,,,value,"for a CSV source, t
 icon-families,name_column,recorded,,none,column,yes,,,value,"for a CSV source, the column naming each member; blank otherwise"
 icon-families,doc,recorded,,value,column,yes,,,locator,"the passage that discusses the family's icons: a Markdown file's section by its heading's anchor, a CSV's row by its key after #, or a whole file"
 fab-signals,facet,recorded,,value,column,yes,version;viewer;subject;action,,label,"which question the signal answers: which version is shown (version), who is viewing (viewer) or what is shown (subject); or action, for an offer to act on what is on screen"
-fab-signals,part,recorded,,value,column,yes,tint;glyph;top-right;bottom-right,,label,"where on the FAB the signal shows: its colour, the glyph at its centre, or a badge in one of two corners"
+fab-signals,part,recorded,,value,column,yes,tint;glyph;top-right;bottom-right;top-left,,label,"where on the FAB the signal shows: its colour, the glyph at its centre, or a badge in one of three corners"
 fab-signals,label,recorded,,value,column,yes,,,value,the signal's name as a reader sees it
 fab-signals,icon,recorded,,none,column,yes,,,value,"the glyph or badge mark: a Phosphor class, or the path of a drawn SVG; blank on a tint, which has no mark of its own"
-fab-signals,tone,recorded,,value,column,yes,primary;warning;error;info;success;tint,,label,"the colour the signal is drawn in, or tint for a glyph that takes the FAB's current colour"
+fab-signals,tone,recorded,,value,column,yes,primary;warning;error;info;success;accent;tint,,label,"the colour the signal is drawn in, or tint for a glyph that takes the FAB's current colour"
 fab-signals,when,recorded,,value,column,yes,,,value,"the condition that shows it, and what it outranks where two signals compete for one part"
 fab-signals,gloss,recorded,,value,column,yes,,,value,"what the signal means, for a reader who has not met it"
 fab-signals,note,recorded,,none,column,yes,,,value,"what a tap on the FAB, or on the badge itself, does while the signal shows, where that differs from opening the FAB sidebar; blank where it does not"
@@ -387,3 +387,12 @@ formats,producer,recorded,,value,column,yes,,,locator,"the script or skill that 
 formats,envelope,recorded,,value,column,yes,yes;no,,label,"whether the format belongs to the envelope family, by the membership test in docs/envelopes/README.md"
 formats,route,recorded,,none,column,yes,,routes-routes,locator,the toss route that renders the format; blank where none does
 formats,gloss,recorded,,value,column,yes,,,value,what one document of the format carries
+pages-map,visibility,computed,programs/organization/current/pages-map.mjs,value,column,yes,public;private,,label,"whether the page's repository is public, from GitHub's repository search"
+pages-map,catalogues,computed,programs/organization/current/pages-map.mjs,counted,list,no,gallery;manifest;landing;utilities;units;forms,,label,the catalogues that name the page; blank for none
+pages-map,declared_by,computed,programs/organization/current/pages-map.mjs,counted,list,no,,,label,the repositories whose .web-tools.json declares the page under `pages` or as a project's landing
+pages-map,app,computed,programs/organization/current/pages-map.mjs,value,column,yes,view;full-app;framed;linked;standalone,,label,"how the page relates to the Web Tools app, the first value that holds"
+pages-map,linked_from,computed,programs/organization/current/pages-map.mjs,value,column,yes,,,value,"the number of files in app/index.html and lib/ whose code lines, comment lines and demo folders excepted, name the page"
+pages-map,names_private,computed,programs/organization/current/pages-map.mjs,counted,list,no,,,label,"for a page in a public repository, the private repositories its source names as owner/repo, or none; blank for a page in a private repository, whose source is not read"
+page-jobs,standing,recorded,,value,column,yes,product;service;exhibit;experiment;record,,label,"what the page is for, judged from its source or its note"
+page-jobs,job,recorded,,counted,list,no,respond;follow;read;explore;make,,label,"the jobs the page does for a reader, as data/ui-units/codes.csv defines them; blank where data/ui-units/coded.csv codes the page, which owns its job there"
+page-jobs,basis,recorded,,value,column,yes,source;note;name,,label,"what the judgment read: the page source, the note a manifest or the gallery gives it, or its name alone"

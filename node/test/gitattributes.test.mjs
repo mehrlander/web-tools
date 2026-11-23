@@ -63,28 +63,27 @@ test('a write-once doc has no living status in docs/docs.csv, and a blank status
     'blank status but not write-once');
 });
 
-test('every file a commit-hook leg rebuilds whole is regenerated, and every regenerated file has a builder', () => {
-  // docs/hook-legs.csv names what each leg stages. A staged file is rebuilt
+test('every file a commit rule rebuilds whole is regenerated, and every regenerated file has a builder', () => {
+  // docs/commit-rules.csv names each rule's outputs. An output is rebuilt
   // whole unless it is a registry with an authored property or authored rows,
-  // which the leg only updates in part (docs/docs.csv, pages/pages.csv). A
+  // which the rule only updates in part (docs/docs.csv, pages/pages.csv). A
   // registry whose properties and membership are all computed is rebuilt
-  // whole, and so is any staged file that is not a registry. A staged folder
+  // whole, and so is any output that is not a registry. An output folder
   // stands for the files under it.
-  const legs = parseCsv(readFileSync(path.join(repoRoot, 'docs/hook-legs.csv'), 'utf8'));
+  const rules = parseCsv(readFileSync(path.join(repoRoot, 'docs/commit-rules.csv'), 'utf8'));
   const regs = parseCsv(readFileSync(path.join(repoRoot, 'docs/registries.csv'), 'utf8'));
   const props = parseCsv(readFileSync(path.join(repoRoot, 'docs/properties.csv'), 'utf8'));
   const edit = attribute('edit');
   const files = Object.keys(edit);
-  const staged = [...new Set(legs.flatMap(l => (l.stages || '').split(';').map(s => s.trim()).filter(Boolean)))];
+  const staged = [...new Set(rules.flatMap(r => (r.outputs || '').split(';').map(s => s.trim()).filter(Boolean)))];
   const whole = staged.filter(s => {
     const reg = regs.find(r => r.path === s);
     if (!reg) return true;
     return reg.membership === 'computed' && props.filter(p => p.registry === reg.id).every(p => p.mode === 'computed');
   }).flatMap(s => files.filter(f => f === s || f.startsWith(s.replace(/\/$/, '') + '/')));
-  assert.ok(whole.length, 'no leg stages a file, so this test checks nothing');
-  assert.deepEqual(whole.filter(f => edit[f] !== 'regenerated').sort(), [], 'rebuilt whole by a leg but not edit=regenerated');
-  // The reverse: a regenerated file is staged by some leg, or is a page thumbnail,
-  // which `npm run pages-shots` rebuilds once a session (CLAUDE.md, "Per-session refresh").
-  const built = (f) => staged.some(s => f === s || f.startsWith(s.replace(/\/$/, '') + '/')) || f.startsWith('pages/thumbs/');
-  assert.deepEqual(files.filter(f => edit[f] === 'regenerated' && !built(f)).sort(), [], 'edit=regenerated with no leg that builds it');
+  assert.ok(whole.length, 'no rule has an output, so this test checks nothing');
+  assert.deepEqual(whole.filter(f => edit[f] !== 'regenerated').sort(), [], 'rebuilt whole by a rule but not edit=regenerated');
+  // The reverse: a regenerated file is a rule's output.
+  const built = (f) => staged.some(s => f === s || f.startsWith(s.replace(/\/$/, '') + '/'));
+  assert.deepEqual(files.filter(f => edit[f] === 'regenerated' && !built(f)).sort(), [], 'edit=regenerated with no rule that builds it');
 });

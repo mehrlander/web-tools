@@ -42,24 +42,24 @@
 // query that opens with # is a fragment, for the pages that route on
 // location.hash.
 //
-// THE OVERLAYS. A shot is the plain page. Beside each store's manifest,
-// overlays.json records what a tab can draw over it: per unit and width,
-// `marks` (the unit's slots: a frame control or the body, with its code's
+// THE MARKS. A shot is the plain page. Beside each store's manifest,
+// ui-unit-marks.json records what a tab can draw over it: per unit and width,
+// `slots` (the unit's slots: a frame control or the body, with its code's
 // name) and `comps` (every Alpine component, by the name x-data mounts it
 // by), each with its box as fractions of the image.
 //
-// THE OUTPUT, split by visibility like the units tables themselves: public
-// units' shots go to data/ui-units/thumbs/ here, home's to web-tools-private's
-// thumbs/mehrlander/home/ui-units/, the private registry's store for shots of
-// private repos' pages. Each folder gets thumbs.csv, one row per unit, which is
-// what the gallery reads. Shots are not byte-deterministic, so no commit hook
-// owns them: refresh once per session, like pages/thumbs/.
+// THE OUTPUT goes to web-tools-private's thumbs/, beside this checkout, since a
+// unit can show private data: web-tools' units to thumbs/mehrlander/web-tools/
+// ui-units/, home's to thumbs/mehrlander/home/ui-units/. Each folder gets
+// thumbs.csv, one row per unit, which is what the Map view reads under a token.
+// Shots are not byte-deterministic, so no commit hook owns them: refresh once
+// per session, and commit them in that repository.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { launch } from '../render/chromium.mjs';
 import { writeCsv } from './registries-load.mjs';
-import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needToolModules, stageOf, PUBLIC_SIBLINGS, toJpeg, QUALITY } from './ui-recipes.mjs';
+import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needToolModules, stageOf, toJpeg, QUALITY } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -111,8 +111,8 @@ const slotJs = (stage, coded) => `
 // tab wanted the page's frame and body marked, and its Components tab,
 // showing the same image to say where one component sits, got two outlines
 // about something else. A shot is now the plain page, and what could be
-// marked on it is written beside it (overlays.json) for a tab to draw:
-// `marks`, the unit's slots, each { k: frame|body, n: the code's name } with
+// marked on it is written beside it (ui-unit-marks.json) for a tab to draw:
+// `slots`, the unit's slots, each { k: frame|body, n: the code's name } with
 // its box, and `comps`, every Alpine component's box.
 //
 // Only a slot whose code codes.csv names is a mark. The Map marks its
@@ -185,9 +185,9 @@ const shotJs = (w) => {
 // height, each 0 to 1, a box cut to the part of it the shot keeps and
 // dropped where the shot keeps none of it. The kept region is toJpeg's: the
 // focus box's left, top and width, and the window's height or the ratio's.
-function overlays(read, focus, size) {
+function marksOf(read, focus, size) {
   const vw = read?.vw, vh = read?.vh;
-  if (!vw || !vh) return { marks: [], comps: [], unseen: [] };
+  if (!vw || !vh) return { slots: [], comps: [], unseen: [] };
   const fx = focus ? focus.x : 0, fy = focus ? focus.y : 0;
   const fw = focus ? Math.min(focus.w, vw - fx) : vw;
   const fh = Math.min(vh - fy, size.ratio ? fw * size.ratio : Infinity);
@@ -207,7 +207,7 @@ function overlays(read, focus, size) {
   });
   const comps = fit(read.comps, true);
   const unseen = [...lost].filter(([n]) => !comps.some(c => c.n === n)).map(([n, why]) => ({ n, why }));
-  return { marks: fit(read.marks), comps, unseen };
+  return { slots: fit(read.marks), comps, unseen };
 }
 
 const work = codedUnits(ONLY);
@@ -225,8 +225,7 @@ const worker = async () => {
     const base = slug(w.unit);
     mkdirSync(w.store.thumbs, { recursive: true });
     // A unit whose script reads a private repository is checked with it and
-    // shot without it (shots.csv's shot column, `no-script`), so no private
-    // row reaches a shot in the public store.
+    // shot without it (shots.csv's shot column, `no-script`).
     if (w.r.shot === 'no-script') w.r = { ...w.r, script: '' };
     const row = { unit: w.unit, desk: '', phone: '', shot_at: new Date().toISOString().slice(0, 10),
       recipe: [w.r.page + (w.r.query ? '?' + w.r.query : ''), w.r.script, w.r.click].filter(Boolean).join(' · '),
@@ -235,15 +234,12 @@ const worker = async () => {
       const png = path.join(TMP, `${base}.${kind}.png`);
       const box = png.replace(/\.png$/, '.focus.json');
       let res = { code: 0, err: '', out: '' };
-      // A public unit's shot reads public siblings only (ui-recipes.mjs,
-      // PUBLIC_SIBLINGS), whatever its pane asks for.
-      const env = w.store.name === 'public' ? { SHOT_SIBLINGS: PUBLIC_SIBLINGS.join(',') } : {};
       if (!(REUSE && existsSync(png))) {
         rmSync(png, { force: true });
-        res = await shoot(w.r, size, touch, png, shotJs(w), env);
+        res = await shoot(w.r, size, touch, png, shotJs(w));
         // One retry: three headless browsers at once, against a rate-limited
         // API, now and then lose a shot that the next attempt takes cleanly.
-        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w), env);
+        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w));
         writeFileSync(box, JSON.stringify(evalFrom(res.out)));
       }
       if (!existsSync(png)) { console.log(`  ${w.unit} ${kind}: no shot (${res.code}) ${res.err.split('\n').slice(-2).join(' ').slice(0, 160)}`); continue; }
@@ -261,7 +257,7 @@ const worker = async () => {
       const file = `${base}.${kind}.jpg`;
       await toJpeg(resize, png, size, focus, path.join(w.store.thumbs, file));
       row[kind] = file;
-      boxes.get(w.store.name)[w.unit] = { ...(boxes.get(w.store.name)[w.unit] || {}), [kind]: overlays(read, focus, size) };
+      boxes.get(w.store.name)[w.unit] = { ...(boxes.get(w.store.name)[w.unit] || {}), [kind]: marksOf(read, focus, size) };
       if (kind === 'desk' && focus) { row.focus = `${focus.at} @${focus.y}`; row.pattern = focus.pattern || ''; }
       // The day the shot was TAKEN, which a --reuse run must not move.
       if (kind === 'desk') row.shot_at = statSync(png).mtime.toISOString().slice(0, 10);
@@ -280,9 +276,9 @@ for (const store of STORES) {
   const keep = rowsOf(file).filter(r => !fresh.some(f => f.unit === r.unit));
   const rows = [...keep, ...fresh].sort((a, b) => a.unit.localeCompare(b.unit));
   writeFileSync(file, writeCsv(rows, MANIFEST_COLS));
-  // The overlays, beside the manifest: this run's units replace their own
+  // The marks, beside the manifest: this run's units replace their own
   // entries and every other unit's are kept, as the manifest's rows are.
-  const cfile = path.join(store.thumbs, 'overlays.json');
+  const cfile = path.join(store.thumbs, 'ui-unit-marks.json');
   const had = existsSync(cfile) ? JSON.parse(readFileSync(cfile, 'utf8')) : {};
   const all = { ...had, ...boxes.get(store.name) };
   writeFileSync(cfile, JSON.stringify(Object.fromEntries(Object.keys(all).sort().map(k => [k, all[k]]))) + '\n');

@@ -13,14 +13,14 @@
 // `component:<name>` first, so the control a closed menu or a slid-away
 // sidebar declares (data-at-open) is clicked before the shot.
 //
-// ONLY PUBLIC DATA IS READABLE while a shot is taken, as for a public unit's
-// shot (ui-recipes.mjs, PUBLIC_SIBLINGS): the images are committed to a public
-// repository. An address that needs a private repository to mount its
-// component (a session open in Sessions) therefore yields no box, and is
-// recorded with none and no image rather than shot some other way.
+// The images go to web-tools-private's thumbs/ (shot-store.mjs, UNIT_SHOTS),
+// beside this checkout, since a component can show private data; a shot reads
+// the sibling checkouts as the signed-in app would. An address whose component
+// does not mount yields no box, and is recorded with none and no image rather
+// than shot some other way.
 //
-// Writes data/ui-units/thumbs/component-<file>.<desk|phone>.jpg and
-// component-shots.json beside them:
+// Writes web-tools-private's thumbs/mehrlander/web-tools/ui-units/
+// component-<file>.<desk|phone>.jpg and component-shots.json beside them:
 //
 //   { "<file>": { "page": <seen_at>, "shot_at": "YYYY-MM-DD",
 //                 "desk":  { "file": "component-<file>.desk.jpg", "box": [x, y, w, h] },
@@ -29,7 +29,7 @@
 // `refused` marks an address the shot could not show because the component
 // needed a read the public-only render would not serve.
 //
-// A box is fractions of the kept image, as overlays.json's are. Not
+// A box is fractions of the kept image, as ui-unit-marks.json's are. Not
 // byte-deterministic, so no commit hook owns it: `npm run component-shots`,
 // once per session at most, with `--only <file>[,<file>]` for some.
 
@@ -37,7 +37,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync } from 'node
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { launch } from '../render/chromium.mjs';
-import { HUB, rowsOf, head, evalFrom, PUBLIC_SIBLINGS, toJpeg } from './ui-recipes.mjs';
+import { HUB, rowsOf, head, evalFrom, toJpeg } from './ui-recipes.mjs';
+import { STORE_ROOT, UNIT_SHOTS, requireStore } from './shot-store.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -50,7 +51,8 @@ const JOBS = Math.max(1, +opt('--jobs', 3));
 // launcher sits.
 const SIZES = { desk: { width: 1280, height: 800, thumb: 800, ratio: 10 / 16, touch: false },
                 phone: { width: 390, height: 844, thumb: 390, ratio: 0, touch: true } };
-const OUT = path.join(HUB, 'data/ui-units/thumbs');
+requireStore('component-shots');
+const OUT = path.join(STORE_ROOT, UNIT_SHOTS);
 const TMP = path.join(HUB, 'node/.preview/component-shots');
 mkdirSync(TMP, { recursive: true });
 
@@ -119,7 +121,7 @@ const worker = async () => {
       if (page === 'app/index.html' && !process.env.UI_WORKTREE) a.push('--ref', head);
       if (query) a.push('--query', query);
       if (size.touch) a.push('--touch');
-      const env = { ...process.env, SHOT_NO_LIVE_API: '1', SHOT_SIBLINGS: PUBLIC_SIBLINGS.join(',') };
+      const env = { ...process.env, SHOT_NO_LIVE_API: '1' };
       let res = await run(a, env);
       if (!existsSync(png)) res = await run(a, env);
       const read = evalFrom(res.out);

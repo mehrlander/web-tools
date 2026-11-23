@@ -10,7 +10,7 @@
 // UNTIL 2026-09-11 NOTHING HELD THEM. Three places said otherwise: both
 // surfacing rows in docs/docs.csv named "vendored copy byte-gated
 // (portable-manifest.test.mjs)", node/README.md's refresh table listed a `cp`
-// leg, and portable-manifest.test.mjs itself carried a comment about the
+// step, and portable-manifest.test.mjs itself carried a comment about the
 // failure mode of an ungated copy directly above a test that checks link
 // targets instead. The copies happened to be identical, which is the only
 // reason the claim was never caught being false. Adding a third traveling doc

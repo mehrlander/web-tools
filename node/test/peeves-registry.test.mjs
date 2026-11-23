@@ -72,3 +72,14 @@ test('the skill and its critic agree on where the list lives', () => {
   const body = readFileSync(path.join(repoRoot, critic.path), 'utf8');
   assert.match(body, /skills\/peeves\/peeves\.csv/, 'the critic names the list file for its fallback read');
 });
+
+test('the critic agent file itself preloads the peeves skill, not only its roster row', () => {
+  const critic = agents.find(a => a.id === 'portable:peeves-critic');
+  const text = readFileSync(path.join(repoRoot, critic.path), 'utf8').replace(/\r\n/g, '\n');
+  const fm = text.match(/^---\n([\s\S]*?)\n---/);
+  assert.ok(fm, 'the critic has YAML frontmatter');
+  const skills = fm[1].match(/^skills:\n((?:[ \t]+- .*\n?)+)/m);
+  assert.ok(skills, 'the critic frontmatter has a skills: list');
+  const listed = skills[1].split('\n').map(l => l.replace(/^\s*-\s*/, '').trim()).filter(Boolean);
+  assert.ok(listed.includes('portable:peeves'), 'the frontmatter skills: list preloads portable:peeves');
+});

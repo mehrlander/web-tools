@@ -6,19 +6,19 @@ Each entry names a behavior the owner has corrected an assistant for repeatedly,
 
 ### Documentation bloat · `P01`
 
-Instructions growing through rationale, duplicated claims, correction notes and comments that explain readable code.
+Instructions growing through rationale, excess detail, history and comments that explain readable code.
 
-**Look for:** a doc edit that adds a paragraph; sentences explaining why a rule exists, what a section is about, or how it came to be written
+**Look for:** non-dispositive content of any kind. UI play-by-play, correction notes, soapboxing. New content not minimally woven in.
 
 **Owner:** web-tools CLAUDE.md (before adding to a doc, ask whether another document owns it)
 
 **Area:** writing · **Detector:** reader · **Sessions:** 100 · **Status:** active
 
-### Dramatic prose · `P04`
+### Chat style · `P04`
 
-Slogans, posturing, emphatic absolutes and sentences that sound profound while saying little.
+Carefully avoid the informal voice of online writing. The best model is a statement of facts from a legal brief: short, crisp sentences, using common terms in their most basic sense.
 
-**Look for:** 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work', 'deliberately', 'never' used for emphasis; a sentence that sounds wise and says little; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
+**Look for:** a maxim or truism, such as 'Hold inferences loosely, and keep their hedges when you retell them'; a one-line closing punch; a metaphor where a literal word exists; 'it does one thing', 'is the floor', 'held to', 'carries weight', 'does the work'; 'deliberately' or 'never' used for emphasis; a thing given wants or entitlements in place of an instruction to an actor, as in 'a wake that leaves the reader nothing new gets no reply' or 'a kit that wants Alpine reactivity gets a component wrapper'
 
 **Area:** writing · **Detector:** reader · **Sessions:** 35 · **Status:** active
 

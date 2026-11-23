@@ -40,18 +40,13 @@ export const TOOL_ROOT = { home: HOME, 'budget-drs': BUDGET_DRS };
 const BD_APP = 'app/view/app.html';
 export const PRIVATE = path.join(ESTATE, 'web-tools-private');
 
-// Split by visibility: the public units' tables and shots here, home's tables
-// in home and their shots in web-tools-private, the private registry's store
-// for shots of private repos' pages.
+// Split by where the tables are: web-tools' units' tables here, home's in home.
+// Both stores' shots go to web-tools-private's thumbs/ (shot-store.mjs), since
+// a unit can show private data and this repository is public.
 export const STORES = [
-  { name: 'public', tables: path.join(HUB, 'data/ui-units'), thumbs: path.join(HUB, 'data/ui-units/thumbs') },
+  { name: 'public', tables: path.join(HUB, 'data/ui-units'), thumbs: path.join(PRIVATE, 'thumbs/mehrlander/web-tools/ui-units') },
   { name: 'private', tables: path.join(HOME, 'data/ui-units'), thumbs: path.join(PRIVATE, 'thumbs/mehrlander/home/ui-units') },
 ];
-
-// The sibling checkouts a public unit's shot may read (node/render/cdn.mjs,
-// SHOT_SIBLINGS): public repositories only. Every other sibling reads as
-// missing, so a repository left off costs a shot its data and never leaks one.
-export const PUBLIC_SIBLINGS = ['shortcut-tools'];
 
 export const rowsOf = (p) => existsSync(p) ? parseCsv(readFileSync(p, 'utf8')) : [];
 export const slug = (unit) => unit.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');

@@ -14,7 +14,7 @@ substituting the current repo in URL templates.
   - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
   - ⚖️ **Choice needed:** Competing proposals would go in different directions. Present this state only after a full assessment. Give the question, then `Recommended: <answer>, because <reason>.`
   - 🛵 **Needs you:** Only the reader can supply what is needed: a tap, an observation, or a value from outside the repo. Give each request an action link, one that performs it when tapped.
-  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment.
+  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment. When it shows one inline, with no link, name the format in parentheses: 👁️‍🗨️ **Have a look (screenshot):** the overflow on the Map view.
   - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes. Say what the session will do once approval is given.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
   - ⚪ **Clean exit:** The session's work is complete; the reader can end the session or bring more.
@@ -30,7 +30,9 @@ substituting the current repo in URL templates.
   - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
   - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
-* **Close in one order.** End with the caption, render line, then the state. Include a state when no files changed. Reply to a wake (a nudge, stop hook, finished job, PR event, or moved base) when it brings the reader a result they are waiting for, a problem the session cannot settle, or one of the events listed under [PR events](#pr-events), and end that reply on a state only when the state has changed. For any other wake, end the turn without text; where the harness requires visible output, write the line a hook supplies or, without one, one line that opens with the wake's name, such as `Stop hook:`.
+* **Close in one order.** End every reply with the caption, the [render line](#displaying-content), then the state, whether or not files changed.
+
+* **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
   `` [`⌂`](…/app/?view=program&program=sessions)`11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) ``
@@ -76,11 +78,9 @@ substituting the current repo in URL templates.
 
 ## Displaying content
 
-* **A rendered view 🥏.** `toss-render.html` renders a page or other content from GitHub. Each browser needs a GitHub token for private repos. `npm run showing` prints the 🥏 links for the branch's changed files, and with `--path <file>` a link for any file. The printed line goes in the reply unchanged, refreshed after each commit, with a few words after it on what the link shows. `npm run showing -- --help` lists the options for a fragment (the rendered page's own address) and a query.
+* **A look link 👁️‍🗨️.** A look link opens a page on a guided tour. Make the fragment with [`python/look-link.py`](https://github.com/mehrlander/web-tools/blob/main/python/look-link.py), as the [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill describes. Pass it to [`showing`](https://github.com/mehrlander/web-tools/blob/main/python/showing.py) as `--at`, with `--intro "<what changed>"`. The link `showing` prints takes the place of the page's 🥏 link. A 🛵 request to tap a control uses a look link too. Without `--at`, `showing` prints plain 🥏 links to the branch's changed files, and with `--path <file>` a link to any file. That output is the render line: paste it unchanged, refresh it after each commit, and add a few words on what each link shows.
 
-* **A look link 👁️‍🗨️.** A look link is a 🥏 link that also lands the reader on a place in the rendered page and says why. It replaces one or more 🥏 links. Send one look link per reply. When a reply asks the reader to look at or tap an element of a page, make the link a look link: `--intro "<what changed>"` greets the reader, and `--at "<fragment>"` lands on the place to see, with the fragment from `python/look-link.py` (`show` or `tap` for one place, `walkthrough` or `steps` for several; the `look-markers` skill).
-
-* **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
+* **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or GitHub token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
 
 * **A screenshot.** In web-tools, `npm run shot -- <page>` saves a headless screenshot of a page from the working tree, and `--measure` adds overflow checks at desktop and phone width. The `screenshot-review` skill checks a shot before it is sent, and a file card shows it inline.
 
