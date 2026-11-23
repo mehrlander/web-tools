@@ -74,7 +74,7 @@ A **tool** is a product page whose job includes make, the job in which the reade
 
 A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names.
 
-The script does not read the source of a page in a private repository. That page's cell is blank.
+The script does not read the source of a page in a private repository. That page's `names_private` cell is blank.
 
 ## The map
 
