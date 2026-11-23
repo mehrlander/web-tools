@@ -27,7 +27,7 @@ Content should only be included where behavior depends on it. For a basic test: 
 
 ## Review
 
-Make an edit before asking about it, including one the owner raised only as a possibility: the owner approves wording on the edit's user call, described below.
+Make an edit before putting its wording to the owner, even when the owner raised the change only as a possibility.
 
 Check changes against the principles above, make any needed revisions, and commit them on a branch. Ask especially if new content is really needed in the given file. Do not recount details of other files or other context that a session would know where to find. Then run the `portable:peeves-critic` agent on each changed document and fix what it finds, until a run returns PASS, and say how many runs that took.
 
