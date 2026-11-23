@@ -12,7 +12,7 @@ import shutil
 import subprocess
 from urllib.parse import urlsplit
 
-from repository_process import run_bounded
+from repository_process import GIT_EXECUTABLE, run_bounded
 
 
 def stamp():
@@ -36,7 +36,7 @@ def git(path, *args, timeout=8, strip=True):
     if gh and ('ls-remote' in args or 'fetch' in args):
         authentication = ['-c', 'credential.helper=', '-c', 'credential.helper=!' + shlex.quote(gh.replace('\\', '/')) + ' auth git-credential']
     try:
-        result = run_bounded(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
+        result = run_bounded([GIT_EXECUTABLE, '--no-optional-locks', '-c', 'core.fsmonitor=false',
                                  '-c', 'credential.interactive=never', *authentication, '-C', str(path), *args],
                                 env=env, timeout=timeout)
         return (result.stdout.strip() if strip else result.stdout) if result is not None and result.returncode == 0 else None

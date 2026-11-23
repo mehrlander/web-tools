@@ -1,7 +1,7 @@
 """Exercise bounded commands and owned descendants with disposable Python fixtures."""
 import ctypes
 import os
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 import sys
 import tempfile
 import threading
@@ -9,7 +9,62 @@ import time
 import unittest
 
 sys.path.insert(0, str(Path(__file__).parents[1] / 'worker'))
-from repository_process import run_bounded
+from repository_process import run_bounded, select_git
+
+
+class GitSelectionChecks(unittest.TestCase):
+    def select(self, executable, existing=(), windows=True):
+        available = {PureWindowsPath(path) for path in existing}
+        return select_git(executable, windows=windows, is_file=lambda path: PureWindowsPath(path) in available)
+
+    def test_standard_windows_launchers_select_native_git(self):
+        native = r'C:\Program Files\Git\mingw64\bin\git.exe'
+        for folder in ('cmd', 'bin'):
+            with self.subTest(folder=folder):
+                executable = str(PureWindowsPath(r'C:\Program Files\Git') / folder / 'git.exe')
+                self.assertEqual(self.select(executable, [native]), native)
+
+    def test_mingw32_is_used_when_mingw64_is_absent(self):
+        native = r'C:\Program Files\Git\mingw32\bin\git.exe'
+        self.assertEqual(self.select(r'C:\Program Files\Git\cmd\git.exe', [native]), native)
+
+    def test_portable_distribution_uses_its_own_native_git(self):
+        native = r'D:\Tools\PortableGit\mingw64\bin\git.exe'
+        standard = r'C:\Program Files\Git\mingw64\bin\git.exe'
+        self.assertEqual(self.select(r'D:\Tools\PortableGit\cmd\git.exe', [standard, native]), native)
+
+    def test_custom_path_choice_is_preserved_even_with_native_siblings(self):
+        for executable in (r'C:\Tools\git.exe', r'C:\Custom\wrappers\git.exe'):
+            with self.subTest(executable=executable):
+                root = PureWindowsPath(executable).parent.parent
+                native = str(root / 'mingw64' / 'bin' / 'git.exe')
+                standard = r'C:\Program Files\Git\mingw64\bin\git.exe'
+                self.assertEqual(self.select(executable, [standard, native]), executable)
+
+    def test_absent_native_git_preserves_the_launcher(self):
+        executable = r'C:\Program Files\Git\cmd\git.exe'
+        self.assertEqual(self.select(executable), executable)
+
+    def test_native_path_choice_is_preserved(self):
+        for architecture in ('mingw64', 'mingw32'):
+            with self.subTest(architecture=architecture):
+                executable = str(PureWindowsPath(r'C:\Program Files\Git') / architecture / 'bin' / 'git.exe')
+                def unexpected_probe(path):
+                    self.fail('An already native Git selection inspected another sibling')
+                self.assertEqual(select_git(executable, windows=True, is_file=unexpected_probe), executable)
+
+    def test_non_windows_choices_are_preserved_without_probing(self):
+        for executable in ('/usr/bin/git', r'C:\Program Files\Git\cmd\git.exe', 'git'):
+            with self.subTest(executable=executable):
+                def unexpected_probe(path):
+                    self.fail('A non-Windows Git selection inspected a Windows sibling')
+                self.assertEqual(select_git(executable, windows=False, is_file=unexpected_probe), executable)
+
+    def test_unreadable_native_candidate_preserves_the_launcher(self):
+        executable = r'C:\Program Files\Git\cmd\git.exe'
+        def denied(path):
+            raise PermissionError()
+        self.assertEqual(select_git(executable, windows=True, is_file=denied), executable)
 
 
 class RepositoryProcessChecks(unittest.TestCase):

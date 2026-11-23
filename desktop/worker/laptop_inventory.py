@@ -11,6 +11,7 @@ import time
 from urllib.parse import urlsplit
 
 from local_files import linked
+from repository_process import GIT_EXECUTABLE
 
 TARGET = 'state/laptop-files.tsv'
 INTERVAL = 15 * 60
@@ -30,7 +31,7 @@ def git(repository, *args, data=None, allowed=(0,)):
     gh = shutil.which('gh') if args and args[0] in ('fetch', 'push', 'ls-remote') else None
     authentication = ['-c', 'credential.helper=', '-c',
                       'credential.helper=!' + shlex.quote(gh.replace('\\', '/')) + ' auth git-credential'] if gh else []
-    result = subprocess.run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.longpaths=true',
+    result = subprocess.run([GIT_EXECUTABLE, '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.longpaths=true',
                              '-c', 'maintenance.auto=false', *authentication, '-C', str(repository), *args],
                             input=data, capture_output=True, env=env, timeout=120)
     if result.returncode not in allowed:
