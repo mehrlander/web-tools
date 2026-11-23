@@ -22,14 +22,14 @@ A catalogue here is a file that lists pages; the six are under [Catalogues](#cat
 
 The script, run either way, reads two kinds of checkout beside the web-tools checkout it runs in:
 
-- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) holds the app's crawl of every repository's [`.web-tools.json`](../../../docs/manifest.md);
+- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) holds the app's copy of every repository's [`.web-tools.json`](../../../docs/manifest.md);
 - a clone of each other public repository that declares pages, whose page sources the script reads.
 
 ## Catalogues
 
 | Catalogue | File | Lists | The app shows it in |
 | --- | --- | --- | --- |
-| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/), the kit demos under [`lib/kits/demos/`](../../../lib/kits/demos/) and the skill demos, `demo.html` in a folder under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
+| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/), the demos of the browser modules in [`lib/kits/`](../../../lib/kits/), under [`lib/kits/demos/`](../../../lib/kits/demos/) and the skill demos, `demo.html` in a folder under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
 | manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md), as in [web-tools' own manifest](../../../.web-tools.json) | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar for a page marked `appView` |
 | landing | `projects[].landing` in each [`.web-tools.json`](../../../docs/manifest.md) | a project's front page | the [Project view](https://mehrlander.github.io/web-tools/app/?view=project)'s App tab |
 | utilities | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
@@ -64,7 +64,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 
 **Job** takes the values that [`codes.csv`](../../../data/ui-units/codes.csv) lists on its `job` axis. [The forms README](../../../docs/forms/README.md#jobs) defines them. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. [`page-jobs.csv`](page-jobs.csv) leaves that page's job blank.
 
-`basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+The `basis` column of [`page-jobs.csv`](page-jobs.csv) names what the judgment of standing and job read: the page's source, the manifest's or gallery's note, or the page's name alone.
 
 A **tool** is a product page whose job includes make, the job in which the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
 
