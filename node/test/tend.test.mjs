@@ -87,3 +87,14 @@ test('.claude-plugin/marketplace.json registers ./tend in portable plugin skills
   assert.ok(portable, 'portable plugin must be declared in marketplace.json');
   assert.ok(portable.skills.includes('./tend'), 'portable plugin skills must include ./tend');
 });
+
+test('tend SKILL.md names only scripts that sit beside it, and says deletion only to refuse it', () => {
+  const content = readFileSync(SKILL_PATH, 'utf8');
+  const dir = path.dirname(SKILL_PATH);
+  const named = [...content.matchAll(/(?<!\[)`([\w-]+\.(?:py|mjs|js|sh))`(?!\]\()/g)].map(m => m[1]);
+  assert.ok(named.length > 0, 'the skill should name at least one script beside it');
+  for (const f of named) assert.ok(existsSync(path.join(dir, f)), `tend SKILL.md names ${f}, which is not in skills/tend/`);
+  const sentences = content.split(/(?<=[.!?])\s+/).filter(s => /\bdelet/i.test(s));
+  assert.equal(sentences.length, 1, `only the refusal may mention deletion: ${sentences.join(' | ')}`);
+  assert.match(sentences[0], /Tend deletes no branch and proposes no deletion\./);
+});

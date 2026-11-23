@@ -21,6 +21,7 @@ import { existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { PUBLIC_SIBLINGS } from './ui-recipes.mjs';
 
 const WIDTH = 1000, HEIGHT = 625;            // 16:10, matches the card aspect ratio
 
@@ -39,6 +40,14 @@ const SOURCES = [
   { dir: 'skills',          virt: 'skill-demos', src: rel => path.join('skills', rel),
     pick: f => f.match(/^([^/]+)\/demo\.html$/)?.[1]?.concat('.html') ?? null },
 ];
+
+// The environment each shot runs in. The thumbnails are committed to a public
+// repository, so a shot reads public siblings only (node/render/cdn.mjs,
+// SHOT_SIBLINGS), as a public unit's shot does in ui-shots.mjs: a page that
+// reads a private repository paints that repository as missing. Until
+// 2026-11-22 this script set no guard, and pages/thumbs/compactions.png showed
+// a private session's compaction summary.
+export const shotEnv = (base = process.env) => ({ ...base, SHOT_SIBLINGS: PUBLIC_SIBLINGS.join(',') });
 
 // Which pages a run shoots. An argument names a page with or without its
 // pages/ prefix and its .html, so `diff-tool`, `diff-tool.html` and
@@ -130,7 +139,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.a
       shotTool, src,
       '--out', out, '--width', String(WIDTH), '--height', String(HEIGHT),
       ...(q ? ['--query', q[1]] : []),
-    ], { cwd: repoRoot, encoding: 'utf8' });
+    ], { cwd: repoRoot, encoding: 'utf8', env: shotEnv() });
     const ok = r.status === 0;
     // Surface any [pageerror]/[fatal] lines so broken pages are visible, not silent.
     const flags = (r.stdout || '').split('\n').filter(l => /\[(pageerror|fatal|requestfailed)\]/.test(l));

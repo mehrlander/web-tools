@@ -28,8 +28,10 @@ const descRe = new RegExp(String.raw`^\s*description:\s*((?:${lit})(?:\s*\+\s*(?
 const unquote = s => s.slice(1, -1).replace(/\\(.)/g, '$1');
 
 const found = [];
+const declared = {};
 for (const f of readdirSync(dir).filter(f => f.endsWith('.js'))) {
   const src = readFileSync(path.join(dir, f), 'utf8');
+  declared[f] = [...src.matchAll(/^\s*description:/gm)].length;
   for (const m of src.matchAll(descRe)) {
     const text = [...m[1].matchAll(new RegExp(lit, 'g'))].map(x => unquote(x[0])).join('');
     found.push({ f, words: text.split(/\s+/).filter(Boolean).length });
@@ -39,6 +41,13 @@ for (const f of readdirSync(dir).filter(f => f.endsWith('.js'))) {
 test('the scan reads the components it claims to', () => {
   assert.ok(found.length >= 25, 'descriptions parsed short: ' + found.length);
   assert.ok(found.some(d => d.f === 'fab.js') && found.some(d => d.f === 'map.js'));
+});
+
+test('every declared description parses as string literals joined with +', () => {
+  for (const [f, n] of Object.entries(declared)) {
+    const parsed = found.filter(d => d.f === f).length;
+    assert.equal(parsed, n, `${f}: ${n} description(s) declared, ${parsed} parsed; use string literals joined with +`);
+  }
 });
 
 test(`a component description stays under ${LIMIT} words`, () => {

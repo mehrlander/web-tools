@@ -1021,3 +1021,87 @@ test('web-tools:open-drawer opens the drawer on the tab it names', async () => {
   await tick(2);
   assert.equal(d.activeTab, 'text');
 });
+
+// A page's declared walkthroughs (kits/look.js reads them from
+// #look-walkthroughs) are offered from the menu, and a row starts one there.
+test('the menu offers the walkthroughs a page declares, and a row starts one', async () => {
+  const decl = doc.createElement('script');
+  decl.type = 'application/json';
+  decl.id = 'look-walkthroughs';
+  decl.textContent = JSON.stringify({ tour: [{ say: 'Welcome' }, { at: 'main', say: 'The page' }], empty: [] });
+  doc.body.append(decl);
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="pages/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const d = Alpine.$data(host.firstElementChild);
+  const was = window.Look;
+  let started = null;
+  window.Look = { linkTo() {}, start: (steps) => { started = steps; } };
+  try {
+    d.openFabMenu(); await tick(3);
+    assert.equal(JSON.stringify(d.pageWalks), '["tour"]', 'a declared walkthrough with steps, and not an empty one');
+    const rows = host.querySelectorAll('[data-fab-walk]');
+    assert.equal(rows.length, 1);
+    assert.match(rows[0].textContent, /Walkthrough/);
+    rows[0].click(); await tick(3);
+    assert.equal(d.fabMenu, false, 'the row closes the menu');
+    assert.equal(JSON.stringify(started), JSON.stringify([{ say: 'Welcome' }, { at: 'main', say: 'The page' }]), 'and starts that walkthrough');
+    decl.remove();
+    // The menu's closing transition runs out first: a reopen inside it has
+    // Alpine reject a promise it catches a tick late.
+    await new Promise(r => window.setTimeout(r, 200));
+    d.openFabMenu(); await tick(3);
+    assert.equal(host.querySelectorAll('[data-fab-walk]').length, 0, 'a page that declares none shows no row');
+    d.fabMenu = false;
+  } finally { window.Look = was; decl.remove(); host.remove(); }
+});
+
+// A page that declares a walkthrough shows a badge on the launcher, top-left,
+// and a tap on it starts the first one; the Form row's Basic brings the
+// launcher back to rest from any other form.
+test('the walkthrough badge offers a declared walkthrough, and Basic returns the launcher to rest', async () => {
+  const decl = doc.createElement('script');
+  decl.type = 'application/json';
+  decl.id = 'look-walkthroughs';
+  decl.textContent = JSON.stringify({ tour: [{ say: 'Welcome' }] });
+  doc.body.append(decl);
+  const host = doc.createElement('div');
+  host.innerHTML = '<div x-data="fab()" data-repo="mehrlander/web-tools" data-path="pages/index.html"></div>';
+  doc.body.appendChild(host);
+  Alpine.initTree(host);
+  await tick(3);
+  const d = Alpine.$data(host.firstElementChild);
+  // Alpine applies an x-show hide on a later task, not a microtask.
+  const settle = () => new Promise(r => window.setTimeout(r, 30));
+  const was = window.Look;
+  let started = null, stopped = 0;
+  window.Look = { linkTo() {}, start: (steps) => { started = steps; }, stop: () => { stopped++; } };
+  try {
+    d.readPageWalks(); await tick(2);
+    const badge = host.querySelector('[data-fab-walk-badge]');
+    assert.ok(badge, 'the launcher carries the badge');
+    assert.notEqual(badge.style.display, 'none', 'shown while the page declares a walkthrough');
+    assert.match(badge.className, /-top-[\d.]+ -left-[\d.]+/, 'in the top-left corner');
+    badge.click(); await tick(3);
+    assert.equal(JSON.stringify(started), JSON.stringify([{ say: 'Welcome' }]), 'a tap starts it');
+    d.raisePad(); await tick(2); await settle();
+    assert.equal(badge.style.display, 'none', 'hidden while the launcher wears the pad');
+    d.fabMenu = true; await tick(2);
+    const basic = host.querySelector('[data-fab-basic]');
+    assert.equal(basic.getAttribute('aria-pressed'), 'false', 'Basic is not the form in force');
+    basic.click(); await tick(2);
+    assert.equal(d.padOn, false, 'Basic takes the pad off');
+    d._lookDoc = doc; d.lookSlot = { left: 10, top: 10 }; await tick(2);
+    d.basicForm(); await tick(2);
+    assert.equal(stopped, 1, 'and ends a walkthrough the launcher stands in');
+    d._lookDoc = null; d.lookSlot = null;
+    d.hide(); await tick(2);
+    d.basicForm(); await tick(2);
+    assert.equal(d.tuckNow, false, 'and brings it out of the corner');
+    decl.remove();
+    d.readPageWalks(); await tick(2); await settle();
+    assert.equal(badge.style.display, 'none', 'a page with no walkthrough shows no badge');
+  } finally { window.Look = was; decl.remove(); host.remove(); }
+});

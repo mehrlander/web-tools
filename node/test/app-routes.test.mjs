@@ -336,6 +336,16 @@ test('the shell is excluded from attribution and reported on its own', () => {
   assert.equal(s.touch.subject, 'router');
 });
 
+test('a route that declares the shell is not dated or filed by it', () => {
+  const m = { ...FIXTURE, routes: [...FIXTURE.routes,
+    { key: 'five', address: '?view=five', label: 'Five', group: 'b', what: '.', files: ['shell.html', 'five.js'] }] };
+  const five = R.rank(m, { touches: { 'shell.html': { date: '2026-08-13', subject: 'router' } } })
+    .find(r => r.key === 'five');
+  assert.equal(five.lastTouch, null);
+  assert.ok(!five.files.map(f => f.path).includes('shell.html'));
+  assert.deepEqual(R.routesTouched(m, ['shell.html']), { on: [], near: [] });
+});
+
 test('a route with no code of its own is a row, flagged, not a gap', () => {
   const four = R.rank(FIXTURE, {}).find(r => r.key === 'four');
   assert.equal(four.hasOwnCode, false);
