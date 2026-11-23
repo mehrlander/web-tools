@@ -64,22 +64,24 @@ A LONG PRESS or right-click on the FAB opens a short menu. Every row is one line
 - **"Latest version"** heads the menu while the arrow badge is up and does what a tap on the badge does; the branch rides in its tooltip.
 - **"Test the bridge"** appears in every token state and fires the same kind of link at Log-Repo, which commits what it is handed, so a positive answer lands in the device log. A scheme nothing is registered for fails silently, so every Shortcuts row watches for this document being backgrounded and reports the exact URL it tried when the document stays put.
 - **"Note"** carries the aims as icon buttons beside one label: the page, an element, a section (only where the page declares a kind that names one), and a region. The page aim stages a PAGE draft with the microphone off. **"Hide notes"**, shown only while the card is up, puts the card away and keeps the notes.
-- **Peek**, whose readings fill the bottom panel's Peek tab when this row starts it, and a **PROBE** row that arms `kits/probe.js` on the view (its corner readout of live conditions plus the trace of every popup guard decision) and takes it off again, its label carrying the state. The probe is armed in the WATCHED realm through the subject frame's own gh chain; a framed page with no loader of its own is told to use `?probe=` instead.
+- **Peek**, and a **PROBE** row that arms `kits/probe.js` on the view (its corner readout of live conditions plus the trace of every popup guard decision) and takes it off again, its label carrying the state. The probe is armed in the WATCHED realm through the subject frame's own gh chain; a framed page with no loader of its own is told to use `?probe=` instead.
 - **"Paste"** puts the clipboard on the Stage: a page showing the Stage takes it in place, and any other page parks it through `kits/stage-handoff.js` and leaves for the app's Stage, which picks it up at boot.
 - **"Home"** leaves for the deployed app at the default branch: a fixed address, so it reaches the app from a toss, from a ?use= pin, and from a page that was never part of it.
 - **"Form"** carries the FAB's forms as icon buttons beside one label, the form in force shown pressed. Basic is the FAB at rest: it ends a walkthrough the FAB is docked in, takes the arrow pad off and brings the FAB out of the corner. Hide tucks the FAB into a small handle in the bottom-right corner until a tap on the handle brings it back. Pad puts the arrow pad round it.
-- **"Walkthrough"**, one row for each walkthrough the page in view declares for look links (`#look-walkthroughs`, read by `kits/look.js`), starting it with the FAB as its dock. A page that declares none shows no row.
+- **"Walkthrough"**, one row for each [look walkthrough](#the-walkthrough-dock) that the page in view declares in `#look-walkthroughs`, which [`kits/look.js`](../lib/kits/look.js) reads. A tap starts that walkthrough.
 - **The page's own rows**, contributed through `menu`, the third opt-in contract beside `actions` and `toggles`, for a verb wanted BEFORE the FAB sidebar rather than inside it. The app contributes the HEADER row here, since an app view opens with no header on screen. They are read at open time, so the first long press of a page load is not an empty menu.
 
 ## Corner drags and the arrow pad
 
-A drag that pushes the FAB against the right edge and the bottom together tucks it, as the menu's Hide does; a drag into the bottom-left corner raises the arrow pad there. On arriving in either corner the FAB changes its look, so the release is a choice, and pulling it back out cancels. Neither corner acts while the pad is up.
+A drag that pushes the FAB against the right edge and the bottom together tucks it, as the menu's Hide does. A drag into the bottom-left corner raises the arrow pad there. On arriving in the bottom-right corner the FAB shrinks and dims; in the bottom-left corner it grows and shows the pad's glyph. A release there completes the move. Pulling the FAB back out cancels it. While the pad is up, a drag into either corner only moves the FAB.
 
-The arrow pad is four chevrons round the FAB, which still drags and carries them with it; a tap on the FAB takes them off. A press on a chevron sends keydown and keyup for its arrow key to the focused element of the page in view, the framed page's in a toss, and a held press repeats as a keyboard's does. A key made by script gets no browser default, so the chevrons drive only the page's own arrow handlers, and an up or down that no handler claims scrolls a line instead. Inside a sealed toss (`#gz=`) the chevrons reach nothing.
+The arrow pad is four chevrons round the FAB, which still drags and carries them with it. A tap on the FAB takes them off. A press on a chevron sends keydown and keyup for its arrow key to the focused element of the page in view; in a toss, that is the framed page's focused element. A held press repeats as a keyboard's does.
+
+A key event made by script reaches only the page's own arrow handlers. An up or down that no handler claims scrolls the page a line instead. A toss that carries its page in the address (`#gz=`) renders that page under an opaque origin. No other document can reach a page there, the chevrons included.
 
 ## The walkthrough dock
 
-A look walkthrough ([look-markers](../skills/look-markers/SKILL.md)) docks the FAB where a FAB is on screen. The dock wears the FAB's edge and a lighter wash of its face, and the FAB's glyph stands in a slot between the dock's Back and Next chevrons in place of a close button. A tap and a long press on the docked FAB still open the sidebar and the menu. A drag that takes the glyph more than 48px out of the slot ends the walkthrough and leaves the FAB where it was dropped; the menu's Basic ends it too.
+A look walkthrough is a guided tour of a page, one highlighted element and one line of text per step, that a look link or the FAB starts ([look-markers](../skills/look-markers/SKILL.md)). On a page that carries a FAB, the walkthrough's step card becomes the FAB's dock. The dock takes the FAB's border colour and a lighter tint of its fill. The FAB's glyph stands in a slot between the dock's Back and Next chevrons in place of a close button. A tap and a long press on the docked FAB still open the sidebar and the menu. A drag that takes the glyph more than 48px out of the slot ends the walkthrough and leaves the FAB where it was dropped.
 
 ## The take menu
 
@@ -87,11 +89,15 @@ A take menu sits under the render tab in every context the FAB sidebar appears i
 
 ## The bottom panel
 
-The bottom panel is the FAB's second surface, a band along the foot of the window as the sidebar is a band along its right edge. Its two tabs are Console and Peek, the second holding Peek's readings when the menu's Peek row starts it; a page that starts Peek itself gets Peek's own band. The sidebar's Console row, with its counts, opens the panel from there. While the panel is up the FAB stands on its top edge, and the panel moves to the top of the window when Peek asks for that edge. On a phone the panel and the sidebar take turns, since the sidebar is nearly the window's width; wider, the panel stops at the sidebar's edge. Putting the panel away ends a Peek it holds. Peek's tap cover sits one layer under the FAB and the panel, so both still take taps while Peek is on.
+Beside the sidebar, which runs along the window's right edge, the FAB has a bottom panel along the window's lower edge. Its two tabs are Console and Peek. [Peek](../lib/kits/peek.js) names the element the reader taps: its selector, box, layout and ancestors. When the menu's Peek row starts Peek, the Peek tab holds its readings. A page that starts Peek itself gets Peek's own panel. A Console row at the foot of the sidebar shows the console's counts and opens the bottom panel.
+
+While the bottom panel is open, the FAB is drawn just above the panel's top edge. Peek puts its readings on the edge away from the reader's tap: after a tap in the lower half of the window, the bottom panel moves to the top of the window. On a phone, where the sidebar is nearly the window's width, opening either the sidebar or the bottom panel closes the other. On a wider screen the bottom panel stops at the sidebar's edge.
+
+Closing the bottom panel ends a Peek it holds. Peek's cover, the layer that takes taps on the page while Peek is on, sits under the FAB and the bottom panel, which keep their own taps.
 
 ## Other controls
 
-A header hard-refresh button reloads bypassing the browser cache, for Safari on iOS.
+A hard-refresh button in the sidebar's header reloads the view and bypasses the browser cache.
 
 ## One per viewport
 
