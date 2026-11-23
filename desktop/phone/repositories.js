@@ -34,6 +34,47 @@
   const safeUrl=repo=>/^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo?.url||'')?repo.url:null;
   const busy=repo=>sending==='all'||sending===repo?.key||fresh()&&data.refreshing.includes(repo?.key);
   const checkAge=repo=>repo?.checkedAt?'GitHub checked '+ago(repo.checkedAt)+' ('+stamp(repo.checkedAt)+').':'GitHub has not been checked.';
+  const mainSyncReasons={
+    'fetch-stale':'the GitHub fetch was no longer fresh',
+    'invalid-source':'the GitHub source could not be validated',
+    'no-default-worktree':'no local default-branch folder was found',
+    'ambiguous-default-worktree':'the default-branch folder could not be selected unambiguously',
+    'identity-changed':'the repository or branch changed during the check',
+    'refs-changed':'Git references changed during the check',
+    'git-unavailable':'Git was unavailable',
+    'git-operation':'another Git operation was in progress',
+    'updater-busy':'another automatic update was in progress',
+    'local-changes':'the folder had local changes',
+    'ignored-collision':'ignored local data would be overwritten',
+    'index-flags':'special Git index settings require review',
+    'sparse-checkout':'the folder uses a sparse checkout',
+    'local-commits':'the local branch had commits outside the fetched default branch',
+    'history-unavailable':'the commit history could not be compared',
+    'active-session':'session activity was detected in the folder',
+    'activity-unavailable':'session activity could not be checked',
+    'activity-uncertain':'session activity could not be matched confidently',
+    'fetch-failed':'the GitHub fetch failed',
+    'update-unavailable':'the update result could not be confirmed',
+    'merge-failed':'the update command did not finish successfully',
+    'verification-failed':'the resulting checkout could not be verified',
+    'post-update-changes':'local changes were detected after the update'
+  };
+  function mainSyncDetail(repo,checkout){
+    const value=repo?.mainSync,utc=value=>typeof value==='string'&&/(?:Z|\+00:00)$/.test(value)&&Number.isFinite(Date.parse(value));
+    if(!value||!['current','updated','blocked','failed'].includes(value.state)||!utc(value.checkedAt)
+      ||value.updatedAt!=null&&!utc(value.updatedAt)||value.reason!=null&&(typeof value.reason!=='string'||!/^[a-z][a-z0-9-]{0,63}$/.test(value.reason)))return null;
+    const folder=value.folder;
+    if(folder!=null&&(typeof folder!=='string'||!folder.length||folder.length>256||/[\\/\u0000-\u001f:]/.test(folder)||['.','..'].includes(folder)))return null;
+    const defaultBranch=checkout?.main?.branch,onDefault=checkout&&checkout.branch!=='(detached)'&&(checkout.branch===defaultBranch||!defaultBranch&&checkout.branchStatus?.state==='main');
+    if(folder!=null&&(folder!==checkout?.name||!onDefault))return null;
+    if(folder==null&&['current','updated'].includes(value.state))return null;
+    const subject=folder?'Default folder '+folder:'Repository automatic update',action=folder?'Automatic update of '+folder:'Repository automatic update';
+    const reason=Object.hasOwn(mainSyncReasons,value.reason)?mainSyncReasons[value.reason]:'a safe update could not be confirmed';
+    const summary=value.state==='current'?subject+' was current at the automatic check.':value.state==='updated'?subject+' was updated automatically.':action+' '+(value.state==='blocked'?'was blocked':'failed')+': '+reason+'.';
+    const checked='Automatic check '+ago(value.checkedAt)+' ('+stamp(value.checkedAt)+').';
+    const updated=value.updatedAt?'Last automatic update '+ago(value.updatedAt)+' ('+stamp(value.updatedAt)+').':'';
+    return {folder,summary,time:[checked,updated].filter(Boolean).join(' '),text:[summary,checked,updated].filter(Boolean).join(' '),attention:['blocked','failed'].includes(value.state)};
+  }
   function connection(){
     if(!active)return;
     el('connection').textContent=denied?'Access unavailable':fresh()?'Live':data?'Saved':failed?'Offline':'Connecting…';
@@ -41,7 +82,7 @@
     el('connection').setAttribute('aria-label',fresh()?'Connected to '+(data.machineName||'the laptop'):data?'Saved laptop observation from '+stamp(data.observedAt):el('connection').textContent);
   }
   function comparison(value,key,compact=false){
-    const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),upstream=checkout?.upstream?.startsWith('origin/')?checkout.upstream.slice(7):'',age=checkAge(repo)+(repo?.notice?' '+repo.notice:'')+(upstream&&upstream!==value?.branch?' Configured upstream: GitHub '+upstream+'.':'');
+    const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),update=mainSyncDetail(repo,checkout),upstream=checkout?.upstream?.startsWith('origin/')?checkout.upstream.slice(7):'',age=checkAge(repo)+(repo?.notice?' '+repo.notice:'')+(upstream&&upstream!==value?.branch?' Configured upstream: GitHub '+upstream+'.':'')+(update?.folder?' '+update.text:'');
     const warning=tip=>`<span data-commit="${key}:state" tabindex="0" data-title-tip="${escape(tip)}" aria-label="${escape(tip)}" class="inline-flex min-h-6 min-w-6 shrink-0 cursor-pointer items-center justify-center text-amber-700">${icons.warning}</span>`;
     if(compact&&repo?.notice)return warning(age);
     if(compact&&value?.ahead===0&&value?.behind===0)return '';
@@ -56,11 +97,24 @@
   function branchControl(checkout,asRepository=false){
     const meta=checkout.branchStatus||{},state=asRepository?'main':meta.state||'unknown';
     const kind=({main:['branch','text-stone-500','Default branch'],snapshot:['check','text-sky-700','Default-branch snapshot'],open:['pull','text-sky-700','Open pull request'],merged:['merged','text-violet-700','Merged pull request'],incorporated:['check','text-emerald-700','Included in GitHub default branch'],review:['branch','text-amber-700','Branch needs review']})[state]||['branch','text-stone-400','Branch status not checked'];
-    const open=popup?.type==='branch'&&popup.key===checkout.key,repo=repoFor(checkout),url=safeUrl(repo);
+    const open=popup?.type==='branch'&&popup.key===checkout.key,repo=repoFor(checkout),url=safeUrl(repo),update=mainSyncDetail(repo,checkout);
     const href=url&&Number.isInteger(meta.number)&&meta.number>0&&meta.url===url+'/pull/'+meta.number?meta.url:null;
     const detail=state==='snapshot'?'Detached copy of GitHub '+(checkout.main?.branch||'default branch')+'.':state==='review'?meta.pullRequestState==='merged'?'The PR merged; local history still needs review.':meta.pullRequestState==='closed'?'The PR closed without merging.':'No pull request found for this branch.':'';
     const known=Number.isInteger(checkout.tracked.ahead)&&Number.isInteger(checkout.tracked.behind),sync=known?checkout.tracked.ahead===0&&checkout.tracked.behind===0?'In sync':checkout.tracked.ahead.toLocaleString()+' ahead · '+checkout.tracked.behind.toLocaleString()+' behind':'Comparison unavailable';
-    return `<span class="relative inline-flex shrink-0 ${asRepository?'self-stretch items-center':''}"><button data-branch-signal="${checkout.key}" data-focus="${checkout.key}:branch" aria-label="${escape(kind[2]+' for '+checkout.branch+' in '+checkout.name)}" aria-expanded="${open}" aria-haspopup="true" aria-controls="branch-${checkout.key}" class="inline-flex ${asRepository?'min-h-10 w-6 text-emerald-700':'size-5 '+kind[1]} shrink-0 items-center justify-center ${open?'rounded bg-stone-100 ring-1 ring-current':''}">${icons[asRepository?'repository':kind[0]]}</button><span id="branch-${checkout.key}" data-popup="branch:${checkout.key}" ${open?'':'hidden'} role="region" aria-label="Branch status for ${escape(checkout.name)}" class="absolute left-0 ${asRepository?'top-10':'top-6'} z-30 block w-64 max-w-[calc(100vw-3rem)] rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-normal leading-5 shadow-lg"><span class="block font-medium ${kind[1]}">${kind[2]}</span>${asRepository?`<span class="block font-medium text-stone-800">${escape(checkout.name)}</span><span class="block text-stone-600">${escape(checkout.branch)}</span>`:''}${meta.title?`<span class="mt-1 block text-stone-700">${escape(meta.title)}</span>`:''}${href?`<a href="${href}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-8 items-center gap-1 text-sky-800">PR ${meta.number}${icons.external}</a>`:''}${detail?`<span class="block text-stone-600">${escape(detail)}</span>`:''}<span class="block text-stone-600">${escape(checkout.tracked.branch?'Compared with GitHub '+checkout.tracked.branch:'No GitHub comparison target')}</span>${asRepository?`<span class="block text-stone-600">${escape(sync)}</span>${repo?.notice?`<span class="block text-amber-800">${escape(repo.notice)}</span>`:''}<span class="mt-1 block border-t border-stone-100 pt-1 text-[10px] text-stone-500">${escape(checkAge(repo))}</span>`:''}${!asRepository&&meta.checkedAt?`<span class="mt-1 block border-t border-stone-100 pt-1 text-[10px] text-stone-500">Checked ${escape(ago(meta.checkedAt))}</span>`:''}</span></span>`;
+    const iconTone=asRepository?(update?.attention?'text-amber-700':'text-emerald-700'):kind[1];
+    const label=kind[2]+' for '+checkout.branch+' in '+checkout.name+(update?'. '+update.text:'');
+    return `<span class="relative inline-flex shrink-0 ${asRepository?'self-stretch items-center':''}"><button data-branch-signal="${checkout.key}" data-focus="${checkout.key}:branch" aria-label="${escape(label)}" aria-expanded="${open}" aria-haspopup="true" aria-controls="branch-${checkout.key}" class="inline-flex ${asRepository?'min-h-10 w-6':'size-5'} ${iconTone} shrink-0 items-center justify-center ${open?'rounded bg-stone-100 ring-1 ring-current':''}">${icons[asRepository?'repository':kind[0]]}</button>`
+      +`<span id="branch-${checkout.key}" data-popup="branch:${checkout.key}" ${open?'':'hidden'} role="region" aria-label="Branch status for ${escape(checkout.name)}" class="absolute left-0 ${asRepository?'top-10':'top-6'} z-30 block w-64 max-w-[calc(100vw-3rem)] rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-normal leading-5 shadow-lg"><span class="block font-medium ${kind[1]}">${kind[2]}</span>`
+      +(asRepository?`<span class="block font-medium text-stone-800">${escape(checkout.name)}</span><span class="block text-stone-600">${escape(checkout.branch)}</span>`:'')
+      +(meta.title?`<span class="mt-1 block text-stone-700">${escape(meta.title)}</span>`:'')
+      +(href?`<a href="${href}" target="_blank" rel="noopener noreferrer" class="inline-flex min-h-8 items-center gap-1 text-sky-800">PR ${meta.number}${icons.external}</a>`:'')
+      +(detail?`<span class="block text-stone-600">${escape(detail)}</span>`:'')
+      +`<span class="block text-stone-600">${escape(checkout.tracked.branch?'Compared with GitHub '+checkout.tracked.branch:'No GitHub comparison target')}</span>`
+      +(asRepository?`<span class="block text-stone-600">${escape(sync)}</span>${repo?.notice?`<span class="block text-amber-800">${escape(repo.notice)}</span>`:''}`:'')
+      +(update?`<span data-main-sync class="mt-1 block border-t border-stone-100 pt-1 ${update.attention?'text-amber-800':'text-stone-600'}">${escape(update.summary)}</span><span class="block text-[10px] text-stone-500">${escape(update.time)}</span>`:'')
+      +(asRepository?`<span class="mt-1 block border-t border-stone-100 pt-1 text-[10px] text-stone-500">${escape(checkAge(repo))}</span>`:'')
+      +(!asRepository&&meta.checkedAt?`<span class="mt-1 block border-t border-stone-100 pt-1 text-[10px] text-stone-500">Checked ${escape(ago(meta.checkedAt))}</span>`:'')
+      +'</span></span>';
   }
   function status(checkout){
     const changed=checkout.changed,untracked=checkout.untracked,conflicts=checkout.conflicts||0,local=checkout.localFiles,ignored=(local?.entries||[]).filter(e=>e.gitState==='ignored');

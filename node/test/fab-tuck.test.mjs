@@ -67,7 +67,7 @@ test('the menu\'s Hide tucks the launcher into the corner on any page, until the
     d.fabMenu = true; await tick(2);
     const row = host.querySelector('[data-fab-hide]');
     assert.ok(row, 'the menu offers Hide');
-    assert.match(row.textContent, /Hide/);
+    assert.equal(row.getAttribute('aria-label'), 'Hide', 'an icon button on the Place row, named for what it does');
     row.click(); await tick(2);
     assert.equal(d.fabMenu, false, 'the row closes the menu');
     assert.equal(d.tuckNow, true, 'and tucks the launcher with no pad on the page');
@@ -91,6 +91,105 @@ test('a pad that came up before the launcher still tucks it', async () => {
     host.remove(); pad.remove();
     window.dispatchEvent(new window.CustomEvent('mark-pad', { detail: { shown: false } }));
   }
+});
+
+// A drag that presses the launcher against the right edge and the bottom
+// together tucks it, as Hide does; it dims and shrinks on arriving there, so
+// the release is a choice, and it comes back to where the drag began.
+const ev = (type, x, y) => ({ type, button: 0, pointerId: 1, clientX: x, clientY: y, currentTarget: { setPointerCapture() {} } });
+const wait = (ms) => new Promise(r => window.setTimeout(r, ms));
+
+test('a drag into the corner tucks the launcher, and the handle brings it back to where the drag began', async () => {
+  const { d, host } = await mountFab();
+  try {
+    d.x = -200; d.y = -300;
+    d.onDown(ev('pointerdown', 500, 400));
+    d.onMove(ev('pointermove', 600, 500));
+    assert.equal(d.tuckAim, false, 'out in the open, nothing is aimed');
+    d.onMove(ev('pointermove', 800, 500));
+    assert.equal(d.tuckAim, false, 'against one edge is not the corner');
+    d.onMove(ev('pointermove', 800, 800));
+    assert.equal(d.tuckAim, true, 'against both edges, the corner is aimed');
+    assert.deepEqual([d.x, d.y], [24, 24], 'and the disc is flush in it');
+    d.onUp(ev('pointerup', 800, 800)); await tick(2);
+    assert.equal(d.tuckNow, true, 'the release tucks it');
+    assert.equal(d.hidden, true, 'the same tuck as Hide, so a pad coming and going leaves it');
+    assert.equal(d.open, false, 'and the drawer does not open behind it');
+    assert.deepEqual([d.x, d.y], [-200, -300], 'its place is where the drag began');
+    host.querySelector('[data-fab-tab]').click(); await tick(2);
+    assert.equal(d.tuckNow, false, 'a tap on the handle brings it back');
+  } finally { host.remove(); }
+});
+
+test('a drag pulled back out of the corner, or cancelled in it, does not tuck', async () => {
+  const { d, host } = await mountFab();
+  try {
+    d.onDown(ev('pointerdown', 900, 700));
+    d.onMove(ev('pointermove', 960, 760));
+    assert.equal(d.tuckAim, true);
+    d.onMove(ev('pointermove', 880, 690));
+    assert.equal(d.tuckAim, false, 'pulled back out, the aim is off');
+    d.onUp(ev('pointerup', 880, 690)); await tick(2);
+    assert.equal(d.tuckNow, false);
+    d.onDown(ev('pointerdown', 900, 700));
+    d.onMove(ev('pointermove', 960, 760));
+    d.onUp(ev('pointercancel', 960, 760)); await tick(2);
+    assert.equal(d.tuckNow, false, 'a gesture the system took over is not a release');
+    assert.equal(d.tuckAim, false);
+  } finally { host.remove(); }
+});
+
+// The tuck is true at once; `stow` is the picture of it. Out, the disc is
+// carried to the handle's spot at the handle's size before the wrapper moves
+// to the corner; back, it is put there first and carried home.
+test('the launcher travels into the handle and back out, and does not where motion is reduced', async () => {
+  const { d, host } = await mountFab();
+  const wrap = host.querySelector('[data-fab-wrap]');
+  try {
+    d.hide(); await tick(1);
+    assert.equal(d.tuckNow, true, 'the tuck is not delayed');
+    assert.equal(d.stow, 'out', 'the disc travels first');
+    assert.match(wrap.getAttribute('style'), /scale\(0\.46\)/, 'to the handle’s size');
+    assert.doesNotMatch(wrap.className, /!bottom-0/, 'from the wrapper’s own place');
+    await wait(260); await tick(1);
+    assert.equal(d.stow, '');
+    assert.match(wrap.className, /!bottom-0/, 'then the wrapper moves to the corner');
+    d.untuck(); await tick(1);
+    assert.equal(d.stow, 'at', 'back out, the disc is first put at the handle');
+    await wait(40); await tick(1);
+    assert.equal(d.stow, 'back', 'then carried home');
+    await wait(360); await tick(1);
+    assert.equal(d.stow, '');
+    const mm = window.matchMedia;
+    window.matchMedia = (q) => ({ ...mm(q), matches: /reduce/.test(q) });
+    try {
+      d.hide(); await tick(1);
+      assert.equal(d.tuckNow, true);
+      assert.equal(d.stow, '', 'reduced motion cuts straight to the handle');
+    } finally { window.matchMedia = mm; }
+  } finally { host.remove(); }
+});
+
+// The reader's own Hide holds over an open drawer, where a pad's tuck gives
+// way to it: the handle brings the launcher back with the drawer still open,
+// and a tap on the launcher then closes it.
+test('Hide or a drag into the corner tucks the launcher with the drawer open, and the drawer stays open', async () => {
+  const { d, host } = await mountFab();
+  try {
+    d.open = true; await tick(2);
+    d.onDown(ev('pointerdown', 900, 700));
+    d.onMove(ev('pointermove', 960, 760));
+    d.onUp(ev('pointerup', 960, 760)); await tick(2);
+    assert.equal(d.tuckNow, true, 'the drag tucks it over the open drawer');
+    assert.equal(d.open, true, 'and the drawer stays open');
+    host.querySelector('[data-fab-tab]').click(); await tick(2);
+    assert.equal(d.tuckNow, false, 'the handle brings the launcher back');
+    assert.equal(d.open, true, 'without closing the drawer');
+    assert.ok(['at', 'back'].includes(d.stow), 'and it travels back out, as it does with the drawer shut: ' + d.stow);
+    d.onDown(ev('pointerdown', 900, 700));
+    d.onUp(ev('pointerup', 900, 700)); await tick(2);
+    assert.equal(d.open, false, 'a tap on the launcher then closes it');
+  } finally { host.remove(); }
 });
 
 test('a pad the toss-rendered subject put up before the launcher mounted still tucks it', async () => {

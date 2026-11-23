@@ -1,13 +1,17 @@
 """Exercise real Git graphs and fetches against isolated local bare repositories."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
+import sys
 import tempfile
+import time
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
+sys.path.insert(0, str(Path(__file__).parents[1] / 'worker'))
 spec = importlib.util.spec_from_file_location('repositories', Path(__file__).parents[1] / 'worker' / 'repositories.py')
 repos = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(repos)
@@ -30,9 +34,25 @@ class RepositoryChecks(unittest.TestCase):
         self.cmd('clone', str(self.remote), str(self.local))
         self.configure(self.local)
         self.cmd('-C', str(self.local), 'remote', 'set-url', 'origin', 'https://github.com/fixture/project.git')
+        self.process_observations = []
+        self.fixture_git_timeout = None
+        real_process = repos.run_bounded
+        def fixture_process(argv, **kwargs):
+            started = time.monotonic()
+            result = real_process(argv, **kwargs)
+            operation = next((arg for arg in argv if arg in ('config', 'rev-parse', 'status', 'fetch', 'ls-remote', 'merge', 'ls-files', 'diff', 'merge-base', 'rev-list')), 'other')
+            self.process_observations.append({'operation': operation, 'seconds': round(time.monotonic() - started, 3),
+                                              'timeout': kwargs.get('timeout'), 'available': result is not None,
+                                              'exit': result.returncode if result is not None else None})
+            return result
+        self.process_patch = patch.object(repos, 'run_bounded', fixture_process)
+        self.process_patch.start()
+        self.addCleanup(self.process_patch.stop)
         real_git = repos.git
         def fixture_git(path, *args, **kwargs):
             args = [str(self.remote) if a == 'https://github.com/fixture/project.git' else a for a in args]
+            if self.fixture_git_timeout is not None:
+                kwargs['timeout'] = max(kwargs.get('timeout', 8), self.fixture_git_timeout)
             return real_git(path, *args, **kwargs)
         self.mock = patch.object(repos, 'git', fixture_git)
         self.mock.start()
@@ -84,6 +104,44 @@ class RepositoryChecks(unittest.TestCase):
         self.assertEqual((row['tracked']['ahead'], row['tracked']['behind']), (0, 1))
         self.assertEqual((row['changed'], row['untracked']), (1, 1))
         self.assertTrue((self.local / 'scratch.txt').exists())
+
+    def test_scheduled_fetch_updates_only_the_clean_default_folder(self):
+        # Real Git startup can exceed the production fail-closed 8s observation
+        # deadline on a contended Windows host. This case tests the successful
+        # integration path, while the deadline checks exercise timeout behavior.
+        self.fixture_git_timeout = 30
+        self.remote_commit()
+        before = self.cmd('-C', str(self.local), 'rev-parse', 'HEAD')
+        with patch('workspace_activity.probe', return_value={'allow': True, 'reason': None}):
+            self.assertTrue(repos.fetch_repository(self.root, self.state, self.repo_key, update_main=True))
+        observation = repos.read_source(self.state, self.repo_key).get('mainSync')
+        self.assertIsInstance(observation, dict)
+        self.assertEqual(observation.get('state'), 'updated', json.dumps({'mainSync': observation, 'git': self.process_observations[-12:]}))
+        after = self.cmd('-C', str(self.local), 'rev-parse', 'HEAD')
+        self.assertNotEqual(before, after)
+        self.assertEqual((self.local / 'remote.txt').read_text(encoding='utf-8'), 'remote work')
+        snapshot = repos.snapshot(self.root, self.state)['repositories'][0]
+        self.assertEqual(snapshot['mainSync']['state'], 'updated')
+        self.assertEqual(snapshot['mainSync']['folder'], 'laptop')
+        self.assertEqual((snapshot['checkouts'][0]['tracked']['ahead'], snapshot['checkouts'][0]['tracked']['behind']), (0, 0))
+
+    def test_inherited_repository_environment_cannot_redirect_discovery_or_fetch(self):
+        self.fixture_git_timeout = 30
+        foreign = self.base / 'foreign'
+        self.cmd('init', '--initial-branch=foreign', str(foreign))
+        self.configure(foreign)
+        self.commit(foreign, 'foreign.txt', 'foreign')
+        foreign_head = self.cmd('-C', str(foreign), 'rev-parse', 'HEAD')
+        self.remote_commit()
+        with patch.dict(os.environ, {'GIT_DIR': str(foreign / '.git'), 'GIT_WORK_TREE': str(foreign),
+                                     'GIT_INDEX_FILE': str(foreign / '.git' / 'index'),
+                                     'GIT_CONFIG_COUNT': '1', 'GIT_CONFIG_KEY_0': 'remote.origin.url',
+                                     'GIT_CONFIG_VALUE_0': 'https://github.com/foreign/project.git'}):
+            self.assertEqual(repos.discover(self.root)[0]['repo'], 'fixture/project', json.dumps({'git': self.process_observations[-6:]}))
+            self.assertTrue(repos.fetch_repository(self.root, self.state, self.repo_key))
+        self.assertEqual(self.cmd('-C', str(foreign), 'rev-parse', 'HEAD'), foreign_head)
+        self.assertEqual(self.cmd('-C', str(foreign), 'for-each-ref', '--format=%(refname)', 'refs/remotes'), '')
+        self.assertFalse((foreign / 'remote.txt').exists())
 
     def test_divergence_counts_commits_on_each_side(self):
         self.commit(self.local, 'local.txt', 'local work')
