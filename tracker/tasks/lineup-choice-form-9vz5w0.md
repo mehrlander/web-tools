@@ -5,7 +5,7 @@ status: backlog
 opened: 2026-10-25
 project: app
 size: L
-awaiting: sign-off on the mark's entry in docs/favicons/README.md; the forms README's naming of the lineup waits on documentation call bb564bb3-lineup-forms (web-tools #1151)
+awaiting: sign-off on the mark's entry in docs/favicons/README.md (scope item 4), not yet drafted
 ---
 # Build the lineup, the form for choosing one of several working options
 
@@ -86,3 +86,4 @@ decided.
 ## Progress log
 - 2026-10-25: Filed from claude/look-panel-fold after web-tools #1081 merged the look-panel hooks. Next: the lineup kit, scope item 1.
 - 2026-11-08: The owner agreed the lineup is a form whose home is `docs/forms/README.md`. Web-tools #1151 names it in the paragraph after the respond table (call `bb564bb3-lineup-forms`) and points design-sprint's phase 3 to it (call `bb564bb3-lineup-design-sprint`). The pick call, which landed 2026-11-02, answers where a verdict lands. Next: the lineup kit, scope item 1.
+- 2026-11-22: `awaiting` corrected. Call `bb564bb3-lineup-forms` closed Keep all on 2026-11-09, and `docs/forms/README.md` on main names the lineup, so the owner's remaining sign-off is the mark's entry in `docs/favicons/README.md` (scope item 4), which no session has drafted. Next: the lineup kit, scope item 1.

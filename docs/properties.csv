@@ -24,13 +24,13 @@ harness,callers,computed,node/build/tools-index.mjs,none,list,yes,,,locator,"wha
 harness,emits,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,writes a file: a generator rather than a reader
 harness,named,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,its path or basename appears in tracked prose
 harness,tested,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,a file under node/test/ exercises it
-hook-legs,order,computed,node/build/tools-index.mjs,value,column,yes,,,value,"the step's position in the hook, which is the order the steps run in; a later step can read what an earlier one wrote"
-hook-legs,gloss,computed,node/build/tools-index.mjs,value,column,yes,,,value,"the step's own header line in the hook, after its name: what it reads and what it keeps current"
-hook-legs,watches,computed,node/build/tools-index.mjs,none,list,yes,,,locator,the paths whose pending change runs the step in an ordinary commit; empty for a step that runs on every commit
-hook-legs,runs,computed,node/build/tools-index.mjs,value,list,yes,,,value,the npm scripts and python scripts the step invokes
-hook-legs,stages,computed,node/build/tools-index.mjs,none,list,yes,,,locator,the files the step regenerates and adds to the commit; empty for a step that only warns
-hook-legs,mode,computed,node/build/tools-index.mjs,value,column,yes,regenerates;warns,,label,"regenerates when the step stages a file, warns when it only prints"
-hook-legs,in_repair,computed,node/build/tools-index.mjs,value,column,yes,yes;no,,label,"whether npm run artifacts:refresh, the repair pass refresh-derived.yml runs on main, runs the step"
+commit-rules,order,recorded,,value,column,yes,,,value,the rule's position in the run; a rule can read what an earlier rule wrote
+commit-rules,kind,recorded,,value,column,yes,build;generate;package;check,,label,"build for a bundle, generate for a catalog, registry or index, package for a copy a plugin ships, check for a warning that writes nothing"
+commit-rules,sources,recorded,,none,list,yes,,,locator,git pathspecs whose pending change runs the rule in a commit; empty for a rule that runs on every commit
+commit-rules,command,recorded,,value,column,yes,,,value,"the command the rule runs, from the repository root"
+commit-rules,outputs,recorded,,none,list,yes,,,locator,the files the command writes and the rule stages when it succeeds; empty for a check
+commit-rules,repair,recorded,,value,column,yes,yes;no,,label,"whether --all runs the rule, as npm run artifacts:refresh and refresh-derived.yml on main do"
+commit-rules,description,recorded,,value,column,yes,,,value,"what the outputs are, or what the check looks for"
 components,names,computed,node/build/components-index.mjs,value,column,yes,,,value,"every name the file registers with Alpine.data, in file order; x-data mounts the component by one of these. Blank is the warning state: a file in the component folder that registers nothing"
 components,gloss,computed,node/build/components-index.mjs,counted,column,yes,,,value,"the first sentence of the component's own description property, or of its leading comment where it has none. Read rather than authored; blank where neither opens with a sentence"
 components,lines,computed,node/build/components-index.mjs,value,column,yes,,,value,file length

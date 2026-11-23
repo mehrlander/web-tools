@@ -9,7 +9,8 @@ public sealed class RepositoryReader
     private RepositorySnapshot? latest;
     private readonly object gate = new();
     private readonly HashSet<string> refreshing = [];
-    private readonly Channel<string> requests = Channel.CreateUnbounded<string>(new UnboundedChannelOptions { SingleReader = true });
+    private sealed record FetchRequest(string Key, bool UpdateMain);
+    private readonly Channel<FetchRequest> requests = Channel.CreateUnbounded<FetchRequest>(new UnboundedChannelOptions { SingleReader = true });
     private readonly SemaphoreSlim scans = new(1, 1);
     private readonly JsonSerializerOptions json = new(JsonSerializerDefaults.Web);
     private readonly string saved = Path.Combine(UserSettings.DataDirectory, "repositories-snapshot.json");
@@ -32,19 +33,19 @@ public sealed class RepositoryReader
         }
     }
 
-    public int RequestFetch(string key)
+    public int RequestFetch(string key, bool updateMain = false)
     {
         lock (gate) {
             if (latest is null) return 503;
             var groups = latest.Repositories.Where(r => r.Url is not null && (key == "all" || r.Key == key)).ToList();
             if (groups.Count == 0) return 404;
             var added = false;
-            foreach (var group in groups) if (refreshing.Add(group.Key)) { requests.Writer.TryWrite(group.Key); added = true; }
+            foreach (var group in groups) if (refreshing.Add(group.Key)) { requests.Writer.TryWrite(new(group.Key, updateMain)); added = true; }
             return added ? 202 : 409;
         }
     }
 
-    private async Task<string?> RunScript(string? key, CancellationToken stop, bool files = false, bool publish = false)
+    private async Task<string?> RunScript(string? key, CancellationToken stop, bool files = false, bool publish = false, bool updateMain = false)
     {
         var start = new ProcessStartInfo("python") { UseShellExecute = false, CreateNoWindow = true,
             RedirectStandardOutput = true, RedirectStandardError = true };
@@ -54,6 +55,7 @@ public sealed class RepositoryReader
         if (publish) start.ArgumentList.Add("--publish-laptop-files");
         if (key is not null) {
             start.ArgumentList.Add("--fetch"); start.ArgumentList.Add(key);
+            if (updateMain) start.ArgumentList.Add("--update-main");
             List<string> folders;
             lock (gate) folders = latest?.Repositories.FirstOrDefault(r => r.Key == key)?.Checkouts.Select(c => c.Name).ToList() ?? [];
             if (folders.Count == 0) return null;
@@ -123,9 +125,10 @@ public sealed class RepositoryReader
         finally { if (publication is not null) await publication; }
     }
 
-    private async Task Scan(CancellationToken stop)
+    private async Task Scan(CancellationToken stop, bool wait = false)
     {
-        if (!await scans.WaitAsync(0, stop)) return;
+        if (wait) await scans.WaitAsync(stop);
+        else if (!await scans.WaitAsync(0, stop)) return;
         try {
             var output = await RunScript(null, stop);
             var value = output is null ? null : JsonSerializer.Deserialize<RepositorySnapshot>(output, json);
@@ -141,11 +144,13 @@ public sealed class RepositoryReader
 
     private async Task FetchLoop(CancellationToken stop)
     {
-        await foreach (var key in requests.Reader.ReadAllAsync(stop)) {
-            try { await RunScript(key, stop); }
+        await foreach (var request in requests.Reader.ReadAllAsync(stop)) {
+            try {
+                await RunScript(request.Key, stop, updateMain: request.UpdateMain);
+                await Scan(stop, wait: true);
+            }
             catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or OperationCanceledException) { }
-            finally { lock (gate) refreshing.Remove(key); }
-            await Scan(stop);
+            finally { lock (gate) refreshing.Remove(request.Key); }
         }
     }
 
@@ -166,7 +171,7 @@ public sealed class RepositoryReader
             using var timer = new PeriodicTimer(TimeSpan.FromSeconds(10));
             do {
                 await Scan(stop);
-                if (DateTimeOffset.UtcNow >= nextFetch) { RequestFetch("all"); nextFetch = DateTimeOffset.UtcNow.AddMinutes(5); }
+                if (DateTimeOffset.UtcNow >= nextFetch) { RequestFetch("all", updateMain: true); nextFetch = DateTimeOffset.UtcNow.AddMinutes(5); }
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         try { await fetching; } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }

@@ -237,7 +237,7 @@ test('only links that are new and inside the repository are checked', () => {
 
 // ── Files it will not edit, and what an edit sets off ───────────────────────
 
-const legs = mdEdit.parseCsv(readFileSync(path.join(repoRoot, 'docs/hook-legs.csv'), 'utf8'));
+const rules = mdEdit.parseCsv(readFileSync(path.join(repoRoot, 'docs/commit-rules.csv'), 'utf8'));
 
 test('generated files are refused by their own marker line', () => {
   for (const f of ['docs/README.md', 'tracker/board.md', 'pages/README.md']) {
@@ -245,24 +245,24 @@ test('generated files are refused by their own marker line', () => {
     assert.ok(mdEdit.generated(text, f, []), f + ' reads as generated');
   }
   const app = readFileSync(path.join(repoRoot, 'docs/APP.md'), 'utf8');
-  assert.equal(mdEdit.generated(app, 'docs/APP.md', legs), null, 'an authored doc is editable');
+  assert.equal(mdEdit.generated(app, 'docs/APP.md', rules), null, 'an authored doc is editable');
 });
 
 test('a file the commit hook writes is refused even without a marker', () => {
-  const g = mdEdit.generated('# Conversation\n', 'skills/default/CONVERSATION.md', legs);
+  const g = mdEdit.generated('# Conversation\n', 'skills/default/CONVERSATION.md', rules);
   assert.ok(g);
   assert.match(g.why, /plugin-copies/);
 });
 
 test('a doc edit names the generated files it sets off', () => {
-  const touched = mdEdit.legsFor('docs/stage.md', legs).map(l => l.leg);
-  for (const leg of ['docs-reach', 'themes-graph', 'harness-census']) assert.ok(touched.includes(leg), leg);
-  assert.ok(!touched.includes('pre-build'), 'lib/ legs are not set off by a doc');
-  const stages = mdEdit.stagesOf(mdEdit.legsFor('docs/stage.md', legs));
-  assert.ok(stages.includes('docs/docs.csv') && stages.includes('docs/themes.csv'));
+  const touched = mdEdit.rulesFor('docs/stage.md', rules).map(r => r.rule);
+  for (const rule of ['docs-reach', 'themes-graph', 'harness-census']) assert.ok(touched.includes(rule), rule);
+  assert.ok(!touched.includes('pre-build'), 'lib/ rules are not set off by a doc');
+  const outputs = mdEdit.outputsOf(mdEdit.rulesFor('docs/stage.md', rules));
+  assert.ok(outputs.includes('docs/docs.csv') && outputs.includes('docs/themes.csv'));
 });
 
-test('watch patterns: a bare glob matches any folder, a folder matches below it', () => {
+test('source patterns: a bare glob matches any folder, a folder matches below it', () => {
   assert.ok(mdEdit.matches('*.md', 'a/b/c.md'));
   assert.ok(mdEdit.matches('skills/*/demo.html', 'skills/x/demo.html'));
   assert.ok(!mdEdit.matches('skills/*/demo.html', 'skills/x/y/demo.html'));

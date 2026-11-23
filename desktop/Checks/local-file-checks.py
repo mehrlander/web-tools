@@ -4,10 +4,14 @@ import json
 from pathlib import Path
 import stat
 import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
+
+
+sys.path.insert(0, str(Path(__file__).parents[1] / 'worker'))
 
 
 def module(name):
