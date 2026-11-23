@@ -1,4 +1,4 @@
-// lib/kits/findings.js: the fold and the witness comparison.
+// lib/kits/findings.js: the fold, and subjects read alike by the kit and findings.py.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -14,9 +14,7 @@ const ROOT = {
   id: 'nroot', at: '2026-10-01T10:00:00Z', author: 'claude/x', about: 'acme/widget@claude/env-check',
   text: 'An environment report never reached main',
   finding: { kind: 'unreached', subjects: ['acme/widget@claude/env-check', 'acme/widget:sessions/2026/09/2026-09-29-abcd1234.json'],
-             why: 'Four facts in it are not in the docs.', next: 'Fold them into capabilities.md.',
-             witnesses: [{ ref: 'acme/widget@claude/env-check', sha: 'aaaaaaa' },
-                         { ref: 'acme/docs@main:docs/environment/capabilities.md', sha: 'bbbbbbb' }] },
+             why: 'Four facts in it are not in the docs.', next: 'Fold them into capabilities.md.' },
 };
 const reply = (id, at, extra = {}) => ({ id, at, author: 'mehrlander', about: 'note:nroot', text: 'r ' + id, ...extra });
 
@@ -56,23 +54,25 @@ test('the browser writes a resolution that carries finding, and a comment that d
   const r = F.resolution('nroot', 'Folded into capabilities.md', 'mehrlander');
   assert.equal(r.about, 'note:nroot');
   assert.deepEqual(plain(r.finding), { status: 'resolved' });
-  const w = { ref: 'acme/w@main:docs/a.md', sha: '1111111' };
-  assert.deepEqual(plain(F.resolution('nroot', 'ok', 'mehrlander', [F.ackOf(w, { sha: '2222222' })]).finding),
-    { status: 'resolved', ack: [{ ref: 'acme/w@main:docs/a.md', seen: { sha: '2222222' } }] });
   const c = window.Notes.make({ about: 'note:nroot', text: 'looks right', author: 'mehrlander' });
   assert.equal('finding' in c, false);
 });
 
-test('a reassessment replaces fields and moves the assessment date only with new witnesses', () => {
+test('a reassessment replaces fields and moves the assessment date; a comment moves neither', () => {
   const adv = { ...reply('nadv', '2026-10-02T00:00:00Z'), finding: { next: 'Open a PR with the four facts.', choice: '' } };
-  const [f] = F.fold([ROOT, adv]);
+  const [f] = F.fold([ROOT, adv, reply('nc', '2026-10-03T00:00:00Z')]);
   assert.equal(f.next, 'Open a PR with the four facts.');
-  assert.equal(f.assessedAt, ROOT.at);
-  assert.equal(f.history.at(-1).type, 'advanced');
-  const re = { ...reply('nwit', '2026-10-03T00:00:00Z'), finding: { witnesses: [{ ref: 'acme/widget@claude/env-check', sha: 'ccccccc' }] } };
-  const [g] = F.fold([ROOT, adv, re]);
-  assert.equal(g.assessedAt, '2026-10-03T00:00:00Z');
-  assert.equal(g.witnesses.length, 1);
+  assert.equal(f.assessedAt, '2026-10-02T00:00:00Z');
+  assert.equal(f.history.at(-1).type, 'comment');
+  assert.equal(f.history.at(-2).type, 'advanced');
+});
+
+test('witnesses and acknowledgments in older records are ignored', () => {
+  const legacy = { ...ROOT, finding: { ...ROOT.finding, witnesses: [{ ref: 'acme/w@main:docs/a.md', sha: '1111111' }] } };
+  const res = { ...reply('nack', '2026-10-02T00:00:00Z'), finding: { status: 'resolved', ack: [{ ref: 'acme/w@main:docs/a.md', seen: { sha: '2' } }] } };
+  const [f] = F.fold([legacy, res]);
+  assert.equal('witnesses' in f, false);
+  assert.equal(f.status, 'resolved');
 });
 
 // A finding with a step left stays open until the step is done or the owner
@@ -121,61 +121,6 @@ test('clearing the step settles it; renewing attention reopens it with a new ste
   assert.equal(g.closedBy, null);
 });
 
-test('Handled acknowledges witnesses as they stood, and a re-pin replaces the acknowledgment', () => {
-  const pinned = { ...ROOT, finding: { ...ROOT.finding, witnesses: [{ ref: 'acme/w@main:docs/a.md', sha: '1111111' }] } };
-  const res = { ...reply('nack', '2026-10-02T00:00:00Z'), finding: { status: 'resolved', ack: [{ ref: 'acme/w@main:docs/a.md', seen: { sha: '2222222' } }] } };
-  const [f] = F.fold([pinned, res]);
-  assert.deepEqual(plain(f.witnesses[0].ack), { sha: '2222222' });
-  assert.equal(f.assessedAt, pinned.at, 'an acknowledgment is not a reassessment');
-  const repin = { ...reply('nrepin', '2026-10-03T00:00:00Z'), finding: { witnesses: [{ ref: 'acme/w@main:docs/a.md', sha: '3333333' }] } };
-  const [g] = F.fold([pinned, res, repin]);
-  assert.equal('ack' in g.witnesses[0], false);
-});
-
-test('a settled finding whose evidence moved asks for attention again', () => {
-  const [f] = F.fold([{ ...OVERTAKEN, id: 'nnone2', finding: { ...OVERTAKEN.finding, next: '' } }]);
-  assert.equal(F.needsAttention(f, [{ verdict: 'ok' }]), false);
-  assert.equal(F.needsAttention(f, [{ verdict: 'ok' }, { verdict: 'changed', detail: 'now 2222222' }]), true);
-  assert.equal(F.needsAttention(f, [{ verdict: 'broken' }]), true);
-  assert.equal(F.needsAttention(f, [{ verdict: 'unverifiable' }]), false);
-});
-
-test('witnesses: a file outside the subjects is compared by its pinned object', () => {
-  const [, file] = ROOT.finding.witnesses;
-  assert.deepEqual(plain(F.witnessPlan(file)), { type: 'path', repo: 'acme/docs', ref: 'main', path: 'docs/environment/capabilities.md' });
-  assert.equal(F.compare(file, { sha: 'bbbbbbb9999' }).verdict, 'ok');
-  // Changed between the investigation and the recording: a commits-since test
-  // keyed to the recording time would call this unchanged.
-  const moved = F.compare(file, { sha: 'deadbeefcafe', detail: 'last touched by deadbee' });
-  assert.equal(moved.verdict, 'changed');
-  assert.match(moved.detail, /deadbee/);
-  assert.equal(F.compare(file, { missing: true }).verdict, 'broken');
-  // A legacy witness that pinned no object falls back to commits since the assessment.
-  const unpinned = { ref: file.ref };
-  assert.equal(F.compare(unpinned, { commits: [] }).verdict, 'ok');
-  assert.equal(F.compare(unpinned, { commits: [{ sha: 'abc1234', message: 'm' }] }).verdict, 'changed');
-});
-
-test('witnesses: main is pinned by what it contains, not by its tip', () => {
-  const w = { ref: 'acme/widget@main', contains: '106f31c' };
-  assert.deepEqual(plain(F.witnessPlan(w)), { type: 'contains', repo: 'acme/widget', ref: 'main', commit: '106f31c' });
-  assert.equal(F.compare(w, { contained: true }).verdict, 'ok');
-  assert.equal(F.compare(w, { contained: false }).verdict, 'changed');
-});
-
-test('witnesses: branch tips and pull requests', () => {
-  const tip = ROOT.finding.witnesses[0];
-  assert.equal(F.compare(tip, { sha: 'aaaaaaa1234' }).verdict, 'ok');
-  assert.equal(F.compare(tip, { sha: 'fffffff' }).verdict, 'changed');
-  assert.equal(F.compare(tip, { missing: true }).verdict, 'broken');
-  const pr = { ref: 'acme/widget#12', state: 'open', updated: '2026-09-20T00:00:00Z' };
-  assert.equal(F.compare(pr, { state: 'open', updated: '2026-09-20T00:00:00Z' }).verdict, 'ok');
-  assert.equal(F.compare(pr, { state: 'merged', updated: '2026-09-30T00:00:00Z' }).detail, 'now merged');
-  assert.equal(F.compare(pr, { error: 'no token' }).verdict, 'unverifiable');
-  // A merged PR is final; a later edit to it moves its update time and changes nothing witnessed.
-  assert.equal(F.compare({ ref: 'acme/widget#9', state: 'merged', updated: '2026-09-01T00:00:00Z' }, { state: 'merged', updated: '2026-09-30T00:00:00Z' }).verdict, 'ok');
-});
-
 test('subjects parse into the kinds the view links', () => {
   assert.equal(F.parse('acme/widget#12').type, 'pr');
   assert.equal(F.parse('acme/widget@claude/x').type, 'branch');
@@ -206,343 +151,13 @@ test('a user call is a subject the view links to its page', () => {
   assert.equal(p.repo, 'me/registry');
 });
 
-// One set of cases for both comparisons; findings.py reads them from a file
-// this test writes.
-const WITNESS_CASES = [
-  {
-    "name": "branch tip unchanged",
-    "witness": {
-      "ref": "acme/w@claude/x",
-      "sha": "aaaaaaa"
-    },
-    "seen": {
-      "sha": "aaaaaaa1234"
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "branch moved",
-    "witness": {
-      "ref": "acme/w@claude/x",
-      "sha": "aaaaaaa"
-    },
-    "seen": {
-      "sha": "bbbbbbb"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "branch gone",
-    "witness": {
-      "ref": "acme/w@claude/x",
-      "sha": "aaaaaaa"
-    },
-    "seen": {
-      "missing": true
-    },
-    "verdict": "broken"
-  },
-  {
-    "name": "branch with no pinned tip",
-    "witness": {
-      "ref": "acme/w@claude/x"
-    },
-    "seen": {
-      "sha": "bbbbbbb"
-    },
-    "verdict": "unverifiable"
-  },
-  {
-    "name": "main still contains the commit",
-    "witness": {
-      "ref": "acme/w@main",
-      "contains": "106f31c"
-    },
-    "seen": {
-      "contained": true
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "main no longer contains the commit",
-    "witness": {
-      "ref": "acme/w@main",
-      "contains": "106f31c"
-    },
-    "seen": {
-      "contained": false
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "file object unchanged",
-    "witness": {
-      "ref": "acme/w@main:docs/a.md",
-      "sha": "1111111"
-    },
-    "seen": {
-      "sha": "1111111aaaa"
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "file object changed between investigation and recording",
-    "witness": {
-      "ref": "acme/w@main:docs/a.md",
-      "sha": "1111111"
-    },
-    "seen": {
-      "sha": "2222222"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "folder tree changed",
-    "witness": {
-      "ref": "acme/w@main:lib/kits",
-      "sha": "3333333"
-    },
-    "seen": {
-      "sha": "4444444"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "file gone",
-    "witness": {
-      "ref": "acme/w@main:docs/a.md",
-      "sha": "1111111"
-    },
-    "seen": {
-      "missing": true
-    },
-    "verdict": "broken"
-  },
-  {
-    "name": "unpinned path with no commits since",
-    "witness": {
-      "ref": "acme/w@main:docs/a.md"
-    },
-    "seen": {
-      "commits": []
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "unpinned path touched since",
-    "witness": {
-      "ref": "acme/w@main:docs/a.md"
-    },
-    "seen": {
-      "commits": [
-        {
-          "sha": "5555555",
-          "message": "edit"
-        }
-      ]
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "open PR still open, not updated",
-    "witness": {
-      "ref": "acme/w#12",
-      "state": "open",
-      "updated": "2026-09-20T00:00:00Z"
-    },
-    "seen": {
-      "state": "open",
-      "updated": "2026-09-20T00:00:00Z"
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "open PR updated since",
-    "witness": {
-      "ref": "acme/w#12",
-      "state": "open",
-      "updated": "2026-09-20T00:00:00Z"
-    },
-    "seen": {
-      "state": "open",
-      "updated": "2026-09-30T00:00:00Z"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "open PR now closed",
-    "witness": {
-      "ref": "acme/w#12",
-      "state": "open",
-      "updated": "2026-09-20T00:00:00Z"
-    },
-    "seen": {
-      "state": "closed",
-      "updated": "2026-10-01T00:00:00Z"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "merged PR is final, later edits ignored",
-    "witness": {
-      "ref": "acme/w#9",
-      "state": "merged",
-      "updated": "2026-09-01T00:00:00Z"
-    },
-    "seen": {
-      "state": "merged",
-      "updated": "2026-09-30T00:00:00Z"
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "closed PR reopened",
-    "witness": {
-      "ref": "acme/w#7",
-      "state": "closed"
-    },
-    "seen": {
-      "state": "open",
-      "updated": "2026-10-01T00:00:00Z"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "PR state unreadable",
-    "witness": {
-      "ref": "acme/w#7",
-      "state": "open"
-    },
-    "seen": {
-      "error": "not readable"
-    },
-    "verdict": "unverifiable"
-  },
-  {
-    "name": "path changed, acknowledged as it now stands",
-    "witness": {
-      "ref": "acme/w@main:docs/a.md",
-      "sha": "1111111",
-      "ack": {
-        "sha": "2222222"
-      }
-    },
-    "seen": {
-      "sha": "2222222abcd"
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "path changed again after the acknowledgment",
-    "witness": {
-      "ref": "acme/w@main:docs/a.md",
-      "sha": "1111111",
-      "ack": {
-        "sha": "2222222"
-      }
-    },
-    "seen": {
-      "sha": "3333333"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "branch gone, acknowledged gone",
-    "witness": {
-      "ref": "acme/w@claude/x",
-      "sha": "aaaaaaa",
-      "ack": {
-        "missing": true
-      }
-    },
-    "seen": {
-      "missing": true
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "branch acknowledged gone, then back",
-    "witness": {
-      "ref": "acme/w@claude/x",
-      "sha": "aaaaaaa",
-      "ack": {
-        "missing": true
-      }
-    },
-    "seen": {
-      "sha": "bbbbbbb"
-    },
-    "verdict": "changed"
-  },
-  {
-    "name": "main no longer contains the commit, acknowledged",
-    "witness": {
-      "ref": "acme/w@main",
-      "contains": "106f31c",
-      "ack": {
-        "contained": false
-      }
-    },
-    "seen": {
-      "contained": false
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "open PR not updated since the acknowledgment",
-    "witness": {
-      "ref": "acme/w#7",
-      "state": "open",
-      "updated": "2026-09-01T00:00:00Z",
-      "ack": {
-        "state": "open",
-        "updated": "2026-09-20T00:00:00Z"
-      }
-    },
-    "seen": {
-      "state": "open",
-      "updated": "2026-09-20T00:00:00Z"
-    },
-    "verdict": "ok"
-  },
-  {
-    "name": "open PR updated after the acknowledgment",
-    "witness": {
-      "ref": "acme/w#7",
-      "state": "open",
-      "updated": "2026-09-01T00:00:00Z",
-      "ack": {
-        "state": "open",
-        "updated": "2026-09-20T00:00:00Z"
-      }
-    },
-    "seen": {
-      "state": "open",
-      "updated": "2026-10-01T00:00:00Z"
-    },
-    "verdict": "changed"
-  }
-];
-
-test('the kit and findings.py agree on every shared witness case', async () => {
-  const { writeFileSync, mkdtempSync } = await import('node:fs');
-  const { tmpdir } = await import('node:os');
-  const { execFileSync } = await import('node:child_process');
-  const { repoRoot } = await import('./bootstrap.mjs');
-  for (const c of WITNESS_CASES) assert.equal(F.compare(c.witness, c.seen).verdict, c.verdict, 'kit: ' + c.name);
-  const file = mkdtempSync(tmpdir() + '/witness-') + '/cases.json';
-  writeFileSync(file, JSON.stringify({ cases: WITNESS_CASES }));
-  const py = JSON.parse(execFileSync('python3', [repoRoot + '/skills/tend/findings.py', 'vectors', file], { encoding: 'utf8' }));
-  assert.deepEqual(py.map(x => x.verdict), WITNESS_CASES.map(c => c.verdict), 'findings.py disagrees with the cases');
-});
-
-test('the kit and findings.py read a witness ref alike, a pinned one included', async () => {
+test('the kit and findings.py read a subject alike, a pinned one and a bare repo included', async () => {
   // A pinned ref (@branch@commit) reads at the commit in both: the kit through
   // RepoAddress, findings.py through note.py's patterns.
   const { execFileSync } = await import('node:child_process');
   const { repoRoot } = await import('./bootstrap.mjs');
   const refs = ['acme/w@claude/x', 'acme/w@claude/x@1014b18', 'acme/w@main:docs/x.md#h',
-    'acme/w@claude/x@1014b1897601:docs/x.md', 'acme/w@feat@x:docs/x.md'];
+    'acme/w@claude/x@1014b1897601:docs/x.md', 'acme/w@feat@x:docs/x.md', 'acme/w', 'acme/w#12'];
   const py = JSON.parse(execFileSync('python3', ['-c', `
 import json, sys
 sys.path.insert(0, ${JSON.stringify(repoRoot + '/skills/tend')})
@@ -551,7 +166,9 @@ print(json.dumps([findings.parse_ref(r) for r in json.loads(sys.argv[1])]))
 `, JSON.stringify(refs)], { encoding: 'utf8' }));
   refs.forEach((r, i) => {
     const k = F.parse(r);
-    const [, repo, at, p] = py[i];
-    assert.deepEqual([repo, at, p], [k.repo, k.ref, k.path || ''], r);
+    const [kind, repo, at, p] = py[i];
+    if (kind === 'pr') return assert.deepEqual([repo, at], [k.repo, k.number], r);
+    assert.deepEqual([kind === 'path' ? 'path' : kind, repo, at, p],
+      [k.path ? 'path' : k.type, k.repo, k.ref || '', k.path || ''], r);
   });
 });

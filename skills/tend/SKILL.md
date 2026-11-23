@@ -35,28 +35,32 @@ Tend deletes no branch and proposes no deletion. `findings.py` sits beside
 this file; [`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/findings.js) states the
 record.
 
-1. **Reassess.** Check out each repository an open finding names, in the
-   folder that holds the other checkouts; `check` reads a witness in any other
-   repository as unverifiable. `findings.py check` names the findings whose
-   witnesses changed. Reread each and reply with `findings.py update`: revise
-   it, confirm it with fresh witnesses, or renew attention on a settled one
-   (`status: "open"`, a new `next`). An update replaces each field it carries,
-   so send whole lists.
-2. **Select.** `findings.py candidates` lists what mechanical signals raise and
-   marks those a holding finding covers. Each subject below adds its own. A
-   signal is a reason to investigate, never a finding.
+1. **Reassess.** Reread each open finding. `findings.py check` lists them,
+   each with the subjects that changed since its last update: a pull request
+   updated or a branch pushed, per the crawl's cache, or a file committed to,
+   per the checkouts beside the notes store. It names any checkout too
+   shallow to read. Reply with `findings.py update` where a finding changed,
+   or where a subject did and the finding still holds (`"finding": {}`
+   confirms it). An update replaces each field it carries, so send whole
+   lists.
+2. **Select.** `findings.py candidates` lists what mechanical signals raise.
+   It marks a candidate covered when a finding names its branch or pull
+   request, and due again when that subject changed after the finding's last
+   update; renew a settled finding that is due with `status: "open"` and a
+   new `next`. Each subject below adds its own. A signal is a reason to
+   investigate, never a finding.
 3. **Investigate** each candidate not marked covered until the conclusion
    would survive the owner's first question.
 4. **Write** one finding per conclusion with `findings.py add`: its subjects,
-   why it matters, a next step concrete enough to execute, evidence, and
-   witnesses. Prepare a step that needs the owner's word, such as closing a
-   pull request, for the list in step 6. For a next step that is new work,
-   rather than landing work that exists, ask in the reply whether to file it
-   as a task or drop it; either answer settles the finding.
-   Witnesses include what lies outside the subjects, such as main's copy of a
-   file the work was compared against. Choose as a witness the narrowest file
-   that holds the claim: a file edited daily brings the finding back on every
-   pass.
+   why it matters, a next step concrete enough to execute, and evidence.
+   Prepare a step that needs the owner's word, such as closing a pull
+   request, for the list in step 6. For a next step that is new work, rather
+   than landing work that exists, ask in the reply whether to file it as a
+   task or drop it; either answer settles the finding.
+   Subjects include what lies outside the work, such as main's copy of a file
+   the work was compared against: a later pass rereads the finding when a
+   subject changes. Choose the narrowest file that holds the claim: a file
+   edited daily brings the finding back on every pass.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
@@ -98,11 +102,13 @@ its class:
 
 `branches.py`, beside this file, applies the table to every remote branch in
 the checkouts and lists the novel and orphan ones, the novel with their
-residue. `--since` takes the previous pass's date.
+residue. It marks a novel branch covered when a finding names it as
+`owner/repo@branch`, and due again when it was pushed after that finding's last
+update. A novel branch no finding names has not been examined, however old.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
-- **Find:** a novel branch. Its residue is the lines it added
-  (`git diff -U0 <merge-base> origin/<b> -- <path>`) that
+- **Find:** a novel branch not marked covered. Its residue is the lines it
+  added (`git diff -U0 <merge-base> origin/<b> -- <path>`) that
   `git show origin/main:<path>` lacks. Name its origin (`Claude-Session`
   trailer, session record, or pull request) as a subject. Branches share a
   finding when they share its conclusion, whichever session made them.
