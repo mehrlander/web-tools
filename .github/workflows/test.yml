@@ -137,6 +137,7 @@ jobs:
           else
             npm test
           fi
+          node --input-type=module -e 'import os from "node:os"; import {dependencyFingerprint} from "./node/testing/records.mjs"; console.log("Verification runtime: " + JSON.stringify({node: process.versions.node, platform: process.platform, arch: process.arch, default_concurrency: Math.max(1, os.availableParallelism() - 1), dependency_fingerprint: dependencyFingerprint(process.cwd())}))'
 
       - name: Keep full-run observations
         if: ${{ always() && hashFiles('node/.test-observations/run.json') != '' }}
