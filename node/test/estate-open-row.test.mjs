@@ -236,7 +236,7 @@ test('a branch line\'s state mark names the state and opens the PR guide', async
     .find(el => (el.getAttribute('aria-label') || '').endsWith('/feat/a'));
   const mark = line.querySelector('[data-branch-mark]');
   assert.ok(mark, 'the mark is a control of its own');
-  assert.match(mark.getAttribute('data-title-tip'), /Click for its guide\.$/, 'with a title-tip of its own');
+  assert.match(mark.getAttribute('data-title-tip'), /Click for the PR guide\.$/, 'with a title-tip of its own');
   let asked = null;
   const real = data.openBranchDetail;
   data.openBranchDetail = function(row){ asked = { name: row.name, pane: this._openFiles?.pane }; };
