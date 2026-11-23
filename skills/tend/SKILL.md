@@ -99,8 +99,8 @@ its class:
 | residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 
-`branches.py`, beside this file, applies the table to every remote branch in
-the checkouts, old ones included. Its list names the novel and orphan branches,
+[`branches.py`](branches.py), beside this file, applies the table to every
+remote branch in the checkouts, old ones included. Its list names the novel and orphan branches,
 each novel one with its residue. It marks a novel branch covered or for
 reassessment as step 2 describes, matching a finding's `owner/repo@branch`
 subject.
