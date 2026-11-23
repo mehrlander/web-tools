@@ -279,8 +279,8 @@ node/render/scenarios/stage-workbook-bench.mjs,,node/render/scenarios,95,driver,
 node/render/scenarios/stage-workbook-people.mjs,,node/render/scenarios,67,driver,,no,no,no
 node/render/scenarios/state-view.mjs,"Populate the State view for a screenshot: stub the registry reads with a current cache, a stale one, an unchecked one, and the buttonless entity index",node/render/scenarios,280,driver,,no,no,no
 node/render/scenarios/subject-action-probe.mjs,"probe: can the shell invoke a toss subject's action closure, or only reach it",node/render/scenarios,124,driver,,no,no,no
-node/render/scenarios/tending-findings.mjs,,node/render/scenarios,68,driver,,yes,no,yes
-node/render/scenarios/tending-stand-in.mjs,,node/render/scenarios,49,driver,,no,no,no
+node/render/scenarios/tending-findings.mjs,,node/render/scenarios,36,driver,,no,no,yes
+node/render/scenarios/tending-stand-in.mjs,,node/render/scenarios,48,driver,,no,no,no
 node/render/scenarios/toss-fragment.mjs,prove toss-render hands a trailing #frag to the rendered page in both trust postures,node/render/scenarios,96,driver,,no,no,no
 node/render/scenarios/transform-layout-view.mjs,"Drives the Transform page to the Layout view on a small budget extract, through the component's own ingest, run and view switch rather than by planting a model.",node/render/scenarios,72,driver,,no,no,no
 node/render/scenarios/usage-view.mjs,"the Activity row's Usage tab over stand-in usage extracts, token-free",node/render/scenarios,144,driver,,no,no,no

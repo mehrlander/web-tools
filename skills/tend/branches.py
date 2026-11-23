@@ -24,10 +24,14 @@ merged-tip and closed-tip need each pull request's head commit, which the cache
 does not hold. A merge-commit repo's merged tips read as ancestor anyway; the
 branch of a pull request closed unmerged reads as novel here.
 
+Every branch is classed on every run, however old: a novel branch no finding
+names has not been examined. A novel branch a finding names as owner/repo@branch
+is marked covered by it, or due for reassessment when its tip is newer than
+the finding's last assessment.
+
 Usage:
-  branches.py [--repo owner/repo] [--since YYYY-MM-DD] [--json]
-      counts per repo, then each novel and orphan branch; --since skips branches
-      whose tip is older, such as those a previous pass already classed
+  branches.py [--repo owner/repo] [--json]
+      counts per repo, then each novel and orphan branch
 """
 
 import argparse
@@ -95,10 +99,9 @@ def main(argv):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--store", help="the notes folder, when the search would not find it")
     ap.add_argument("--repo")
-    ap.add_argument("--since", default="", help="skip branches whose tip commit is older (YYYY-MM-DD)")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
-    store_repo, _ = note.find_store(a.store)
+    store_repo, store = note.find_store(a.store)
     act = {}
     raw = git(store_repo, "show", "origin/main:state/activity.json")
     if raw:
@@ -114,13 +117,13 @@ def main(argv):
         main_files = {p for _, p in tree}
         main_blobs = {meta.split()[2] for meta, _ in tree}
         basenames = collections.Counter(os.path.basename(p) for p in main_files)
-        for line in git(co, "for-each-ref", "--format=%(refname:short) %(objectname) %(committerdate:short)",
+        for line in git(co, "for-each-ref", "--format=%(refname:short) %(objectname) %(committerdate:iso-strict)",
                         "refs/remotes/origin").splitlines():
-            ref, sha, day = line.split(" ")
+            ref, sha, at = line.split(" ")
             branch = ref.split("/", 1)[1] if "/" in ref else ref
-            if branch in ("HEAD", "main") or ref == "origin" or day < a.since:
+            if branch in ("HEAD", "main") or ref == "origin":
                 continue
-            row = {"repo": repo, "branch": branch, "sha": sha, "day": day}
+            row = {"repo": repo, "branch": branch, "sha": sha, "day": at[:10], "at": at}
             if git(co, "rev-list", "--count", ref, "--not", "origin/main").strip() == "0":
                 row["class"] = "ancestor"
             elif branch in heads:
@@ -131,6 +134,14 @@ def main(argv):
                 if row["class"] == "novel":
                     row["session"] = git(co, "log", "-1", "--format=%(trailers:key=Claude-Session,valueonly)", ref).strip()
             out.append(row)
+    found = findings.fold(note.read_notes(store_repo, store))
+    for r in out:
+        if r["class"] != "novel":
+            continue
+        f = next((f for f in found if f"{r['repo']}@{r['branch']}" in f["subjects"]), None)
+        if f:
+            r["covered"] = f["id"]
+            r["moved"] = r["at"] if findings.stamp(r["at"]) > findings.stamp(f["assessedAt"]) else ""
     if a.json:
         print(json.dumps(out, indent=1))
         return
@@ -142,6 +153,8 @@ def main(argv):
         print(repo, "  ".join(f"{k} {v}" for k, v in sorted(c.items())))
     for r in sorted((r for r in out if r["class"] in ("novel", "orphan")), key=lambda r: (r["class"], r["repo"], r["day"])):
         tail = f"  {r.get('residue', 0)} lines in {len(r.get('paths', []))} path(s)" if r["class"] == "novel" else ""
+        tail += (f"  [reassess {r['covered']}: pushed {r['moved'][:10]}]" if r.get("moved")
+                 else f"  [covered by {r['covered']}]" if r.get("covered") else "")
         print(f"{r['class']:6} {r['repo']}@{r['branch']}  {r['day']}{tail}")
 
 
