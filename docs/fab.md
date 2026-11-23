@@ -67,19 +67,13 @@ A LONG PRESS or right-click on the FAB opens a short menu. Every row is one line
 - **Peek**, and a **PROBE** row that arms `kits/probe.js` on the view (its corner readout of live conditions plus the trace of every popup guard decision) and takes it off again, its label carrying the state. The probe is armed in the WATCHED realm through the subject frame's own gh chain; a framed page with no loader of its own is told to use `?probe=` instead.
 - **"Paste"** puts the clipboard on the Stage: a page showing the Stage takes it in place, and any other page parks it through `kits/stage-handoff.js` and leaves for the app's Stage, which picks it up at boot.
 - **"Home"** leaves for the deployed app at the default branch: a fixed address, so it reaches the app from a toss, from a ?use= pin, and from a page that was never part of it.
-- **"Form"** switches the FAB between three shapes, as icon buttons, with the current one pressed. Basic is the plain FAB: it ends a walkthrough, removes the arrow pad and untucks the FAB. Hide tucks the FAB into a small handle in the bottom-right corner, and a tap on the handle brings it back. Pad adds the arrow pad.
-- **"Walkthrough"** appears once for each [look walkthrough](#the-walkthrough-dock) the page declares. A tap starts it.
+- **"Form"** sets the FAB's shape: Basic, Hide (tucked into the bottom-right corner) or Pad (arrow chevrons round it).
+- **"Walkthrough"** starts one of the page's look walkthroughs.
 - **The page's own rows**, contributed through `menu`, the third opt-in contract beside `actions` and `toggles`, for a verb wanted BEFORE the FAB sidebar rather than inside it. The app contributes the HEADER row here, since an app view opens with no header on screen. They are read at open time, so the first long press of a page load is not an empty menu.
 
-## Corner drags and the arrow pad
+## Corner drags, the arrow pad and the walkthrough dock
 
-A drag into the bottom-right corner tucks the FAB. A drag into the bottom-left corner raises the arrow pad. The FAB changes size on reaching either corner; release to confirm, or drag back out to cancel. While the pad is up, a corner drag just moves the FAB.
-
-The arrow pad is four chevrons around the FAB. They move with it, and a tap on the FAB removes them. A chevron sends its arrow key to the focused element of the page in view, and holding it repeats the key. Only the page's own key handlers respond. If none handles an up or down, the FAB scrolls the page one line. The chevrons cannot reach a page in a `#gz=` toss.
-
-## The walkthrough dock
-
-A [look walkthrough](../skills/look-markers/SKILL.md) is a guided tour of a page, one highlighted element per step. On a page with a FAB, the FAB docks in the tour's card. The card takes the FAB's colours, and the FAB's glyph sits between the Back and Next arrows. Tap and long press work as usual. Dragging the FAB out of the card ends the tour.
+A drag into the bottom-right corner tucks the FAB, and one into the bottom-left raises the arrow pad. The pad's chevrons send arrow keys to the page in view. A [look walkthrough](../skills/look-markers/SKILL.md) docks the FAB in its card, and dragging the FAB out ends the walkthrough.
 
 ## The take menu
 
@@ -87,13 +81,11 @@ A take menu sits under the render tab in every context the FAB sidebar appears i
 
 ## The bottom panel
 
-The bottom panel runs along the bottom of the window, with two tabs: Console and Peek. The sidebar's Console row opens it. The FAB sits just above the open panel. On a phone, the panel and the sidebar replace each other; on a wider screen they sit side by side.
-
-[Peek](../lib/kits/peek.js) describes the element the reader taps. When the menu starts Peek, its readings fill the Peek tab. A tap low on the page moves the panel to the top. The FAB and the panel still take taps while Peek is on. Closing the panel ends Peek.
+A panel along the bottom of the window holds the console and, when the menu starts Peek, Peek's readings. The sidebar's Console row opens it.
 
 ## Other controls
 
-A hard-refresh button in the sidebar's header reloads the view and bypasses the browser cache.
+A header hard-refresh button reloads bypassing the browser cache, for Safari on iOS.
 
 ## One per viewport
 
