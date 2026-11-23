@@ -7,8 +7,8 @@ Content governs how the owner's writing and pages read. The files the content pr
 | Area | Covers |
 | --- | --- |
 | Writing | the prose rules in [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md) and the approval of documentation wording under [doc-craft](../../skills/doc-craft/SKILL.md) |
-| Documents | each document's words and edits over time, in [`data/doc-growth/`](../../data/doc-growth/), and the prose repeated across files, in [`themes.csv`](../../docs/themes.csv) |
-| Pages | how a page looks, in the [html-style](../../skills/html-style/SKILL.md) skill, and what a page is built from: the UI codebook in [`data/ui-units/`](../../data/ui-units/codebook.md), which names each page's parts and the layout its main region takes, and the browser modules in [`lib/kits/`](../../lib/kits/), indexed in [`kits.csv`](../../docs/kits.csv) |
+| Documents | each document's words and edits over time, in [`data/doc-growth/`](../../data/doc-growth/) |
+| Pages | how a page looks, in the [html-style](../../skills/html-style/SKILL.md) skill, and what a page is built from: the UI codebook in [`data/ui-units/`](../../data/ui-units/codebook.md), which names each page's parts and the layout its main region takes, and the browser modules in [`lib/kits/`](../../lib/kits/), indexed in [`kits.csv`](../../docs/kits.csv). Observations about page design that are not yet rules collect in the Lists view's [UI insights](https://mehrlander.github.io/web-tools/app/?view=lists&tab=ui-insights) list |
 
 ## Processes
 
@@ -29,4 +29,4 @@ A proposed change to a governed file goes to [owner-proxy](../../skills/agents/o
 ## Not this program's
 
 - A reply and the links it hands over: the [Sessions](../sessions/README.md) program.
-- Which documents exist and what each is for, kept in [`docs.csv`](../../docs/docs.csv): the [Organization](../organization/README.md) program.
+- Which documents exist and what each is for, kept in [`docs.csv`](../../docs/docs.csv), and the prose two files repeat, kept in [`themes.csv`](../../docs/themes.csv): the [Alignment](../alignment/README.md) program.

@@ -1,8 +1,8 @@
-# Organization
+# Alignment
 
-Organization owns how the estate, the owner's repositories and everything in them, fits together, both as it stands and as proposed: where pages live, how the Web Tools app is assembled, and how the repositories align.
+Alignment owns how the estate, the owner's repositories and everything in them, fits together and stays consistent, both as it stands and as proposed: where pages live, how the Web Tools app is assembled, how the repositories align, and where two files say the same thing.
 
-It keeps the files that describe the owner's repositories and record the work done in them. The files the organization program governs are declared under `programs` in [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's [Programs tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=programs). A program is defined in [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
+It keeps the files that describe the owner's repositories and record the work done in them. The files the alignment program governs are declared under `programs` in [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's [Programs tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=programs). A program is defined in [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
 
 ## Areas
 
@@ -13,6 +13,8 @@ It keeps the files that describe the owner's repositories and record the work do
 | Session records and chats | the record of each Claude Code session and the archive of exported chats, read in the [Sessions](https://mehrlander.github.io/web-tools/app/?view=sessions) and [Chats](https://mehrlander.github.io/web-tools/app/?view=chats) views |
 | Trackers | each repository's task tracker, written to the schema in [`TRACKER.md`](../../docs/TRACKER.md) |
 | Maps | current-state maps in [`current/`](current/), each checked against its data, and proposals to change them in [`future/`](future/). The first map covers [the estate's pages](current/pages.md) |
+| Repeated prose | passages that two or more files state alike, found by [`duplicated-claims.py`](../../python/duplicated-claims.py), kept in [`themes.csv`](../../docs/themes.csv) and shown in the Map view's [Themes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=themes) |
+| Lists | the [Lists](https://mehrlander.github.io/web-tools/app/?view=lists) view and the list files it reads and writes in web-tools-private's [`lists/`](https://github.com/mehrlander/web-tools-private/tree/main/lists), through [`kits/lists.js`](../../lib/kits/lists.js). A list's items belong to the program their subject belongs to |
 
 ## Processes
 
