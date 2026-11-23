@@ -35,9 +35,10 @@ Tend deletes no branch and proposes no deletion. `findings.py` sits beside
 this file; [`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/findings.js) states the
 record.
 
-1. **Reassess.** Reread each open finding. [`findings.py`](findings.py) `check` lists them, each with the subjects that changed since its last update. Pull request updates and branch pushes come from web-tools-private's `state/activity.json`. File commits come from the checkouts beside web-tools-private. `check` names any checkout too shallow to read. Reply with `findings.py update` where a finding changed, or where a subject changed and the finding still holds (`"finding": {}` confirms it). Send `subjects` and `evidence` whole: an update replaces every field it includes.
+1. **Reassess.** Reread each open finding. [`findings.py`](findings.py) `check` lists them, each with the subjects that changed since its last update. Pull request updates and branch pushes come from web-tools-private's [`state/activity.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/activity.json). File commits come from the checkouts beside web-tools-private. `check` names any checkout too shallow to read. Reply with `findings.py update` where a finding changed, or where a subject changed and the finding still holds (`"finding": {}` confirms it). Send `subjects` and `evidence` whole: an update replaces every field it includes.
 2. **Select.** `findings.py candidates` lists what mechanical signals raise. It marks a candidate covered when a finding names its branch or pull request. It marks a covered one for reassessment when that subject changed after the finding's last update. Give a settled finding that needs work again `status: "open"` and a new `next`. Each subject section below adds its own signals.
-3. **Investigate** each candidate not marked covered until the conclusion would survive the owner's first question.
+3. **Investigate** each candidate not marked covered until the conclusion
+   would survive the owner's first question.
 4. **Write** one finding per conclusion with `findings.py add`: its subjects, why it matters, a next step concrete enough to execute, and evidence. Prepare a step that needs the owner's word, such as closing a pull request, for the list in step 6. For a next step that is new work, rather than landing work that exists, ask in the reply whether to file it as a task or drop it; either answer settles the finding. Name as subjects the files the conclusion rests on, including those outside the work. One example is main's copy of a file the work was compared against. Name the narrowest file that holds the claim.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
@@ -78,7 +79,7 @@ its class:
 | residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 
-[`branches.py`](branches.py), beside this file, applies the table to every remote branch in the checkouts, old ones included. Its list names the novel and orphan branches, each novel one with its residue. It marks a novel branch covered or for reassessment as step 2 describes. A finding covers a branch by naming it as `owner/repo@branch`.
+[`branches.py`](branches.py), beside this file, applies the table to every remote branch in the checkouts, old ones included. Its list names the novel and orphan branches, each novel one with the lines it added that main lacks. It marks a novel branch covered or for reassessment as step 2 describes. A finding covers a branch by naming it as `owner/repo@branch`.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
 - **Find:** a novel branch not marked covered. Its residue is the lines it added (`git diff -U0 <merge-base> origin/<b> -- <path>`) that `git show origin/main:<path>` lacks. Name its origin (`Claude-Session` trailer, session record, or pull request) as a subject. Branches share a finding when they share its conclusion, whichever session made them.
