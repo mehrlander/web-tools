@@ -178,3 +178,14 @@ test('the traveling docs link only to targets that travel with them', () => {
     }
   }
 });
+
+// The list mirrors VENDORED in node/build/vendor-docs.mjs, which writes files when imported.
+const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md', 'acronyms.md'];
+
+test('vendored copies in the default skill stay byte-identical to docs/', () => {
+  for (const name of VENDORED) {
+    assert.equal(readFileSync(path.join(repoRoot, 'skills', 'default', name), 'utf8'),
+      readFileSync(path.join(repoRoot, 'docs', name), 'utf8'),
+      `skills/default/${name} has drifted from docs/${name}; run the vendor-docs build`);
+  }
+});
