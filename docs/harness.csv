@@ -37,7 +37,7 @@ node/build/registries-load.mjs,"read and write the registry pair (docs/registrie
 node/build/registries-reach.mjs,"stamp renders_in into docs/registries.csv: the app files that name each registry's path, empty being the Data tab's no-app-surface warning",node/build,90,npm:registries-reach,node/build/commit-rules.mjs;node/test/,yes,yes,yes
 node/build/repo-pages-shots.mjs,regenerate pages-gallery thumbnails for another repo's pages catalog,node/build,184,argv,node/README.md,no,yes,yes
 node/build/sample-workbook.mjs,,node/build,436,npm:sample-workbook,,yes,yes,yes
-node/build/shot-store.mjs,,node/build,35,imported,node/build/component-shots.mjs;node/build/pages-index.mjs;node/build/pages-shots.mjs;node/render/measure.mjs;node/test/,no,yes,yes
+node/build/shot-store.mjs,,node/build,35,imported,node/build/component-shots.mjs;node/build/pages-index.mjs;node/build/pages-shots.mjs;node/render/measure.mjs;node/test/,no,no,yes
 node/build/tests-index.mjs,"restamp the derived half of docs/tests.csv, the test registry",node/build,265,npm:tests-index,node/build/commit-rules.mjs;node/test/,yes,yes,yes
 node/build/tools-index.mjs,restamp the derived half of this registry,node/build,437,npm:tools-index,node/build/commit-rules.mjs;node/test/,yes,no,yes
 node/build/ui-instances.mjs,"check the UI pattern each unit's markup declares (data-pattern, data-part) against the reader's coding, the code's kits and the code's behavior driven headless, and write instances.csv beside each store's coded.csv",node/build,264,npm:ui-instances,,yes,yes,no

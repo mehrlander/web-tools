@@ -63,7 +63,7 @@ contract that makes all of this possible is in [`../docs/loader.md`](../docs/loa
 | `npm run build:app` | Emit `dist/app.js`: the app's own pre-build, the part of `lib/` that `app/index.html` can reach, by the same emitter (see [The app's pre-build](#the-apps-pre-build)). |
 | `npm run bake <page>` | Emit `dist/<page>.html`: the chain inlined into a standalone page. |
 | `npm run verify-build <page>` | Build + render live + render via the build, assert the two are **byte-identical**. |
-| `npm run pages-shots` | Regenerate the visual index's card previews, one headless screenshot per page, into web-tools-private's `thumbs/mehrlander/web-tools/`; commit them there. Uses the [`screenshot.mjs`](render/screenshot.mjs) renderer; see [Cataloging the pages](#cataloging-the-pages). |
+| `npm run pages-shots` | Regenerate the visual index's card previews, one headless screenshot per page, into [web-tools-private](https://github.com/mehrlander/web-tools-private)'s `thumbs/mehrlander/web-tools/`; commit them there. Uses the [`screenshot.mjs`](render/screenshot.mjs) renderer; see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages-index` | Regenerate both catalogs of every page: [`pages/README.md`](../pages/README.md) (link-dense table) and [`pages/index.html`](../pages/index.html) (visual card index). A *catalog* generator, not part of the code pipeline below; see [Cataloging the pages](#cataloging-the-pages). |
 | `npm run pages` | `pages-shots` then `pages-index`: refresh thumbnails and both catalogs in one step. |
 | `npm run graphql-schema [-- --check]` | Regenerate [`graphql/github-schema.pruned.graphql`](graphql/): fetch GitHub's published SDL (1.5 MB) and write only the slice `lib/gh-fetch.js`'s queries reach (~2 KB), so `npm test` can typecheck them offline. The **one generator that needs the network**, which is why it stays out of the commit hook and the derived-artifacts gate; the drift guard lives in [`test/graphql-schema.test.mjs`](test/graphql-schema.test.mjs) instead. Run it after editing a query. |
@@ -236,8 +236,9 @@ graph and emits no `dist/` artifact. It walks the `pages/` tree, reads each page
 - [`pages/index.html`](../pages/index.html): the **visual index**, a light-themed
   card per page, grouped by directory, whose default preview is the page's
   screenshot, with a toggle to a **live** iframe of the page or its **HTML source**.
-  `pages-shots.mjs` generates the screenshots into web-tools-private's `thumbs/`; a
-  card reads its own with the reader's token and shows a placeholder without one.
+  `pages-shots.mjs` generates the screenshots into [web-tools-private](https://github.com/mehrlander/web-tools-private)'s
+  `thumbs/`. A card shows its screenshot to a reader whose browser holds a GitHub
+  token, and a placeholder to anyone else.
   Per-page blurbs live in the `NOTES` map at the top of `pages-index.mjs`; edit
   them there.
 
@@ -245,8 +246,8 @@ The catalogs regenerate automatically at commit time (see
 [The refresh model](#the-refresh-model)); `npm run pages` (= `pages-shots` then
 `pages-index`) is the manual full refresh, and `pages-index --check` exits non-zero
 when either committed catalog is stale, as an audit. The thumbnails are
-pre-rendered PNGs, so the index shows them without re-rendering every page at
-view time.
+pre-rendered PNGs. The index shows them without re-rendering every page at view
+time.
 
 ## The refresh model
 
