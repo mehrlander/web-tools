@@ -58,6 +58,15 @@ on:
     # nothing for the suite to say about it.
     paths-ignore: ['pages/wsl-sync/data/**']
   workflow_dispatch:
+    inputs:
+      preflight:
+        description: Run checkout setup, generated-file refresh and the full suite; require unchanged tracked output.
+        type: boolean
+        default: false
+      observe:
+        description: Collect dependency and timing observations from one full run.
+        type: boolean
+        default: false
 
 # Verification jobs read only. The main-only publication job below has its
 # own grant to retain captured dependency observations.
@@ -117,9 +126,13 @@ jobs:
         # a third the size and repeats every failure, with its error, in a
         # summary at the very bottom.
         env:
-          OBSERVE_FULL_RUN: ${{ github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+          OBSERVE_FULL_RUN: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || (github.event_name == 'workflow_dispatch' && inputs.observe) }}
+          PREFLIGHT_FULL_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.preflight }}
         run: |
-          if [ "$OBSERVE_FULL_RUN" = true ]; then
+          if [ "$PREFLIGHT_FULL_RUN" = true ]; then
+            npm run preflight
+            git diff --exit-code HEAD --
+          elif [ "$OBSERVE_FULL_RUN" = true ]; then
             npm run test:observe -- --out node/.test-observations/run.json
           else
             npm test

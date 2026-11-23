@@ -23,6 +23,8 @@ export function runMeasures(record) {
       columns: ['Measure', 'Value'],
       rows: [
         ['Suite wall time', seconds(record.wall_ms)],
+        ['Runner total elapsed time', seconds(record.total_wall_ms)],
+        ['Selection and startup elapsed time', seconds(record.selection_wall_ms)],
         ['Accumulated process elapsed time', seconds(record.sum_process_wall_ms)],
         ['Planned test files', record.tests.length],
         ['Files with elapsed observations', known.length],
@@ -42,6 +44,7 @@ export function runMeasures(record) {
       'Durations describe the recorded venue, runtime, dependency fingerprint and concurrency.',
       'Selected, failed, dirty or incomplete runs cannot replace a passing full-run selection baseline.',
       'Candidate process time is a comparison within a full run, not a prediction of parallel elapsed time; omitted failures are file-level observations.',
+      'Runner total elapsed time includes selection and Git preparation. The suite duration excludes those costs.',
     ],
   };
 }

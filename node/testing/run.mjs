@@ -81,6 +81,7 @@ function choosePlan({ root, tests, runtime, snapshot, snapshotError, base }) {
 }
 
 export async function main(argv = process.argv.slice(2)) {
+  const invokedAt = new Date(performance.timeOrigin).toISOString();
   const options = parseArguments(argv), root = options.root;
   if (options.help) {
     console.log('test:diff [--list] [--all] [--snapshot <run.json>] [--base <ref>] [--concurrency <n>] [--observe] [--out <run.json>]');
@@ -108,6 +109,7 @@ export async function main(argv = process.argv.slice(2)) {
   printPlan(plan, runtime, snapshot);
   if (options.list) return { exitCode: 0, plan };
 
+  const selectionWallMs = Math.round(performance.now());
   const source = baseSource || gitSource(root, options.base || null);
   const startedAt = new Date().toISOString(), start = performance.now();
   const rawDirectory = options.observe ? fs.mkdtempSync(path.join(os.tmpdir(), 'web-tools-test-observations-')) : null;
@@ -146,6 +148,10 @@ export async function main(argv = process.argv.slice(2)) {
       startedAt, finishedAt: new Date().toISOString(), wallMs: performance.now() - start,
       exitCode, signal, observations, errors, expectedTests: plan.tests.map(test => test.path), candidateSelection });
     record.selection = plan;
+    record.invoked_at = invokedAt;
+    record.selection_wall_ms = selectionWallMs;
+    record.preparation_wall_ms = Math.round(start);
+    record.total_wall_ms = Math.round(performance.now());
     const output = path.resolve(root, options.out || 'node/.test-observations/run.json');
     if (!options.out) {
       const identifier = /^[A-Za-z0-9][A-Za-z0-9._-]{0,149}$/.test(record.run.id) ? record.run.id : randomUUID();
