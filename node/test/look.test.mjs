@@ -1268,7 +1268,7 @@ test('a look step rings, pings on landing and on the way back, and the dock wear
   assert.match(halo.style.border, /3px solid/, 'the ring, thicker than a do step\'s');
   assert.equal(pings.length, 1, 'one ping once it lands');
   const dock = w.document.querySelector('[data-look="dock"]');
-  assert.match(dock.style.border, /2px solid/, 'the dock in the marker\'s yellow');
+  assert.match(dock.getAttribute('style'), /border:\s*var\(--look-dock-edge-w,\s*2px\) solid var\(--look-dock-edge,\s*#facc15\)/, 'the dock in the marker\'s yellow, unless a FAB lends it its edge');
   assert.doesNotMatch(dock.style.cssText, /NaN/, 'and its style survived being assembled');
   const a = w.document.querySelector('[data-at="a"]');
   a.getBoundingClientRect = () => ({ top: 3000, bottom: 3020, left: 0, right: 100, width: 100, height: 20 });
@@ -1487,6 +1487,38 @@ test('component:<name> prefers the instance with the most of itself in sight', (
   } });
   assert.equal(w.Look.find('component:viewer').id, 'here');
   assert.equal(w.Look.find('component:viewer#1').id, 'prev', 'a number still counts in the page’s order');
+});
+
+// Where a FAB is on screen, a walkthrough's dock keeps a slot between its
+// arrows for it and says so on the root; the FAB's drag out of the slot is the
+// way to leave, so the corner ✕ gives way. Without a FAB the ✕ stays.
+test('a walkthrough keeps a slot for the FAB between its arrows, in place of the ✕', async () => {
+  const w = realm('<div x-data="fab()"></div><p id="a">A</p><p id="b">B</p>');
+  w.Look.start([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }], { wait: 0 });
+  await wait(30);
+  const slot = card(w).querySelector('[data-look-fab-slot]');
+  assert.ok(slot, 'the slot is in the dock');
+  const row = [...slot.parentElement.children];
+  const back = row.find(b => b.getAttribute('aria-label') === 'Back');
+  assert.ok(back && row.indexOf(slot) === row.indexOf(back) + 1, 'right after Back');
+  assert.equal(card(w).querySelector('[aria-label="Close"]'), null, 'and no ✕');
+  const next = row.find(b => b.getAttribute('aria-label') === 'Next');
+  assert.ok(next, 'Next follows the slot');
+  assert.doesNotMatch(next.getAttribute('style'), /background:\s*var\(--color-primary/, 'a bare chevron in the FAB\'s dock, not a solid block');
+  assert.doesNotMatch(next.getAttribute('style'), /border-color:\s*var\(--color-base-300/, 'and no outline');
+  assert.match(next.getAttribute('style'), /(^|;\s*)color:\s*var\(--color-primary/, 'blue, the way open');
+  assert.equal(w.document.documentElement.hasAttribute('data-look-open'), true);
+  w.Look.stop();
+  assert.equal(w.document.documentElement.hasAttribute('data-look-open'), false, 'the end of the walkthrough says so');
+});
+
+test('with no FAB on screen, a walkthrough keeps its ✕ and leaves no slot', async () => {
+  const w = realm('<p id="a">A</p><p id="b">B</p>');
+  w.Look.start([{ at: 'a', say: 'one' }, { at: 'b', say: 'two' }], { wait: 0 });
+  await wait(30);
+  assert.equal(card(w).querySelector('[data-look-fab-slot]'), null);
+  assert.ok(card(w).querySelector('[aria-label="Close"]'));
+  assert.equal(w.document.documentElement.hasAttribute('data-look-open'), false);
 });
 
 test('the step list shows a step\'s message as text, never as markup', async () => {

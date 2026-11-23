@@ -19,7 +19,7 @@ rule: where no link reaches a change, say so and send a headless screenshot.
 
 ## Per-session refresh: thumbnails
 
-Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
+Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit them in [web-tools-private](https://github.com/mehrlander/web-tools-private). Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
 
 ## Guide-PR support: platform auto-create is on
 
@@ -33,7 +33,7 @@ The `gh.load` chain it replaces is the repo's default, not a legacy path. [`docs
 
 Every **deterministic** generated file is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it runs the rules in [`docs/commit-rules.csv`](docs/commit-rules.csv), which regenerate and stage, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) says what a rule is and why their order matters.
 
-Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception (see "Per-session refresh" above).
+Don't hand-edit a file the hook writes; edit the source and let the hook refresh it.
 
 **Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).
 

@@ -15,6 +15,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
@@ -91,4 +92,17 @@ test('every coded value is a code of its dimension, one where the dimension take
     for (const v of vals) assert.ok(codes.some(k => k.axis === d.dimension && k.code === v),
       `${c.unit}: ${d.dimension} code ${v} is not in data/ui-units/codes.csv`);
   }
+});
+
+// A typo in `at` still matches the hex shape the test above checks, and sends
+// the reader to a commit that does not exist. Needs history, so a shallow
+// checkout (the CI job's depth 1, most sandboxes) skips it.
+test('each coded `at` resolves to a commit of the Web Tools repo', (t) => {
+  const git = (...a) => execFileSync('git', ['-C', repoRoot, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  if (git('rev-parse', '--is-shallow-repository').trim() === 'true')
+    return t.skip('shallow checkout: coded.csv `at` commits cannot be resolved here');
+  const bad = [];
+  for (const at of new Set(rows(path.join(UI, 'coded.csv')).map(c => c.at)))
+    try { git('cat-file', '-e', `${at}^{commit}`); } catch { bad.push(at); }
+  assert.deepEqual(bad, [], 'coded.csv `at` values that are no commit of this repo');
 });

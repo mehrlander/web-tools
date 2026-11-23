@@ -9,10 +9,9 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Draggable column boundaries with live reassignment, in pdf-inspect](tasks/pdf-table-splitter-page-q7vm2d.md) · S
 - 🎫 [Move the Repos grid into Map › Reach](tasks/repos-grid-into-map-reach-1eheiq.md) · L
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
-- 🎫 [Select tests by what each file reads, and log what each costs](tasks/test-selection-by-reach-p2xtc5.md) · L (awaiting: owner approval of the CLAUDE.md wording (step 4))
 
 ## In progress
-- (none)
+- 🎫 [Select tests by what each file reads, and log what each costs](tasks/test-selection-by-reach-p2xtc5.md) · L (`codex/test-cost-and-selection`) (awaiting: final documentation wording review after implementation)
 
 ## Blocked
 - (none)

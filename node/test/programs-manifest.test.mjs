@@ -13,7 +13,7 @@
 // and each row's `file` is a file on disk.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 import { parseCsv } from '../build/registries-load.mjs';
@@ -68,6 +68,10 @@ test('every governed path exists, and no file answers to two programs', () => {
     if (!governs.length) gaps.push(`${repo}: ${e?.name} governs nothing`);
     for (const g of governs) {
       if (typeof g !== 'string' || !existsSync(path.join(root, g))) { gaps.push(`${repo}: ${e?.name} governs missing ${g}`); continue; }
+      // The overlap check compares strings, so an entry must already be in
+      // canonical form: no leading ./, directories ending in /.
+      const canon = path.posix.normalize(g).replace(/^\.\//, '') + (statSync(path.join(root, g)).isDirectory() && !g.endsWith('/') ? '/' : '');
+      if (canon !== g) gaps.push(`${repo}: ${e?.name} governs ${g}, which should be written ${canon}`);
       const clash = seen.find(s => s.repo === repo && (inside(g, s.g) || inside(s.g, g)));
       if (clash) gaps.push(`${repo}:${g} is governed by both ${clash.name} (${clash.g}) and ${e.name}`);
       seen.push({ repo, g, name: e.name });

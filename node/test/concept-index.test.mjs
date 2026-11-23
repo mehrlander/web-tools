@@ -65,6 +65,16 @@ test('a term declared in a hub doc is canonical', () => {
   assert.equal(tier['guide region'], 'canonical')
 })
 
+test('a hub term also declared outside the hub stays canonical and is declared only in the hub', () => {
+  const root = fixture()
+  writeFileSync(join(root, 'docs/ELSE.md'),
+    'Here a **stage link** is something else entirely.\n')
+  const idx = index(root)
+  const t = idx.terms.find(x => x.term === 'stage link')
+  assert.equal(t.tier, 'canonical')
+  assert.deepEqual(t.declared_in, ['docs/HUB.md'])
+})
+
 test('a hub path that does not exist stops the index rather than emptying the tier', () => {
   const root = fixture()
   assert.throws(() => execFileSync('python3',
