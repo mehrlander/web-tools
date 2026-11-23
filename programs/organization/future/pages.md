@@ -1,6 +1,6 @@
 # The estate's pages: proposals
 
-Proposed 2026-11-23 from [the pages map](../current/pages.md), whose terms these use. Counts are of that date. Each awaits the owner's decision.
+Proposed 2026-11-23 from [the pages map](../current/pages.md), whose terms these use. Each awaits the owner's decision.
 
 ## 1. Make the Tools view hold tools
 
@@ -12,7 +12,7 @@ The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools) lists e
 
 Of the gallery's 123 pages, 46 are products.
 
-**Recommended:** let the Pages view and [`pages/index.html`](../../../pages/index.html) sort by the standing in [`page-jobs.csv`](../current/page-jobs.csv). Standing cannot live in `pages/pages.csv`, which its generator rewrites whole.
+**Recommended:** let the Pages view and [`pages/index.html`](../../../pages/index.html) sort by the standing in [`page-jobs.csv`](../current/page-jobs.csv).
 
 ## 3. Give every page its job in one place
 
@@ -22,6 +22,6 @@ Of the gallery's 123 pages, 46 are products.
 
 ## 4. Undeclare the records
 
-Three record pages are still declared in manifests, and the Tools view lists them: wa-bills' [`LegislationTrackerUsingGitHub.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/data/LegislationTrackerUsingGitHub.html) and [`LegislationTrackerFresh.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/tools/LegislationTrackerFresh.html), and fn-data's [`fn-paste-join.html`](https://github.com/mehrlander/fn-data/blob/main/summaries/fn-paste-join.html).
+The Tools view still lists three record pages: wa-bills' [`LegislationTrackerUsingGitHub.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/data/LegislationTrackerUsingGitHub.html) and [`LegislationTrackerFresh.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/tools/LegislationTrackerFresh.html), and fn-data's [`fn-paste-join.html`](https://github.com/mehrlander/fn-data/blob/main/summaries/fn-paste-join.html).
 
 **Recommended:** remove the three from their manifests' `pages` and leave the files in place.
