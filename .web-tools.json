@@ -231,7 +231,7 @@
     {
       "name": "organization",
       "label": "Organization",
-      "scope": "repositories, registries, session records and history",
+      "scope": "how the estate fits together: repositories, registries, maps, session records and history",
       "icon": "programs/organization/icon.svg",
       "path": "programs/organization",
       "governs": [
@@ -276,7 +276,8 @@
         { "name": "Trackers", "icon": "ph-kanban", "panels": [
           { "kind": "breakdown", "registry": "tracker/board.csv", "by": "status", "only": ["in-progress", "blocked", "backlog", "dormant", "done"],
             "icons": { "in-progress": "ph-circle-half", "blocked": "ph-prohibit", "backlog": "ph-circle", "dormant": "ph-moon", "done": "ph-check-circle" } }
-        ] }
+        ] },
+        { "name": "Maps", "icon": "ph-map-trifold", "panels": [{ "kind": "breakdown", "registry": "programs/organization/current/pages.csv", "by": "app", "icons": { "view": "ph-app-window", "full-app": "ph-browsers", "framed": "ph-frame-corners", "linked": "ph-link", "standalone": "ph-file-html" } }] }
       ]
     },
     {
@@ -323,7 +324,7 @@
           { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "labels": { "": "record" }, "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "": "ph-archive" } }
         ] },
         { "name": "Pages", "icon": "ph-browser", "panels": [
-          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "thumb": "thumb", "href": "href" }
+          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "href": "href" }
         ] }
       ]
     },
