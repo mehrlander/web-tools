@@ -102,12 +102,8 @@ test('a page with no closing body still gets the kit, at the end', async () => {
   assert.ok(out.startsWith('<p>bare fragment of html<script>window.Land'));
 });
 
-test('the kit goes in after the prelude, so a page with no <head> or <html> keeps Look whole', () => {
-  // addressHtml writes its prelude at the first <head> or <html> in its text.
-  // Given a page that opens at <title> with the kit already added, that first
-  // match was the `<html>` in a comment inside look.js, which split the kit's
-  // script (Text Lab run reports, 2026-11-23). withLook must wrap addressHtml.
+test('showAddress adds the look kit to addressHtml\'s output, not addressHtml to the kit\'s', () => {
+  // A source scan: lifting showAddress would need the whole renderer.
   const show = SRC.slice(SRC.indexOf('async function showAddress('));
-  assert.ok(/withLook\(addressHtml\(/.test(show), 'withLook is applied to addressHtml\'s output');
-  assert.ok(!/addressHtml\([^,]*look/i.test(show), 'addressHtml is never given text the kit was added to');
+  assert.equal((show.match(/withLook\(addressHtml\(/g) || []).length, 2, 'both the top-mode and the framed render');
 });

@@ -1511,16 +1511,12 @@ document.addEventListener('click',function(e){
     const libAsked = SELECTED['mehrlander/web-tools'] || window.__lib || new URLSearchParams(pageQuery).get('lib') || '';
     const lib = libRef(repoKey, depOf(''), libAsked);
     const opts = { owner, name, ref, branch, depRef: depOf(''), path, pageQuery, lib, libAsked };
-    // The look kit goes in after the prelude. addressHtml writes its prelude at
-    // the first <head> or <html> tag in the text it is given; on a page with
-    // neither (one that opens at <title>), the first match was the `<html>` in a
-    // comment inside look.js, so the prelude split the kit's script and Look
-    // never loaded.
     // Only an address the link carries runs top-level. One pasted into the
     // panel has no URL to reload from, and pasted text reaches here with its
     // payload in the fragment, which must stay opaque in a frame.
     if (TOP && topHidden().some(k => k !== 'top' && param(k))) {
       topAddressInQuery(pageFrag);
+      // withLook runs on addressHtml's output: addressHtml writes its prelude at the first <head> or <html> in its text.
       return writeTop(await withLook(addressHtml(baked, { ...opts, top: { addr, repo: repoKey, path } }), pageFrag, lib));
     }
     showTrusted(await withLook(addressHtml(baked, opts), pageFrag, lib),
