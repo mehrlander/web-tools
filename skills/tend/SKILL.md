@@ -46,7 +46,7 @@ record.
 2. **Select.** `findings.py candidates` lists what mechanical signals raise.
    It marks a candidate covered when a finding names its branch or pull
    request. It marks a covered one for reassessment when that subject
-   changed after the finding's last update; give a settled finding that needs
+   changed after the finding's last update. Give a settled finding that needs
    work again `status: "open"` and a new `next`. Each subject section below
    adds its own signals.
 3. **Investigate** each candidate not marked covered until the conclusion
@@ -101,8 +101,9 @@ its class:
 
 `branches.py`, beside this file, applies the table to every remote branch in
 the checkouts, old ones included. Its list names the novel and orphan branches,
-each novel one with its residue, and marks the novel ones covered or for
-reassessment as step 2 describes, by a finding's `owner/repo@branch` subject.
+each novel one with its residue. It marks a novel branch covered or for
+reassessment as step 2 describes, matching a finding's `owner/repo@branch`
+subject.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
 - **Find:** a novel branch not marked covered. Its residue is the lines it
