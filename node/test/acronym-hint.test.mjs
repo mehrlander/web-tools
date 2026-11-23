@@ -1,7 +1,7 @@
 // skills/hooks/acronym-hint.py: the UserPromptSubmit hook that adds a coined
 // acronym's entry to the session's context when the prompt names it in
-// capitals. Driven as a subprocess over a scratch plugin root holding a copy of
-// docs/acronyms.md.
+// capitals. Driven as a subprocess over a scratch session root holding a
+// web-tools-private checkout with an Acronyms list.
 import { test } from 'node:test';
 import assert from 'node:assert';
 import { execFileSync } from 'node:child_process';
@@ -14,18 +14,30 @@ const HOOK = path.join(repoRoot, 'skills/hooks/acronym-hint.py');
 const HOOKS_JSON = JSON.parse(
   readFileSync(path.join(repoRoot, 'skills/hooks/hooks.json'), 'utf8'));
 
-const DOC = '# Acronyms\n\nOpening.\n\n## SPUR\n\nShort ask.\n\n## TOUR\n\nFull ask.\n\nSecond paragraph.\n';
+const LIST = { title: 'Acronyms', items: [
+  { id: 'a', text: 'SPUR', note: 'Short ask.' },
+  { id: 'b', text: 'TOUR', note: 'Full ask.\n\nSecond paragraph.' },
+  { id: 'c', text: 'not an acronym', note: 'Ignored.' },
+] };
 
-function root(doc = DOC) {
+// A session root with web-tools-private/lists/acronyms.json and a sibling
+// checkout to run from; list null leaves the private checkout out.
+function root(list = LIST) {
   const dir = mkdtempSync(path.join(tmpdir(), 'acronym-hint-'));
-  mkdirSync(path.join(dir, 'default'));
-  if (doc !== null) writeFileSync(path.join(dir, 'default', 'acronyms.md'), doc);
+  mkdirSync(path.join(dir, 'web-tools', 'docs'), { recursive: true });
+  if (list !== null) {
+    mkdirSync(path.join(dir, 'web-tools-private', 'lists'), { recursive: true });
+    writeFileSync(path.join(dir, 'web-tools-private', 'lists', 'acronyms.json'), JSON.stringify(list));
+  }
   return dir;
 }
 
+// The payload's cwd is the sibling checkout's docs/ folder, so the hook has to
+// climb to the session root to find the list.
 const run = (dir, input) => execFileSync('python3', [HOOK], {
-  input: typeof input === 'string' ? input : JSON.stringify(input),
-  env: { ...process.env, CLAUDE_PLUGIN_ROOT: dir }, encoding: 'utf8',
+  input: typeof input === 'string' ? input
+    : JSON.stringify({ cwd: path.join(dir, 'web-tools', 'docs'), ...input }),
+  encoding: 'utf8',
 }).trim();
 
 const context = (out) => {
@@ -39,7 +51,7 @@ test('a capitalized name adds its whole entry, and only its own', () => {
   try {
     const msg = context(run(dir, { prompt: 'Give me a TOUR of this.' }));
     assert.match(msg, /TOUR: Full ask\.\n\nSecond paragraph\./);
-    assert.doesNotMatch(msg, /Short ask/);
+    assert.doesNotMatch(msg, /Short ask|Ignored/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
@@ -52,7 +64,7 @@ test('two names add two entries', () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
-test('lowercase, a longer word, and no copy all stay silent', () => {
+test('lowercase, a longer word, and no list all stay silent', () => {
   const dir = root();
   try {
     for (const prompt of ['take a tour', 'TOURS and SPURRED', 'Tour', 'see MYTOUR now', 'a DETOUR', 'UNSPUR', '']) {
@@ -62,13 +74,16 @@ test('lowercase, a longer word, and no copy all stay silent', () => {
   } finally { rmSync(dir, { recursive: true, force: true }); }
   const bare = root(null);
   try {
-    assert.equal(run(bare, { prompt: 'a TOUR' }), '', 'silent with no copy of the doc');
+    assert.equal(run(bare, { prompt: 'a TOUR' }), '', 'silent with no web-tools-private checkout');
   } finally { rmSync(bare, { recursive: true, force: true }); }
 });
 
-test('the real doc yields an entry for each acronym it heads', () => {
-  const msg = context(run(path.join(repoRoot, 'skills'), { prompt: 'SPUR TOUR CDE' }));
-  for (const n of ['SPUR', 'TOUR', 'CDE']) assert.match(msg, new RegExp(`${n}: `));
+test('a cwd inside the private checkout finds its own list', () => {
+  const dir = root();
+  try {
+    const msg = context(run(dir, { prompt: 'a SPUR', cwd: path.join(dir, 'web-tools-private', 'lists') }));
+    assert.match(msg, /SPUR: Short ask\./);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
 test('it is registered once, on UserPromptSubmit, through the plugin root', () => {
