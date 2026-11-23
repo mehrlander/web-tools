@@ -8,23 +8,62 @@ public sealed class RepositoryRefreshSchedule
 {
     private readonly object gate = new();
     private readonly Dictionary<string, long?> busy = [];
+    private readonly Dictionary<string, RepositorySyncJob> jobs = [];
+    private RepositorySyncJob? lastCompleted;
+    private DateTimeOffset? scanStartedAt;
     private long generation;
     private readonly Channel<bool> wake = Channel.CreateBounded<bool>(new BoundedChannelOptions(1) {
         SingleReader = true, FullMode = BoundedChannelFullMode.DropWrite
     });
 
     public IReadOnlyList<string> BusyKeys { get { lock (gate) return busy.Keys.ToList(); } }
+    public RepositorySyncProgress Progress => Observe().Sync;
 
-    public bool TryQueue(string key)
+    public (IReadOnlyList<string> BusyKeys, RepositorySyncProgress Sync) Observe()
     {
-        lock (gate) return busy.TryAdd(key, null);
+        lock (gate) return (busy.Keys.ToList(), new(
+            jobs.Values.FirstOrDefault(j => j.StartedAt.HasValue && !j.FinishedAt.HasValue),
+            jobs.Values.Where(j => !j.StartedAt.HasValue && !j.FinishedAt.HasValue).ToList(),
+            jobs.Values.Where(j => j.FinishedAt.HasValue).ToList(),
+            lastCompleted, scanStartedAt.HasValue, scanStartedAt));
     }
 
-    public void Complete(string key)
+    public bool TryQueue(string key, bool updateMain = false)
     {
         lock (gate) {
-            if (!busy.ContainsKey(key)) return;
+            if (!busy.TryAdd(key, null)) return false;
+            jobs[key] = new(key, updateMain ? "update" : "check", DateTimeOffset.UtcNow);
+            return true;
+        }
+    }
+
+    public bool Start(string key)
+    {
+        lock (gate) {
+            if (!jobs.TryGetValue(key, out var job) || job.StartedAt.HasValue || job.FinishedAt.HasValue
+                || jobs.Values.Any(j => j.StartedAt.HasValue && !j.FinishedAt.HasValue)) return false;
+            jobs[key] = job with { StartedAt = DateTimeOffset.UtcNow };
+            return true;
+        }
+    }
+
+    private static string FetchOutcome(string? output)
+    {
+        if (output is null) return "unconfirmed";
+        try {
+            using var value = JsonDocument.Parse(output);
+            if (value.RootElement.ValueKind == JsonValueKind.Object && value.RootElement.TryGetProperty("fetched", out var fetched))
+                return fetched.ValueKind == JsonValueKind.True ? "checked" : fetched.ValueKind == JsonValueKind.False ? "failed" : "unconfirmed";
+        } catch (JsonException) { }
+        return "unconfirmed";
+    }
+
+    public void Complete(string key, string? output = null)
+    {
+        lock (gate) {
+            if (!busy.TryGetValue(key, out var completed) || completed.HasValue) return;
             busy[key] = ++generation;
+            jobs[key] = lastCompleted = jobs[key] with { FinishedAt = DateTimeOffset.UtcNow, Outcome = FetchOutcome(output) };
         }
         wake.Writer.TryWrite(true);
     }
@@ -34,10 +73,26 @@ public sealed class RepositoryRefreshSchedule
         lock (gate) return busy.Where(p => p.Value.HasValue).ToDictionary(p => p.Key, p => p.Value.GetValueOrDefault());
     }
 
+    public IReadOnlyDictionary<string, long> BeginScan()
+    {
+        lock (gate) {
+            scanStartedAt = DateTimeOffset.UtcNow;
+            return busy.Where(p => p.Value.HasValue).ToDictionary(p => p.Key, p => p.Value.GetValueOrDefault());
+        }
+    }
+
+    public void EndScan()
+    {
+        lock (gate) scanStartedAt = null;
+    }
+
     public void Published(IReadOnlyDictionary<string, long> started)
     {
         lock (gate) foreach (var (key, observed) in started)
-            if (busy.TryGetValue(key, out var completed) && completed == observed) busy.Remove(key);
+            if (busy.TryGetValue(key, out var completed) && completed == observed) {
+                busy.Remove(key);
+                jobs.Remove(key);
+            }
     }
 
     public async Task WaitForScan(TimeSpan interval, CancellationToken stop)
@@ -66,16 +121,21 @@ public sealed class RepositoryReader
     private readonly bool isolated = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("WEBTOOLS_COMPANION_DATA"));
     public RepositorySnapshot? Latest {
         get {
-            lock (gate) return latest is { } value ? value with {
-                Refreshing = refresh.BusyKeys.ToList(),
-                Repositories = value.Repositories.Select(r => r with {
-                    Checkouts = r.Checkouts.Select(c => c with {
-                        LocalFiles = inventories.TryGetValue(c.Key, out var files)
-                            ? filesPaused ? files with { Notice = "Local file readings paused. Showing the last inventory." } : files
-                            : null
+            lock (gate) {
+                if (latest is not { } value) return null;
+                var progress = refresh.Observe();
+                return value with {
+                    Refreshing = progress.BusyKeys.ToList(),
+                    Sync = progress.Sync,
+                    Repositories = value.Repositories.Select(r => r with {
+                        Checkouts = r.Checkouts.Select(c => c with {
+                            LocalFiles = inventories.TryGetValue(c.Key, out var files)
+                                ? filesPaused ? files with { Notice = "Local file readings paused. Showing the last inventory." } : files
+                                : null
+                        }).ToList()
                     }).ToList()
-                }).ToList()
-            } : null;
+                };
+            }
         }
     }
 
@@ -86,7 +146,7 @@ public sealed class RepositoryReader
             var groups = latest.Repositories.Where(r => r.Url is not null && (key == "all" || r.Key == key)).ToList();
             if (groups.Count == 0) return 404;
             var added = false;
-            foreach (var group in groups) if (refresh.TryQueue(group.Key)) { requests.Writer.TryWrite(new(group.Key, updateMain)); added = true; }
+            foreach (var group in groups) if (refresh.TryQueue(group.Key, updateMain)) { requests.Writer.TryWrite(new(group.Key, updateMain)); added = true; }
             return added ? 202 : 409;
         }
     }
@@ -170,11 +230,12 @@ public sealed class RepositoryReader
         if (!await scans.WaitAsync(0, stop)) return false;
         // A completion that arrives during this read must remain busy until a
         // later observation starts after it and successfully publishes.
-        var started = refresh.CaptureCompleted();
+        var started = refresh.BeginScan();
         try {
             var output = await RunScript(null, stop);
             var value = output is null ? null : JsonSerializer.Deserialize<RepositorySnapshot>(output, json);
             if (value is not { SchemaVersion: 1 } || value.Repositories.Count > 256) throw new IOException();
+            value = value with { Sync = null };
             Directory.CreateDirectory(UserSettings.DataDirectory);
             await File.WriteAllTextAsync(saved + ".tmp", JsonSerializer.Serialize(value, json), stop);
             File.Move(saved + ".tmp", saved, true);
@@ -186,17 +247,20 @@ public sealed class RepositoryReader
         } catch (Exception e) when (e is IOException or JsonException or System.ComponentModel.Win32Exception or OperationCanceledException) {
             lock (gate) if (latest is { } value) latest = value with { Notice = "Repository readings paused. Showing the last observation." };
             return false;
-        } finally { scans.Release(); }
+        } finally { refresh.EndScan(); scans.Release(); }
     }
 
     private async Task FetchLoop(CancellationToken stop)
     {
         await foreach (var request in requests.Reader.ReadAllAsync(stop)) {
+            stop.ThrowIfCancellationRequested();
+            if (!refresh.Start(request.Key)) continue;
+            string? output = null;
             try {
-                await RunScript(request.Key, stop, updateMain: request.UpdateMain);
+                output = await RunScript(request.Key, stop, updateMain: request.UpdateMain);
             }
             catch (Exception e) when (e is IOException or System.ComponentModel.Win32Exception or OperationCanceledException) { }
-            finally { refresh.Complete(request.Key); }
+            finally { refresh.Complete(request.Key, output); }
         }
     }
 
@@ -209,7 +273,7 @@ public sealed class RepositoryReader
         stop.ThrowIfCancellationRequested();
         try {
             var prior = JsonSerializer.Deserialize<RepositorySnapshot>(await File.ReadAllTextAsync(saved, stop), json);
-            if (prior?.MachineName == Environment.MachineName) lock (gate) latest = prior with { Refreshing = [] };
+            if (prior?.MachineName == Environment.MachineName) lock (gate) latest = prior with { Refreshing = [], Sync = null };
         } catch (Exception e) when (e is IOException or JsonException) { }
         try {
             var prior = JsonSerializer.Deserialize<RepositoryLocalFiles>(await File.ReadAllTextAsync(filesSaved, stop), json);
