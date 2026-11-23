@@ -67,16 +67,21 @@ A LONG PRESS or right-click on the FAB opens a short menu. Every row is one line
 - **Peek**, and a **PROBE** row that arms `kits/probe.js` on the view (its corner readout of live conditions plus the trace of every popup guard decision) and takes it off again, its label carrying the state. The probe is armed in the WATCHED realm through the subject frame's own gh chain; a framed page with no loader of its own is told to use `?probe=` instead.
 - **"Paste"** puts the clipboard on the Stage: a page showing the Stage takes it in place, and any other page parks it through `kits/stage-handoff.js` and leaves for the app's Stage, which picks it up at boot.
 - **"Home"** leaves for the deployed app at the default branch: a fixed address, so it reaches the app from a toss, from a ?use= pin, and from a page that was never part of it.
-- **"Hide"** tucks the FAB into a small handle in the bottom-right corner, where it can be unhidden by click or tap.
+- **"Form"** sets the FAB's shape: Basic, Hide or Pad. Pad puts arrow-key chevrons round it.
+- **"Walkthrough"** starts one of the page's [look walkthroughs](../skills/look-markers/SKILL.md).
 - **The page's own rows**, contributed through `menu`, the third opt-in contract beside `actions` and `toggles`, for a verb wanted BEFORE the FAB sidebar rather than inside it. The app contributes the HEADER row here, since an app view opens with no header on screen. They are read at open time, so the first long press of a page load is not an empty menu.
 
 ## The take menu
 
 A take menu sits under the render tab in every context the FAB sidebar appears in, toss included, with six named outputs: a rendering copy (one pasteable HTML string carrying the page plus its own code and read() data inlined, for CodePen or any bare HTML preview), a review brief (sized before it is taken, and refused over a token cap rather than silently copying megabytes), a picked REGION (Peek armed on its Render reading: tap an element, step to the ancestor you mean, and copy it wrapped as a page that renders alone, with the theme and vendor tags carried and the framework attributes stripped, proved in a frame before the copy), a stage link, and the two zips. Inside a toss it aims at the subject rather than the shell.
 
+## The bottom panel
+
+A panel along the bottom of the window holds the console and, when the long-press menu starts [Peek](../lib/kits/peek.js), Peek's readings.
+
 ## Other controls
 
-A header hard-refresh button reloads bypassing the browser cache, for Safari on iOS. Plus a collapsible console.
+A header hard-refresh button reloads bypassing the browser cache, for Safari on iOS.
 
 ## One per viewport
 
