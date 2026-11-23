@@ -4,7 +4,7 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 ## 1. Make the Tools view hold tools
 
-**What the map shows.** The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools) lists every page that a repository's `.web-tools.json` declares under `pages`: 64 pages, of which 15 are tools. [`docs/tools.csv`](../../../docs/tools.csv) gives five web-tools pages a utility icon. Seven other web-tools pages are tools: [`annotate`](../../../pages/annotate.html), [`dictate`](../../../pages/dictate.html), [`gist-editor`](../../../pages/gist-editor.html), [`launcher`](../../../pages/launcher.html), [`links`](../../../pages/links.html), [`reception`](../../../pages/reception.html) and [`xlsx-picker`](../../../pages/xlsx-picker.html).
+**What the map shows.** The [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools) lists every page that a repository's `.web-tools.json` declares under `pages` ([web-tools' own](../../../.web-tools.json) is one): 64 pages, of which 15 are tools. [`docs/tools.csv`](../../../docs/tools.csv) gives five web-tools pages a utility icon. Seven other web-tools pages are tools: [`annotate`](../../../pages/annotate.html), [`dictate`](../../../pages/dictate.html), [`gist-editor`](../../../pages/gist-editor.html), [`launcher`](../../../pages/launcher.html), [`links`](../../../pages/links.html), [`reception`](../../../pages/reception.html) and [`xlsx-picker`](../../../pages/xlsx-picker.html).
 
 **The change.** List only the tools in the Tools view. Each repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) still lists every page it declares. The alternative is to keep the list and rename the view for what it holds.
 
@@ -16,7 +16,7 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 **The change.** Let the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) and [`pages/index.html`](../../../pages/index.html) filter by standing, read from [`page-jobs.csv`](../current/page-jobs.csv), and show the products first.
 
-**The decision.** Recommended: let the app read [`page-jobs.csv`](../current/page-jobs.csv), a declared registry. The gallery's file is generated whole, so it cannot hold a judgment written by hand.
+**The decision.** Recommended: let the app read [`page-jobs.csv`](../current/page-jobs.csv), a declared registry. The gallery's generator rewrites its file whole. A judgment written by hand would not survive the next run.
 
 ## 3. Give every page its job in one place
 
@@ -28,8 +28,8 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 ## 4. Retire the records
 
-**What the map shows.** Four pages have the standing record. One is [`delivery.html`](../../../pages/delivery.html) in web-tools. Two are earlier legislation trackers in wa-bills, [`LegislationTrackerUsingGitHub.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/data/LegislationTrackerUsingGitHub.html) and [`LegislationTrackerFresh.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/tools/LegislationTrackerFresh.html). Their notes call them cleanup candidates. The fourth is fn-data's [`fn-paste-join.html`](https://github.com/mehrlander/fn-data/blob/main/summaries/fn-paste-join.html). Its note calls it provenance only. The three outside web-tools are still declared, so the Tools view lists them.
+**What the map shows.** Four pages have the standing record. One is [`delivery.html`](../../../pages/delivery.html) in web-tools. Two are earlier legislation trackers in wa-bills, [`LegislationTrackerUsingGitHub.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/data/LegislationTrackerUsingGitHub.html) and [`LegislationTrackerFresh.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/tools/LegislationTrackerFresh.html). Their notes call them cleanup candidates. The fourth is fn-data's [`fn-paste-join.html`](https://github.com/mehrlander/fn-data/blob/main/summaries/fn-paste-join.html). Its note calls it provenance only. The three outside web-tools are still declared. The Tools view lists them.
 
 **The change.** Remove the three declarations from the `pages` lists of [wa-bills' `.web-tools.json`](https://github.com/mehrlander/wa-bills/blob/main/.web-tools.json) and [fn-data's](https://github.com/mehrlander/fn-data/blob/main/.web-tools.json). The files stay where they are.
 
-**The decision.** Recommended: remove the three declarations, and keep [`delivery.html`](../../../pages/delivery.html) in the gallery. The gallery lists what the tree holds, and a record still belongs there.
+**The decision.** Recommended: remove the three declarations, and keep [`delivery.html`](../../../pages/delivery.html) in the gallery. The gallery lists what the tree holds. A record is still part of the tree.
