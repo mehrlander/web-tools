@@ -27,7 +27,7 @@ const manifests = {
     { path: 'projects/text/nested', label: 'Nested', tracker: 'boards/text.md' },
     'projects/budget',
   ], research: [
-    account('projects/text/probes/README.md', 'Text findings'),
+    { ...account('projects/text/probes/README.md', 'Text findings'), status: 'measured' },
     account('projects/text/nested/research/README.md', 'Nested findings'),
     account('projects/budget/research/reports/README.md', 'Outside reports', 'exploration'),
     account('projects/text/studies/README.md', '<b>A study</b>'),
@@ -144,6 +144,14 @@ test('a folder account lists the files beside its write-up by kind', async () =>
   assert.deepEqual([...data.researchParts(text).map(p => p.key + ':' + p.files.length)], ['pages:1', 'data:1', 'scripts:1']);
   assert.deepEqual([...data.researchParts(data.researchAccounts.find(r => r.label === 'Excel findings'))], []);
   assert.equal(data.researchDate({ path: 'research/2026-11-16-x/README.md' }), '2026-11-16');
+});
+
+test('a declared status rides on the account, and an unknown one invalidates it', () => {
+  assert.equal(data.researchAccounts.find(r => r.label === 'Text findings').status, 'measured');
+  const entry = { path: 'research/x.md', label: 'X', kind: 'probe' };
+  assert.ok(data.validResearchEntry(entry));
+  for (const status of ['living', 'measured', 'record']) assert.ok(data.validResearchEntry({ ...entry, status }));
+  assert.ok(!data.validResearchEntry({ ...entry, status: 'closed' }));
 });
 
 test('a repository on the registry hidden list leaves research, its strip and projects', async () => {

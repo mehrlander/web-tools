@@ -11,6 +11,10 @@ A probe keeps its question, what was tried, and what it found. A probe that stan
 
 The folder's README links the term probes to this file and says only what is particular to the folder. Any view of the registry, such as a page that lists the probes or a generated log, belongs to the folder and reads `probes.csv`.
 
+## Status
+
+A probe is not closed by default. Its status takes the docs catalog's [vocabulary](README.md): `living`, corrected in place and kept correct; `measured`, dated observations corrected by re-probing; or `record`, which preserves a moment, is marked `edit=write-once` in `.gitattributes`, and is corrected by a note. The declaration's `status` states it for the declared account, and a registry row's `status` states it for one probe. The date in a probe's name records when the inquiry began, not when it closed. A probe that is no longer maintained is archived, moved to an `archive/` folder, which is not the same as a record.
+
 ## Sources
 
 A probe that rests on documents from outside the repository cites a [source bundle](source-bundles.md) that holds them, or takes them in as a dated bundle of its own.
@@ -24,7 +28,7 @@ Required in every row:
 | Column | Holds |
 | --- | --- |
 | `probe` | The id: lowercase letters, digits and hyphens, unique in the registry. A write-up's id is its name without `.md`. |
-| `date` | The probe's as-of date, `YYYY-MM-DD`. |
+| `date` | The date the inquiry began, `YYYY-MM-DD`. |
 | `title` | A short topical name, for lists. |
 | `question` | What the probe asks. |
 | `summary` | Its findings, in a sentence or two. |
@@ -34,7 +38,8 @@ Read when present:
 | Column | Holds |
 | --- | --- |
 | `path` | The write-up, relative to the folder: a file, or a file inside a probe's folder. |
-| `standing` | How the probe came out: `worked`, `mixed`, `failed` or `open`. |
+| `standing` | How the probe stands: `worked`, `mixed`, `failed` or `open`. |
+| `status` | `living`, `measured` or `record`, as under [Status](#status). |
 | `tags` | Terms a search might use, separated by `;`. |
 | `bundle` | The source bundle holding the documents the probe cites, as a path. |
 
