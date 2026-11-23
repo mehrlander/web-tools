@@ -79,7 +79,7 @@ its class:
 | residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 
-[`branches.py`](branches.py), beside this file, applies the table to every remote branch in the checkouts, old ones included. Its list names the novel and orphan branches, each novel one with the lines it added that main lacks. It marks a novel branch covered or for reassessment as step 2 describes. A finding covers a branch by naming it as `owner/repo@branch`.
+[`branches.py`](branches.py), beside this file, applies the table to every remote branch in the checkouts, old ones included. Its list names the novel and orphan branches, each novel one with its residue, as **Find** below defines it. It marks a novel branch covered or for reassessment as step 2 describes. A finding covers a branch by naming it as `owner/repo@branch`.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
 - **Find:** a novel branch not marked covered. Its residue is the lines it added (`git diff -U0 <merge-base> origin/<b> -- <path>`) that `git show origin/main:<path>` lacks. Name its origin (`Claude-Session` trailer, session record, or pull request) as a subject. Branches share a finding when they share its conclusion, whichever session made them.
