@@ -244,10 +244,8 @@ graph and emits no `dist/` artifact. It walks the `pages/` tree, reads each page
 
 The catalogs regenerate automatically at commit time (see
 [The refresh model](#the-refresh-model)); `npm run pages` (= `pages-shots` then
-`pages-index`) is the manual full refresh, and `pages-index --check` exits non-zero
-when either committed catalog is stale, as an audit. The thumbnails are
-pre-rendered PNGs. The index shows them without re-rendering every page at view
-time.
+`pages-index`) is the manual full refresh. `pages-index --check` exits non-zero
+when either committed catalog is stale, as an audit.
 
 ## The refresh model
 
