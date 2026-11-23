@@ -8,13 +8,13 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 **Recommended.** List only the tools in the Tools view, read from the map. Each repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) still lists every page it declares. [`tools.csv`](../../../docs/tools.csv) would then repeat by hand what the map selects, so retire it once the view reads the map.
 
-**The alternative.** Keep the list, and rename the view for what it holds.
+**The alternative.** Keep the Tools view's list of every declared page, and rename the view for what it holds.
 
 ## 2. Show products first in the gallery
 
 **What the map shows.** The gallery, [`pages/pages.csv`](../../../pages/pages.csv), lists all 123 HTML files under [`pages/`](../../../pages/), [`lib/kits/demos/`](../../../lib/kits/demos/) and the `demo.html` files in the folders under [`skills/`](../../../skills/). Of those, 46 are products. The rest are exhibits, experiments, services and one record.
 
-**Recommended.** Let the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) and [`pages/index.html`](../../../pages/index.html) filter by standing and show the products first. Their standing would come from [`page-jobs.csv`](../current/page-jobs.csv), which [`registries.csv`](../../../docs/registries.csv) declares as a registry. The gallery's generator rewrites its own file whole. It would overwrite a judgment written there by hand.
+**Recommended.** Let the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) and [`pages/index.html`](../../../pages/index.html) filter by standing and show the products first. The pages' standing would come from [`page-jobs.csv`](../current/page-jobs.csv), which [`registries.csv`](../../../docs/registries.csv) declares as a registry. The gallery's generator rewrites its own file whole. It would overwrite a judgment written there by hand.
 
 **The alternative.** Leave the gallery in path order.
 
@@ -30,6 +30,6 @@ This future-state map was proposed on 2026-11-23, from [the current-state map of
 
 **What the map shows.** Four pages have the standing record. One is [`delivery.html`](../../../pages/delivery.html) in web-tools. Two are earlier legislation trackers in wa-bills, [`LegislationTrackerUsingGitHub.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/data/LegislationTrackerUsingGitHub.html) and [`LegislationTrackerFresh.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/tools/LegislationTrackerFresh.html). Their notes call them cleanup candidates. The fourth is fn-data's [`fn-paste-join.html`](https://github.com/mehrlander/fn-data/blob/main/summaries/fn-paste-join.html). Its note calls it provenance only. The manifests of wa-bills and fn-data still declare the three outside web-tools. The Tools view lists them.
 
-**Recommended.** Remove the three declarations from the `pages` lists of [wa-bills' `.web-tools.json`](https://github.com/mehrlander/wa-bills/blob/main/.web-tools.json) and [fn-data's](https://github.com/mehrlander/fn-data/blob/main/.web-tools.json), and leave the files where they are. Keep [`delivery.html`](../../../pages/delivery.html) in the gallery. The gallery lists every HTML file under [`pages/`](../../../pages/), records included.
+**Recommended.** Remove the three declarations from the `pages` lists of [wa-bills' `.web-tools.json`](https://github.com/mehrlander/wa-bills/blob/main/.web-tools.json) and [fn-data's](https://github.com/mehrlander/fn-data/blob/main/.web-tools.json), and leave the files where they are. Keep [`delivery.html`](../../../pages/delivery.html) in the gallery, as one of the files under `pages/` that proposal 2 counts.
 
 **The alternative.** Leave the declarations as they are.
