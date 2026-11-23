@@ -29,7 +29,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 
 | Catalogue | File | Lists | The app shows it in |
 | --- | --- | --- | --- |
-| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/), the demos of the browser modules in [`lib/kits/`](../../../lib/kits/), under [`lib/kits/demos/`](../../../lib/kits/demos/) and the skill demos, `demo.html` in a folder under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
+| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under [`pages/`](../../../pages/); every page under [`lib/kits/demos/`](../../../lib/kits/demos/); and each skill's `demo.html` under [`skills/`](../../../skills/) | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
 | manifest | `pages` in each repository's [`.web-tools.json`](../../../docs/manifest.md), as in [web-tools' own manifest](../../../.web-tools.json) | the pages a repository declares, its own or another repository's | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), the repository's [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages), and the sidebar for a page marked `appView` |
 | landing | `projects[].landing` in each [`.web-tools.json`](../../../docs/manifest.md) | a project's front page | the [Project view](https://mehrlander.github.io/web-tools/app/?view=project)'s App tab |
 | utilities | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools), in the web-tools group |
@@ -66,7 +66,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 
 The `basis` column of [`page-jobs.csv`](page-jobs.csv) names what the judgment of standing and job read: the page's source, the manifest's or gallery's note, or the page's name alone.
 
-A **tool** is a product page whose job includes make, the job in which the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
+A **tool** is a product page whose job includes make. In the make job, the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
 
 **Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
