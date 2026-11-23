@@ -108,8 +108,8 @@ Common cases that are found to benefit from owner attention are set up with a fo
 
 When names, text or structure disagree with each other or with what is true, propose a correction; do not set it aside. An alignment problem is something to fix as soon as possible.
 
-- A correction carries a rename to every place the name appears, including links to it in our own repos.
-- A correction reaches unclear wording wherever it lives, including text held in code.
+- Propose a rename for every place the name appears, including links to it in our own repos.
+- Propose clearer wording wherever unclear wording appears, including wording in code.
 
 The caution in [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives) against improvements addressing hypothetical problems is meant for new guards and rules.
 
