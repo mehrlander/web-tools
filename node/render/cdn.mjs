@@ -82,14 +82,12 @@ export const typeFor = p => TYPES[path.extname(p).toLowerCase()] || 'application
 // so a CJS-only package still misses — e.g. fast-xml-parser.)
 // SHOT_SIBLINGS, when set, names the only sibling checkouts a render may read,
 // comma-separated; any other sibling is answered as missing, the way GitHub
-// answers a private repository to a reader with no token. Every script that
-// commits shots here sets it (node/build/ui-shots.mjs for a public unit,
-// component-shots.mjs, pages-shots.mjs), so a page that reads a private
-// repository cannot put that repository's content in a public image, however it
-// reads it. Found 2026-10-06: the Waiting view's shot showed the owner's open
-// user calls, read from web-tools-private beside this checkout; and 2026-11-22:
-// pages-shots set no guard, and the Compactions page's thumbnail showed a
-// private session's summary. node/test/public-shots-guard.test.mjs holds all three.
+// answers a private repository to a reader with no token. Set it for a render
+// whose image will be public. The estate's screenshot scripts do not set it:
+// they write to web-tools-private's thumbs/ (node/build/shot-store.mjs), since
+// two public shots showed private data, the Waiting view's open user calls
+// (2026-10-06) and a session's compaction summary on the Compactions page's
+// thumbnail (2026-11-22).
 const siblingAllowed = (name) => process.env.SHOT_SIBLINGS == null
   || process.env.SHOT_SIBLINGS.split(',').includes(name);
 

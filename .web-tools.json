@@ -323,7 +323,7 @@
           { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "labels": { "": "record" }, "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "": "ph-archive" } }
         ] },
         { "name": "Pages", "icon": "ph-browser", "panels": [
-          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "thumb": "thumb", "href": "href" }
+          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "href": "href" }
         ] }
       ]
     },
