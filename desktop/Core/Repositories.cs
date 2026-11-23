@@ -16,8 +16,13 @@ public record RepositoryMainSync(string State, string? Reason, string? Folder,
     DateTimeOffset CheckedAt, DateTimeOffset? UpdatedAt);
 public record RepositoryGroup(string Key, string Name, string? Url, DateTimeOffset? CheckedAt,
     DateTimeOffset? AttemptedAt, string? Notice, List<RepositoryCheckout> Checkouts, RepositoryMainSync? MainSync = null);
+public record RepositorySyncJob(string Key, string Mode, DateTimeOffset QueuedAt,
+    DateTimeOffset? StartedAt = null, DateTimeOffset? FinishedAt = null, string? Outcome = null);
+public record RepositorySyncProgress(RepositorySyncJob? Active, List<RepositorySyncJob> Queued,
+    List<RepositorySyncJob> AwaitingObservation, RepositorySyncJob? LastCompleted,
+    bool Scanning = false, DateTimeOffset? ScanStartedAt = null);
 public record RepositorySnapshot(int SchemaVersion, string MachineName, DateTimeOffset ObservedAt,
-    List<RepositoryGroup> Repositories, List<string> Refreshing, string? Notice = null);
+    List<RepositoryGroup> Repositories, List<string> Refreshing, string? Notice = null, RepositorySyncProgress? Sync = null);
 public record FolderEntry(string Name, string Kind, string? GitState, long? Bytes,
     DateTimeOffset ModifiedAt, string? Role);
 public record FolderSnapshot(int SchemaVersion, string RootName, string Path, DateTimeOffset ObservedAt,
