@@ -1,0 +1,88 @@
+# The estate's pages
+
+This map answers four questions about the HTML pages in the owner's repositories: what each page is and whether it is a tool, how it relates to the Web Tools app, whether it is public and whether its source names a private repository, and which catalogues list it. It covers every page that at least one of the six catalogues below names. An HTML file that no catalogue names is outside the map; the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists those.
+
+## Files
+
+| File | Holds | Written by |
+| --- | --- | --- |
+| [`pages.csv`](pages.csv) | the measured facts, one row per page | [`pages-map.mjs`](pages-map.mjs), from the catalogues, the app's code, the source of each page in a public repository, and GitHub's list of public repositories |
+| [`page-jobs.csv`](page-jobs.csv) | each page's standing and, where `coded.csv` does not code the page, its job | hand |
+
+`node programs/organization/current/pages-map.mjs` rewrites `pages.csv` and the counts under [The map](#the-map); with `--check` it reports what is stale instead. Either form needs [web-tools-private](https://github.com/mehrlander/web-tools-private) cloned beside this checkout, for the app's crawl of every repository's `.web-tools.json` in its `state/configs.json`, and a clone beside it of each other public repository that declares pages. The check also fails when `page-jobs.csv` has no row for a page, or gives a job to a page that `coded.csv` codes. When a judgment in `page-jobs.csv` is wrong, correct its row.
+
+## Catalogues
+
+| Catalogue | File | Lists | The app shows it in |
+| --- | --- | --- | --- |
+| gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under `pages/`, the kit demos under `lib/kits/demos/` and the skill demos | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
+| manifest | `pages` in each repository's `.web-tools.json` | the pages a repository declares, its own or another repository's | the Tools view, the repository's Pages view, and the sidebar for a page marked `appView` |
+| landing | `projects[].landing` in each `.web-tools.json` | a project's front page | the Project view's App tab |
+| tools | [`docs/tools.csv`](../../../docs/tools.csv) | the hub utilities and their icons | the Tools view, in the hub's group |
+| units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the UI units catalogue codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
+| forms | [`docs/forms/README.md`](../../../docs/forms/README.md) | the pages it names as forms | the Map view's [Forms tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=forms) |
+
+## Terms
+
+**Relation to the app**, the `app` column of `pages.csv`, takes the first of these that holds:
+
+<!-- pages-map:app -->
+| Value | The page |
+| --- | --- |
+| view | is marked `appView` in a manifest, or is a project's landing, so the app shows it inside its own frame as a destination |
+| full-app | is marked `fullApp`: it brings its own header and navigation and opens outside the app |
+| framed | is named in the `files` of a row of docs/app-routes.csv, as repo-atlas.html draws the Atlas view and toss-render.html renders every app view |
+| linked | is named by a line of code in app/index.html or lib/, comment lines and demo folders excepted |
+| standalone | meets none of these: the app reaches it only through a catalogue listing |
+<!-- /pages-map:app -->
+
+The Tools view previews any listed page in a frame. That preview does not make a page framed.
+
+**Standing**, in `page-jobs.csv`:
+
+<!-- pages-map:standing -->
+| Value | The page |
+| --- | --- |
+| product | is opened by a reader to do a job |
+| service | is opened by another page or a link to perform one step, and has no reader job of its own |
+| exhibit | shows a kit, component, library or skill working |
+| experiment | is a scratch page, a drop, a probe or a prototype that answers a build question |
+| record | is kept for history or provenance and no longer does its job |
+<!-- /pages-map:standing -->
+
+**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make), which [the forms README](../../../docs/forms/README.md#jobs) defines. A page that `coded.csv` codes takes its job from there, and its job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+
+A **tool** is a product page whose job includes make: the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
+
+**Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through `toss-render.html`.
+
+**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository the reader points it at with a token, as `branch.html` reads any repository. For a page in a private repository the cell is blank, since its source is not read.
+
+## The map
+
+<!-- pages-map:map -->
+177 pages in 11 repositories; 143 in public repositories.
+
+| Relation to the app | product | service | exhibit | experiment | record | all |
+| --- | --- | --- | --- | --- | --- | --- |
+| view | 18 | 0 | 0 | 0 | 0 | 18 |
+| full-app | 1 | 0 | 0 | 0 | 0 | 1 |
+| framed | 2 | 0 | 0 | 0 | 0 | 2 |
+| linked | 12 | 1 | 2 | 2 | 0 | 17 |
+| standalone | 60 | 1 | 40 | 34 | 4 | 139 |
+
+| Catalogue | pages | only here | gallery | manifest | landing | tools | units | forms |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| gallery | 123 | 94 | 123 | 12 | 2 | 5 | 20 | 7 |
+| manifest | 64 | 51 | 12 | 64 | 3 | 0 | 7 | 1 |
+| landing | 5 | 2 | 2 | 3 | 5 | 0 | 1 | 0 |
+| tools | 5 | 0 | 5 | 0 | 0 | 5 | 2 | 0 |
+| units | 20 | 0 | 20 | 7 | 1 | 2 | 20 | 6 |
+| forms | 7 | 0 | 7 | 1 | 0 | 0 | 6 | 7 |
+
+Tools (26): `art-of-memory:MajorSystem.html`, `art-of-memory:pages/visual-dictionary/index.html`, `fun:projects/nifty-hoops/01-deliverable/01-configurator-prototype.html`, `shortcut-tools:pages/library.html`, `wa-bills:bills/content/CombineContent.html`, `wa-bills:bills/content/DivideContent.html`, `wa-bills:bills/terms-and-rcws/BienniumTermsAndRCWs.html`, `wa-bills:bills/topic/ScanFromList.html`, `wa-bills:fiscal-notes/fn-paste-join.html`, `wa-bills:rcw/PensionMappingInverter.html`, `wa-bills:wsl-api/data/LegislationSinceWithRcwScanner.html`, `wa-bills:wsl-api/data/generate-grouped.html`, `wa-bills:wsl-api/tools/content/ClearSessionBills.html`, `wa-bills:wsl-api/tools/content/ScanSessionBills.html`, `web-tools:pages/annotate.html`, `web-tools:pages/compression-helper.html`, `web-tools:pages/dictate.html`, `web-tools:pages/diff-tool.html`, `web-tools:pages/gist-editor.html`, `web-tools:pages/launcher.html`, `web-tools:pages/links.html`, `web-tools:pages/reception.html`, `web-tools:pages/shorter.html`, `web-tools:pages/toss-render.html`, `web-tools:pages/transform.html`, `web-tools:pages/xlsx-picker.html`.
+
+Public pages that name a private repository (17): `shortcut-tools:pages/library.html`, `web-tools:lib/kits/demos/md-variants.html`, `web-tools:pages/citations.html`, `web-tools:pages/dictate.html`, `web-tools:pages/doc-growth.html`, `web-tools:pages/entities.html`, `web-tools:pages/links.html`, `web-tools:pages/news/news.html`, `web-tools:pages/scratch/toss-top-probe.html`, `web-tools:pages/session.html`, `web-tools:pages/shortcut-edit.html`, `web-tools:pages/shortcut-log.html`, `web-tools:pages/shortcuts.html`, `web-tools:pages/skill-lab.html`, `web-tools:pages/text-lab.html`, `web-tools:pages/toss-render.html`, `web-tools:skills/concept-index/demo.html`.
+<!-- /pages-map:map -->
+
+What this map suggests changing is in [the pages proposals](../future/pages.md), kept apart so that the map states only what is.

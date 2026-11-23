@@ -387,3 +387,12 @@ formats,producer,recorded,,value,column,yes,,,locator,"the script or skill that 
 formats,envelope,recorded,,value,column,yes,yes;no,,label,"whether the format belongs to the envelope family, by the membership test in docs/envelopes/README.md"
 formats,route,recorded,,none,column,yes,,routes-routes,locator,the toss route that renders the format; blank where none does
 formats,gloss,recorded,,value,column,yes,,,value,what one document of the format carries
+pages-map,visibility,computed,programs/organization/current/pages-map.mjs,value,column,yes,public;private,,label,"whether the page's repository is public, from GitHub's repository search"
+pages-map,catalogues,computed,programs/organization/current/pages-map.mjs,counted,list,no,gallery;manifest;landing;tools;units;forms,,label,the catalogues that name the page; blank for none
+pages-map,declared_by,computed,programs/organization/current/pages-map.mjs,counted,list,no,,,label,the repositories whose .web-tools.json declares the page under `pages` or as a project's landing
+pages-map,app,computed,programs/organization/current/pages-map.mjs,value,column,yes,view;full-app;framed;linked;standalone,,label,"how the page relates to the Web Tools app, the first value that holds"
+pages-map,linked_from,computed,programs/organization/current/pages-map.mjs,value,column,yes,,,value,"the number of files in app/index.html and lib/ whose code lines, comment lines and demo folders excepted, name the page"
+pages-map,names_private,computed,programs/organization/current/pages-map.mjs,counted,list,no,,,label,"for a page in a public repository, the private repositories its source names as owner/repo, or none; blank for a page in a private repository, whose source is not read"
+page-jobs,standing,recorded,,value,column,yes,product;service;exhibit;experiment;record,,label,"what the page is for, judged from its source or its note"
+page-jobs,job,recorded,,counted,list,no,respond;follow;read;explore;make,,label,"the jobs the page does for a reader, as data/ui-units/codes.csv defines them; blank where data/ui-units/coded.csv codes the page, which owns its job there"
+page-jobs,basis,recorded,,value,column,yes,source;note;name,,label,"what the judgment read: the page source, the note a manifest or the gallery gives it, or its name alone"
