@@ -17,7 +17,7 @@ A catalogue here is a file that lists pages; the six are under [Catalogues](#cat
 
 The script, run either way, reads two kinds of checkout beside the web-tools checkout it runs in:
 
-- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) holds the app's crawl of every repository's `.web-tools.json`;
+- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) holds the app's crawl of every repository's [`.web-tools.json`](../../../docs/manifest.md);
 - a clone of each other public repository that declares pages, whose page sources the script reads.
 
 ## Catalogues
@@ -33,7 +33,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 
 ## Terms
 
-**Relation to the app**, the `app` column of `pages.csv`, takes the first of these that holds:
+**Relation to the app**, the `app` column of [`pages.csv`](pages.csv), takes the first of these that holds:
 
 <!-- pages-map:app -->
 | Value | The page |
@@ -45,7 +45,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | standalone | meets none of these: the app reaches it only through a catalogue listing |
 <!-- /pages-map:app -->
 
-**Standing**, in `page-jobs.csv`:
+**Standing**, in [`page-jobs.csv`](page-jobs.csv):
 
 <!-- pages-map:standing -->
 | Value | The page |
@@ -57,7 +57,7 @@ The script, run either way, reads two kinds of checkout beside the web-tools che
 | record | is kept for history or provenance and no longer does its job |
 <!-- /pages-map:standing -->
 
-**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make). [The forms README](../../../docs/forms/README.md#jobs) defines them. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. That page's job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+**Job** takes the values that [`codes.csv`](../../../data/ui-units/codes.csv) lists on its `job` axis. [The forms README](../../../docs/forms/README.md#jobs) defines them. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there. That page's job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
 
 A **tool** is a product page whose job includes make: the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
 
@@ -66,6 +66,8 @@ A **tool** is a product page whose job includes make: the reader works on someth
 **names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. The script does not read the source of a page in a private repository, and leaves its cell blank.
 
 ## The map
+
+The first table counts pages by relation to the app and by standing. In the second, `pages` counts the pages a catalogue names, `only here` the pages no other catalogue names, and each catalogue column the pages both catalogues name.
 
 <!-- pages-map:map -->
 177 pages in 11 repositories; 143 in public repositories.
