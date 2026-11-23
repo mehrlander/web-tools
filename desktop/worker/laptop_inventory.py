@@ -167,7 +167,12 @@ def collect(root):
             rows.append([relative, 'collapsed', checkout.classification(path) if checkout else 'none', None, None, '', ''])
             return None, None
         if directory and ((path / '.git').is_dir() or (path / '.git').is_file()):
-            checkout = Checkout(path)
+            try:
+                checkout = Checkout(path)
+            except (InventoryError, OSError, subprocess.TimeoutExpired, UnicodeError):
+                # Without the index, descendants cannot be classified safely.
+                rows.append([relative, 'checkout', 'unavailable', None, None, '', ''])
+                return None, None
             checkouts.append(checkout)
         kind = 'checkout' if directory and checkout and checkout.path == path else 'folder' if directory else 'file'
         state = checkout.classification(path) if checkout else 'none'

@@ -148,6 +148,41 @@ class MetadataChecks(Fixture):
         self.assertIn('link', rows)
         self.assertNotIn(b'MUST_NOT_APPEAR', body)
 
+    def test_invalid_worktree_metadata_preserves_healthy_checkouts(self):
+        healthy = self.repo()
+        head = self.git(healthy, 'rev-parse', 'HEAD')
+        for name in ('broken', 'project/nested-broken'):
+            folder = self.root / name
+            folder.mkdir(parents=True)
+            (folder / '.git').write_text('gitdir: ' + str(self.base / 'missing-administration') + '\n', encoding='utf-8')
+            (folder / 'TRACKED_NAME_MUST_NOT_APPEAR.txt').write_bytes(b'private')
+        rows, body = self.entries()
+        self.assertEqual((rows['project']['branch'], rows['project']['commit']), ('main', head))
+        for name in ('broken', 'project/nested-broken'):
+            self.assertEqual(rows[name], {'path': name, 'kind': 'checkout', 'git': 'unavailable',
+                                         'files': '', 'bytes': '', 'branch': '', 'commit': ''})
+        self.assertNotIn(b'TRACKED_NAME_MUST_NOT_APPEAR', body)
+        self.assertNotIn(b'missing-administration', body)
+        self.assertEqual((rows['.']['files'], rows['project']['bytes']), ('', ''))
+
+    def test_checkout_metadata_timeout_preserves_the_rest_of_the_inventory(self):
+        self.repo()
+        folder = self.root / 'unavailable'
+        folder.mkdir()
+        (folder / '.git').mkdir()
+        (folder / 'TRACKED_NAME_MUST_NOT_APPEAR.txt').write_bytes(b'private')
+        original = inventory.Checkout
+        def checkout(path):
+            if path == folder:
+                raise subprocess.TimeoutExpired(['git'], 120)
+            return original(path)
+        with patch.object(inventory, 'Checkout', side_effect=checkout):
+            rows, body = self.entries()
+        self.assertEqual(rows['unavailable']['git'], 'unavailable')
+        self.assertEqual((rows['unavailable']['files'], rows['.']['bytes']), ('', ''))
+        self.assertEqual(rows['project']['branch'], 'main')
+        self.assertNotIn(b'TRACKED_NAME_MUST_NOT_APPEAR', body)
+
     def test_unreadable_folder_does_not_claim_zero_totals(self):
         path = self.root / 'unavailable'
         path.mkdir()
