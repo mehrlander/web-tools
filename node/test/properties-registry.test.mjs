@@ -283,6 +283,18 @@ test('a declared id is its registry key, and a declared label draws from a set o
   }
 });
 
+test('a computed property\'s deriver names the property, or the registry it fills', () => {
+  const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  for (const d of decls) {
+    if (d.mode !== 'computed' || !existsSync(path.join(repoRoot, d.deriver))) continue;
+    const src = readFileSync(path.join(repoRoot, d.deriver), 'utf8');
+    const file = byRegistry.get(d.registry)?.file || '';
+    const names = [d.property, d.registry, path.basename(file), path.basename(file, path.extname(file))].filter(Boolean);
+    assert.ok(names.some(n => new RegExp(`\\b${esc(n)}\\b`).test(src)),
+      `${d.registry}.${d.property}: deriver ${d.deriver} names neither the property nor the registry`);
+  }
+});
+
 test('modes are coherent: computed names a real deriver, recorded names none', () => {
   for (const d of decls) {
     if (d.mode === 'computed') {
