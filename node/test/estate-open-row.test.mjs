@@ -170,6 +170,10 @@ test('a session row and a branch tile under it carry the mark too', async () => 
   assert.ok(tile().parentElement.className.includes('divide-y'),
     'the lines are one list, divided by hairlines, not a box each');
   assert.doesNotMatch(tile().className, /ring-2/, 'an unmarked line carries no ring');
+  assert.doesNotMatch(tile().className, /bg-(success|warning|error|secondary)/,
+    'and no state fill: the state is the mark after the number');
+  assert.deepEqual(Object.keys(data.BRANCH_LINE_MARK).sort(), ['closed', 'draft', 'merged', 'ready'],
+    'so every PR state has a mark, ready included');
   data.detail = { rows: [{ repo: 'me/tools', name: 'feat/a' }], i: 0 };
   await Alpine.nextTick();
   assert.equal(tile().getAttribute('aria-current'), 'true', 'a branch deck marks the line for that branch');
