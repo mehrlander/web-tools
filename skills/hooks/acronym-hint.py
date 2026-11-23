@@ -6,7 +6,9 @@ context, so he can ask for one in any sentence without linking anything.
 THE ENTRIES. The Lists view's Acronyms list, lists/acronyms.json in
 web-tools-private, is authoritative. An item whose text is two or more capital
 letters is an acronym, and its note is the entry. Adding an item in the Lists
-view is all it takes for the hook to know it.
+view is all it takes for the hook to know it. An item of kind `draft` is a
+working name, and its entry says so; a concept not yet named is lowercase
+text, which never matches.
 
 FINDING THE LIST. The payload's cwd and each folder above it are tried, first
 as a web-tools-private checkout itself and then as the folder that holds one
@@ -41,12 +43,14 @@ def find_list(cwd):
 
 
 def entries(raw):
-    """{NAME: entry text} for each item whose text is an acronym."""
+    """{NAME: entry text} for each item whose text is an acronym; a draft's
+    entry leads with "(draft)"."""
     found = {}
     for it in (raw.get("items") or []) if isinstance(raw, dict) else []:
         name = str(it.get("text") or "").strip()
-        if NAME.match(name) and str(it.get("note") or "").strip():
-            found[name] = str(it["note"]).strip()
+        note = str(it.get("note") or "").strip()
+        if NAME.match(name) and note:
+            found[name] = ("(draft) " if it.get("kind") == "draft" else "") + note
     return found
 
 

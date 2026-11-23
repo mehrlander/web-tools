@@ -92,8 +92,8 @@ test('a folder that does not exist yet is no lists, not an error', async () => {
 });
 
 test('a created list keeps only the capabilities the pane can render for it', () => {
-  const d = L.describe('lists/groceries.json', { title: 'Groceries', capabilities: ['done', 'due', 'link'] });
-  assert.deepEqual(d.capabilities, ['done']);
+  const d = L.describe('lists/groceries.json', { title: 'Groceries', capabilities: ['done', 'due', 'link', 'kind'] });
+  assert.deepEqual(d.capabilities, ['done', 'kind']);
   assert.equal(d.builtIn, false);
   assert.deepEqual(L.describe('lists/to-do.json', {}).capabilities, ['done', 'due']);
   assert.equal(L.describe('lists/to-do.json', {}).title, 'To-do');

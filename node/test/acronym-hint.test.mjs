@@ -18,6 +18,7 @@ const LIST = { title: 'Acronyms', items: [
   { id: 'a', text: 'SPUR', note: 'Short ask.' },
   { id: 'b', text: 'TOUR', note: 'Full ask.\n\nSecond paragraph.' },
   { id: 'c', text: 'not an acronym', note: 'Ignored.' },
+  { id: 'd', text: 'PAF', note: 'Working name.', kind: 'draft' },
 ] };
 
 // A session root with web-tools-private/lists/acronyms.json and a sibling
@@ -52,6 +53,13 @@ test('a capitalized name adds its whole entry, and only its own', () => {
     const msg = context(run(dir, { prompt: 'Give me a TOUR of this.' }));
     assert.match(msg, /TOUR: Full ask\.\n\nSecond paragraph\./);
     assert.doesNotMatch(msg, /Short ask|Ignored/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test('a draft acronym\'s entry says it is a draft', () => {
+  const dir = root();
+  try {
+    assert.match(context(run(dir, { prompt: 'a PAF here' })), /PAF: \(draft\) Working name\./);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
 
