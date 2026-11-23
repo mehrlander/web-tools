@@ -1,11 +1,12 @@
 ---
 id: test-selection-by-reach-p2xtc5
 title: Select tests by what each file reads, and log what each costs
-status: backlog
+status: in-progress
+session: codex/test-cost-and-selection
 opened: 2026-11-13
 project: testing
 size: L
-awaiting: owner approval of the CLAUDE.md wording (step 4)
+awaiting: final documentation wording review after implementation
 ---
 # Select tests by what each file reads, and log what each costs
 
@@ -157,3 +158,4 @@ wording has the owner's approval.
 
 ## Progress log
 - 2026-11-13: Assessed and prototyped in a chat session (trace hook, one traced full run, replay of 40 merges); findings above. Owner asked to build it in a Claude Code session. Next: claim, then build in the order of the Design list.
+- 2026-11-23: Codex claimed the task after the owner approved proceeding with the revised plan. Deliver observations on existing full runs, conservative selection with explicit fallback, durable run records, and the program and Map views in reviewable increments. Treat reach as observed dependencies and summed process durations as elapsed time. Keep full verification while evaluating selection; opaque subprocess tests run conservatively. The original outline remains the starting point, with final instruction wording reviewed after the working implementation is concrete.
