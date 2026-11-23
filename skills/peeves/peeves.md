@@ -6,9 +6,9 @@ Each entry names a behavior the owner has corrected an assistant for repeatedly,
 
 ### Documentation bloat · `P01`
 
-Instructions growing through rationale, duplicated claims, correction notes and comments that explain readable code.
+Instructions growing through rationale, excess detail, history and comments that explain readable code.
 
-**Look for:** a doc edit that adds a paragraph; sentences explaining why a rule exists, what a section is about, or how it came to be written
+**Look for:** a sentence the reader could delete and still act correctly: UI play-by-play, secondary features, correction notes, soapboxing; a new paragraph where a clause in an existing one would do
 
 **Owner:** web-tools CLAUDE.md (before adding to a doc, ask whether another document owns it)
 

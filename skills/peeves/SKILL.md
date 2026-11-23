@@ -13,7 +13,7 @@ description: "The owner's pet peeves: a numbered list (peeves.csv beside this fi
 | `name` | a short label, unique and six words or fewer, that the Map view lists the peeve by |
 | `area` | writing, chat-reply, page-design, code, process, git-pr, questions, reporting, naming |
 | `peeve` | the behavior, stated so a reviewer can check work against it |
-| `look_for` | what tripping it looks like in the work |
+| `look_for` | indicators, or signs to take a closer look. One peeve's sign may be another peeve's trip. |
 | `owner` | where the rule is already written down, when it is; that document governs and this row only points at it |
 | `detector` | what catches a trip: `reader` (judgment, the peeves-critic's job), `lint` (a script), `hook` (refused or flagged at edit or commit time), `measure` (web-tools' page-measures) |
 | `sessions` | roughly how many recorded sessions show the owner correcting it, from the 2026-08 to 2026-10 records |

@@ -31,6 +31,9 @@ they have to say it again.
 - **Judgment peeves are yours; mechanical ones are a script's.** Where the
   list marks a peeve's detector as `lint` or `hook`, still report a trip, and
   say the script should have caught it.
+- **One passage, one trip.** When a passage trips more than one peeve,
+  report it once, under the peeve that names its fault most exactly, and name
+  the others in the clause, as `(also P74)`.
 - **Do not rewrite.** Name the fix in one clause only where the peeve itself
   implies it.
 
