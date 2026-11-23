@@ -236,7 +236,7 @@ graph and emits no `dist/` artifact. It walks the `pages/` tree, reads each page
 - [`pages/index.html`](../pages/index.html): the **visual index**, a light-themed
   card per page, grouped by directory, whose default preview is the page's
   screenshot, with a toggle to a **live** iframe of the page or its **HTML source**.
-  `pages-shots.mjs` generates the screenshots into [web-tools-private](https://github.com/mehrlander/web-tools-private)'s
+  [`pages-shots.mjs`](build/pages-shots.mjs) generates the screenshots into [web-tools-private](https://github.com/mehrlander/web-tools-private)'s
   `thumbs/`. A card shows its screenshot to a reader whose browser holds a GitHub
   token, and a placeholder to anyone else.
   Per-page blurbs live in the `NOTES` map at the top of `pages-index.mjs`; edit
@@ -264,9 +264,9 @@ Generated files are refreshed in three places:
 - [`refresh-derived.yml`](../.github/workflows/refresh-derived.yml) runs
   `npm run artifacts:refresh` on `main` after each push, for writes that ran no
   hook;
-- page thumbnails (in web-tools-private's `thumbs/`) are slow and not byte-deterministic,
-  and are refreshed once per session, as root `CLAUDE.md` says under
-  "Per-session refresh: thumbnails".
+- page thumbnails (in [web-tools-private](https://github.com/mehrlander/web-tools-private)'s `thumbs/`) are slow and not
+  byte-deterministic, and are refreshed once per session, as root `CLAUDE.md` says
+  under [Per-session refresh: thumbnails](../CLAUDE.md#per-session-refresh-thumbnails).
 
 **Deterministic generated files are committed with their source.**
 [`.githooks/pre-commit`](../.githooks/pre-commit) runs
