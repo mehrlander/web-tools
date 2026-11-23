@@ -41,6 +41,10 @@ import tempfile
 import time
 from datetime import datetime, timezone
 
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8")
+
 # A vote on a user call's recommendation (lib/kits/notes.js); withdraw writes "".
 VOTES = ("up", "down", "withdraw")
 # A note's subject, with no whitespace anywhere. Two forms are the notes' own:
@@ -70,7 +74,7 @@ NOTES_FILE = "notes.jsonl"
 
 def git(repo, *args, env=None, check=True):
     r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True,
-                       env={**os.environ, **(env or {})})
+                       encoding="utf-8", env={**os.environ, **(env or {})})
     if check and r.returncode:
         raise SystemExit(f"note.py: git {' '.join(args)} failed: {r.stderr.strip()}")
     return r
@@ -85,24 +89,43 @@ def find_store(explicit):
             probe = os.path.dirname(probe)
         top = git(probe, "rev-parse", "--show-toplevel").stdout.strip()
         return top, os.path.relpath(path, top)
-    root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    root = os.path.abspath(os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd())
     cands = [root]
     for base in (root, os.path.dirname(root)):
         try:
             cands += [os.path.join(base, d) for d in sorted(os.listdir(base))]
         except OSError:
             pass
+    # Working declarations are cheap hints, never authority over origin/main.
+    # Most neighboring paths are files or unrelated folders; avoid launching
+    # Git for each one before looking at a plausible store.
+    candidates, working, seen = [], {}, set()
     for repo in cands:
+        if not os.path.isdir(repo):
+            continue
+        key = os.path.normcase(os.path.realpath(repo))
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append(repo)
+        try:
+            with open(os.path.join(repo, ".web-tools.json"), encoding="utf-8") as fh:
+                manifest = json.load(fh)
+            declared = manifest.get("notes") if isinstance(manifest, dict) else None
+            if isinstance(declared, str) and declared.strip("/"):
+                working[repo] = declared
+        except (OSError, ValueError):
+            pass
+    for repo in [r for r in candidates if r in working] + [r for r in candidates if r not in working]:
         # main holds the declaration, as it holds the notes; the checkout may sit
         # on a branch cut before either existed.
-        r = subprocess.run(["git", "-C", repo, "show", "origin/main:.web-tools.json"],
-                           capture_output=True, text=True)
+        r = git(repo, "show", "origin/main:.web-tools.json", check=False)
         try:
             if r.returncode == 0:
-                declared = json.loads(r.stdout).get("notes")
+                manifest = json.loads(r.stdout)
+                declared = manifest.get("notes") if isinstance(manifest, dict) else None
             else:
-                with open(os.path.join(repo, ".web-tools.json"), encoding="utf-8") as fh:
-                    declared = json.load(fh).get("notes")
+                declared = working.get(repo)
         except (OSError, ValueError):
             continue
         if isinstance(declared, str) and declared:
@@ -112,7 +135,7 @@ def find_store(explicit):
 
 
 def default_author():
-    r = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True)
+    r = subprocess.run(["git", "branch", "--show-current"], capture_output=True, text=True, encoding="utf-8")
     branch = r.stdout.strip()
     if branch.startswith(ASSISTANT_PREFIXES):
         return branch
@@ -149,7 +172,7 @@ def append(repo, store, note, attempts=5):
             body += "\n"
         body += json.dumps(note, ensure_ascii=False) + "\n"
         blob = subprocess.run(["git", "-C", repo, "hash-object", "-w", "--stdin"], input=body,
-                              capture_output=True, text=True, check=True).stdout.strip()
+                              capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
         with tempfile.TemporaryDirectory() as tmp:
             env = {"GIT_INDEX_FILE": os.path.join(tmp, "index")}
             git(repo, "read-tree", tip, env=env)
