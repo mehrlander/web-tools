@@ -1,6 +1,8 @@
 # Organization
 
-Organization owns how the owner's estate fits together, as it stands and as proposed: where pages live, how the Web Tools app is assembled, and how the repositories align. It keeps the files that describe the owner's repositories and record the work done in them. The files the organization program governs are declared under `programs` in [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's [Programs tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=programs); a program is defined in [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
+Organization owns how the estate, the owner's repositories and everything in them, fits together, both as it stands and as proposed: where pages live, how the Web Tools app is assembled, and how the repositories align.
+
+It keeps the files that describe the owner's repositories and record the work done in them. The files the organization program governs are declared under `programs` in [`.web-tools.json`](../../.web-tools.json) and listed in the Map view's [Programs tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=programs); a program is defined in [CONSTELLATION.md](../../docs/CONSTELLATION.md#projects-and-research).
 
 ## Areas
 
@@ -10,7 +12,7 @@ Organization owns how the owner's estate fits together, as it stands and as prop
 | Registries | the registries declared in [`registries.csv`](../../docs/registries.csv), under the model in [`registries.md`](../../docs/registries.md), with their columns in [`properties.csv`](../../docs/properties.csv) |
 | Session records and chats | the record of each Claude Code session and the archive of exported chats, read in the [Sessions](https://mehrlander.github.io/web-tools/app/?view=sessions) and [Chats](https://mehrlander.github.io/web-tools/app/?view=chats) views |
 | Trackers | each repository's task tracker, written to the schema in [`TRACKER.md`](../../docs/TRACKER.md) |
-| Maps | current-state maps, in [`current/`](current/), each a document of how one part of the estate fits together, in the present tense and corrected in place, beside its data and a check that re-derives its measured claims; and future-state maps, in [`future/`](future/), the proposals that would change that part, kept apart from the current-state map. The first map is [the estate's pages](current/pages.md) |
+| Maps | current-state maps, in [`current/`](current/), each say how one part of the estate fits together. Each is written in the present tense and corrected in place, and sits beside its data and a check that re-derives its measured claims. Future-state maps, in [`future/`](future/), hold the proposals that would change that part. The first current-state map covers [the estate's pages](current/pages.md) |
 
 ## Processes
 

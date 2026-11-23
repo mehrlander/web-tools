@@ -169,6 +169,8 @@ const isTool = p => jobs.get(p)?.standing === 'product' && jobOf(p).split(';').i
 // ---- the summary pages.md states ---------------------------------------------
 const count = f => rows.filter(f).length;
 const name = p => p.replace(/^mehrlander\//, '');
+// A page's link: its source on GitHub, named by repo and path.
+const link = p => `[\`${name(p)}\`](https://github.com/${repoOf(p)}/blob/main/${p.slice(repoOf(p).length + 1)})`;
 const tbl = (head, body) => [`| ${head.join(' | ')} |`, `| ${head.map(() => '---').join(' | ')} |`, ...body.map(b => `| ${b.join(' | ')} |`)].join('\n');
 const stOf = p => jobs.get(p)?.standing || '';
 const summary = [
@@ -181,10 +183,10 @@ const summary = [
     CAT_ORDER.map(c => [c, count(r => r.catalogues.split(';').includes(c)), count(r => r.catalogues === c),
       ...CAT_ORDER.map(d => count(r => { const s = r.catalogues.split(';'); return s.includes(c) && s.includes(d); }))])),
   '',
-  `Tools (${count(r => isTool(r.page))}): ${rows.filter(r => isTool(r.page)).map(r => '`' + name(r.page) + '`').join(', ')}.`,
+  `Tools (${count(r => isTool(r.page))}): ${rows.filter(r => isTool(r.page)).map(r => link(r.page)).join(', ')}.`,
   '',
   `Public pages that name a private repository (${count(r => r.names_private && !['none', 'missing'].includes(r.names_private))}): ` +
-    rows.filter(r => r.names_private && !['none', 'missing'].includes(r.names_private)).map(r => '`' + name(r.page) + '`').join(', ') + '.',
+    rows.filter(r => r.names_private && !['none', 'missing'].includes(r.names_private)).map(r => link(r.page)).join(', ') + '.',
 ].join('\n');
 
 // ---- write or check ----------------------------------------------------------

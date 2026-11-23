@@ -1,15 +1,22 @@
 # The estate's pages
 
-This map answers four questions about the HTML pages in the owner's repositories: what each page is and whether it is a tool, how it relates to the Web Tools app, whether it is public and whether its source names a private repository, and which catalogues list it. It covers every page that at least one of the six catalogues below names. An HTML file that no catalogue names is outside the map; the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists those.
+The estate is the owner's repositories and everything in them. This map answers four questions about the estate's HTML pages: what each page is and whether it is a tool, how it relates to the Web Tools app, whether it is public and whether its source names a private repository, and which catalogues list it. A catalogue here is a file that lists pages; the six are under [Catalogues](#catalogues). The map covers every page that at least one of them names. An HTML file that no catalogue names is outside the map; the [Tools view](https://mehrlander.github.io/web-tools/app/?view=tools)'s **Find undeclared** button lists those.
 
 ## Files
 
 | File | Holds | Written by |
 | --- | --- | --- |
 | [`pages.csv`](pages.csv) | the measured facts, one row per page | [`pages-map.mjs`](pages-map.mjs), from the catalogues, the app's code, the source of each page in a public repository, and GitHub's list of public repositories |
-| [`page-jobs.csv`](page-jobs.csv) | each page's standing and, where `coded.csv` does not code the page, its job | hand |
+| [`page-jobs.csv`](page-jobs.csv) | each page's standing and job, judged by hand | hand |
 
-`node programs/organization/current/pages-map.mjs` rewrites `pages.csv` and the counts under [The map](#the-map); with `--check` it reports what is stale instead. Either form needs [web-tools-private](https://github.com/mehrlander/web-tools-private) cloned beside this checkout, for the app's crawl of every repository's `.web-tools.json` in its `state/configs.json`, and a clone beside it of each other public repository that declares pages. The check also fails when `page-jobs.csv` has no row for a page, or gives a job to a page that `coded.csv` codes. When a judgment in `page-jobs.csv` is wrong, correct its row.
+`node programs/organization/current/pages-map.mjs` rewrites `pages.csv` and the generated blocks of this document. With `--check`, it reports what is stale instead, and it also fails when `page-jobs.csv` lacks a row for a page or breaks a rule under [Terms](#terms).
+
+Either form reads two kinds of checkout beside this one:
+
+- [web-tools-private](https://github.com/mehrlander/web-tools-private), whose `state/configs.json` holds the app's crawl of every repository's `.web-tools.json`;
+- a clone of each other public repository that declares pages, whose page sources the script reads.
+
+When a judgment in `page-jobs.csv` is wrong, correct its row.
 
 ## Catalogues
 
@@ -18,8 +25,8 @@ This map answers four questions about the HTML pages in the owner's repositories
 | gallery | [`pages/pages.csv`](../../../pages/pages.csv) | every page under `pages/`, the kit demos under `lib/kits/demos/` and the skill demos | the [Pages view](https://mehrlander.github.io/web-tools/app/?view=pages) of web-tools, and [`pages/index.html`](../../../pages/index.html) |
 | manifest | `pages` in each repository's `.web-tools.json` | the pages a repository declares, its own or another repository's | the Tools view, the repository's Pages view, and the sidebar for a page marked `appView` |
 | landing | `projects[].landing` in each `.web-tools.json` | a project's front page | the Project view's App tab |
-| tools | [`docs/tools.csv`](../../../docs/tools.csv) | the hub utilities and their icons | the Tools view, in the hub's group |
-| units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the UI units catalogue codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
+| tools | [`docs/tools.csv`](../../../docs/tools.csv) | the web-tools pages the Tools view lists as utilities, with their icons | the Tools view, in the web-tools group |
+| units | [`data/ui-units/coded.csv`](../../../data/ui-units/coded.csv) | the pages the [UI codebook](../../../data/ui-units/codebook.md) codes, each with its jobs | the Map view's [Units tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=units) |
 | forms | [`docs/forms/README.md`](../../../docs/forms/README.md) | the pages it names as forms | the Map view's [Forms tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=forms) |
 
 ## Terms
@@ -31,8 +38,8 @@ This map answers four questions about the HTML pages in the owner's repositories
 | --- | --- |
 | view | is marked `appView` in a manifest, or is a project's landing, so the app shows it inside its own frame as a destination |
 | full-app | is marked `fullApp`: it brings its own header and navigation and opens outside the app |
-| framed | is named in the `files` of a row of docs/app-routes.csv, as repo-atlas.html draws the Atlas view and toss-render.html renders every app view |
-| linked | is named by a line of code in app/index.html or lib/, comment lines and demo folders excepted |
+| framed | is named in the `files` of a row of `docs/app-routes.csv`, as `pages/repo-atlas.html` draws the Atlas view and `pages/toss-render.html` renders every app view |
+| linked | is named by a line of code in `app/index.html` or `lib/`, comment lines and demo folders excepted |
 | standalone | meets none of these: the app reaches it only through a catalogue listing |
 <!-- /pages-map:app -->
 
@@ -50,13 +57,13 @@ The Tools view previews any listed page in a frame. That preview does not make a
 | record | is kept for history or provenance and no longer does its job |
 <!-- /pages-map:standing -->
 
-**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make), which [the forms README](../../../docs/forms/README.md#jobs) defines. A page that `coded.csv` codes takes its job from there, and its job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
+**Job** takes the five values of [`codes.csv`](../../../data/ui-units/codes.csv) (respond, follow, read, explore, make), which [the forms README](../../../docs/forms/README.md#jobs) defines. A page that [`coded.csv`](../../../data/ui-units/coded.csv) codes takes its job from there, and its job in `page-jobs.csv` is blank. `basis` names what the judgment read: the page's source, the manifest's or gallery's note, or the page's name alone.
 
 A **tool** is a product page whose job includes make: the reader works on something they bring or own, such as a text, a workbook, a recording or a data file.
 
-**Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through `toss-render.html`.
+**Visibility** is whether the page's repository is public. A page in a private repository renders only for a reader with a GitHub token, through [`toss-render.html`](../../../pages/toss-render.html).
 
-**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository the reader points it at with a token, as `branch.html` reads any repository. For a page in a private repository the cell is blank, since its source is not read.
+**names_private** lists, for a page in a public repository, the private repositories its source names as `owner/repo`, or reads `none`. A page that names none may still read a private repository with the reader's token: [`branch.html`](../../../pages/branch.html) reads whichever repository its address names. For a page in a private repository, the cell is blank, because the script does not read its source.
 
 ## The map
 
@@ -80,9 +87,9 @@ A **tool** is a product page whose job includes make: the reader works on someth
 | units | 20 | 0 | 20 | 7 | 1 | 2 | 20 | 6 |
 | forms | 7 | 0 | 7 | 1 | 0 | 0 | 6 | 7 |
 
-Tools (26): `art-of-memory:MajorSystem.html`, `art-of-memory:pages/visual-dictionary/index.html`, `fun:projects/nifty-hoops/01-deliverable/01-configurator-prototype.html`, `shortcut-tools:pages/library.html`, `wa-bills:bills/content/CombineContent.html`, `wa-bills:bills/content/DivideContent.html`, `wa-bills:bills/terms-and-rcws/BienniumTermsAndRCWs.html`, `wa-bills:bills/topic/ScanFromList.html`, `wa-bills:fiscal-notes/fn-paste-join.html`, `wa-bills:rcw/PensionMappingInverter.html`, `wa-bills:wsl-api/data/LegislationSinceWithRcwScanner.html`, `wa-bills:wsl-api/data/generate-grouped.html`, `wa-bills:wsl-api/tools/content/ClearSessionBills.html`, `wa-bills:wsl-api/tools/content/ScanSessionBills.html`, `web-tools:pages/annotate.html`, `web-tools:pages/compression-helper.html`, `web-tools:pages/dictate.html`, `web-tools:pages/diff-tool.html`, `web-tools:pages/gist-editor.html`, `web-tools:pages/launcher.html`, `web-tools:pages/links.html`, `web-tools:pages/reception.html`, `web-tools:pages/shorter.html`, `web-tools:pages/toss-render.html`, `web-tools:pages/transform.html`, `web-tools:pages/xlsx-picker.html`.
+Tools (26): [`art-of-memory:MajorSystem.html`](https://github.com/mehrlander/art-of-memory/blob/main/MajorSystem.html), [`art-of-memory:pages/visual-dictionary/index.html`](https://github.com/mehrlander/art-of-memory/blob/main/pages/visual-dictionary/index.html), [`fun:projects/nifty-hoops/01-deliverable/01-configurator-prototype.html`](https://github.com/mehrlander/fun/blob/main/projects/nifty-hoops/01-deliverable/01-configurator-prototype.html), [`shortcut-tools:pages/library.html`](https://github.com/mehrlander/shortcut-tools/blob/main/pages/library.html), [`wa-bills:bills/content/CombineContent.html`](https://github.com/mehrlander/wa-bills/blob/main/bills/content/CombineContent.html), [`wa-bills:bills/content/DivideContent.html`](https://github.com/mehrlander/wa-bills/blob/main/bills/content/DivideContent.html), [`wa-bills:bills/terms-and-rcws/BienniumTermsAndRCWs.html`](https://github.com/mehrlander/wa-bills/blob/main/bills/terms-and-rcws/BienniumTermsAndRCWs.html), [`wa-bills:bills/topic/ScanFromList.html`](https://github.com/mehrlander/wa-bills/blob/main/bills/topic/ScanFromList.html), [`wa-bills:fiscal-notes/fn-paste-join.html`](https://github.com/mehrlander/wa-bills/blob/main/fiscal-notes/fn-paste-join.html), [`wa-bills:rcw/PensionMappingInverter.html`](https://github.com/mehrlander/wa-bills/blob/main/rcw/PensionMappingInverter.html), [`wa-bills:wsl-api/data/LegislationSinceWithRcwScanner.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/data/LegislationSinceWithRcwScanner.html), [`wa-bills:wsl-api/data/generate-grouped.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/data/generate-grouped.html), [`wa-bills:wsl-api/tools/content/ClearSessionBills.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/tools/content/ClearSessionBills.html), [`wa-bills:wsl-api/tools/content/ScanSessionBills.html`](https://github.com/mehrlander/wa-bills/blob/main/wsl-api/tools/content/ScanSessionBills.html), [`web-tools:pages/annotate.html`](https://github.com/mehrlander/web-tools/blob/main/pages/annotate.html), [`web-tools:pages/compression-helper.html`](https://github.com/mehrlander/web-tools/blob/main/pages/compression-helper.html), [`web-tools:pages/dictate.html`](https://github.com/mehrlander/web-tools/blob/main/pages/dictate.html), [`web-tools:pages/diff-tool.html`](https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html), [`web-tools:pages/gist-editor.html`](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html), [`web-tools:pages/launcher.html`](https://github.com/mehrlander/web-tools/blob/main/pages/launcher.html), [`web-tools:pages/links.html`](https://github.com/mehrlander/web-tools/blob/main/pages/links.html), [`web-tools:pages/reception.html`](https://github.com/mehrlander/web-tools/blob/main/pages/reception.html), [`web-tools:pages/shorter.html`](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html), [`web-tools:pages/toss-render.html`](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html), [`web-tools:pages/transform.html`](https://github.com/mehrlander/web-tools/blob/main/pages/transform.html), [`web-tools:pages/xlsx-picker.html`](https://github.com/mehrlander/web-tools/blob/main/pages/xlsx-picker.html).
 
-Public pages that name a private repository (17): `shortcut-tools:pages/library.html`, `web-tools:lib/kits/demos/md-variants.html`, `web-tools:pages/citations.html`, `web-tools:pages/dictate.html`, `web-tools:pages/doc-growth.html`, `web-tools:pages/entities.html`, `web-tools:pages/links.html`, `web-tools:pages/news/news.html`, `web-tools:pages/scratch/toss-top-probe.html`, `web-tools:pages/session.html`, `web-tools:pages/shortcut-edit.html`, `web-tools:pages/shortcut-log.html`, `web-tools:pages/shortcuts.html`, `web-tools:pages/skill-lab.html`, `web-tools:pages/text-lab.html`, `web-tools:pages/toss-render.html`, `web-tools:skills/concept-index/demo.html`.
+Public pages that name a private repository (17): [`shortcut-tools:pages/library.html`](https://github.com/mehrlander/shortcut-tools/blob/main/pages/library.html), [`web-tools:lib/kits/demos/md-variants.html`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/demos/md-variants.html), [`web-tools:pages/citations.html`](https://github.com/mehrlander/web-tools/blob/main/pages/citations.html), [`web-tools:pages/dictate.html`](https://github.com/mehrlander/web-tools/blob/main/pages/dictate.html), [`web-tools:pages/doc-growth.html`](https://github.com/mehrlander/web-tools/blob/main/pages/doc-growth.html), [`web-tools:pages/entities.html`](https://github.com/mehrlander/web-tools/blob/main/pages/entities.html), [`web-tools:pages/links.html`](https://github.com/mehrlander/web-tools/blob/main/pages/links.html), [`web-tools:pages/news/news.html`](https://github.com/mehrlander/web-tools/blob/main/pages/news/news.html), [`web-tools:pages/scratch/toss-top-probe.html`](https://github.com/mehrlander/web-tools/blob/main/pages/scratch/toss-top-probe.html), [`web-tools:pages/session.html`](https://github.com/mehrlander/web-tools/blob/main/pages/session.html), [`web-tools:pages/shortcut-edit.html`](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-edit.html), [`web-tools:pages/shortcut-log.html`](https://github.com/mehrlander/web-tools/blob/main/pages/shortcut-log.html), [`web-tools:pages/shortcuts.html`](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html), [`web-tools:pages/skill-lab.html`](https://github.com/mehrlander/web-tools/blob/main/pages/skill-lab.html), [`web-tools:pages/text-lab.html`](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html), [`web-tools:pages/toss-render.html`](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html), [`web-tools:skills/concept-index/demo.html`](https://github.com/mehrlander/web-tools/blob/main/skills/concept-index/demo.html).
 <!-- /pages-map:map -->
 
-What this map suggests changing is in [the pages proposals](../future/pages.md), kept apart so that the map states only what is.
+The changes this map suggests are in [the pages proposals](../future/pages.md).
