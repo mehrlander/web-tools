@@ -11,12 +11,12 @@ import { readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { repoRoot } from './bootstrap.mjs';
 
-const TEXT = new Set(['.js', '.mjs', '.cjs', '.ts', '.html', '.htm', '.css', '.md', '.csv', '.json', '.jsonl',
-  '.py', '.sh', '.ps1', '.psm1', '.txt', '.yml', '.yaml', '.svg', '.xml', '.toml']);
+// Binary formats that legitimately hold NUL bytes; every other tracked file is text.
+const BINARY = new Set(['.png', '.webp', '.jpg', '.ico', '.xlsx', '.xlsm', '.mp4']);
 
-test('no tracked text file holds a NUL byte', () => {
+test('no tracked file outside the binary formats holds a NUL byte', () => {
   const files = execFileSync('git', ['-C', repoRoot, 'ls-files', '-z'], { encoding: 'utf8' }).split('\0')
-    .filter(f => f && TEXT.has(path.extname(f).toLowerCase()));
+    .filter(f => f && !BINARY.has(path.extname(f).toLowerCase()));
   const found = [];
   for (const f of files) {
     const full = path.join(repoRoot, f);

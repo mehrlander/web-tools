@@ -340,6 +340,7 @@ test('every kind joins to the mechanisms and routes beside it', () => {
   const mechanisms = new Set(manifest.showing.mechanisms.map(m => m.key));
   const routes = new Set(manifest.routes.map(r => r.key));
   for (const k of manifest.kinds) {
+    assert.ok(k.shown_by.split(';').filter(Boolean).length > 0, `${k.kind}: shown_by names no mechanism`);
     for (const m of k.shown_by.split(';').filter(Boolean)) {
       assert.ok(mechanisms.has(m), `${k.kind}: shown_by names no such mechanism: ${m}`);
     }
