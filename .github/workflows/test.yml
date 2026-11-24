@@ -1,217 +1,339 @@
 name: Tests
-
-# One of the repo's two VERIFICATION workflows; page-measures.yml is the other.
-# Everything else under
-# .github/workflows/ is an errand (a cron or a button), and an errand's run has
-# no commit under review to attach to, so it lives in the Actions tab and nowhere
-# else. This one is triggered by a pull request, so its result attaches to the
-# PR's head commit and becomes a check: the green or red mark in the merge box,
-# the Checks tab, and the tick beside the commit wherever GitHub lists it.
-#
-# Why it exists: the configured git hooks regenerate deterministic artifacts
-# during ordinary commits and local merge completion, but checkout setup can be
-# skipped, --no-verify can bypass the hooks, and GitHub API/MCP/server-side
-# writes cannot run them. node/test/derived-artifacts.test.mjs is deliberately
-# independent of that refresh path. Here it runs on every PR, so stale output is
-# caught by the platform rather than accepted because local setup looked ready.
-#
-# The suite is browser-free: `node --test` globs node/test/**/*.test.mjs, and
-# every Playwright-driven check (subject-actions, render-copy, the pdf probes) is
-# deliberately named without `.test.` and stays a manual run. That is what lets
-# the install below skip the browser download.
-#
-# The one thing this cannot promise: that it ran. Observed 2026-08-06 on PR #362,
-# a push to the branch produced NO synchronize run at all, so that commit sat in
-# an open PR with zero checks and nothing said so. The next push to the same PR
-# ran normally, so the trigger is not broken; what correlated was pushing the
-# branch and then its base branch inside the same minute, which moves the merge
-# ref the pull_request event is computed against.
-#
-# Seen again 2026-08-13 on PR #413, and this time the cause was measured rather
-# than guessed: main had moved under the branch and the merge conflicted, so the
-# PR's mergeable_state was `dirty`. A pull_request run is computed against the
-# MERGE ref, and a PR that cannot be merged has none, so no run starts. Nothing
-# reports this: the PR shows the previous commit's green check, the new commit
-# shows no check at all, and the conflict notice is elsewhere in the UI. Two
-# pushes in a row produced no run for exactly this reason and both looked, from
-# the checks alone, like a trigger that had misfired.
-#
-# That confirms the 2026-08-06 reading rather than retiring it. Pushing the base
-# branch inside the same minute is one way to leave the merge ref unavailable;
-# an outright conflict is the durable way. The general statement covers both: no
-# usable merge ref, no run.
-#
-# The move: after a push you care about, look for a run on the new head sha
-# rather than assuming the trigger fired, and when none appears, check
-# mergeable_state before anything else. A workflow that exists so the platform
-# catches what memory does not is worth exactly nothing on the commit where it
-# silently did not start.
+run-name: Measure test selection on one fixed source version
 
 on:
-  pull_request:
-  push:
-    # Session branches too: GitHub builds no merge ref for a conflicted pull
-    # request, so its pull_request run never starts and its newest commit would
-    # otherwise carry no check at all (the snag ci-run-silently-not-started).
-    branches: [main, 'claude/**', 'codex/**', 'gemini/**', 'agent/**']
-    # The monthly WSL snapshot commits data and touches no code, so there is
-    # nothing for the suite to say about it.
-    paths-ignore: ['pages/wsl-sync/data/**']
   workflow_dispatch:
     inputs:
       preflight:
-        description: Run checkout setup, generated-file refresh and the full suite; require unchanged tracked output.
         type: boolean
         default: false
       observe:
-        description: Collect dependency and timing observations from one full run.
         type: boolean
-        default: false
+        default: true
 
-# Verification jobs read only. The main-only publication job below has its
-# own grant to retain captured dependency observations.
 permissions:
   contents: read
 
-# A second push to a branch supersedes the first, so cancel the run it
-# obsoleted instead of paying for both.
-concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
-  test:
+  measure:
     runs-on: ubuntu-latest
-    # The suite runs in about 100 seconds, so ten minutes is slack rather than a
-    # budget. It exists because the failure it catches is not a slow test, it is
-    # a test that never ENDS: `node --test` waits on the event loop, so one
-    # jsdom component left un-destroyed (the State view starts a 60s interval to
-    # age its rows) keeps the runner alive after every assertion has passed.
-    # Measured 2026-08-22 on PR #472, where exactly that left the check sitting
-    # in_progress and, with no timeout here, it would have run to GitHub's
-    # six-hour default before reporting. Ten minutes turns six wasted hours into
-    # a fast red, and a red is what a hung suite should be.
-    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && (inputs.preflight || inputs.observe) && 20 || 10 }}
-    steps:
-      - uses: actions/checkout@v5
-
-      # 22, not 20, and not by preference: `node --test` only expands a glob
-      # pattern from 22 on, so on 20 the test script looks for a directory
-      # literally named ** and exits 1 before running anything. It also matches
-      # the sandbox (22.22.2), which is the version the suite is written against.
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-
-      # package-lock.json is gitignored in this repo, so there is no lockfile to
-      # `npm ci` against or to key setup-node's cache with. The env var stops the
-      # playwright dev dependency's postinstall from fetching browsers the suite
-      # never launches, which is most of the install time.
-      - name: Install
-        # Deliberately not `npm run setup`: CI does not configure or exercise
-        # local hooks, and must verify the committed artifacts without repairing
-        # them first. Browser installation remains separate from this suite.
-        run: npm install
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
-
-      - name: Run the suite
-        # The reporter is the spec one, set in the npm script rather than here so
-        # a contributor and the runner see the same output. It matters most
-        # exactly when this step is red: node's TAP reporter emits a YAML block
-        # per PASSING test and names a failure only where it happened, so a
-        # failure early in a 2,280-test run sits ~250k characters above the end
-        # and the logs API serves only the tail. Measured 2026-08-23, when three
-        # rounds could not read why this check was failing. The spec reporter is
-        # a third the size and repeats every failure, with its error, in a
-        # summary at the very bottom.
-        env:
-          OBSERVE_FULL_RUN: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || (github.event_name == 'workflow_dispatch' && inputs.observe) }}
-          PREFLIGHT_FULL_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.preflight }}
-        run: |
-          if [ "$PREFLIGHT_FULL_RUN" = true ]; then
-            npm run preflight
-            git diff --exit-code HEAD --
-          elif [ "$OBSERVE_FULL_RUN" = true ]; then
-            npm run test:observe -- --out node/.test-observations/run.json
-          else
-            npm test
-          fi
-          node --input-type=module -e 'import os from "node:os"; import {dependencyFingerprint} from "./node/testing/records.mjs"; console.log("Verification runtime: " + JSON.stringify({node: process.versions.node, platform: process.platform, arch: process.arch, default_concurrency: Math.max(1, os.availableParallelism() - 1), dependency_fingerprint: dependencyFingerprint(process.cwd())}))'
-
-      - name: Keep full-run observations
-        if: ${{ always() && hashFiles('node/.test-observations/run.json') != '' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: test-observations-${{ github.run_attempt }}
-          path: node/.test-observations/run.json
-          include-hidden-files: true
-          retention-days: 30
-
-      - name: Summarize full-run observations
-        if: ${{ always() && hashFiles('node/.test-observations/run.json') != '' }}
-        run: node node/testing/summary.mjs node/.test-observations/run.json >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Check bounded repository subprocesses
-        run: python3 desktop/Checks/repository-process-checks.py
-
-      - name: Check repository observation caching
-        run: python3 desktop/Checks/repository-cache-checks.py
-
-  publish-observations:
-    needs: test
-    if: ${{ always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: '22'
-      - name: Read the observed run
-        id: observations
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: test-observations-${{ github.run_attempt }}
-          path: node/.test-observations
-      - name: Retain the run in the private testing record
-        if: ${{ steps.observations.outcome == 'success' }}
-        continue-on-error: true
-        env:
-          REGISTRY_WRITE_TOKEN: ${{ secrets.REGISTRY_WRITE_TOKEN }}
-        run: |
-          if [ -n "$REGISTRY_WRITE_TOKEN" ]; then
-            node node/testing/publish.mjs node/.test-observations/run.json
-          else
-            echo '::notice::Run observations remain available in the workflow artifact.'
-          fi
-      - name: Publish observed reach for fresh checkouts
-        if: ${{ steps.observations.outcome == 'success' }}
-        continue-on-error: true
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: node node/testing/publish.mjs node/.test-observations/run.json --public-reach
-
-  edit-policy:
-    # A job of its own because it needs what the suite's checkout leaves out:
-    # history back to the merge base with main, which the default depth-one
-    # checkout does not reach. The full repository is about 590 MiB, so the
-    # history comes without file contents (filter blob:none), and git fetches
-    # only the few blobs the check reads: each changed file at the base, and the
-    # base's .gitattributes.
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: 6e75e044caf3cdef3dc43b4e2227b0303703f558
           fetch-depth: 0
           filter: blob:none
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22.23.5'
+      - name: Install once for all phases
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+        run: npm install
+      - name: Measure full and selected runs
+        run: |
+          node --input-type=module <<'SAVINGS_MEASUREMENT'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import os from 'node:os';
+          import { spawnSync } from 'node:child_process';
+          import { pathToFileURL } from 'node:url';
+          import { createHash } from 'node:crypto';
+          import { isDeepStrictEqual } from 'node:util';
 
-      - name: Hold each changed file to its edit policy
-        # The same engine .githooks/commit-msg runs on each commit, here over
-        # every commit the branch adds, so a commit made with --no-verify or
-        # through the API is held too.
-        run: python3 skills/hooks/check-edit-policy.py --range
+          // Run from a clean, fixed source checkout. The workflow containing this script
+          // must be outside that checkout's source history/delta.
+          const root = process.cwd();
+          const output = path.join(root, 'node/.test-observations/savings');
+          const concurrency = 3;
+          const probePath = 'node/test/csv-one-owner.test.mjs';
+          const probeFile = path.join(root, probePath);
+          const phaseTimeoutMs = 15 * 60 * 1000;
+          const experimentStart = performance.now();
+          const startedAt = new Date().toISOString();
+          const requireValue = (condition, message) => { if (!condition) throw new Error(message); };
+          const json = file => JSON.parse(fs.readFileSync(file, 'utf8'));
+          const writeJson = (file, value) => fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+          const seconds = value => (value / 1000).toFixed(3);
+          const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
+          const relative = file => path.relative(root, file).split(path.sep).join('/');
+          const childEnv = { ...process.env, GIT_OPTIONAL_LOCKS: '0' };
+          delete childEnv.WEB_TOOLS_TEST_HEAD_SHA;
+          delete childEnv.GITHUB_HEAD_SHA;
+          for (const name of Object.keys(childEnv)) {
+            if (/^GIT_(?:DIR|WORK_TREE|INDEX_FILE|COMMON_DIR|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|PREFIX|NAMESPACE|CEILING_DIRECTORIES)$/i.test(name)) delete childEnv[name];
+          }
+
+          function git(args) {
+            const result = spawnSync('git', ['-c', 'core.fsmonitor=false', ...args], {
+              cwd: root, env: childEnv, encoding: 'utf8', timeout: 30000, maxBuffer: 8 * 1024 * 1024,
+            });
+            requireValue(!result.error && result.status === 0, `Git read failed: ${args[0]}`);
+            return result.stdout;
+          }
+
+          function statusPaths() {
+            const raw = git(['status', '--porcelain', '-z', '--untracked-files=normal']);
+            return raw.split('\0').filter(Boolean).map(row => row.slice(3)).sort();
+          }
+
+          function assertClean(label) {
+            requireValue(statusPaths().length === 0, `${label}: checkout is not clean`);
+          }
+
+          fs.mkdirSync(output, { recursive: true });
+          requireValue(!fs.existsSync(path.join(output, 'report.json')), 'The benchmark output already exists');
+          const report = {
+            schema: 'web-tools-test-savings-experiment/1', started_at: startedAt, success: false,
+            experiment: 'One synthetic same-line whitespace edit inside an existing CSV test assertion',
+            probe_path: probePath, phases: [],
+            methodology: {
+              order: ['full-before', 'selected-csv-test', 'full-after', 'selected-csv-test-repeat'],
+              same_host: true, same_install: true, same_source_checkout: true,
+              concurrency, observation_mode_all_phases: true,
+              primary_time: 'Fresh runner subprocess elapsed time, including import, selection, worker profile creation and cleanup',
+              limitations: [
+                'The selected phase changes whitespace only. It measures execution for a test-file edit, not a CSV feature change.',
+                'Two full controls and two selected runs use a fixed order; filesystem-cache and runner-load effects are not randomized.',
+                'The later full control is the primary warmed comparison. The first full control is reported separately.',
+                'Two selected samples of one edit cannot establish an average across changes, venues or runner load.',
+                'All phases trace dependencies, so the comparison applies to the observed runner.',
+                'This is a controlled synthetic probe, not one of the 20 varied code revisions.',
+                'No assertions or required checking instructions are removed. Full CI and preflight remain required.',
+                'Modeled source-path process time is overlapping accumulated time, not wall time or CPU time.',
+                'The measured runner interval excludes npm installation and the workflow job setup shared by all phases.',
+              ],
+            },
+            errors: [],
+          };
+
+          function child(label, args, timeout = phaseTimeoutMs) {
+            const logFile = path.join(output, `${label}.log`);
+            const fd = fs.openSync(logFile, 'wx');
+            const start = performance.now();
+            let result;
+            try {
+              result = spawnSync(process.execPath, args, {
+                cwd: root, env: childEnv, stdio: ['ignore', fd, fd], timeout, killSignal: 'SIGTERM',
+              });
+            } finally { fs.closeSync(fd); }
+            return { outer_elapsed_ms: Math.round(performance.now() - start), exit_code: result.status,
+              signal: result.signal, error: result.error?.message || null, log: relative(logFile) };
+          }
+
+          function runPhase(label, extra) {
+            console.log(`Starting ${label} at ${new Date().toISOString()}`);
+            const recordFile = path.join(output, `${label}.json`);
+            const execution = child(label, [path.join(root, 'node/testing/run.mjs'), '--observe', '--concurrency', String(concurrency),
+              '--out', recordFile, ...extra]);
+            const record = fs.existsSync(recordFile) ? json(recordFile) : null;
+            const phase = { label, ...execution, record: relative(recordFile), record_present: !!record,
+              mode: record?.mode ?? null, selected: record?.selection?.selected ?? null,
+              total: record?.selection?.total ?? null, reported_suite_ms: record?.wall_ms ?? null,
+              reported_runner_total_ms: record?.total_wall_ms ?? null,
+              reported_selection_ms: record?.selection_wall_ms ?? null,
+              reported_preparation_ms: record?.preparation_wall_ms ?? null,
+              accumulated_process_ms: record?.sum_process_wall_ms ?? null,
+              worker_observations_complete: record?.complete ?? false,
+              source: record?.source ?? null, runtime: record?.runtime ?? null,
+            };
+            const log = fs.readFileSync(path.join(root, execution.log), 'utf8');
+            const count = name => Number(new RegExp(`(?:ℹ|#) ${name} (\\d+)(?:\\r?\\n|$)`, 'u').exec(log)?.[1] ?? NaN);
+            phase.case_counts = Object.fromEntries(['tests', 'pass', 'fail', 'skipped'].map(name => [name, Number.isFinite(count(name)) ? count(name) : null]));
+            report.phases.push(phase);
+            console.log(`Finished ${label}: exit ${execution.exit_code}, ${seconds(execution.outer_elapsed_ms)} s, ${phase.selected}/${phase.total} files`);
+            return { record, phase };
+          }
+
+          function validateRecord(record, phase, expectedPaths, dirty, expectedRuntime) {
+            requireValue(phase.exit_code === 0 && !phase.error && phase.signal === null, `${phase.label}: subprocess did not pass`);
+            requireValue(record?.schema === 'web-tools-test-run/1' && record.exit_code === 0 && record.signal === null && record.complete === true,
+              `${phase.label}: record is not a complete successful run`);
+            requireValue(!record.observation_errors?.length, `${phase.label}: observation errors`);
+            requireValue(record.source.checkout_sha === report.source.sha && record.source.head_sha === report.source.sha && record.source.dirty === dirty,
+              `${phase.label}: unexpected source identity or dirty state`);
+            requireValue(record.tests.every(row => row.complete && row.exit_code === 0 && Number.isFinite(row.elapsed_ms) && row.elapsed_ms >= 0),
+              `${phase.label}: incomplete or failed worker`);
+            requireValue(isDeepStrictEqual(record.tests.map(row => row.path).sort(), [...expectedPaths].sort()), `${phase.label}: unexpected worker population`);
+            requireValue(new Set(record.tests.map(row => row.path)).size === record.tests.length, `${phase.label}: duplicate workers`);
+            requireValue(record.runtime.concurrency === concurrency, `${phase.label}: wrong concurrency`);
+            if (expectedRuntime) requireValue(isDeepStrictEqual(record.runtime, expectedRuntime), `${phase.label}: runtime or dependency profile changed`);
+            requireValue(record.profile_isolation === 'temporary', `${phase.label}: worker profile was not isolated`);
+            requireValue(sha256(fs.readFileSync(path.join(root, 'package-lock.json'))) === report.package_lock.sha256,
+              `${phase.label}: package lock changed`);
+          }
+
+          let originalProbe = null;
+          let baseline = null;
+          let first = null;
+          let selected = null;
+          let last = null;
+          let repeated = null;
+          let expectedPicked = null;
+          let modifiedProbe = null;
+          let validatePhase = null;
+          let eligible = null;
+          try {
+            assertClean('Before benchmark');
+            report.source = { sha: git(['rev-parse', 'HEAD']).trim(), tree: git(['rev-parse', 'HEAD^{tree}']).trim(),
+              repository: git(['config', '--get', 'remote.origin.url']).trim(),
+              workflow_sha: process.env.GITHUB_SHA || null, workflow_ref: process.env.GITHUB_REF || null,
+              run_id: process.env.GITHUB_RUN_ID || null, run_attempt: process.env.GITHUB_RUN_ATTEMPT || null };
+            requireValue(report.source.sha === (process.env.BENCHMARK_SOURCE_SHA || '6e75e044caf3cdef3dc43b4e2227b0303703f558'), 'The source checkout is not the pinned benchmark revision');
+            report.environment = { node: process.versions.node, platform: process.platform, arch: process.arch,
+              os_release: os.release(), available_parallelism: os.availableParallelism(), cpu_model: os.cpus()[0]?.model,
+              logical_cpus: os.cpus().length, total_memory_bytes: os.totalmem(), runner_os: process.env.RUNNER_OS || null,
+              runner_arch: process.env.RUNNER_ARCH || null };
+            const lock = fs.readFileSync(path.join(root, 'package-lock.json'));
+            fs.writeFileSync(path.join(output, 'package-lock.json'), lock);
+            report.package_lock = { sha256: sha256(lock), bytes: lock.length, captured: 'node/.test-observations/savings/package-lock.json' };
+            const { baselineEligible } = await import(pathToFileURL(path.join(root, 'node/testing/publish.mjs')));
+            eligible = baselineEligible;
+            const { parseCsv } = await import(pathToFileURL(path.join(root, 'node/build/registries-load.mjs')));
+            const { testFiles, planSelection } = await import(pathToFileURL(path.join(root, 'node/testing/select.mjs')));
+            const inventory = testFiles(root);
+            writeJson(path.join(output, 'test-inventory.json'), inventory);
+            first = runPhase('full-before', ['--all']);
+            validateRecord(first.record, first.phase, inventory, false);
+            requireValue(first.record.mode === 'full' && baselineEligible(first.record), 'Initial full run cannot seed selection');
+            baseline = first.record;
+            fs.copyFileSync(path.join(output, 'full-before.json'), path.join(output, 'selection-baseline.json'));
+            const gatePaths = parseCsv(fs.readFileSync(path.join(root, 'docs/tests-authored.csv'), 'utf8'))
+              .filter(row => row.kind === 'gate' && inventory.includes(row.path)).map(row => row.path);
+            const prior = new Map(baseline.tests.map(row => [row.path, row]));
+            const required = inventory.filter(file => gatePaths.includes(file) || !prior.has(file) || prior.get(file).opaque?.length);
+            report.required_files = { gates: gatePaths, opaque_or_unobserved: inventory.filter(file => !prior.has(file) || prior.get(file).opaque?.length) };
+            report.modeled_paths = [];
+            for (const [label, changedPath] of [['csv-source', 'lib/kits/csv.js'], ['map-source', 'lib/alpineComponents/map.js'], ['shared-bootstrap', 'node/test/bootstrap.mjs']]) {
+              const model = planSelection({ snapshot: baseline, tests: inventory, gates: gatePaths,
+                changedPaths: [changedPath], runtime: baseline.runtime });
+              writeJson(path.join(output, `modeled-${label}-plan.json`), model);
+              report.modeled_paths.push({ path: changedPath, executed: false, mode: model.mode, reason: model.reason,
+                selected: model.selected, total: model.total, accumulated_process_estimate_ms: model.estimated_ms,
+                interpretation: 'Historical process elapsed within the fresh baseline, not measured selected wall time' });
+            }
+            requireValue(report.modeled_paths.find(row => row.path === 'node/test/bootstrap.mjs').mode === 'full', 'Shared bootstrap did not retain the full suite');
+
+            originalProbe = fs.readFileSync(probeFile);
+            const originalText = originalProbe.toString('utf8');
+            const needle = 'assert.equal(m.joinList(';
+            requireValue(originalText.includes(needle), 'The CSV list assertion is absent');
+            const modified = originalText.replace(needle, 'assert.equal( m.joinList(');
+            modifiedProbe = Buffer.from(modified);
+            requireValue(modified !== originalText && modified.replace('assert.equal( m.joinList(', needle) === originalText,
+              'Probe is not exactly one whitespace insertion');
+            requireValue(modified.split('\n').length === originalText.split('\n').length, 'Probe changed line count');
+            fs.writeFileSync(probeFile, modified);
+            requireValue(isDeepStrictEqual(statusPaths(), [probePath]), 'Probe changed more than the intended CSV test file');
+            fs.writeFileSync(path.join(output, 'probe.patch'), git(['diff', '--no-ext-diff', '--no-textconv', '--', probePath]));
+            report.probe = { path: probePath, before_sha256: sha256(originalProbe), after_sha256: sha256(Buffer.from(modified)),
+              change: 'Insert one space after assert.equal( in the existing CSV list assertion; preserve test names, comments and line count',
+              behavior_changed: false, line_count_changed: false, assertions_added_or_removed: false };
+            const planFile = path.join(output, 'selected-plan.json');
+            const previewCode = `import fs from 'node:fs'; import {main} from ${JSON.stringify(pathToFileURL(path.join(root, 'node/testing/run.mjs')).href)}; const result=await main(${JSON.stringify(['--list', '--observe', '--concurrency', String(concurrency), '--snapshot', path.join(output, 'selection-baseline.json')])}); fs.writeFileSync(${JSON.stringify(planFile)},JSON.stringify(result.plan,null,2));`;
+            report.preview = child('selection-preview', ['--input-type=module', '-e', previewCode], 120000);
+            requireValue(report.preview.exit_code === 0 && !report.preview.error && fs.existsSync(planFile), 'Selection preview failed');
+            const plan = json(planFile), picked = new Set(plan.tests.map(row => row.path));
+            requireValue(plan.mode === 'selected' && plan.selected < plan.total, `Probe did not reduce selection: ${plan.reason}`);
+            requireValue(picked.has(probePath), 'Selection omitted the changed CSV test');
+            requireValue(required.every(file => picked.has(file)), 'Selection omitted a required gate, opaque or unobserved file');
+            report.selection = { mode: plan.mode, reason: plan.reason, selected: plan.selected, total: plan.total,
+              required_retained: true, changed_test_retained: true, source_sha: plan.source_sha };
+            expectedPicked = [...picked];
+            validatePhase = (phaseResult, dirty) => validateRecord(phaseResult.record, phaseResult.phase, expectedPicked, dirty, baseline.runtime);
+            selected = runPhase('selected-csv-test', ['--snapshot', path.join(output, 'selection-baseline.json')]);
+            validatePhase(selected, true);
+            requireValue(selected.record.mode === 'selected' && !baselineEligible(selected.record), 'Selected run incorrectly qualifies as a full baseline');
+          } catch (error) {
+            report.errors.push(error.message);
+            console.error(`Benchmark issue: ${error.message}`);
+          } finally {
+            if (originalProbe) fs.writeFileSync(probeFile, originalProbe);
+            if (baseline) {
+              try {
+                assertClean('After restoring the probe');
+                report.probe_restored = !originalProbe || sha256(fs.readFileSync(probeFile)) === sha256(originalProbe);
+                last = runPhase('full-after', ['--all']);
+                validateRecord(last.record, last.phase, baseline.tests.map(row => row.path), false, baseline.runtime);
+                requireValue(last.record.mode === 'full', 'Final control was not a full run');
+                assertClean('After final control');
+                if (report.errors.length === 0 && selected && modifiedProbe && validatePhase) {
+                  try {
+                    fs.writeFileSync(probeFile, modifiedProbe);
+                    requireValue(isDeepStrictEqual(statusPaths(), [probePath]), 'Repeat probe changed more than the intended CSV test file');
+                    repeated = runPhase('selected-csv-test-repeat', ['--snapshot', path.join(output, 'selection-baseline.json')]);
+                    validatePhase(repeated, true);
+                    requireValue(repeated.record.mode === 'selected' && !eligible(repeated.record), 'Repeated selected run incorrectly qualifies as a full baseline');
+                  } finally {
+                    fs.writeFileSync(probeFile, originalProbe);
+                    requireValue(sha256(fs.readFileSync(probeFile)) === sha256(originalProbe), 'Repeat probe restoration failed');
+                    assertClean('After repeated selected run');
+                  }
+                }
+              } catch (error) { report.errors.push(error.message); console.error(`Final control issue: ${error.message}`); }
+            }
+            if (report.errors.length === 0 && first && selected && last && repeated) {
+              const controls = [first.phase.outer_elapsed_ms, last.phase.outer_elapsed_ms];
+              const fullMean = controls.reduce((sum, value) => sum + value, 0) / controls.length;
+              const warmFull = last.phase.outer_elapsed_ms;
+              const selectedSamples = [selected.phase.outer_elapsed_ms, repeated.phase.outer_elapsed_ms];
+              const pickedTime = selectedSamples.reduce((sum, value) => sum + value, 0) / selectedSamples.length;
+              const saved = warmFull - pickedTime;
+              const extraSeedCost = first.phase.outer_elapsed_ms;
+              report.measurement = {
+                measured_selected_mean_subprocess_ms: pickedTime, measured_selected_samples_subprocess_ms: selectedSamples,
+                measured_selected_with_preview_ms: pickedTime + report.preview.outer_elapsed_ms,
+                full_controls_subprocess_ms: controls, full_controls_mean_ms: fullMean,
+                primary_full_comparison: 'full-after', warmed_full_subprocess_ms: warmFull,
+                difference_from_warm_full_ms: saved, difference_from_warm_full_percent: 100 * saved / warmFull,
+                selected_differences_from_warm_full_ms: selectedSamples.map(value => warmFull - value),
+                selected_differences_from_warm_full_percent: selectedSamples.map(value => 100 * (warmFull - value) / warmFull),
+                differences_across_full_controls_ms: [Math.min(...controls) - pickedTime, Math.max(...controls) - pickedTime],
+                differences_across_full_controls_percent: controls.map(value => 100 * (value - pickedTime) / value).sort((a, b) => a - b),
+                seed_cost_if_additional_ms: extraSeedCost,
+                selected_iterations_to_recover_additional_seed_cost: saved > 0 ? Math.ceil(extraSeedCost / saved) : null,
+                baseline_cost: 'When the baseline is obtained during an already required full run, its collection is shared. An extra full seed costs the measured full-before interval.',
+                scope: 'Measured reduction for one synthetic test-file formatting edit, repeated twice using the same prior full baseline on this host. Production CI still runs full suites.',
+              };
+              report.success = true;
+            }
+            report.finished_at = new Date().toISOString();
+            report.experiment_total_elapsed_ms = Math.round(performance.now() - experimentStart);
+            writeJson(path.join(output, 'report.json'), report);
+            const rows = report.phases.map(phase => `| ${phase.label} | ${phase.selected ?? '?'} / ${phase.total ?? '?'} | ${seconds(phase.outer_elapsed_ms)} s | ${phase.reported_suite_ms === null ? 'unknown' : `${seconds(phase.reported_suite_ms)} s`} | ${phase.exit_code ?? phase.signal ?? 'unknown'} |`);
+            const summary = [
+              '# Test selection savings experiment', '',
+              `Outcome: ${report.success ? 'complete, all four phases passed' : 'incomplete; no savings claim'}.`, '',
+              'The selected phase inserts one space in an existing CSV test assertion. Behavior and assertions are unchanged. Both full controls use the original source.', '',
+              '| Phase | Test files | Measured runner process | Reported suite | Exit |', '| --- | ---: | ---: | ---: | ---: |', ...rows, '',
+              ...(report.success ? [
+                `The two selected runs averaged ${seconds(report.measurement.measured_selected_mean_subprocess_ms)} s. The later full control took ${seconds(report.measurement.warmed_full_subprocess_ms)} s.`,
+                `The measured difference from the later full control was ${seconds(report.measurement.difference_from_warm_full_ms)} s (${report.measurement.difference_from_warm_full_percent.toFixed(1)}%).`,
+                `The first full control took ${seconds(first.phase.outer_elapsed_ms)} s and is reported separately to expose order and cache effects.`,
+                `The optional plan preview took ${seconds(report.preview.outer_elapsed_ms)} s and is separately counted in the report.`,
+                `If a full baseline were additional work, ${report.measurement.selected_iterations_to_recover_additional_seed_cost ?? 'no measured number of'} selected iterations would recover its measured cost at this difference.`, '',
+              ] : []),
+              ...report.methodology.limitations.map(value => `- ${value}`), '',
+              'The CSV source, Map source and shared-bootstrap plans are modeled only. Their process-time sums are not executed subset durations.', '',
+              ...(report.errors.length ? ['Errors:', ...report.errors.map(value => `- ${value}`), ''] : []),
+            ].join('\n');
+            fs.writeFileSync(path.join(output, 'summary.md'), summary);
+            console.log(summary);
+            process.exitCode = report.success ? 0 : 1;
+          }
+          SAVINGS_MEASUREMENT
+      - name: Keep measurement evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-selection-savings-${{ github.run_attempt }}
+          path: node/.test-observations/savings/
+          include-hidden-files: true
+          retention-days: 30
+      - name: Show measurement summary
+        if: always()
+        run: |
+          if [ -f node/.test-observations/savings/summary.md ]; then
+            cat node/.test-observations/savings/summary.md >> "$GITHUB_STEP_SUMMARY"
+          fi
