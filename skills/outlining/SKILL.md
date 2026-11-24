@@ -1,9 +1,11 @@
 ---
 name: outlining
-description: "Use when asked to outline a document, lay out its structure or pull its key points; to inventory the claims a text makes, presupposed ones included, before editing or fact-checking it; to read a reply, document or transcript as the questions it answers, for a question margin or to see what a conversation settled and left open; or to judge whether a document is too detailed or too thin. Settles the unit, grain and dimension, then produces entries tied to the source and checks their coverage."
+description: "Use when asked to outline a document, lay out its structure or pull its key points; to assess a document's premise, scope, organization or flow before rewriting; to inventory the claims a text makes, presupposed ones included, before editing or fact-checking it; to read a reply, document or transcript as the questions it answers, for a question margin or to see what a conversation settled and left open; or to judge whether a document is too detailed or too thin. Settles the unit, grain and dimension, then produces entries tied to the source and checks their coverage."
 ---
 
 # Outlining
+
+An outline makes a document's content and relationships inspectable. It can recover what the document says or assess how its parts serve the reader's task. Family: text processing.
 
 ## Goal and outputs
 
@@ -14,6 +16,8 @@ Produce an outline of a document to match the intended use. Phase one settles th
 - **The crosswalk.** Each entry's link to its source span, walkable both ways: result to source confirms each line, source to result finds the discards.
 
 An outline succeeds on fidelity (each entry says what its source says), completeness (nothing matching the criteria is dropped), consistency (the same calls throughout, grain and dimension held steady) and validity (the criteria capture what the use needed).
+
+For a diagnosis of premise, scope, organization or flow, read [`diagnosis.md`](diagnosis.md). That use produces a functional outline and structural findings before any rewrite. For an ordinary outline, follow the process below.
 
 ## Key insights
 
@@ -32,6 +36,8 @@ An outline succeeds on fidelity (each entry says what its source says), complete
 
 | File | Read when |
 | --- | --- |
+| [`diagnosis.md`](diagnosis.md) | assessing a document's premise, scope, hierarchy, sequence or relationship to neighboring documents; proposing an opening that states its purpose |
+| [`examples/claude.md`](examples/claude.md) | a worked diagnosis is useful: a repository entry point with local rules and links to topical owners |
 | [`claims.md`](claims.md) | the unit is a claim: its types, the existence threshold, grain, the output format |
 | [`questions.md`](questions.md) | the unit is a question: grain by paragraph or exchange, the provenance mark, answers that stand alone, the open-loop filter |
 | [`tree.md`](tree.md) | measuring depth: building the tree, placing claims, reading depth |
