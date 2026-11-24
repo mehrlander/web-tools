@@ -66,7 +66,7 @@
       "stage": "intent",
       "by": "session",
       "note": "Revised in answer to the review.",
-      "payload": "👤 **Asked:** A `writing-sprint` skill, sibling to design-sprint, that punches up a text, draft or prompt alike. It borrows from exemplars of more kinds than the current set, famous writers and compelling passages among them, filed by craft move in moves.md as a trial. It starts from one core insight, distilled from the existing skills on writing, exemplars and inspiring excellence.\n\n👤 **Wants:** A text stronger than any one assistant's habits would make it. The strength comes from borrowing what writers who mastered a move did. The skill grows from its core insight only as far as use shows it should.\n"
+      "payload": "👤 **Asked**\n\n- A `writing-sprint` skill, sibling to design-sprint.\n- It punches up a text, draft or prompt alike.\n- It borrows from exemplars of more kinds than the current set, famous writers and compelling passages among them.\n- Passages are filed by craft move in moves.md, as a trial.\n- It starts from one core insight, distilled from the existing skills on writing, exemplars and inspiring excellence.\n\n👤 **Wants**\n\n- A text stronger than any one assistant's habits would make it.\n- The strength comes from borrowing what writers who mastered a move did.\n- The skill grows from its core insight only as far as use shows it should.\n"
     },
     {
       "stage": "outline",
