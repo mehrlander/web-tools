@@ -258,14 +258,15 @@
   const flairHTML = o => (o.flair || []).map(f => `<span class="badge badge-sm badge-ghost shrink-0 cursor-pointer gap-1 font-normal text-base-content/75" data-title-tip="${esc(f.tip || f.label)}">`
     + `${f.icon ? `<i class="ph ${esc(f.icon)}"></i>` : ''}${esc(f.label)}</span>`).join('');
 
-  // A row: the run's title over its meta, its outputs' tabs (the kit draws
-  // them in data-ls-tabs) and, with verdicts, how many have one.
+  // A row, on one line so the list leaves the input its room: the run's
+  // title (its meta in the tip), its outputs' tabs (the kit draws them in
+  // data-ls-tabs) and, with verdicts, how many have one.
   function rowHTML(r) {
+    const tip = [r.title, r.meta].filter(Boolean).join(' · ');
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
-      class="flex cursor-pointer flex-col border-b border-base-200 px-2.5 py-1 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
-      <span class="truncate font-medium" data-title-tip="${esc(r.title)}">${esc(r.title)}</span>
-      <div class="flex min-h-7 items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-ls-tabs></span>
-        ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div></div>`;
+      class="flex min-h-9 cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-0.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+      <span class="min-w-0 flex-1 truncate font-medium" data-title-tip="${esc(tip)}">${esc(r.title)}</span><span data-ls-tabs></span>
+      ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div>`;
   }
 
   // The tag starts the statement's first line, so a narrow panel's wrapped
@@ -324,12 +325,13 @@
       const mine = !!own && on.includes(own);
       const pick = mine ? over.filter(s => s.o === own) : over;
       const role = ['first', 'single', 'again'].find(x => pick.some(s => s.role === x));
+      const ruled = pick.every(s => s.at[0] === 0 && s.at[1] === b.text.length);
       const hue = hueOf(pick.find(s => s.role === role).o);
       const top = mine && first.block === b.id && first.at[0] === a;
       const nums = spans.filter(s => s.at[0] === a).map(({ o, role }) =>
         `<span data-badge="${esc(o.id)}" data-role="${role}" class="${BADGE} ${badgeTone(r.id, o.id, o === own, role)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
       h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} tabindex="-1"`
-        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
+        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${ruled ? 'bg-transparent' : fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
     }
     return h;
   }
@@ -360,8 +362,16 @@
   };
   // The open folds, by run and first block, kept through redraws.
   const opened = new Set();
+  // A passage that is its whole block, such as a rewrite set below its
+  // source, is marked by a rule down the block's edge, primary for the card's
+  // own output, rather than a fill over every line of it.
+  const whole = (b, s) => s.block === b.id && s.at[0] === 0 && s.at[1] === b.text.length;
+  const ruleOf = (r, b, own) => {
+    const on = r.outputs.filter(o => o.spans.some(s => whole(b, s)));
+    return !on.length ? '' : on.includes(own) ? ' border-l-3 border-primary pl-3' : ' border-l-3 border-base-content/15 pl-3';
+  };
   const turnHTML = (r, b, own, pad) => `
-      <section data-block="${esc(b.id)}" class="${pad}">
+      <section data-block="${esc(b.id)}" class="${pad}${ruleOf(r, b, own)}">
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]"><span class="${TURN.badge}" data-title-tip="${esc(b.label || b.id)}">${esc(turnNo(b))}</span>${marked(r, b, own)}</p>
       </section>`;
   // A run's turns, each run of two or more quiet ones folded unless opened.
