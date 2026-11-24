@@ -1,0 +1,112 @@
+{
+  "schema": "flow/1",
+  "title": "Critic review of a documentation edit",
+  "repo": "mehrlander/web-tools",
+  "actors": [
+    { "id": "session", "label": "Session", "icon": "ph-terminal-window" },
+    { "id": "tool", "label": "user-call.py", "icon": "ph-gear-six" },
+    { "id": "critic", "label": "Peeves critic", "icon": "ph-magnifying-glass" },
+    { "id": "owner", "label": "Owner", "icon": "ph-user" }
+  ],
+  "variants": [
+    { "id": "current", "label": "Current" },
+    { "id": "proposed", "label": "Proposed" }
+  ],
+  "steps": [
+    {
+      "id": "edit", "actor": "session", "label": "Edit and commit",
+      "does": "Revise the documentation and commit it on the session's branch.",
+      "artifacts": [
+        { "kind": "skill", "label": "doc-craft, Review", "path": "skills/doc-craft/SKILL.md" }
+      ]
+    },
+    {
+      "id": "spans", "actor": "tool", "label": "Number the edits",
+      "does": "`review DRAFT FILE --spans` prints the edits as line ranges E1, E2 and so on, measured against the call's base.",
+      "artifacts": [
+        { "kind": "script", "label": "user-call.py review --spans", "path": "skills/user-calls/user-call.py" }
+      ]
+    },
+    {
+      "id": "prompt-now", "actor": "session", "label": "Write the prompt", "in": ["current"],
+      "does": "Write the critic's prompt around the spans, with the session's own account of any earlier run."
+    },
+    {
+      "id": "prompt-new", "actor": "tool", "label": "Print the prompt", "in": ["proposed"],
+      "does": "Print the whole critic prompt: the spans, and each kept trip with the session's reason.",
+      "artifacts": [
+        { "kind": "script", "label": "user-call.py review --spans", "path": "skills/user-calls/user-call.py" }
+      ]
+    },
+    {
+      "id": "read", "actor": "critic", "label": "Read for peeves",
+      "does": {
+        "current": "A fresh critic reads the document against the peeves list and returns trips, clear ids, candidates and a verdict.",
+        "proposed": "A fresh critic reads the document against the peeves list and returns trips, clear ids, candidates and a verdict. A kept trip whose reason it doubts goes under Kept, not counted as a trip."
+      },
+      "artifacts": [
+        { "kind": "agent", "label": "peeves-critic", "path": "skills/agents/peeves-critic.md" },
+        { "kind": "data", "label": "peeves.csv", "path": "skills/peeves/peeves.csv" }
+      ]
+    },
+    {
+      "id": "carry-now", "actor": "session", "label": "Carry the report", "in": ["current"],
+      "does": "Pass the critic's report to `review DRAFT FILE REPORT` as a file or on stdin. The tool cannot tell who wrote the text.",
+      "artifacts": [
+        { "kind": "script", "label": "user-call.py review", "path": "skills/user-calls/user-call.py" }
+      ]
+    },
+    {
+      "id": "resolve-new", "actor": "tool", "label": "Resolve the run", "in": ["proposed"],
+      "does": "Take the run's session and agent id, and read its prompt and report from the live transcript during the turn, or from the session record once archived.",
+      "artifacts": [
+        { "kind": "script", "label": "user-call.py review", "path": "skills/user-calls/user-call.py" },
+        { "kind": "record", "label": "Session records, agents[]", "path": "sessions/README.md", "repo": "mehrlander/web-tools-private" }
+      ]
+    },
+    {
+      "id": "parse", "actor": "tool", "label": "Set the verdict",
+      "does": "Parse the report's trips. A trip inside an edit fails the run.",
+      "artifacts": [
+        { "kind": "doc", "label": "user-call envelope, Review", "path": "docs/envelopes/user-call.md" }
+      ]
+    },
+    {
+      "id": "answer", "actor": "session", "label": "Answer each trip",
+      "does": {
+        "current": "Answer each trip inside an edit: changed, or kept with a reason of 200 characters at most. A kept answer holds for that run only.",
+        "proposed": "Answer each trip inside an edit: changed, or kept with a reason. A kept answer carries to later runs while its quoted text is unchanged."
+      },
+      "artifacts": [
+        { "kind": "script", "label": "user-call.py review --kept, --answers", "path": "skills/user-calls/user-call.py" }
+      ],
+      "exits": [
+        { "to": "edit", "label": "FAIL", "when": "The run failed: revise and run again, until a run returns PASS.", "in": ["current"] },
+        { "to": "file", "label": "PASS", "when": "The run passed.", "in": ["current"] },
+        { "to": "edit", "label": "text changed", "when": "The text changed since the run: run again.", "in": ["proposed"] },
+        { "to": "file", "label": "all answered", "when": "No trip inside an edit is left unanswered.", "in": ["proposed"] }
+      ]
+    },
+    {
+      "id": "file", "actor": "tool", "label": "File the call",
+      "does": {
+        "current": "`add` files the documentation call. It refuses one whose edits the last run did not read, or that leaves a trip unanswered.",
+        "proposed": "`add` files the documentation call, checking the runs it references. It refuses one whose edits the last run did not read, or that leaves a trip unanswered."
+      },
+      "artifacts": [
+        { "kind": "script", "label": "user-call.py add", "path": "skills/user-calls/user-call.py" },
+        { "kind": "skill", "label": "user-calls", "path": "skills/user-calls/SKILL.md" }
+      ]
+    },
+    {
+      "id": "signoff", "actor": "owner", "label": "Sign off",
+      "does": {
+        "current": "Keep or reject each edit on the session page.",
+        "proposed": "Keep or reject each edit on the session page, with kept trips and their reasons shown first."
+      },
+      "artifacts": [
+        { "kind": "page", "label": "Session page", "path": "pages/session.html" }
+      ]
+    }
+  ]
+}
