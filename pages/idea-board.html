@@ -438,8 +438,8 @@ document.addEventListener('alpine:init', () => {
            drawn just inside it as linked-swiper draws a row's. listKey moves through the grid the list lays out. -->
       <ol x-ref="list" role="listbox" aria-label="Concepts" data-part="list" @keydown="listKey($event)"
           class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-start">
-        <li role="option" data-part="item" :aria-selected="cur === 0 ? 'true' : 'false'" :tabindex="cur === 0 ? 0 : -1" style="outline-offset:-2px" @click="sync(0, 'list'); $el.focus({ preventScroll: true })"
-            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
+        <li role="option" data-part="item" :aria-selected="cur === 0 ? 'true' : 'false'" :tabindex="cur === 0 ? 0 : -1" @click="sync(0, 'list'); $el.focus({ preventScroll: true })"
+            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200 -outline-offset-2"
             :class="[cur === 0 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
           <span class="justify-self-center text-base-content/70" x-html="mark('background', 26)"></span>
           <span class="grid min-w-0">
@@ -448,8 +448,8 @@ document.addEventListener('alpine:init', () => {
           </span>
         </li>
         <template x-for="(d, i) in B.ideas" :key="d.n">
-          <li role="option" data-part="item" :aria-selected="cur === i + 1 ? 'true' : 'false'" :tabindex="cur === i + 1 ? 0 : -1" style="outline-offset:-2px" @click="sync(i + 1, 'list'); $el.focus({ preventScroll: true })"
-              class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
+          <li role="option" data-part="item" :aria-selected="cur === i + 1 ? 'true' : 'false'" :tabindex="cur === i + 1 ? 0 : -1" @click="sync(i + 1, 'list'); $el.focus({ preventScroll: true })"
+              class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200 -outline-offset-2"
               :class="[cur === i + 1 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
             <template x-if="thumbs"><span class="h-12 grid place-items-center overflow-hidden"><img :src="d.src" alt="" class="max-h-12 w-auto bg-white"></span></template>
             <span class="grid min-w-0">
@@ -459,8 +459,8 @@ document.addEventListener('alpine:init', () => {
             <i class="ph" :class="picked(d.n) ? 'ph-fill ph-star text-primary' : 'ph-star opacity-25'"></i>
           </li>
         </template>
-        <li role="option" data-part="item" :aria-selected="cur === last ? 'true' : 'false'" :tabindex="cur === last ? 0 : -1" style="outline-offset:-2px" @click="sync(last, 'list'); $el.focus({ preventScroll: true })"
-            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
+        <li role="option" data-part="item" :aria-selected="cur === last ? 'true' : 'false'" :tabindex="cur === last ? 0 : -1" @click="sync(last, 'list'); $el.focus({ preventScroll: true })"
+            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200 -outline-offset-2"
             :class="[cur === last && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
           <span class="justify-self-center text-base-content/70" x-html="mark('conclusion', 26)"></span>
           <span class="grid min-w-0">
