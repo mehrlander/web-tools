@@ -134,8 +134,8 @@
     'sparse-checkout':'Review the sparse checkout before updating.',
     'git-operation':'Let the current Git operation finish; a later scheduled check can retry.',
     'updater-busy':'Let the current automatic check finish.',
-    'fetch-failed':'A later scheduled check can retry. If failures continue, review GitHub access on the laptop.',
-    'git-unavailable':'Check Git on the laptop, then let the scheduled check retry.',
+    'fetch-failed':'A later scheduled check can retry. If failures continue, review GitHub access on the Lenovo.',
+    'git-unavailable':'Check Git on the Lenovo, then let the scheduled check retry.',
     'no-default-worktree':'Keep a clean default-branch folder available for automatic updates.',
     'ambiguous-default-worktree':'Review which default-branch folder should be kept current.',
     'post-update-changes':'Review the folder and its local changes before continuing.'
@@ -175,7 +175,7 @@
     if(!active)return;
     el('connection').textContent=denied?'Access unavailable':apiConnected()?'Connected':data?'Saved':failed?'Offline':'Connecting…';
     el('connection').removeAttribute('title');
-    el('connection').setAttribute('aria-label',apiConnected()?'Connected to '+(data?.machineName||'the laptop'):data?'Saved laptop observation from '+stamp(data.observedAt):el('connection').textContent);
+    el('connection').setAttribute('aria-label',apiConnected()?'Connected to '+(data?.machineName||'the Lenovo'):data?'Saved Lenovo observation from '+stamp(data.observedAt):el('connection').textContent);
   }
   function comparison(value,key,compact=false){
     const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),update=mainSyncDetail(repo,checkout),upstream=checkout?.upstream?.startsWith('origin/')?checkout.upstream.slice(7):'',age=checkAge(repo)+(repo?.notice?' '+repo.notice:'')+(upstream&&upstream!==value?.branch?' Configured upstream: GitHub '+upstream+'.':'')+(update?.folder?' '+update.text:'');

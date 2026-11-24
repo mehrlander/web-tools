@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SessionStart and UserPromptSubmit: put this session's topics, as Gemini read
 them, into the session's context with a line on how fresh that reading is, and
-say when the laptop's Gemini daemon has stopped reading sessions or a job it
+say when the Lenovo's Gemini daemon has stopped reading sessions or a job it
 runs is failing.
 
 THE SOURCE is the session archive, found as session-record.sh finds it
@@ -40,7 +40,7 @@ commits on main and the companions on background from 11-13 to 11-21.
   have flagged 113 of the 372. The line names the daemon's last commit of any
   kind (a subject ending VIA): one later than its last topics means it is
   running other jobs and the topic reader is the part stuck; none means the
-  laptop is asleep or the daemon stopped, which the hook cannot tell apart.
+  Lenovo is asleep or the daemon stopped, which the hook cannot tell apart.
 - Passed over: this session's record moved after Gemini's reading of it and has
   waited SESSION_BEHIND while Gemini wrote other sessions' topics. A live
   session's reading trails its record: of 1,483 record versions read while the
@@ -50,7 +50,7 @@ commits on main and the companions on background from 11-13 to 11-21.
   later than its `fired`. schedule_runner.py there retries a failed run hourly
   and clears `tried` and `error` when one succeeds. The line names the job and
   quotes its `error` when the row has one.
-Mail to the owner when no session is open is the laptop Companion's job
+Mail to the owner when no session is open is the Lenovo Companion's job
 (web-tools#1397); this hook only tells sessions.
 
 WHEN IT RUNS. SessionStart on startup and compact gives the whole reading,
@@ -397,7 +397,7 @@ def read(m, short, now):
                     "so its topic reader is the part stopped or stuck")
         else:
             seen = f"since {when(alive[0][1])}" if alive else "in two days"
-            tail = f", and nothing from the daemon at all {seen}: the laptop is asleep or the daemon stopped"
+            tail = f", and nothing from the daemon at all {seen}: the Lenovo is asleep or the daemon stopped"
         warnings.append(f"Gemini is behind: no session topics written {gap} while session records "
                         f"have waited since {when(waiting_since)}{tail}.")
         keys.append(["behind", last_topics, bool(other)])

@@ -16,7 +16,7 @@
         <Border Grid.Column="1" Background="#E8EDE7" CornerRadius="8" Padding="4" VerticalAlignment="Center">
           <StackPanel Orientation="Horizontal">
             <Button x:Name="WebTab" Content="Web Tools" Click="ShowWeb" MinWidth="110" Background="White" />
-            <Button x:Name="LaptopTab" Content="Now" Click="ShowLaptop" MinWidth="110" />
+            <Button x:Name="LenovoTab" Content="Now" Click="ShowLenovo" MinWidth="110" />
           </StackPanel>
         </Border>
         <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
@@ -32,7 +32,7 @@
     <Border Grid.Row="1" Background="#EDF2ED" BorderBrush="#DCE2DC" BorderThickness="0,0,0,1">
       <Grid Margin="18,0,14,0">
         <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
-        <Button x:Name="ActivityButton" Click="ShowLaptop" Padding="5,5" HorizontalAlignment="Left" ToolTip="See current activity">
+        <Button x:Name="ActivityButton" Click="ShowLenovo" Padding="5,5" HorizontalAlignment="Left" ToolTip="See current activity">
           <StackPanel Orientation="Horizontal"><Ellipse x:Name="ActivityDot" Fill="#73977D" Width="7" Height="7" Margin="0,0,9,0" /><TextBlock x:Name="ActivityText" Text="Reading current activity…" FontSize="12" /></StackPanel>
         </Button>
         <TextBlock x:Name="SyncText" Grid.Column="1" Text="Starting…" FontSize="11" Foreground="#758178" VerticalAlignment="Center" Margin="12,0" />
@@ -41,7 +41,7 @@
     <ProgressBar x:Name="LoadingProgress" Grid.Row="1" Height="2" VerticalAlignment="Bottom" IsIndeterminate="True" Visibility="Collapsed" Foreground="#73977D" Background="Transparent" BorderThickness="0" />
     <Grid Grid.Row="2">
       <wv:WebView2 x:Name="WebView" DefaultBackgroundColor="White" />
-      <wv:WebView2 x:Name="LaptopView" Visibility="Hidden" DefaultBackgroundColor="#F6F7F3" />
+      <wv:WebView2 x:Name="LenovoView" Visibility="Hidden" DefaultBackgroundColor="#F6F7F3" />
       <Border x:Name="ErrorPanel" Visibility="Collapsed" Background="#F6F7F3" Padding="40">
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" MaxWidth="560">
           <TextBlock Text="Web Tools could not open" FontSize="26" FontWeight="SemiBold" Margin="0,0,0,12" />

@@ -246,7 +246,7 @@ If the errand can be taken on, use the normal claim and result workflow. Return 
     mount:node=>{root=node;root.classList.add('erl');if(!applyRoute())render();refresh();},
     setActive:value=>{active=value;if(!value){closeDetail();closeMenu();}else{applyRoute();refresh();}},
     refresh,
-    connection:()=>{const node=document.getElementById('connection');if(node)node.textContent=available()?(stale()?'Saved queue':'Laptop live'):'Queue unavailable';},
+    connection:()=>{const node=document.getElementById('connection');if(node)node.textContent=available()?(stale()?'Saved queue':'Lenovo live'):'Queue unavailable';},
     state:()=>({tab,provider,query,counts:counts(items()),connected,available:available(),fresh:available()&&!stale(),syncedAt:snapshot?.syncedAt})
   };
 })();

@@ -142,7 +142,7 @@ repository and file, `opened` and `context`, each a list of one day per session
 counted as days after `from`, the first record's day; `via`, the opening
 sessions by route; and `basis`, the context sessions by how the record knows
 (`receipt` or `reconstructed`). It is derived from the records, so it stays in
-web-tools-private, never in a public repository. The laptop daemon rebuilds it
+web-tools-private, never in a public repository. The Lenovo daemon rebuilds it
 daily on that repository's `background` branch; the `doc-reads` row of its
 `data/design/scheduled-tasks.csv` schedules the run.
 
@@ -175,7 +175,7 @@ tabs count a read alike.
 
 The growth file is refreshed on demand, not by the commit hook. Every commit
 shifts the last frame, so a hook that regenerated the file would make every
-commit touch it. The session counts are rebuilt daily by the laptop daemon, as
+commit touch it. The session counts are rebuilt daily by the Lenovo daemon, as
 above. Each file's `generated` field is also the day the script ran, so the same
 inputs give different bytes on different days. Nothing flags a stale growth
 file: compare `generated` with today. To refresh the web-tools growth file,
