@@ -388,19 +388,21 @@ test('the row stands its other controls down while the field is open', async () 
   const row = todoRows().find(el => el.textContent.includes('editing me'));
   // x-show is on the menu's wrapper, which holds the More button.
   const more = row.querySelector('[data-part="actions"]');
-  const flag = row.querySelector('button[aria-label="Clear urgent"]');
+  // The flag rides with the text in one x-if, so an edit unmounts it and a
+  // cancel mounts a new one: look it up each time rather than hold it.
+  const flag = () => row.querySelector('button[aria-label="Clear urgent"]');
   assert.ok(more && shown(more) && more.querySelector('button[aria-label="More"]'), "the row's menu button is present at rest");
-  assert.ok(flag && shown(flag), 'and the flag of an urgent row');
+  assert.ok(shown(flag()), 'and the flag of an urgent row');
 
   data.startTodoEdit(data.todoItems[0]);
   await settle();
   assert.equal(shown(more), false, 'the menu steps aside mid-edit');
-  assert.equal(shown(flag), false, 'and so does the flag');
+  assert.equal(shown(flag()), false, 'and so does the flag');
 
   data.cancelEdit();
   await settle();
   assert.equal(shown(more), true, 'both come back');
-  assert.equal(shown(flag), true);
+  assert.equal(shown(flag()), true);
 });
 
 test("a to-do row shows the state it has, and its verbs are behind one menu", async () => {
@@ -415,7 +417,9 @@ test("a to-do row shows the state it has, and its verbs are behind one menu", as
   const rowOf = (words) => todoRows().find(el => el.textContent.includes(words));
   const plain = rowOf('plain'), busy = rowOf('dated and flagged');
   // Beside its text a row carries only its menu, unless it has a date or a flag to show.
-  const visible = (row) => [...row.querySelectorAll(':scope > span, :scope > button, :scope > [data-part="actions"]')].filter(shown);
+  // The text and its chips share one wrapping line, a div with no part of its own.
+  const visible = (row) => [...row.querySelectorAll(':scope > span, :scope > button, :scope > [data-part="actions"], '
+    + ':scope > div:not([data-part]) > span, :scope > div:not([data-part]) > button')].filter(shown);
   assert.equal(visible(plain).length, 2, 'the text and the menu');
   assert.ok(shown(busy.querySelector('.badge')), 'a due date shows as its chip');
   assert.ok(shown(busy.querySelector('button[aria-label="Clear urgent"]')), 'and an urgent row its flag');
