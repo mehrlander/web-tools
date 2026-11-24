@@ -492,12 +492,12 @@ function dailyModel(){
  const rateMaximum=Math.max(0,...Object.keys(P).flatMap(calendarRateGuides).map(guide=>Math.min(100,guide.dailyPercent)));
  const maximum=Math.max(rateMaximum,...series.flatMap(row=>row.days.map(day=>day.points||0)));
  const ceiling=maximum>20?Math.ceil(maximum/10)*10:maximum>10?20:10;
- return {dates,series,ceiling,timezone:raw?.timezone||'Laptop local time',updatedAt:raw?.updatedAt};
+ return {dates,series,ceiling,timezone:raw?.timezone||'Lenovo local time',updatedAt:raw?.updatedAt};
 }
 function rawTokenSummary(key){
  const rows=HISTORY.tokenDays.filter(row=>row.provider===key&&Number.isFinite(row.tokens)&&row.tokens>=0).sort((a,b)=>a.day.localeCompare(b.day)),latest=rows.at(-1);
  if(!latest)return 'Raw daily token totals are not connected for '+P[key].name+'.';
- return 'Separate raw token record: '+latest.tokens.toLocaleString('en-US')+' tokens on '+dailyDate(latest.day)+', '+latest.day.slice(0,4)+(key==='claude'?' UTC. Retained laptop Claude Code logs only; cloud and other devices are excluded.':' (provider-reported account date). Raw token totals are not used in these allowance bars.');
+ return 'Separate raw token record: '+latest.tokens.toLocaleString('en-US')+' tokens on '+dailyDate(latest.day)+', '+latest.day.slice(0,4)+(key==='claude'?' UTC. Retained Lenovo Claude Code logs only; cloud and other devices are excluded.':' (provider-reported account date). Raw token totals are not used in these allowance bars.');
 }
 function showDailyDay(key,day){
  const model=dailyModel(),series=model.series.find(row=>row.key===key),row=series?.days.find(row=>row.day===day);if(!row)return;

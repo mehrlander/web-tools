@@ -58,9 +58,18 @@ on:
     # nothing for the suite to say about it.
     paths-ignore: ['pages/wsl-sync/data/**']
   workflow_dispatch:
+    inputs:
+      preflight:
+        description: Run checkout setup, generated-file refresh and the full suite; require unchanged tracked output.
+        type: boolean
+        default: false
+      observe:
+        description: Collect dependency and timing observations from one full run.
+        type: boolean
+        default: false
 
-# Read-only: this one reports, it does not commit. (wsl-fetch.yml takes
-# contents: write because it pushes its snapshot back.)
+# Verification jobs read only. The main-only publication job below has its
+# own grant to retain captured dependency observations.
 permissions:
   contents: read
 
@@ -82,7 +91,7 @@ jobs:
     # in_progress and, with no timeout here, it would have run to GitHub's
     # six-hour default before reporting. Ten minutes turns six wasted hours into
     # a fast red, and a red is what a hung suite should be.
-    timeout-minutes: 10
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && (inputs.preflight || inputs.observe) && 20 || 10 }}
     steps:
       - uses: actions/checkout@v5
 
@@ -116,13 +125,75 @@ jobs:
         # rounds could not read why this check was failing. The spec reporter is
         # a third the size and repeats every failure, with its error, in a
         # summary at the very bottom.
-        run: npm test
+        env:
+          OBSERVE_FULL_RUN: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') || (github.event_name == 'workflow_dispatch' && inputs.observe) }}
+          PREFLIGHT_FULL_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.preflight }}
+        run: |
+          if [ "$PREFLIGHT_FULL_RUN" = true ]; then
+            npm run preflight
+            git diff --exit-code HEAD --
+          elif [ "$OBSERVE_FULL_RUN" = true ]; then
+            npm run test:observe -- --out node/.test-observations/run.json
+          else
+            npm test
+          fi
+          node --input-type=module -e 'import os from "node:os"; import {dependencyFingerprint} from "./node/testing/records.mjs"; console.log("Verification runtime: " + JSON.stringify({node: process.versions.node, platform: process.platform, arch: process.arch, default_concurrency: Math.max(1, os.availableParallelism() - 1), dependency_fingerprint: dependencyFingerprint(process.cwd())}))'
+
+      - name: Keep full-run observations
+        if: ${{ always() && hashFiles('node/.test-observations/run.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-observations-${{ github.run_attempt }}
+          path: node/.test-observations/run.json
+          include-hidden-files: true
+          retention-days: 30
+
+      - name: Summarize full-run observations
+        if: ${{ always() && hashFiles('node/.test-observations/run.json') != '' }}
+        run: node node/testing/summary.mjs node/.test-observations/run.json >> "$GITHUB_STEP_SUMMARY"
 
       - name: Check bounded repository subprocesses
         run: python3 desktop/Checks/repository-process-checks.py
 
       - name: Check repository observation caching
         run: python3 desktop/Checks/repository-cache-checks.py
+
+  publish-observations:
+    needs: test
+    if: ${{ always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Read the observed run
+        id: observations
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: test-observations-${{ github.run_attempt }}
+          path: node/.test-observations
+      - name: Retain the run in the private testing record
+        if: ${{ steps.observations.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          REGISTRY_WRITE_TOKEN: ${{ secrets.REGISTRY_WRITE_TOKEN }}
+        run: |
+          if [ -n "$REGISTRY_WRITE_TOKEN" ]; then
+            node node/testing/publish.mjs node/.test-observations/run.json
+          else
+            echo '::notice::Run observations remain available in the workflow artifact.'
+          fi
+      - name: Publish observed reach for fresh checkouts
+        if: ${{ steps.observations.outcome == 'success' }}
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node node/testing/publish.mjs node/.test-observations/run.json --public-reach
 
   edit-policy:
     # A job of its own because it needs what the suite's checkout leaves out:

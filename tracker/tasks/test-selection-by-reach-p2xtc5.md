@@ -1,161 +1,90 @@
 ---
 id: test-selection-by-reach-p2xtc5
-title: Select tests by what each file reads, and log what each costs
+title: Run the tests affected by a change, and measure their time
 status: in-progress
 session: codex/test-cost-and-selection
 opened: 2026-11-13
 project: testing
 size: L
-awaiting: final documentation wording review after implementation
 ---
-# Select tests by what each file reads, and log what each costs
+# Run the tests affected by a change, and measure their time
 
-`npm test` runs all 433 `node/test/**/*.test.mjs` files (about 6,300 tests) in
-five to six minutes on every push and pull request (`.github/workflows/test.yml`)
-and whenever a session runs it; nothing selects. On the evening of 2026-11-13,
-builder subagents spent 48 minutes inside full runs, one of them four times. The
-aim: during work a session runs only the tests its diff calls for, the whole
-suite runs only where it is cheap (CI, where nobody waits), and the testing
-program and the Map view's Tests tab can show what triggers each test, what it
-costs, and when it last ran slow.
+A developer may repeat a full `npm test` run several times while making one change. Each full run takes minutes, even when only a small part of the code changed. This task adds a way to rerun the relevant existing test files between edits and record how much time the checking takes.
 
-The design was assessed in a chat session on 2026-11-13 and approved in
-outline by the owner, who asked for it to be built in a Claude Code session.
-The findings below are that session's, from one traced full run on main at
-`b3e7527`, in a 2-core sandbox with tracing on. Absolute seconds are inflated
-by both; ratios are the usable part.
+Full checks remain required before a pull request and in GitHub's automated checks, usually called continuous integration (CI), while the new method is evaluated. CI also takes time and can delay review; moving work there does not remove that cost.
 
-## Findings
+## What gets selected
 
-**Reach can be traced by the run itself.** Every test process already loads
-`node/test/runtime-command.cjs` through `--require`. A second hook in that
-position, patching `fs` reads (then `module.syncBuiltinESMExports()`) and
-noting ESM resolution through `module.registerHooks` (present in Node 22.23),
-recorded each repo file a test process read or imported, plus the process's own
-wall time from start to exit. Prototype, as run (it must key its output by pid,
-because the parent `node --test` process also loads it and would overwrite the
-child's record at exit):
+A test case checks a particular result. A test file can contain many cases. The tool chooses whole test files, so selecting a file with ten cases runs all ten. The first version covers the JavaScript test files normally run by `npm test`; browser checks and other separate commands still need their own assessment.
 
-```js
-const fs = require('node:fs'), path = require('node:path'), mod = require('node:module'), { fileURLToPath } = require('node:url');
-const root = process.cwd(), seen = new Set();
-const note = p => { try { if (typeof p !== 'string' && !(p instanceof URL)) return; const a = path.resolve(p instanceof URL ? fileURLToPath(p) : p); if (a.startsWith(root + path.sep) && !a.includes('node_modules')) seen.add(path.relative(root, a)); } catch {} };
-for (const n of ['readFileSync','readFile','existsSync','readdirSync','statSync','openSync']) { const o = fs[n]; fs[n] = function (p, ...r) { note(p); return o.call(this, p, ...r); }; }
-const pr = fs.promises; for (const n of ['readFile','readdir','stat']) { const o = pr[n]; pr[n] = function (p, ...r) { note(p); return o.call(this, p, ...r); }; }
-mod.syncBuiltinESMExports();
-mod.registerHooks({ resolve(s, c, next) { const r = next(s, c); if (r.url?.startsWith('file:')) note(new URL(r.url)); return r; } });
-process.on('exit', () => { if (process.argv[1]) fs.writeFileSync(`/tmp/probe/${path.basename(process.argv[1])}.${process.pid}.json`, JSON.stringify({ file: path.relative(root, process.argv[1]), ms: Math.round(performance.now()), reads: [...seen].sort() })); });
-```
+During a full recorded run, the tool notes which source files and folders each test reads. For example, a test for comma-separated values (CSV) files may read the CSV reader. When that reader changes, the saved record is one reason to rerun that test file.
 
-Examples: `look.test.mjs` read 6 files (its kit, `traffic.js`, `gh-api.js`,
-`bootstrap.mjs`, `repo-root.mjs`, itself); `map-view.test.mjs` read 51. Most
-read across the suite: `node/repo-root.mjs` (412 files), `lib/gh-api.js` (381),
-`node/test/bootstrap.mjs` (374), `lib/kits/traffic.js` (253).
+Some tests enforce rules across the repository, such as keeping file lists and generated files consistent. Those tests always run. The tool also includes new or changed test files and tests whose file access is unknown or could not be fully recorded, including tests that launch another program.
 
-**Known gap: child processes.** Reads by a test's spawned Python or Node
-children are not traced; only the spawned script's path is (88 files spawn).
-Propagate the hook to Node children through `NODE_OPTIONS`, and to Python
-children through a `sitecustomize` that registers `sys.addaudithook` on the
-`open` event. Until then a CSV a Python script reads will not select the test
-that spawns it.
+The tool runs all tests when its saved record cannot be used, a changed file has no explanation in that record, or shared testing setup changes. The aim is to reduce repeated checking where the evidence supports a smaller run.
 
-**Start-up is a large share, as the earlier lead suggested.** Counted by
-process wall time, start-up included, the twelve heavy files hold 34% of the
-suite's time (not the 58% that summed top-level durations showed) and the 350
-cheapest hold 31% (not 10%). The median file took 0.86 s. A test that only
-imports `bootstrap.mjs` took 0.66 to 0.81 s across three runs, against 0.20 s
-for an empty test file. `bootstrap.mjs` imports jsdom at module top; 364 files
-import bootstrap and 182 of them use `makeWindow` or `startAlpine`. Importing
-jsdom lazily, inside `makeWindow`, might save about 0.5 s on each of the other
-~180 files, roughly 90 of the run's 996 traced CPU-seconds. That estimate is
-unmeasured. Node 22's `--test-concurrency` defaults, per its documentation, to
-`os.availableParallelism() - 1`, so a 4-core runner may use 3 workers; worth
-checking against a CI run before relying on it.
+The [command guide](../../docs/environment/testing.md#choose-which-tests-to-rerun-while-making-changes) explains how to record a full run, preview the selected files and run them.
 
-**Selection would have been small on most merges.** Replaying the last 40
-first-parent merges on main against today's trace, selecting (a) every test
-whose trace read a changed path, (b) every changed test file, and (c) all 34
-gates when the diff added, deleted or renamed a file: the median merge selected
-45 files and 188 of 996 CPU-seconds, about a fifth; the range was 23 s to
-465 s. A change to `gh-api.js` or `bootstrap.mjs` selects nearly every file, as
-it should. Caveat: older merges were scored against today's reach, not their
-own.
+## Who decides whether the tests are enough
 
-**One failing test in that run.** `map-view.test.mjs`, "a schedule edit
-rewrites one registry row guarded by the sha it read": expected
-`['weekly', 1, 14, 'dry']`, got `['weekly', 1, 6, 'dry']`. It looks
-date-dependent; not investigated.
+Selecting files answers which existing tests to rerun. The [Testing program](../../programs/testing/README.md) organizes the project's checking rules, evidence and ongoing work. An agent takes the program's manager role by following its [instructions](../../programs/testing/manager.md), then assesses the intended behavior, the results the tests actually check, and any missing cases or separately run checks. A developer or coding agent working on the change supplies that context and follows the program's procedures.
 
-## Design
+A recorded file read does not establish that the test checks the behavior being changed. The [assertion audit](https://github.com/mehrlander/web-tools/pull/1405) addressed that separate question by deliberately breaking behavior and checking whether the tests detected the break. The selection tool builds on those tests and the descriptions of what each test is supposed to check.
 
-1. **Trigger catalog, derived.** A test runs when a path its trace read
-   changes, when the test file itself changes, or always if it is a gate
-   (`kind: gate` in `docs/tests-authored.csv`, 34 files, about 3% of suite
-   cost; they hold the cross-file checks: derived artifacts, registries,
-   routes, manifests). No new authored column for now; add one to
-   `tests-authored.csv` only if the trace is found to miss a dependency in
-   practice.
-2. **Reach registry.** `docs/tests-reach.csv`, keyed by test path, identity
-   `path`, `inherits: tests`, computed: per-file `ms` (process wall, start-up
-   included) and `reaches` (paths read). It is a separate file because
-   `docs/registries.md` keeps recorded and computed values apart and because
-   `tests-index` writes `docs/tests.csv` whole from static analysis. Written by
-   the test run on push to main and committed by a job that follows the
-   `refresh-derived.yml` pattern (GITHUB_TOKEN push, which starts no workflow).
-   Its gate checks shape and that every test file has a row, not equality with
-   a fresh run. Add the rows to `docs/registries.csv` and `docs/properties.csv`
-   per `docs/registries.md`.
-3. **Run log, a stream.** One record per CI run on main (sha, date, venue,
-   per-file ms, total wall), appended to
-   `mehrlander/web-tools-private:data/tests/runs/YYYY-MM.jsonl` with the
-   existing `REGISTRY_WRITE_TOKEN` (as `activity-cache.yml` uses it). Kept out
-   of web-tools to avoid a 433-entry record per merge in its history. Session
-   runs write the same record to a gitignored local cache only.
-4. **`npm run test:diff`.** Changed files against the merge base with
-   `origin/main`, plus staged, unstaged and untracked files; selects by the
-   reach registry, changed tests and gates; prints each pick with its reason
-   and expected seconds, then runs them. Flags: `--list` (print only),
-   `--base <ref>`, `--all`. Then, for the owner's approval as wording: a line
-   in `CLAUDE.md` (Environment & testing) and in
-   `docs/environment/testing.md` saying to run `test:diff` during work and to
-   rely on the CI check for the full suite; the same line for builder briefs.
-   No new hook at first; let measure M3 show whether full in-session runs
-   persist.
-5. **Testing program.** First measures for `programs/testing/README.md`:
-   M1, suite cost on main over time (wall and summed per-file), from the run
-   log; M2, the share of the suite each merge would select, computed from git
-   and the reach registry with no extra logging; M3, full runs inside sessions
-   and their minutes, from the session archive (check first that it records
-   command durations). The selector, the reach registry and the workflow
-   change become governed files.
-6. **Tests tab.** Per check: "runs when" (triggering paths, or "always" for a
-   gate), "cost" (seconds on main, from the reach registry), "last slow" (from
-   the run log, behind sign-in). Plus a reverse filter: pick a path, see the
-   checks it triggers.
-7. **Lazy jsdom import** in `bootstrap.mjs`, as its own measured change after
-   M1 has a baseline.
+## Where to see the results
 
-## Related
+The Web Tools app's [Map view](https://mehrlander.github.io/web-tools/app/?view=map&tab=tests) lets a reader look up a source file and see connected test files, files included for other reasons, descriptions of what each test checks, and recorded times when available. Each record names the code version and computer software used for the run, so differences are visible when comparing times.
 
-- `node/test/runtime-command.cjs`: the `--require` hook every test process loads; the trace hook sits beside it
-- `node/test/bootstrap.mjs`: eager jsdom import, the start-up lead
-- `docs/tests-authored.csv`: `kind: gate` rows are the always-run set
-- `node/build/tests-index.mjs`: writes `docs/tests.csv` whole; the reach registry stays separate from it
-- `docs/registries.md`: rules for adding the reach registry
-- `.github/workflows/test.yml`: the full-suite run on every push and PR; the reach and timing writer attaches to its main-push run
-- `.github/workflows/refresh-derived.yml`: precedent for a main-push job committing derived files
-- `.github/workflows/activity-cache.yml`: precedent for writing to web-tools-private with `REGISTRY_WRITE_TOKEN`
-- `programs/testing/README.md`: charter with "Measures: None yet"
-- `lib/alpineComponents/map.js`: Tests tab (`TESTS_MANIFEST`, `loadTestsReg`, `loadTestExecution`)
+On a developer's machine, records stay in a local folder that Git leaves out of commits. Successful recorded full runs on `main`, the project's main development branch, publish file relationships to the Web Tools app. The project's private companion repository, [web-tools-private](https://github.com/mehrlander/web-tools-private), stores dated timing records. Only a complete, successful recorded full run started without uncommitted changes can become the saved reference for later selections.
+
+[web-tools#1443](https://github.com/mehrlander/web-tools/pull/1443) merged with the approved commands, instructions and Map display. The first [recorded full run on `main`](https://github.com/mehrlander/web-tools/actions/runs/45351776949) captured all 473 test files without observation errors.
+
+The workflow published the public file relationships. The coding agent saved the private record with the local publishing command because CI lacked the credential needed to write there. The public file, private dated record, latest summary and saved reference match the saved CI record and expected publishing output. Automatic private delivery still needs `REGISTRY_WRITE_TOKEN` configured with write access to the private repository.
+
+The Map shows the last recorded time and links to the run record; a view of past slow runs remains part of the outlined work.
+
+## How to judge the result
+
+| Question | Evidence to examine |
+| --- | --- |
+| Is checking becoming quicker? | Compare the total time of full runs made under similar conditions. Also inspect time spent preparing the run and in individual test files. |
+| Would smaller runs leave failures unchecked? | Compare the proposed selection with an actual full run, including any failing test files the selection would have left out. One passing comparison is evidence for that change, not a guarantee for later changes. |
+| Are developers and coding agents repeating fewer full runs? | Count full runs and their time. Only runs made through the new recording and selection commands are recorded locally; existing chat records and ordinary `npm test` runs do not yet provide a complete measure. |
+
+Tests can run at the same time. Adding their individual times counts overlapping periods more than once, so that sum is neither the time a person waits for the whole run nor a measure of processor work. The reports must keep those quantities separate.
+
+CI currently downloads only the newest code version. If the saved record names an earlier version that CI has not downloaded, the tool proposes all tests. The trial must distinguish that fallback from a useful smaller proposal and compare the saved records where both code versions are available. Any change to download more history needs its added time measured. Full-run capture and publication still work.
+
+During a trial across 20 varied code revisions, keep `npm run preflight` before each pull request and retain full CI runs. That command prepares the project and runs the full `npm test` collection; other required checks still apply. Compare the proposed smaller runs with those full runs. The Testing program reviews the results before proposing changes to the normal checking instructions. Collect observations during full runs that are already needed.
+
+## Earlier investigation and separate startup experiment
+
+On November 13, the investigation recorded one full run and replayed 40 older changes against that record. The replay used a later record of file reads, rather than a record from each older change, and did not measure actual savings from smaller runs. The [original findings and prototype](https://github.com/mehrlander/web-tools/blob/8da39a28f/tracker/tasks/test-selection-by-reach-p2xtc5.md) retain the technical details.
+
+The investigation also found repeated startup cost: many tests load jsdom, a library that simulates a browser, even when they need only a small helper. Loading jsdom only when a test needs a simulated browser is a separate change to measure after full-run timing records are available. Savings remain unmeasured.
+
+## Where the code lives
+
+| File | Responsibility |
+| --- | --- |
+| [`node/testing/observe.cjs`](../../node/testing/observe.cjs) | Records file access during a test and notes where recording is incomplete. |
+| [`node/testing/select.mjs`](../../node/testing/select.mjs) | Chooses whole test files and explains each inclusion or decision to run everything. |
+| [`node/testing/run.mjs`](../../node/testing/run.mjs) | Provides the commands and keeps local records. |
+| [`node/testing/publish.mjs`](../../node/testing/publish.mjs) | Publishes public file relationships and separate private timing records. |
+| [Testing charter](../../programs/testing/README.md) | Defines the program's responsibilities and measures. |
+| [Map component](../../lib/alpineComponents/map.js) | Displays the test inventory, file relationships and recorded costs. |
 
 ## Done when
 
-`npm run test:diff --list` on a branch prints a selection with reasons and
-costs; `docs/tests-reach.csv` is registered and refreshed by the main-push run;
-the run log receives a record per main run; the testing charter lists M1 to
-M3; the Tests tab shows runs-when, cost and last-slow; and the CLAUDE.md
-wording has the owner's approval.
+- The command lists selected test files, reasons and available time estimates, and can run those files.
+- A full run on `main` publishes a usable file-reading record and a dated private timing record.
+- The Testing program has measures for checking time, proposed smaller runs and repeated full runs during development.
+- The Map shows which files connect to a check, its recorded time and the records needed to inspect past slow runs.
+- The repository owner has approved the checking instructions. The full checks before pull requests and in CI continue until a later decision changes those instructions.
 
 ## Progress log
-- 2026-11-13: Assessed and prototyped in a chat session (trace hook, one traced full run, replay of 40 merges); findings above. Owner asked to build it in a Claude Code session. Next: claim, then build in the order of the Design list.
-- 2026-11-23: Codex claimed the task after the owner approved proceeding with the revised plan. Deliver observations on existing full runs, conservative selection with explicit fallback, durable run records, and the program and Map views in reviewable increments. Treat reach as observed dependencies and summed process durations as elapsed time. Keep full verification while evaluating selection; opaque subprocess tests run conservatively. The original outline remains the starting point, with final instruction wording reviewed after the working implementation is concrete.
+
+- 2026-11-13: The owner approved the outline and asked for implementation. The investigation recorded one full run and replayed 40 earlier changes.
+- 2026-11-23: Codex claimed the task and implemented the draft in [web-tools#1443](https://github.com/mehrlander/web-tools/pull/1443). The current approach keeps full verification, retains tests whose file access is uncertain, separates elapsed time from processor work, and leaves final instruction wording for review. First publication, the 20-revision trial, historical slow-run inspection and the separate startup experiment remain to be completed or assessed.
+
+- 2026-11-24: The owner approved the final wording. [web-tools#1443](https://github.com/mehrlander/web-tools/pull/1443) merged after full integrated CI passed. Main run [45351776949](https://github.com/mehrlander/web-tools/actions/runs/45351776949) recorded all 473 test files in 501.50 seconds of suite elapsed time, with no observation errors. Public delivery was automatic; private delivery used the local publishing command after the missing credential was found. All stored files matched the saved CI record and expected publishing output. The task remains in progress for automatic private delivery, the 20-revision evaluation including history fallbacks, past slow-run inspection and the separate measured startup experiment.

@@ -8,7 +8,7 @@ stays visible above either tab.
 ## First version
 
 - Codex, Gemini and Claude lanes with shared assistant marks, session names,
-  activity states, timestamps and explicit Laptop or Cloud labels.
+  activity states, timestamps and explicit Lenovo or Cloud labels.
 - Assistant errand queues: waiting errands in request order, claimed work and arriving replies. The Gemini worker card distinguishes empty, unavailable and saved-snapshot states.
 - Recent results with local output folders
   and the corresponding Web Tools errand one click away.
@@ -44,7 +44,7 @@ login when available. An existing private activity checkout is needed for errand
 npm run setup
 .\desktop\build.ps1
 .\desktop\run.ps1
-.\desktop\run.ps1 -Laptop
+.\desktop\run.ps1 -Lenovo
 dotnet run --project .\desktop\Checks\DesktopChecks.csproj
 node .\desktop\Checks\ui-checks.mjs
 node .\desktop\Checks\phone-ui-checks.mjs
@@ -70,8 +70,8 @@ different folder, or launch with `--root C:\path\to\repositories`. The private
 checkout is its `web-tools-private` child. Window size and the Web Tools address
 persist under
 `%LOCALAPPDATA%\WebToolsDesktop\settings.json`. Browser storage lives beside
-that file. Ctrl+1 selects Web Tools; Ctrl+2 selects Now. The existing `--laptop`
-launch option still selects the Now tab.
+that file. Ctrl+1 selects Web Tools; Ctrl+2 selects Now. The `--lenovo`
+launch option (with `--laptop` accepted as an alias) selects the Now tab.
 Alt+Left and Alt+Right navigate Web Tools history. A second launch focuses the
 existing window.
 
@@ -99,14 +99,14 @@ The phone opens on one Now feed: current work, waiting errands and all recent it
 in the current snapshot, with assistant filters, inline details and short observed
 history. The assistant headers keep compact usage bars visible above the feed;
 the full Usage view remains available on desktop. Now and Computer are read-only;
-Devices offers Stereo Bridge's media controls. The laptop must
-be awake and online; waking the laptop through Windows App can restore access.
+Devices offers Stereo Bridge's media controls. The Lenovo must
+be awake and online; waking the Lenovo through Windows App can restore access.
 The last received snapshot remains in that browser's local storage, labeled with
 its observation time when contact is lost. After a successful online visit, a
 service worker saves only the interface assets for offline reloads. API responses
 never enter Cache Storage; a network or server failure uses the saved interface, while an
 HTTP access denial is returned directly. The interface can therefore still offer
-Windows App when the laptop is unreachable. A responding server with an observation
+Windows App when the Lenovo is unreachable. A responding server with an observation
 older than fifteen seconds also loses its Live status. Closing the phone browser
 stops polling and does not stop collection.
 
@@ -130,7 +130,7 @@ to that identity, and configures private HTTPS through Tailscale Serve. Unmet HT
 requirements produce Tailscale's setup link. The script refuses to replace another
 service at the root HTTPS address. The script never enables public Funnel access.
 
-The phone URL is `https://<laptop>.<tailnet>.ts.net/`. Connect Tailscale on the iPhone
+The phone URL is `https://<lenovo>.<tailnet>.ts.net/`. Connect Tailscale on the iPhone
 and open that address in Safari. Add to Home Screen is optional. Web Tools links
 open the existing hosted app, with that browser's own Web Tools authentication.
 
@@ -187,7 +187,7 @@ The shared phone header's monitor button directly runs the owner's existing
 selects Microsoft's Windows app (`com.microsoft.rdc.ios`). The legacy `rdp://`
 handoff did not work on the owner's iPhone, so the interface no longer offers that
 route or a connection-options menu. The shortcut opens Windows App; the owner's
-saved laptop connection remains there. The companion does not alter remote
+saved Lenovo connection remains there. The companion does not alter remote
 desktop, firewall, login or wake settings.
 
 When changing the offline interface's asset contract, increment the cache version
@@ -196,7 +196,7 @@ caches, without reloading an open page or caching private API bodies.
 
 ### Devices view
 
-Stereo Bridge must already be running on the laptop. While Devices is visible, the phone polls the companion every two seconds. The companion reads Stereo Bridge's fixed loopback API on port 45831, showing the current track, player, timeline and available playback controls. Volume and mute affect Windows' selected audio output; no numeric volume or output-device reading is available. Tailscale carries the control requests. Phone audio still needs the existing Bluetooth connection.
+Stereo Bridge must already be running on the Lenovo. While Devices is visible, the phone polls the companion every two seconds. The companion reads Stereo Bridge's fixed loopback API on port 45831, showing the current track, player, timeline and available playback controls. Volume and mute affect Windows' selected audio output; no numeric volume or output-device reading is available. Tailscale carries the control requests. Phone audio still needs the existing Bluetooth connection.
 
 The adapter disables redirects, bounds responses and omits native errors. Unavailable or stale observations disable controls. Actions run once, without retries, offline replay or a command queue; an unconfirmed response stays labeled. The interface distinguishes a reachable Bridge with no media from an unavailable Bridge. Roku discovery and control are not included in this version.
 
@@ -210,7 +210,7 @@ The root refresh icon checks all GitHub repositories; working folders with a Git
 
 The companion inventories ignored and untracked entries on a separate loop from Git comparisons, waiting a minute after each completed scan. Local status icons show compact counts for changed tracked files, untracked files and ignored inventory entries; their panels retain exact counts, conflicts and inventory shortcuts. The explorer has breadcrumbs, search and All, Tracked, Untracked and Ignored filters. All lists immediate children; a Tracked folder contains tracked files. Ignored and Untracked also surface nested entries from the bounded local inventory, retaining measured folder sizes and file counts. Listings skip links and Git administrative entries and label incomplete scans. Folder listings refresh separately while visible, preserving search, focus and reading position. The root and last visited listings remain locally available when offline. File contents and file-changing actions are unavailable.
 
-The Files inventory loop also publishes [`state/laptop-files.tsv`](https://github.com/mehrlander/web-tools-private/blob/background/state/laptop-files.tsv) to the private checkout's `background` branch so cloud sessions can see local material. The collector uses directory/stat metadata and Git index, ignore and reference metadata without opening working-file contents. Tracked filenames stay out of the TSV; folder totals include them. The collector collapses `node_modules`, `.venv`, `venv`, `__pycache__`, `.pytest_cache` and ignored `bin`/`obj` trees to one measured row each. Paths are relative to the configured root (`.` names the root), and unavailable totals stay blank. The writer makes a normal commit only when content changes, at most once per fifteen minutes, and retries concurrent updates without force-pushing. The private checkout's branch, index and working files remain unchanged.
+The Files inventory loop also publishes [`state/lenovo-files.tsv`](https://github.com/mehrlander/web-tools-private/blob/background/state/lenovo-files.tsv) to the private checkout's `background` branch so cloud sessions can see local material. The collector uses directory/stat metadata and Git index, ignore and reference metadata without opening working-file contents. Tracked filenames stay out of the TSV; folder totals include them. The collector collapses `node_modules`, `.venv`, `venv`, `__pycache__`, `.pytest_cache` and ignored `bin`/`obj` trees to one measured row each. Paths are relative to the configured root (`.` names the root), and unavailable totals stay blank. The writer makes a normal commit only when content changes, at most once per fifteen minutes, and retries concurrent updates without force-pushing. The private checkout's branch, index and working files remain unchanged.
 
 ### Account usage
 
@@ -334,7 +334,7 @@ The reader fetches the private checkout's `background` branch. It reads requests
 at one immutable Git revision through `ls-tree` and `cat-file --batch`. Fetch
 updates `origin/background` and, for cloud records, `origin/main`; the checkout, index, local edits, and checked-out
 branch are untouched.
-The request's `run.method` assigns its assistant lane: `laptop-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant; `run.venue` distinguishes laptop and cloud execution. A claim does not establish continued execution. The Gemini worker card counts only Gemini errands.
+The request's `run.method` assigns its assistant lane: `lenovo-daemon` to Gemini, `codex-errand` to Codex, and `claude-errand` to Claude. Unknown methods are skipped. All three methods use the same request, claim and result shape. The method identifies the assistant; `run.venue` distinguishes Lenovo (`lenovo`) and cloud (`anthropic-cloud`) execution. A claim does not establish continued execution. The Gemini worker card counts only Gemini errands.
 The phone's Errands view filters by assistant and separates Waiting (oldest first), Taken on (claims and arriving replies), and Results. The read-only `/api/v1/errands` projection includes every open errand and the eighty latest results by update time; Now keeps its one-day result horizon. Selected results read Gemini's `data.reply` or the other agents' `data.report`, falling back to the result message. Request notes remain outside the phone API. The Now shortcut and title dropdown open Errands without initiating work.
 
 The worker's record contract lives in the private repo's
@@ -379,7 +379,7 @@ does not establish that the reported job is still executing.
 
 ## Desktop boundary
 
-The hosted Web Tools page has no native message bridge. Only the bundled laptop
+The hosted Web Tools page has no native message bridge. Only the bundled Lenovo
 document receives native actions, and those actions accept known place keys or
 errand or session identifiers from the current snapshot. They open folders or Web Tools
 records; the Now view has no command execution action. Replies and filenames
@@ -388,7 +388,7 @@ Open errands link to the Stage. Errands with a reply link to their exact saved
 result in Web Tools' Files view, since the Stage lists only open errands.
 
 The GitHub CLI token is seeded only into the top-level Web Tools origin's existing
-`ghToken` storage when that storage is empty. The token is never sent to the laptop
+`ghToken` storage when that storage is empty. The token is never sent to the Lenovo
 view or written into settings or diagnostics. The browser profile persists the
 same authentication storage that the web app normally uses.
 
@@ -396,7 +396,7 @@ same authentication storage that the web app normally uses.
 Windows collection and local access; `Companion/` hosts collection and the API;
 `App/` holds WPF integration; `ui/` holds the desktop view; `phone/` holds the phone
 view. The build copies the existing
-Tailwind browser runtime from node_modules into the local app, so laptop styling
+Tailwind browser runtime from node_modules into the local app, so Lenovo styling
 loads without a network request. The app uses the
 [WebView2 SDK](https://www.nuget.org/packages/Microsoft.Web.WebView2) and follows
 Microsoft's [WebView2 security guidance](https://learn.microsoft.com/microsoft-edge/webview2/concepts/security).
