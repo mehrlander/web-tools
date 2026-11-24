@@ -277,6 +277,14 @@ document.addEventListener('alpine:init', () => {
       }
       return t.innerHTML;
     },
+    build(host, was, added) {
+      host.innerHTML = this.html(was);
+      const more = h('div');
+      more.innerHTML = this.html(added);
+      more.dataset.enter = '';
+      host.append(more);
+      this.entered = -1; this.enter(this.cur);
+    },
     async draw(host, was, now) {
       await window.mdDiff.redline(host, was, now, { html: md => this.html(md) });
       // A removal reads struck and quiet rather than as a red block.
@@ -395,7 +403,10 @@ document.addEventListener('alpine:init', () => {
           front.textContent = now.front;
           window.mdDiff.mark(front, window.mdDiff.runs(was.front, now.front));
         }
-        const jobs = [this.draw(host, was.body, now.body)];
+        // The owner adding to the request reads as a build, not a redline:
+        // the new lines enter together, untinted, under what was there.
+        const build = st === 'request' && !fresh && now.body.startsWith(was.body);
+        const jobs = [build ? this.build(host, was.body, now.body.slice(was.body.length)) : this.draw(host, was.body, now.body)];
         if (outlineHost) jobs.push(this.draw(outlineHost, this.B.steps[ol].payload, this.B.steps[ol].payload));
         await Promise.all(jobs);
         this.comments(s, el, host, outlineHost, outlineFold, list);
