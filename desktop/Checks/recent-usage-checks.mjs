@@ -108,7 +108,7 @@ check([...doc.querySelectorAll('a.nru-row')].every(anchor => {
     && [...route.keys()].join(',') === 'view,session' && !anchor.hasAttribute('target') && !anchor.hasAttribute('rel');
 }), 'Hostile external URLs and route-like identity text cannot change the internal Now destination.');
 render(select([item('local-safe',{identity:'session:Claude:local-safe',kind:'session',place:'lenovo',sessionUrl:'https://claude.ai/code/session_LocalSafe'}),
-  item('local-unsafe',{identity:'session:Claude:local-unsafe',kind:'session',place:'laptop',sessionUrl:'javascript:alert(1)'})]));
+  item('local-unsafe',{identity:'session:Claude:local-unsafe',kind:'session',place:'lenovo',sessionUrl:'javascript:alert(1)'})]));
 check([...doc.querySelectorAll('a.nru-row')].every(anchor => anchor.getAttribute('href') === '#view=now&session=' + encodeURIComponent(anchor.dataset.recentSession)),
   'Local Claude sessions use their full internal feed identities, independent of provider URLs.');
 render(select([],[usage('metadata-only',123456)]));
@@ -164,8 +164,7 @@ check(measured?.outputTokens === 3000 && measured.totalTokens === 3060 && measur
   'Usage matching sums the four disjoint recorded counters once, without adding context, nested cache splits, iterations, or a supplied total.');
 check([
   item('cloud-record',{key:'codex'}),item('cloud-record',{key:'gemini'}),item('cloud-record',{kind:'errand'}),
-  item('cloud-record',{kind:'session',place:'lenovo'}),item('cloud-record',{kind:'cloud',place:'lenovo'}),
-  item('cloud-record',{kind:'cloud',place:'laptop'})
+  item('cloud-record',{kind:'session',place:'lenovo'}),item('cloud-record',{kind:'cloud',place:'lenovo'})
 ].every(source => match(source,[counted]) === null && U.tokenBadge(source,snapshot([counted]),{now}) === ''),
   'Recorded cloud usage is never attributed to another provider, an errand, or a Lenovo session that happens to share an ID.');
 check(match(item('cloud-record',{place:''}),[counted])?.outputTokens === 3000,

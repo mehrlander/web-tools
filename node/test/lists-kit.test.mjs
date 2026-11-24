@@ -221,3 +221,21 @@ test("an item's flair is one icon for each facet value the table marks, and noth
   assert.deepEqual(L.flair({ id: 'a', kind: 'toString', origin: 'elsewhere' }), [], 'a value the table lacks');
   assert.deepEqual(L.flair(null), []);
 });
+
+test("a name Gemini gave is used only for the text it was written for, and an item's own name comes first", () => {
+  // The key is FNV-1a over UTF-8; web-tools-private's sessions/tools/test-list-names.py holds the same three values.
+  assert.equal(L.textKey('abc'), '1a47e90b');
+  assert.equal(L.textKey('  abc \n'), '1a47e90b', 'trimmed');
+  assert.equal(L.textKey('café, naïve'), 'fbf36113', 'UTF-8 bytes');
+  assert.equal(L.textKey(''), '811c9dc5');
+
+  const it = { id: 'j1', text: 'a thought that runs well past four words' };
+  const doc = { lists: { jot: { j1: { name: 'A long thought', key: L.textKey(it.text) }, j2: { name: '', key: 'x' } } } };
+  assert.equal(L.givenName(doc, 'jot', it), 'A long thought');
+  assert.equal(L.givenName(doc, 'jot', { ...it, text: it.text + ', edited' }), '', 'an edited item has no name until it is named again');
+  assert.equal(L.givenName(doc, 'jot', { ...it, name: ' Mine ' }), 'Mine', "the item's own name first");
+  assert.equal(L.givenName(doc, 'to-do', it), '', 'another list');
+  assert.equal(L.givenName(doc, 'jot', { id: 'j2', text: 'short' }), '', 'an item recorded as needing no name');
+  assert.equal(L.givenName(null, 'jot', it), '', 'no file');
+  assert.equal(L.givenName({ lists: { jot: { j1: { name: 7, key: L.textKey(it.text) } } } }, 'jot', it), '', 'a name that is not text');
+});
