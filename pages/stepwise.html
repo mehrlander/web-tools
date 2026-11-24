@@ -288,11 +288,11 @@ document.addEventListener('alpine:init', () => {
 
     // The owner's words, as a quotation.
     quotation(owner) {
-      const fig = h('figure', 'rounded-box border-l-4 border-info bg-base-200 py-4');
-      const host = h('div', PROSE + ' px-5');
-      const cap = h('figcaption', 'px-5 pt-2 flex items-center gap-1.5 text-sm text-base-content/70');
+      const fig = h('figure', 'rounded-box border-l-4 border-info bg-base-200 py-3');
+      const host = h('div', 'prose !max-w-none [--rl-wash:8%] px-4 text-base-content/80');
+      const cap = h('figcaption', 'px-4 pt-1 flex items-center gap-1.5 text-sm text-base-content/70');
       cap.append(icon('ph-user'), owner || 'owner');
-      fig.append(icon('ph-quotes text-3xl text-info px-5 block'), host, cap);
+      fig.append(icon('ph-quotes text-lg text-info px-4 block'), host, cap);
       return { el: fig, host };
     },
     // A container for earlier work kept in reach: collapsed, a tap to open.
