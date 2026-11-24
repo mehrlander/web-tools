@@ -1,151 +1,243 @@
 {
   "schema": "stepwise/2",
-  "title": "Writing Sprint, from request to skill (a reconstruction)",
+  "title": "Writing Sprint, a live run (2026-11-24)",
   "file": "skills/writing-sprint/SKILL.md",
   "steps": [
     {
       "stage": "request",
       "by": "owner",
       "note": "The owner's request, as sent.",
-      "payload": "We have the idea of a design sprint. I think we could develop a related idea, which would be like a content sprint. And it would focus on use of exemplars and inspirations, muses. We would look for famous writers to channel. It would be for looking at a piece of text and trying to make it stronger and to break free of the tendencies of any particular assistant. Look for relevant skills, pull together the ones, I mean, we've had these skills about how to write, about arriving together, and even the ones about channeling excellence and that kind of thing. But look for the relevant skills and let's see what we can put together. I think the recent work around exemplars is interesting, but we would want to expand to other kinds of exemplars, and we could build that in. If we want to think about how to channel specific writers. We could look for compelling passages."
+      "payload": "We have the idea of a design sprint. I think we could develop a related idea, which would be like a content sprint. And it would focus on use of exemplars and inspirations, muses. We would look for famous writers to channel. It would be for looking at a piece of text and trying to make it stronger and to break free of the tendencies of any particular assistant. Look for relevant skills, pull together the ones, I mean, we've had these skills about how to write, about arriving together, and even the ones about channeling excellence and that kind of thing. But look for the relevant skills and let's see what we can put together. I think the recent work around exemplars is interesting, but we would want to expand to other kinds of exemplars, and we could build that in. If we want to think about how to channel specific writers. We could look for compelling passages.\n"
+    },
+    {
+      "stage": "request",
+      "by": "owner",
+      "note": "The owner's later decisions, in their words.",
+      "payload": "We have the idea of a design sprint. I think we could develop a related idea, which would be like a content sprint. And it would focus on use of exemplars and inspirations, muses. We would look for famous writers to channel. It would be for looking at a piece of text and trying to make it stronger and to break free of the tendencies of any particular assistant. Look for relevant skills, pull together the ones, I mean, we've had these skills about how to write, about arriving together, and even the ones about channeling excellence and that kind of thing. But look for the relevant skills and let's see what we can put together. I think the recent work around exemplars is interesting, but we would want to expand to other kinds of exemplars, and we could build that in. If we want to think about how to channel specific writers. We could look for compelling passages.\n\n**Later decisions:**\n\n- \"Maybe we should call it a writing sprint.\"\n- \"I like 'punch-up' concept.\"\n- \"All ideas start from other ideas. Whether the original is considered a draft or a prompt is eye of beholder.\"\n- \"Okay, we can go with moves. I'm a little leery, but I think it might be valid, so let's try it.\" (Passages are filed by craft move in home's projects/skill-lab/moves.md.)\n- \"I think a better way to approach this would be to start from something extremely minimal. And it would start from the core insight, the core wisdom.\"\n"
     },
     {
       "stage": "intent",
       "by": "session",
-      "note": "What the request asks for, and what it leaves open.",
-      "payload": "**Asked for:** a writing process, parallel to the design sprint, that makes a text stronger by channeling exemplary writers and breaks free of an assistant's habits.\n\n**Wanted from it:** borrowable techniques, drawn from compelling passages, reaching past the clarity exemplars already kept.\n\n**Left open:** the name, the unit (a writer or a passage), and whether the process edits a draft or writes from a prompt."
+      "note": "The writer's reading: what was asked for, wanted, left open.",
+      "payload": "**Asked for:** a writing counterpart to design-sprint: punch up a text, draft or prompt alike, by channeling exemplar passages filed by craft move in moves.md; built minimal, from one core insight.\n**Wanted from it:** text stronger than any one assistant's tendencies would make it, borrowed from writers who did it well.\n**Left open:** the core insight itself; which existing writing skills it absorbs; how a move or writer is picked for a given text; how other kinds of exemplar enter.\n"
     },
     {
       "stage": "intent",
       "by": "critic",
-      "note": "The critic found nothing to change in the reading.",
-      "payload": "**Asked for:** a writing process, parallel to the design sprint, that makes a text stronger by channeling exemplary writers and breaks free of an assistant's habits.\n\n**Wanted from it:** borrowable techniques, drawn from compelling passages, reaching past the clarity exemplars already kept.\n\n**Left open:** the name, the unit (a writer or a passage), and whether the process edits a draft or writes from a prompt.",
-      "comments": []
-    },
-    {
-      "stage": "outline",
-      "by": "session",
-      "note": "A premise and the main points, before any paragraph.",
-      "payload": "**Premise:** an assistant's prose carries the assistant's habits, and a specific technique borrowed from a passage that shows it breaks them.\n\n1. Borrow moves, not names.\n2. Try several moves, one version each.\n3. Keep the version that serves the reader, and check that it lost nothing.\n4. The moves live in moves.md."
-    },
-    {
-      "stage": "outline",
-      "by": "critic",
-      "note": "Two challenges: an undefined term, and a point that is only storage.",
-      "payload": "**Premise:** an assistant's prose carries the assistant's habits, and a specific technique borrowed from a passage that shows it breaks them.\n\n1. Borrow moves, not names.\n2. Try several moves, one version each.\n3. Keep the version that serves the reader, and check that it lost nothing.\n4. The moves live in moves.md.",
+      "note": "The critic: 1 challenge.",
+      "payload": "**Asked for:** a writing counterpart to design-sprint: punch up a text, draft or prompt alike, by channeling exemplar passages filed by craft move in moves.md; built minimal, from one core insight.\n**Wanted from it:** text stronger than any one assistant's tendencies would make it, borrowed from writers who did it well.\n**Left open:** the core insight itself; which existing writing skills it absorbs; how a move or writer is picked for a given text; how other kinds of exemplar enter.\n",
       "comments": [
         {
           "on": "payload",
-          "quoted": "Borrow moves, not names.",
+          "quoted": "which existing writing skills it absorbs",
+          "by": "critic",
+          "peeve": "P29",
+          "payload": "The owner asked the session to look for the relevant skills and pull them together, so this is work to do, not an open question. Settle it by naming the skills found and which ones the new skill absorbs, or drop it from 'Left open'.",
+          "answer": "changed",
+          "rationale": "searched the skills and named the two it builds on, exemplars and inspire-excellence, in Asked for"
+        }
+      ]
+    },
+    {
+      "stage": "intent",
+      "by": "session",
+      "note": "Revised in answer to the critic.",
+      "payload": "**Asked for:** a writing counterpart to design-sprint: punch up a text, draft or prompt alike, by channeling passages filed by craft move in moves.md; built minimal, from one core insight, on exemplars (read the piece before writing) and inspire-excellence (hand over a standard, not a spec).\n**Wanted from it:** text stronger than any one assistant's tendencies would make it, borrowed from writers who did it well.\n**Left open:** the core insight itself; how a move or writer is picked for a given text; how other kinds of exemplar enter.\n"
+    },
+    {
+      "stage": "outline",
+      "by": "session",
+      "note": "A premise and four points, before any prose.",
+      "payload": "**Premise:** An assistant revising alone returns to its own habits; a passage by a writer who did the same job better gives it somewhere else to go.\n\n1. Input: any text, draft or prompt alike.\n2. Pick: name what the text must do, then the move in moves.md that does it.\n3. Punch up: read that move's passages, then rewrite; take the move, leave the mannerism.\n4. Grow: a new writer or kind of exemplar enters as a passage filed under a move.\n"
+    },
+    {
+      "stage": "outline",
+      "by": "critic",
+      "note": "The critic: 3 challenges.",
+      "payload": "**Premise:** An assistant revising alone returns to its own habits; a passage by a writer who did the same job better gives it somewhere else to go.\n\n1. Input: any text, draft or prompt alike.\n2. Pick: name what the text must do, then the move in moves.md that does it.\n3. Punch up: read that move's passages, then rewrite; take the move, leave the mannerism.\n4. Grow: a new writer or kind of exemplar enters as a passage filed under a move.\n",
+      "comments": [
+        {
+          "on": "payload",
+          "quoted": "a passage by a writer who did the same job better gives it somewhere else to go",
+          "by": "critic",
+          "peeve": "P04",
+          "payload": "'Somewhere else to go' is a metaphor where a literal word exists, and the premise reads as a maxim. State the mechanism literally, for example that the assistant copies the passage's technique and not its own default phrasing.",
+          "answer": "changed",
+          "rationale": "stated the mechanism literally: the assistant copies the passage's technique instead of its default phrasing"
+        },
+        {
+          "on": "payload",
+          "quoted": "take the move, leave the mannerism",
+          "by": "critic",
+          "peeve": "P04",
+          "payload": "This is a one-line closing punch built on a contrast. It also does not tell the reader how to tell a move from a mannerism. Replace it with an instruction the actor can follow, such as reproducing what the passage does to the reader and not its diction or rhythm.",
+          "answer": "changed",
+          "rationale": "replaced with an instruction that names the effect on the reader to reproduce and points at moves.md's Leave behind line for what to drop"
+        },
+        {
+          "on": "payload",
+          "quoted": "then the move in moves.md that does it",
+          "by": "critic",
+          "peeve": "P06",
+          "payload": "'It' could mean the text's job or the rewrite, so the step does not stand alone. Name the referent: the move in moves.md that accomplishes that job.",
+          "answer": "changed",
+          "rationale": "named the job as the referent"
+        }
+      ]
+    },
+    {
+      "stage": "outline",
+      "by": "session",
+      "note": "Revised in answer to the critic.",
+      "payload": "**Premise:** Revising alone, an assistant reproduces its default phrasing; given a passage that does the same job, it copies the passage's technique instead.\n\n1. Input: any text, draft or prompt alike.\n2. Pick: name the job the text must do, then the move in moves.md that does that job.\n3. Punch up: read that move's passages, then rewrite so the text does to its reader what a passage does, without the passage's diction, rhythm or what its Leave behind line names.\n4. Grow: a new writer or kind of exemplar enters as a passage filed under a move.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "The core: the sentence the skill opens with.",
+      "payload": "Revising alone, an assistant reproduces its default phrasing; given a passage that does the same job, it copies the passage's technique instead.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "critic",
+      "note": "The critic: 5 challenges.",
+      "payload": "Revising alone, an assistant reproduces its default phrasing; given a passage that does the same job, it copies the passage's technique instead.\n",
+      "comments": [
+        {
+          "on": "payload",
+          "quoted": "Revising alone, an assistant reproduces its default phrasing; given a passage that does the same job, it copies the passage's technique instead.",
+          "by": "critic",
+          "peeve": "P04",
+          "payload": "The sentence is a general observation about assistants, a maxim, and gives the session no instruction. A skill's opening should tell the actor what to do, for example: 'Before revising a text, find the move in moves.md that does its job, read that move's passages, and rewrite so the text does to its reader what the passage does.'",
+          "answer": "changed",
+          "rationale": "replaced the observation with the instruction it implied"
+        },
+        {
+          "on": "payload",
+          "quoted": "Revising alone, an assistant reproduces its default phrasing",
+          "by": "critic",
+          "peeve": "P05",
+          "payload": "'Revising alone' can be read as 'revising without help' or 'revising without a passage', and a reader cannot check 'default phrasing'. Say 'revising without an exemplar' and name what the default phrasing is, such as the habitual wording a session falls back on.",
+          "answer": "changed",
+          "rationale": "dropped with the observation, so neither ambiguous phrase remains"
+        },
+        {
+          "on": "payload",
+          "quoted": "a passage that does the same job",
           "by": "critic",
           "peeve": "P10",
-          "payload": "\"Moves\" is a coined term, never defined; the premise calls the same thing a technique, so it has two names.",
+          "payload": "'Passage' and 'job' are the skill's own terms (a passage filed under a move in moves.md), but the sentence gives neither a definition. 'Job' is a familiar word with a special local meaning here. Introduce them, for example 'an exemplar passage that has the same effect on its reader as the text should'.",
           "answer": "changed",
-          "rationale": "The premise now names the technique a move."
+          "rationale": "'job' became the effect the text should have on its reader, and the passages are tied to a move in moves.md"
         },
         {
           "on": "payload",
-          "quoted": "The moves live in moves.md.",
+          "quoted": "it copies the passage's technique instead",
           "by": "critic",
-          "peeve": "P01",
-          "payload": "A storage detail, not a main point, and it introduces a file the intent never mentions.",
+          "peeve": "P16",
+          "payload": "The core says to copy the passage's technique, but outline step 3 says to produce the passage's effect on the reader and to avoid its diction, rhythm and Leave-behind items. 'Copies' invites the lifting the skill forbids, so the core quietly departs from the agreed outline. Restate it as 'reproduce the passage's effect on its reader, not its wording'.",
           "answer": "changed",
-          "rationale": "Point 4 is cut; the file is named when the skill is drafted."
+          "rationale": "now says to reproduce the effect, not the passages' wording, matching outline step 3"
+        },
+        {
+          "on": "payload",
+          "quoted": "Revising alone, an assistant reproduces its default phrasing; given a passage that does the same job, it copies the passage's technique instead.",
+          "by": "critic",
+          "peeve": "P74",
+          "payload": "Two full claims are joined by a semicolon, with a dangling opener and a trailing 'instead'. Split it into short sentences, with the instruction first.",
+          "answer": "changed",
+          "rationale": "split into two short sentences, instruction first"
         }
       ]
     },
     {
-      "stage": "outline",
+      "stage": "draft",
       "by": "session",
-      "note": "Define the move in the premise; cut the storage point.",
-      "payload": "**Premise:** an assistant's prose carries the assistant's habits, and a specific technique borrowed from a passage that shows it, a *move*, breaks them.\n\n1. Borrow moves, not names.\n2. Try several moves, one version each.\n3. Keep the version that serves the reader, and check that it lost nothing."
+      "note": "Revised in answer to the critic.",
+      "payload": "To punch up a text, find the move in moves.md that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording.\n"
     },
     {
       "stage": "draft",
       "by": "session",
-      "note": "The core: one sentence from the premise.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n"
+      "note": "Title and core-2, the instruction the skill opens with.",
+      "payload": "# Writing Sprint\n\nTo punch up a text, find the move in moves.md that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Frontmatter, so the skill triggers on a request to punch up or strengthen text, not on its own output.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in moves.md that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 1, the input: a draft and a prompt are treated alike, per the owner's decision.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in moves.md that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording.\n\nThe text may be a draft or a prompt. Treat both as the idea the new text starts from.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Linked moves.md and said how to reach private home, since a session cannot follow the core without the file.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in [moves.md](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording. home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\nThe text may be a draft or a prompt. Treat both as the idea the new text starts from.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 2, how to pick the move: name the effect, match it to an entry.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in [moves.md](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording. home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\nThe text may be a draft or a prompt. Treat both as the idea the new text starts from.\n\nTo find the move, name in one sentence what the text should do for its reader, then pick the move whose entry says it does that.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 3, what the rewrite leaves out, so reproducing the effect does not lift the wording.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in [moves.md](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording. home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\nThe text may be a draft or a prompt. Treat both as the idea the new text starts from.\n\nTo find the move, name in one sentence what the text should do for its reader, then pick the move whose entry says it does that.\n\nIn the rewrite, leave out each passage's diction and rhythm, and what its Leave behind line names.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 4, how a new writer or kind of exemplar enters; every point now covered.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in [moves.md](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording. home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\nThe text may be a draft or a prompt. Treat both as the idea the new text starts from.\n\nTo find the move, name in one sentence what the text should do for its reader, then pick the move whose entry says it does that.\n\nIn the rewrite, leave out each passage's diction and rhythm, and what its Leave behind line names.\n\nA new writer or kind of exemplar enters as a passage filed under the move it shows, as moves.md's preamble says. Where no move fits, add one.\n"
     },
     {
       "stage": "draft",
       "by": "critic",
-      "note": "The critic passed the core: the contrast answers the owner's own framing.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n",
-      "comments": []
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Why a passage and not a name.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Where the moves are kept.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "The smallest loop: read, then write.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n\n## Steps\n\n1. Read a move's passages.\n2. Write the text with that move.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Compare: one version per move, then keep one.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n\n## Steps\n\n1. Choose three moves that suit the text, and read their passages.\n2. Write one version of the text with each move.\n3. Keep the version that serves its reader best.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "A check, so a version cannot win by dropping content.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n\n## Steps\n\n1. Choose three moves that suit the text, and read their passages.\n2. Write one version of the text with each move.\n3. Keep the version that serves its reader best.\n4. Check that the kept version still says what the text had to say, and shows none of the habits the [`peeves`](../peeves/SKILL.md) list names.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "The short form: a punch-up.",
-      "payload": "# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n\n## Steps\n\n1. Choose three moves that suit the text, and read their passages.\n2. Write one version of the text with each move.\n3. Keep the version that serves its reader best.\n4. Check that the kept version still says what the text had to say, and shows none of the habits the [`peeves`](../peeves/SKILL.md) list names.\n\nFor a punch-up, choose one move and write one version.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "The trigger, so a session finds the skill.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Make a text stronger by borrowing craft moves from passages that show them, one version per move. Use when asked for a writing sprint or a punch-up, or to make a text stronger.\"\n---\n\n# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n\n## Steps\n\n1. Choose three moves that suit the text, and read their passages.\n2. Write one version of the text with each move.\n3. Keep the version that serves its reader best.\n4. Check that the kept version still says what the text had to say, and shows none of the habits the [`peeves`](../peeves/SKILL.md) list names.\n\nFor a punch-up, choose one move and write one version.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "critic",
-      "note": "Two challenges to the finished draft.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Make a text stronger by borrowing craft moves from passages that show them, one version per move. Use when asked for a writing sprint or a punch-up, or to make a text stronger.\"\n---\n\n# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nA writer's name yields an assistant's impression of that writer, with the assistant's habits intact. A passage yields the technique itself.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n\n## Steps\n\n1. Choose three moves that suit the text, and read their passages.\n2. Write one version of the text with each move.\n3. Keep the version that serves its reader best.\n4. Check that the kept version still says what the text had to say, and shows none of the habits the [`peeves`](../peeves/SKILL.md) list names.\n\nFor a punch-up, choose one move and write one version.\n",
+      "note": "The critic on the finished draft: 3 challenges.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in [moves.md](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording. home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\nThe text may be a draft or a prompt. Treat both as the idea the new text starts from.\n\nTo find the move, name in one sentence what the text should do for its reader, then pick the move whose entry says it does that.\n\nIn the rewrite, leave out each passage's diction and rhythm, and what its Leave behind line names.\n\nA new writer or kind of exemplar enters as a passage filed under the move it shows, as moves.md's preamble says. Where no move fits, add one.\n",
       "comments": [
         {
           "on": "payload",
-          "quoted": "A writer's name yields an assistant's impression of that writer, with the assistant's habits intact.",
+          "quoted": "and what its Leave behind line names",
           "by": "critic",
-          "peeve": "P01",
-          "payload": "A reason added to an instruction that already states its contrast; it says the core sentence twice (also P08).",
+          "peeve": "P03",
+          "payload": "\"Leave behind line\" is a moves.md field name that the skill never explains, so a reader who has not opened moves.md cannot tell what to omit. Say where the line appears (the move's entry in moves.md) and what it lists.",
           "answer": "changed",
-          "rationale": "The paragraph is cut."
+          "rationale": "said the line sits under each passage in moves.md and lists mannerisms and genre conventions that misfire elsewhere"
         },
         {
           "on": "payload",
-          "quoted": "not from a writer's name",
+          "quoted": "Where no move fits, add one.",
           "by": "critic",
-          "peeve": "P64",
-          "payload": "Rejects an alternative the reader never raised.",
-          "answer": "kept",
-          "rationale": "The request began as channeling writers by name, so the alternative is the reader's own; a separate run of the critic passed the same clause."
+          "peeve": "P16",
+          "payload": "The agreed outline's Grow step has only one path: a new exemplar enters as a passage filed under an existing move. This sentence adds a second path, creating a move, which the outline and decisions.md never approved. The owner said they were \"a little leery\" of moves. Delete it, or flag it to the owner as a proposed addition.",
+          "answer": "changed",
+          "rationale": "deleted, since neither the outline nor the owner approved creating moves"
+        },
+        {
+          "on": "payload",
+          "quoted": "home is private: read it from a checkout beside the project root, or through the GitHub tools.",
+          "by": "critic",
+          "peeve": "P03",
+          "payload": "\"home\" is a bare repo nickname, and \"the project root\" does not say which project. Name the repo as mehrlander/home, and say which checkout the reader should look beside.",
+          "answer": "changed",
+          "rationale": "named mehrlander/home and the checkout to look beside"
         }
       ]
     },
     {
       "stage": "draft",
       "by": "session",
-      "note": "Cut the restated reason; keep the contrast.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Make a text stronger by borrowing craft moves from passages that show them, one version per move. Use when asked for a writing sprint or a punch-up, or to make a text stronger.\"\n---\n\n# Writing Sprint\n\nTo make a text stronger, borrow a technique from a passage that shows it, not from a writer's name.\n\nThe techniques, called moves, are filed in home's [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with the passages that show it.\n\n## Steps\n\n1. Choose three moves that suit the text, and read their passages.\n2. Write one version of the text with each move.\n3. Keep the version that serves its reader best.\n4. Check that the kept version still says what the text had to say, and shows none of the habits the [`peeves`](../peeves/SKILL.md) list names.\n\nFor a punch-up, choose one move and write one version.\n"
+      "note": "Revised in answer to the critic.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing, a draft or a prompt, by borrowing a craft move from an exemplar passage. Use when asked to punch up or strengthen text, to make it read less like an assistant wrote it, to write in the manner of a named writer or passage, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nTo punch up a text, find the move in [moves.md](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) that has the effect the text should have on its reader. Read the move's passages, then rewrite the text to have that effect, not their wording. moves.md is in the private repo mehrlander/home: read it from a home checkout beside the current repo's checkout, or through the GitHub tools.\n\nThe text may be a draft or a prompt. Treat both as the idea the new text starts from.\n\nTo find the move, name in one sentence what the text should do for its reader, then pick the move whose entry says it does that.\n\nIn the rewrite, leave out each passage's diction and rhythm, and what the Leave behind line under the passage in moves.md lists: the writer's mannerisms and genre conventions that would misfire elsewhere.\n\nA new writer or kind of exemplar enters as a passage filed under the move it shows, as moves.md's preamble says.\n"
     }
   ]
 }
