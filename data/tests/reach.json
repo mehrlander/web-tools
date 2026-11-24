@@ -1,0 +1,9 @@
+{
+  "schema": "web-tools-test-run/1",
+  "source": { "checkout_sha": null, "dirty": false },
+  "runtime": {},
+  "mode": "full",
+  "complete": false,
+  "exit_code": null,
+  "tests": []
+}
