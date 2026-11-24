@@ -146,3 +146,23 @@ test('a sliced read reports rising progress and returns what analyze returns', a
   assert.ok(seen.length >= 5, `progress reported ${seen.length} times`);
   assert.ok(seen.every((p, k) => p >= 0 && p <= 1 && (k === 0 || p >= seen[k - 1])), 'and only ever rising');
 });
+
+// A string table long enough to pass a progress step (every 16,384 entries).
+// The scan once named a local `at`, which hid the progress function, so the
+// first step threw and the workbook did not open: OFM's Bill Comparison Tool
+// 1.2, 38,413 cells, was the first file found to fail.
+test('a string table past 16,384 entries reads, and reads the same both ways', async () => {
+  const n = 20000;
+  const sst = `<?xml version="1.0"?><sst xmlns="sst" count="${n}" uniqueCount="${n}">`
+    + Array.from({ length: n }, (_, i) => `<si><t>s${i}</t></si>`).join('') + '</sst>';
+  const parts = awkward().map(([p, xml]) => [p, p.endsWith('sharedStrings.xml') ? sst : xml]);
+  same(parts, 'long string table');
+  const r = xlsxKit.analyze(parts);
+  assert.equal(r.xl.strings.length, n);
+  assert.equal(r.xl.strings[n - 1], `s${n - 1}`);
+  const zip = new JSZip();
+  for (const [p, xml] of parts) zip.file(p, xml);
+  const bytes = await zip.generateAsync({ type: 'uint8array', compression: 'DEFLATE' });
+  const sliced = await xlsxKit.readZip(bytes, { fresh: true, sliceMs: 0 });
+  assert.equal(sliced.xl.strings.length, n);
+});

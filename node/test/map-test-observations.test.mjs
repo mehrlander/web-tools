@@ -95,6 +95,68 @@ test('reverse lookup includes readers, gates, opaque tests and tests without obs
   data.testObservationPath = '';
 });
 
+test('the diagram separates path-linked files from independently retained files without counting an overlapping gate twice', async () => {
+  publicPayload = { ...reach, tests: reach.tests.map(row => row.path === gate
+    ? { ...row, files: [gate, 'lib/a.js'] } : row) };
+  await data.loadTestObservations(true);
+  try {
+    data.testObservationPath = 'lib/a.js'; await tick(2);
+    assert.deepEqual([...data.testObservationDiagram.linked.map(row => row.path)], [a, gate]);
+    assert.deepEqual([...data.testObservationDiagram.retained.map(row => row.path)], [opaque, fresh]);
+    assert.equal(data.testObservationDiagram.total, 5);
+    const diagram = panel().querySelector('[data-test-observation-diagram]');
+    assert.match(diagram.textContent, /Whole test files · one-path lookup/);
+    assert.match(diagram.textContent, /5 Node suite files/);
+    assert.match(panel().textContent, /Test files in this lookup: 4/);
+    assert.match(diagram.querySelector('[data-test-link-readers]').textContent, /Linked test files · 2/);
+    assert.match(diagram.querySelector('[data-test-link-retained]').textContent, /Retained without a path link · 2/);
+    assert.match(diagram.textContent, /each file is counted once/);
+    assert.match(diagram.textContent, /test:diff checks all changed paths and runtime compatibility/);
+    const paths = [...diagram.querySelectorAll('a')].map(link => link.textContent);
+    assert.equal(paths.length, new Set(paths).size);
+    data.testObservationPath = 'lib/unobserved.js'; await tick(2);
+    assert.equal(data.testObservationDiagram.linked.length, 0);
+    assert.equal(data.testObservationDiagram.retained.length, 3);
+    const unknown = panel().querySelector('[data-test-observation-diagram]');
+    assert.match(unknown.textContent, /No recorded path link/);
+    assert.match(unknown.querySelector('[data-test-link-source]').textContent, /lib\/unobserved\.js/);
+    data.testObservationPath = ''; await tick(2);
+    assert.equal(data.testObservationDiagram, null);
+    assert.equal(panel().querySelector('[data-test-observation-diagram]'), null);
+  } finally {
+    publicPayload = reach;
+    await data.loadTestObservations(true);
+  }
+});
+
+test('large dependency groups keep a bounded sample and render file names and source paths as text', async () => {
+  const previousRegistry = data.testsReg;
+  const query = 'lib/<img>.js';
+  const extras = Array.from({ length: 7 }, (_, i) => `node/test/<img>${i}.test.mjs`);
+  data.testsReg = { ...previousRegistry, tests: [...previousRegistry.tests,
+    ...extras.map(file => ({ path: file, kind: 'behavior', runner: 'suite', protects: '<img>' }))] };
+  publicPayload = { ...reach, tests: [...reach.tests,
+    ...extras.map(file => observed(file, { files: [file, query] }))] };
+  await data.loadTestObservations(true);
+  try {
+    data.testObservationPath = query; await tick(2);
+    const diagram = panel().querySelector('[data-test-observation-diagram]');
+    assert.equal(data.testObservationDiagram.linked.length, 7);
+    assert.equal(diagram.querySelectorAll('[data-test-link-readers] li').length, 4);
+    assert.match(diagram.textContent, /\+3 more linked files/);
+    assert.equal(diagram.querySelector('[data-test-link-source]').textContent.includes(query), true);
+    assert.equal(diagram.querySelector('[data-test-link-readers] a').textContent, extras[0]);
+    assert.match(diagram.querySelector('[data-test-link-readers] a').getAttribute('href'), /%3Cimg%3E/);
+    assert.equal(diagram.querySelector('img'), null);
+    assert.deepEqual(problems, []);
+  } finally {
+    data.testObservationPath = '';
+    data.testsReg = previousRegistry;
+    publicPayload = reach;
+    await data.loadTestObservations(true);
+  }
+});
+
 test('last observed costs retain failed, selected and incomplete status at their actual venue and source', async () => {
   window.TOKEN = 'fixture'; window.__shell._authState = 'auth'; await settled();
   assert.equal(data.testObservedRun.source.checkout_sha, 'b'.repeat(40));
@@ -150,6 +212,9 @@ test('an incomplete initial baseline stays visible as pending and malformed depe
     mode: 'full', complete: false, exit_code: null, tests: [] };
   await data.loadTestObservations(true); await tick(2);
   assert.match(panel().textContent, /Awaiting first observed full run/);
+  data.testObservationPath = 'lib/a.js'; await tick(2);
+  assert.equal(data.testObservationDiagram, null);
+  assert.equal(panel().querySelector('[data-test-observation-diagram]'), null);
   publicPayload = { ...reach, tests: [observed(a, { files: ['../outside'] })] };
   await data.loadTestObservations(true);
   assert.match(data.testObservationError, /Invalid test dependency/);

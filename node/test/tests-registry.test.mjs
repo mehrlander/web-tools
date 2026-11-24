@@ -93,6 +93,14 @@ test('every row is typed, and the kind vocabulary is closed', () => {
     assert.ok(glossOf(k), 'a kind with no gloss: ' + k);
 });
 
+test('a Map registry loader is Alpine while a kit loader remains kit', () => {
+  const derived = deriveTests(repoRoot);
+  assert.equal(derived.get('node/test/map-view.test.mjs').method, 'alpine',
+    'loading the Map kits registry does not execute a kit through the test loader');
+  assert.equal(derived.get('node/test/treemap.test.mjs').method, 'kit',
+    'a check that calls the kit loader keeps its existing classification');
+});
+
 // The derived half, held the same way reach and words are held in the
 // documents registry: the registry carries a copy so the app can render it
 // without walking the repo, and this keeps the copy true.

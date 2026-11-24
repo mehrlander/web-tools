@@ -411,7 +411,7 @@ def vendored_copies():
 # model"), and the catalogs .gitattributes merges with the derived-csv driver.
 # Neither side's copy is what the merge produces, so an overlay reads main's
 # and says so, and they do not count against it as files main also changed.
-WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html", "pages/thumbs/",
+WHOLE_GENERATED = ("dist/", "console/suite.js", "pages/README.md", "pages/index.html",
                    "docs/README.md", "tracker/board.md", "tracker/board.csv", "tracker/board-tags.csv",
                    *vendored_copies())
 
@@ -569,7 +569,7 @@ def pick(paths, base, ref, use_git=True, diff=None, at="", query="", overlay=Non
         # changed page if it has one, since that is what the reader came to
         # see; else the pages index, which renders anywhere.
         inner = next((p for p in paths if p.startswith("pages/") and p.endswith(".html")
-                      and p != "pages/toss-render.html" and not p.startswith("pages/thumbs/")), "pages/index.html")
+                      and p != "pages/toss-render.html"), "pages/index.html")
         why.append("pages/toss-render.html changed, so the deployed renderer cannot show it: address the branch's own renderer and hand it a page as a trailing fragment, here "
                    + inner + "; any page can take its place after the second #gh=.")
         d = decision("renderer", [("pages/toss-render.html", None)], sha, slug, hosted, why, warn, facts, at, query, inner=inner)

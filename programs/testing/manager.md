@@ -39,8 +39,14 @@ Name any of the three sources you could not read.
 
 ## Cost and selection
 
-The caller names a repository, revision or changed paths and the decision the timing evidence should inform. Start from the charter's M1 to M3 measures and the [selection pilot](../../tracker/tasks/test-selection-by-reach-p2xtc5.md). Read the captured run's source, runtime, dependency fingerprint, concurrency, mode, exit status and observation completeness before comparing costs.
+The caller supplies a repository, revision or changed paths, and the intended behavior. Establish the required evidence through the Coverage process before considering execution cost: name the behavior the existing assertions check and any missing cases. Where a mutation audit is available, inspect the deliberate break and the assertion that detected it; a protection claim or an observed read alone does not establish adequate checking. The program assesses the checking plan under the owner's rules; a development session applies that plan and cannot waive required checks to save time.
+
+Start from the charter's M1 to M3 measures and the [selection pilot](../../tracker/tasks/test-selection-by-reach-p2xtc5.md). Read the captured run's source, runtime, dependency fingerprint, concurrency, mode, exit status and observation completeness before comparing costs.
 
 Use the public [reach snapshot](../../data/tests/reach.json) for observed dependency lookup and the [private dated run records](https://github.com/mehrlander/web-tools-private/tree/background/data/tests/runs) for costs. For a local selection, inspect `npm run test:diff -- --list`; the command prints its baseline, picks and reasons. Report full fallback, gates, opaque tests and missing evidence explicitly. Keep suite wall time, runner preparation and accumulated process elapsed time separate. Local history under `node/.test-observations/runs/` covers commands through that runner only; ordinary full runs and historical session minutes are not comprehensively recorded.
 
-Return the decision, the comparable observations, their limits and one proposed experiment. Use an existing full run for the candidate comparison when possible. Do not infer a safe omission from a source reference, a passing test or a missing observation. Full verification remains the gate during the pilot.
+Return a checking plan naming the protected behavior, existing test files, missing assertions or venue checks, and the applicable selection procedure, with comparable observations and their limits.
+
+Sessions can apply an established procedure without a fresh manager assessment on every run; changes to the procedure and unresolved adequacy questions return to the program.
+
+Propose an experiment only where the evidence supports one. Use an existing full run for the candidate comparison when possible. Do not infer a safe omission from a source reference, a passing test or a missing observation. Treat broad dependency groups as candidates for investigation, rather than evidence that splitting files will save time. Full verification remains the gate during the pilot.
