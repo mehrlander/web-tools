@@ -9,31 +9,54 @@
 <script src="https://cdn.jsdelivr.net/combine/npm/marked/lib/marked.umd.js,npm/dompurify/dist/purify.min.js"></script>
 
 <!--
-  stepwise.html — a document's development, one step at a time, from its
-  one-sentence core to its finished form, read from a `stepwise/1` payload:
+  stepwise.html — a piece of writing's development, one step at a time, from
+  the owner's request to the finished text, with the critic's comments in
+  place and the revisions they caused. Two payload shapes:
 
-    { schema: 'stepwise/1', title, file, repo?, steps: [{ by, note, payload }] }
+    stepwise/2  { schema, title, file, repo?, steps: [{
+                    stage: request | intent | outline | draft,
+                    by: owner | session | critic,
+                    note,       one line on what the step adds
+                    payload,    the stage's whole text after the step (Markdown)
+                    comments?: [{ on: payload | outline, quoted, by, peeve,
+                                  payload, answer: changed | kept | null,
+                                  rationale? }] }] }
+    stepwise/1  { schema, title, file, repo?, steps: [{ by, note, payload }] },
+                read as stepwise/2 with every step in the draft stage.
 
-  `by` is session, critic or owner; `note` is one line on what the step adds;
-  `payload` is the WHOLE document after the step. Nothing about a change is stored:
-  each step is diffed against the one before it (step 1 against nothing) by
-  kits/md-diff.js's redline, which draws the new text with arrivals tinted and
-  departures struck. Leading YAML frontmatter is split off first and shown as a
-  small block of its own, marked by md-diff's word runs, since the redline
-  renders Markdown and a frontmatter block is not Markdown.
+  Field names are docs/text-fields.csv's: a comment's own text is its
+  `payload`, the words it is about are `quoted` (exact, from the text it is on),
+  and why a comment was not taken is its `rationale`. The outline a draft is
+  checked against is not carried on draft steps; it is the latest outline
+  step's payload, so it cannot disagree with the outline lane.
+
+  STAGES ARE LANES. A step is diffed against the previous step of its own stage
+  by kits/md-diff.js's redline, which draws the text with arrivals tinted and
+  departures struck; a step that opens a stage shows its text fresh and enters
+  with a short animation. A critique step repeats the text unchanged and adds
+  comments, so the revision after it diffs against the critiqued text and the
+  change a comment caused is the change on screen. Leading YAML frontmatter is
+  split off and shown as a small block, marked by md-diff's word runs.
+
+  From the intent stage on, the request stays one tap away, collapsed above the
+  text; on draft steps the outline does the same. Both are <details> because
+  the owner asked for exactly that container, collapsed by default, against
+  html-style rule 12's general caution. A comment's quote is marked where it
+  falls in the rendered text; tapping a mark opens the comment beneath its
+  block, and the list under the text scrolls to and opens each one.
 
   Addresses, as pages/idea-board.html reads them: #gh=owner/repo[@ref]:path
   (read with the stored GitHub token), #gz=<gzipped base64url JSON>
   (kits/gz-payload.js), and with neither, the sample at
-  pages/demos/stepwise-writing-sprint.json.
-  &step=N opens at step N and follows the reader. `file` links to GitHub in
+  pages/demos/stepwise-writing-sprint.json. &step=N opens at step N and
+  follows the reader. `file` links to GitHub through RepoAddress.github, in
   `repo` when the payload names one, else in the #gh= address's repository at
-  its ref, else in mehrlander/web-tools on main; the document's relative links
+  its ref, else in mehrlander/web-tools on main; relative links in the text
   resolve against it the same way.
 
   Each step is one slide of a swipeDeck.core track (kits/swipe-deck.js), so a
-  swipe is the house one; the arrows, the buttons and the markers drive the
-  same track.
+  swipe is the house one; the arrows, the buttons, the step dots and the stage
+  strip drive the same track.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -70,22 +93,90 @@ document.addEventListener('alpine:init', () => {
     if (text != null) e.textContent = text;
     return e;
   };
-  // Who made a step. A critic's step is the one coloured; an owner's is told
-  // apart from a session's by its own hue.
+  const icon = (name, cls = '') => h('i', `ph ${name} ${cls}`);
+  // Who made a step. The critic is the coloured one, and its comments carry
+  // the same hue; the owner is told apart from a session by a hue of its own.
   const BY = {
     session: { badge: 'badge-ghost', icon: 'ph-terminal-window', dot: 'bg-base-content/30' },
     critic: { badge: 'badge-warning', icon: 'ph-magnifying-glass', dot: 'bg-warning' },
     owner: { badge: 'badge-info', icon: 'ph-user', dot: 'bg-info' },
   };
   const by = s => BY[s?.by] || BY.session;
+  const STAGES = [
+    { k: 'request', label: 'Request', icon: 'ph-chat-circle-text' },
+    { k: 'intent', label: 'Intent', icon: 'ph-target' },
+    { k: 'outline', label: 'Outline', icon: 'ph-list-numbers' },
+    { k: 'draft', label: 'Draft', icon: 'ph-file-text' },
+  ];
+  const STAGE = Object.fromEntries(STAGES.map(s => [s.k, s]));
+  const PROSE = 'prose prose-xl !max-w-none [--rl-wash:8%] [&_h1]:text-[2em]! [&_h2]:text-[1.4em]!';
+  const ANSWER = {
+    changed: { cls: 'badge-success badge-soft', icon: 'ph-check', label: 'changed' },
+    kept: { cls: 'badge-ghost', icon: 'ph-anchor-simple', label: 'kept' },
+  };
+  const MARK = 'rounded-sm bg-warning/20 underline decoration-2 decoration-[var(--color-warning)] underline-offset-4 cursor-pointer';
+  const MARK_ON = 'bg-warning/40';
+  const calm = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // A comment's quote in rendered text. The quote is from the source, so its
+  // inline Markdown is dropped and whitespace is compared collapsed; struck
+  // text is not part of the text a comment is on.
+  const plainQuote = q => String(q || '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*`]+|__/g, '')
+    .replace(/^\s*(?:[-+]|\d+[.)]|#+)\s+/gm, '').replace(/\s+/g, ' ').trim();
+  function markQuote(root, quoted, make) {
+    const q = plainQuote(quoted);
+    if (!q) return [];
+    const walker = document.createTreeWalker(root, 4 /* SHOW_TEXT */, {
+      acceptNode: n => (n.parentElement && n.parentElement.closest('del, [data-md-redline="removed"], [data-comment-card]') ? 2 : 1),
+    });
+    let text = '';
+    const at = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      for (let i = 0; i < n.data.length; i++) {
+        const c = /\s/.test(n.data[i]) ? ' ' : n.data[i];
+        if (c === ' ' && (!text || text.endsWith(' '))) continue;
+        text += c;
+        at.push([n, i]);
+      }
+    }
+    const s = text.indexOf(q);
+    if (s < 0) return [];
+    const spans = new Map();
+    for (let k = s; k < s + q.length; k++) {
+      const [n, i] = at[k];
+      const sp = spans.get(n);
+      if (sp) sp[1] = i + 1; else spans.set(n, [i, i + 1]);
+    }
+    const out = [];
+    for (const [n, [a, b]] of spans) {
+      const r = document.createRange();
+      r.setStart(n, a); r.setEnd(n, b);
+      const m = make();
+      r.surroundContents(m);
+      out.push(m);
+    }
+    return out;
+  }
 
   Alpine.data('stepwise', () => ({
-    B: null, err: '', cur: 0, deck: null, repo: 'mehrlander/web-tools', ref: 'main',
+    B: null, err: '', cur: 0, deck: null, repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
     get n() { return this.B ? this.B.steps.length : 0; },
     get fileUrl() { return this.B?.file ? window.RepoAddress.github.blob(this.repo, this.ref, this.B.file) : ''; },
+    // The stages present, in order, each with the step that opens it.
+    get stages() {
+      if (!this.B) return [];
+      return STAGES.map(st => ({ ...st, first: this.B.steps.findIndex(s => s.stage === st.k) })).filter(st => st.first >= 0);
+    },
+    get stage() { return this.B ? this.B.steps[this.cur].stage : ''; },
     dot(i) {
       const here = i === this.cur;
       return [by(this.B.steps[i]).dot, here ? 'h-4 w-4 border-2 border-base-content' : 'h-2.5 w-2.5'];
+    },
+    // The last step before i in a stage, or -1.
+    before(i, stage) {
+      for (let j = i - 1; j >= 0; j--) if (this.B.steps[j].stage === stage) return j;
+      return -1;
     },
 
     async init() {
@@ -99,8 +190,11 @@ document.addEventListener('alpine:init', () => {
           start: this.cur, behavior: 'instant', innerClass: 'w-full', slidePad: 'pb-24',
         });
         this.$refs.track.append(this.deck.track);
-        this.deck.onSlide(i => { this.cur = i; this.mark(); });
-        requestAnimationFrame(() => this.deck.go(this.cur, 'instant'));
+        this.deck.onSlide(i => { this.cur = i; this.mark(); this.enter(i); });
+        requestAnimationFrame(() => {
+          this.deck.go(this.cur, 'instant');
+          requestAnimationFrame(() => this.enter(this.cur));
+        });
       });
       window.addEventListener('keydown', e => {
         if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
@@ -128,8 +222,14 @@ document.addEventListener('alpine:init', () => {
         if (!r.ok) throw new Error('No payload. Address one with #gh=owner/repo@ref:path or #gz=…');
         B = await r.json();
       }
-      if (!B || B.schema !== 'stepwise/1') throw new Error('Not a stepwise/1 payload (schema: ' + (B?.schema ?? 'none') + ')');
+      if (!B || !['stepwise/1', 'stepwise/2'].includes(B.schema)) throw new Error('Not a stepwise payload (schema: ' + (B?.schema ?? 'none') + ')');
       if (!Array.isArray(B.steps) || !B.steps.length) throw new Error('The payload has no steps');
+      const v1 = B.schema === 'stepwise/1';
+      B.steps = B.steps.map((s, i) => {
+        const stage = v1 ? 'draft' : s.stage;
+        if (!STAGE[stage]) throw new Error(`Step ${i + 1} has no stage this page knows (${stage})`);
+        return { ...s, stage, payload: String(s.payload ?? ''), comments: v1 ? [] : (s.comments || []) };
+      });
       return B;
     },
 
@@ -150,6 +250,18 @@ document.addEventListener('alpine:init', () => {
       this.cur = to;
       this.mark();
       this.deck.go(to, 'instant');
+      this.enter(to);
+    },
+    // A step that opens a stage enters, each time the reader arrives on it.
+    enter(i) {
+      if (i === this.entered) return;
+      this.entered = i;
+      const slide = this.deck?.track.children[i];
+      if (!slide || calm()) return;
+      for (const el of slide.querySelectorAll('[data-enter]')) {
+        el.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }],
+                   { duration: 420, easing: 'cubic-bezier(.2,.7,.2,1)' });
+      }
     },
 
     // One block's HTML: the guide renderer, cleaned, with relative links
@@ -165,38 +277,188 @@ document.addEventListener('alpine:init', () => {
       }
       return t.innerHTML;
     },
+    async draw(host, was, now) {
+      await window.mdDiff.redline(host, was, now, { html: md => this.html(md) });
+      // A removal reads struck and quiet rather than as a red block.
+      for (const d of host.querySelectorAll('del.md-diff-del')) {
+        d.classList.remove('bg-error/40');
+        d.classList.add('bg-error/10', 'text-base-content/60');
+      }
+    },
+
+    // The owner's words, as a quotation.
+    quotation(owner) {
+      const fig = h('figure', 'rounded-box border-l-4 border-info bg-base-200 py-4');
+      const host = h('div', PROSE + ' px-5');
+      const cap = h('figcaption', 'px-5 pt-2 flex items-center gap-1.5 text-sm text-base-content/70');
+      cap.append(icon('ph-user'), owner || 'owner');
+      fig.append(icon('ph-quotes text-3xl text-info px-5 block'), host, cap);
+      return { el: fig, host };
+    },
+    // A container for earlier work kept in reach: collapsed, a tap to open.
+    folded(st, body) {
+      const d = h('details', 'group mx-4 sm:mx-8 mb-4 rounded-box border border-base-300');
+      const sum = h('summary', 'list-none [&::-webkit-details-marker]:hidden cursor-pointer px-4 py-2 flex items-center gap-2 text-sm text-base-content/70');
+      sum.append(icon('ph-caret-right transition-transform group-open:rotate-90'), icon(STAGE[st].icon), STAGE[st].label);
+      const inner = h('div', 'border-t border-base-300 p-2');
+      inner.append(body);
+      d.append(sum, inner);
+      return d;
+    },
+    outlineCard(label) {
+      const card = h('div', 'rounded-box border border-base-300 py-3');
+      if (label) {
+        const top = h('div', 'px-4 pb-1 flex items-center gap-2 text-sm text-base-content/70');
+        top.append(icon(STAGE.outline.icon), STAGE.outline.label);
+        card.append(top);
+      }
+      const host = h('div', PROSE + ' px-4');
+      card.append(host);
+      return { el: card, host };
+    },
+    // A comment's own reading: peeve, words, answer, and why it was kept.
+    commentBody(c) {
+      const box = h('div', 'grid gap-2');
+      const badges = h('div', 'flex flex-wrap items-center gap-1');
+      if (c.peeve) badges.append(h('span', 'badge badge-sm badge-warning font-mono', c.peeve));
+      const a = ANSWER[c.answer];
+      if (a) {
+        const b = h('span', `badge badge-sm ${a.cls} gap-1`);
+        b.append(icon(a.icon), a.label);
+        badges.append(b);
+      }
+      if (badges.children.length) box.append(badges);
+      box.append(h('p', 'm-0! text-xl leading-8', c.payload || ''));
+      if (c.rationale) {
+        const why = h('p', 'm-0! text-xl leading-8 text-base-content/80 border-l-2 border-base-300 pl-3');
+        why.textContent = c.rationale;
+        box.append(why);
+      }
+      return box;
+    },
 
     render(i, el) {
-      const s = this.B.steps[i], who = by(s);
-      const was = split(i ? this.B.steps[i - 1].payload : ''), now = split(s.payload);
+      const s = this.B.steps[i], who = by(s), st = s.stage;
+      const j = this.before(i, st), fresh = j < 0;
+      const was = split(fresh ? s.payload : this.B.steps[j].payload), now = split(s.payload);
+
       const head = h('div', 'sticky top-0 z-10 bg-base-100 border-b border-base-200 px-4 sm:px-8 py-3 mb-4 grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-start');
       const badge = h('span', `badge badge-sm ${who.badge} gap-1 mt-1.5`);
-      badge.append(h('i', `ph ${who.icon}`), s.by || 'session');
+      badge.append(icon(who.icon), s.by || 'session');
       head.append(badge, h('p', 'text-xl leading-8 font-semibold', s.note || ''));
-      const front = h('pre', 'mx-4 sm:mx-8 mb-4 rounded-box border border-base-300 px-3 py-2 font-mono text-xs leading-5 text-base-content/60 whitespace-pre-wrap break-words');
-      const doc = h('div', 'prose prose-xl !max-w-none px-4 sm:px-8 [--rl-wash:8%] [&_h1]:text-[2em]! [&_h2]:text-[1.4em]!');
       el.replaceChildren(head);
-      if (was.front || now.front) el.append(front);
-      el.append(doc);
+
+      // What came before, kept in reach.
+      const req = st === 'request' ? -1 : this.before(i, 'request');
+      if (req >= 0) {
+        const qn = this.quotation(this.B.steps[req].by);
+        el.append(this.folded('request', qn.el));
+        this.draw(qn.host, this.B.steps[req].payload, this.B.steps[req].payload);
+      }
+      let outlineHost = null, outlineFold = null;
+      const ol = st === 'draft' ? this.before(i, 'outline') : -1;
+      if (ol >= 0) {
+        const oc = this.outlineCard(false);
+        oc.el.classList.replace('border', 'border-0');
+        outlineFold = this.folded('outline', oc.el);
+        outlineHost = oc.host;
+        el.append(outlineFold);
+      }
+
+      // The stage's own text.
+      let main, host, front = null;
+      if (st === 'request') { const qn = this.quotation(s.by); main = h('div', 'mx-4 sm:mx-8'); main.append(qn.el); host = qn.host; }
+      else if (st === 'outline') { const oc = this.outlineCard(true); main = h('div', 'mx-4 sm:mx-8'); main.append(oc.el); host = oc.host; }
+      else {
+        main = h('div');
+        if (was.front || now.front) {
+          front = h('pre', 'mx-4 sm:mx-8 mb-4 rounded-box border border-base-300 px-3 py-2 font-mono text-xs leading-5 text-base-content/60 whitespace-pre-wrap break-words');
+          main.append(front);
+        }
+        host = h('div', PROSE + ' px-4 sm:px-8');
+        main.append(host);
+      }
+      if (fresh) main.dataset.enter = '';
+      el.append(main);
+
+      // The step's comments, listed under the text.
+      const list = h('ol', 'mx-4 sm:mx-8 mt-6 grid gap-3');
+      if (s.comments.length) {
+        const label = h('div', 'mx-4 sm:mx-8 mt-8 flex items-center gap-2 text-sm text-base-content/70');
+        label.append(icon('ph-chat-circle-dots'), `${s.comments.length} ${s.comments.length === 1 ? 'comment' : 'comments'}`);
+        el.append(label, list);
+      }
+
       (async () => {
         await window.mdDiff.needDiff();
-        if (was.front || now.front) {
+        if (front) {
           front.textContent = now.front;
           window.mdDiff.mark(front, window.mdDiff.runs(was.front, now.front));
         }
-        await window.mdDiff.redline(doc, was.body, now.body, { html: md => this.html(md) });
-        // A removal reads struck and quiet rather than as a red block.
-        for (const d of el.querySelectorAll('del.md-diff-del')) {
-          d.classList.remove('bg-error/40');
-          d.classList.add('bg-error/10', 'text-base-content/60');
+        const jobs = [this.draw(host, was.body, now.body)];
+        if (outlineHost) jobs.push(this.draw(outlineHost, this.B.steps[ol].payload, this.B.steps[ol].payload));
+        await Promise.all(jobs);
+        this.comments(s, el, host, outlineHost, outlineFold, list);
+      })().catch(e => { host.textContent = 'Could not draw this step: ' + (e?.message || e); });
+    },
+
+    // Marks each comment's quote, and ties the marks, the list and the card
+    // that opens beneath a mark's block together: selecting any one selects
+    // the others.
+    comments(s, el, host, outlineHost, outlineFold, list) {
+      if (!s.comments.length) return;
+      let open = -1, card = null;
+      const marks = s.comments.map((c, k) => {
+        const root = c.on === 'outline' && outlineHost ? outlineHost : host;
+        return markQuote(root, c.quoted, () => {
+          const m = h('mark', MARK);
+          m.dataset.comment = k;
+          m.addEventListener('click', () => select(open === k ? -1 : k, false));
+          return m;
+        });
+      });
+      const items = s.comments.map((c, k) => {
+        const li = h('li');
+        const b = h('button', 'w-full text-left grid gap-2 rounded-box border border-base-300 px-4 py-3 hover:bg-base-200');
+        b.type = 'button';
+        b.append(this.commentBody(c));
+        if (c.quoted) {
+          const q = h('p', 'flex items-start gap-2 text-sm text-base-content/60');
+          q.append(icon(c.on === 'outline' ? STAGE.outline.icon : 'ph-quotes', 'mt-0.5'), h('span', 'line-clamp-2', marks[k].length ? c.quoted : c.quoted + ' (not found in the text)'));
+          b.append(q);
         }
-      })().catch(e => { doc.textContent = 'Could not draw this step: ' + (e?.message || e); });
+        b.addEventListener('click', () => select(k, true));
+        li.append(b);
+        list.append(li);
+        return b;
+      });
+      const select = (k, scroll) => {
+        open = k;
+        if (card) { card.remove(); card = null; }
+        marks.forEach((ms, x) => ms.forEach(m => m.classList.toggle(MARK_ON, x === k)));
+        items.forEach((b, x) => {
+          b.classList.toggle('border-warning', x === k);
+          b.classList.toggle('bg-warning/10', x === k);
+        });
+        if (k < 0 || !marks[k].length) return;
+        const first = marks[k][0];
+        if (s.comments[k].on === 'outline' && outlineFold) outlineFold.open = true;
+        // The card opens beneath the block the quote ends in.
+        const root = first.closest('.prose');
+        let block = marks[k][marks[k].length - 1];
+        while (block.parentElement && block.parentElement !== root) block = block.parentElement;
+        card = h('div', 'not-prose my-4 rounded-box border border-warning bg-base-100 px-4 py-3 shadow-sm');
+        card.dataset.commentCard = '';
+        card.append(this.commentBody(s.comments[k]));
+        block.after(card);
+        if (scroll) first.scrollIntoView({ block: 'center', behavior: calm() ? 'auto' : 'smooth' });
+      };
     },
   }));
 });
 </script>
 </head>
-<body class="bg-base-100 text-base-content [--fab-bottom:4rem]">
+<body class="bg-base-100 text-base-content [--fab-bottom:6.5rem]">
 <div x-data="stepwise()" class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
 
   <header class="border-b border-base-300 px-4 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
@@ -215,28 +477,39 @@ document.addEventListener('alpine:init', () => {
     <div x-ref="track" x-show="B" class="min-h-0 min-w-0 h-full"></div>
   </main>
 
-  <footer x-show="B" class="border-t border-base-300 px-2 py-1 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1">
-    <button type="button" class="btn btn-ghost btn-square" aria-label="Previous step" @click="go(cur - 1)" :disabled="cur === 0">
-      <i class="ph ph-caret-left text-xl"></i>
-    </button>
-    <div class="min-w-0">
-      <template x-if="B && n <= 25">
-        <div class="flex justify-center-safe overflow-x-auto">
-          <template x-for="(s, i) in B.steps" :key="i">
-            <button type="button" class="h-10 w-7 shrink-0 grid place-items-center" :aria-label="'Step ' + (i + 1) + ', ' + s.by"
-                    :aria-current="i === cur ? 'step' : null" @click="go(i)">
-              <span class="rounded-full" :class="dot(i)"></span>
-            </button>
-          </template>
-        </div>
+  <footer x-show="B" class="border-t border-base-300 px-2 pt-1 grid grid-cols-[minmax(0,1fr)]">
+    <nav x-show="stages.length > 1" aria-label="Stages" class="flex justify-center-safe gap-1 overflow-x-auto">
+      <template x-for="st in stages" :key="st.k">
+        <button type="button" class="btn btn-xs rounded-full gap-1 shrink-0" @click="go(st.first)"
+                :class="st.k === stage ? 'btn-neutral' : 'btn-ghost text-base-content/60'" :aria-current="st.k === stage ? 'step' : null">
+          <i class="ph" :class="st.icon"></i><span x-text="st.label"></span>
+        </button>
       </template>
-      <template x-if="B && n > 25">
-        <input type="range" class="range range-xs w-full" min="1" :max="n" :value="cur + 1" aria-label="Step" @input="go($event.target.value - 1)">
-      </template>
+    </nav>
+    <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 pb-1">
+      <button type="button" class="btn btn-ghost btn-square" aria-label="Previous step" @click="go(cur - 1)" :disabled="cur === 0">
+        <i class="ph ph-caret-left text-xl"></i>
+      </button>
+      <div class="min-w-0">
+        <template x-if="B && n <= 25">
+          <div class="flex justify-center-safe overflow-x-auto">
+            <template x-for="(s, i) in B.steps" :key="i">
+              <button type="button" class="h-10 w-6 shrink-0 grid place-items-center" :aria-label="'Step ' + (i + 1) + ', ' + s.stage + ', ' + s.by"
+                      :class="i && B.steps[i - 1].stage !== s.stage ? 'ml-3' : ''"
+                      :aria-current="i === cur ? 'step' : null" @click="go(i)">
+                <span class="rounded-full" :class="dot(i)"></span>
+              </button>
+            </template>
+          </div>
+        </template>
+        <template x-if="B && n > 25">
+          <input type="range" class="range range-xs w-full" min="1" :max="n" :value="cur + 1" aria-label="Step" @input="go($event.target.value - 1)">
+        </template>
+      </div>
+      <button type="button" class="btn btn-ghost btn-square" aria-label="Next step" @click="go(cur + 1)" :disabled="cur === n - 1">
+        <i class="ph ph-caret-right text-xl"></i>
+      </button>
     </div>
-    <button type="button" class="btn btn-ghost btn-square" aria-label="Next step" @click="go(cur + 1)" :disabled="cur === n - 1">
-      <i class="ph ph-caret-right text-xl"></i>
-    </button>
   </footer>
 </div>
 </body>
