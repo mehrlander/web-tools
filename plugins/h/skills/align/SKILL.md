@@ -1,6 +1,6 @@
 ---
 name: align
-description: "Align on sight: When you see friction in the machine, propose a correction; do not set it aside. Friction here means names, text or structure that disagree with each other or with what is true. Every session that meets it pays a small cost until it is fixed."
+description: "Align on sight: Misalignment of terminology or logic creates friction: obscuring what has been discovered, what exists, and what should come next. It creates redundancy and technical debt. Align early and often. Notice a conflict and propose a fix. Do not set it aside simply because the costs are hidden."
 disable-model-invocation: true
 ---
 
@@ -8,11 +8,6 @@ disable-model-invocation: true
 
 # Align on sight · `h:align`
 
-When you see friction in the machine, propose a correction; do not set it aside. Friction here means names, text or structure that disagree with each other or with what is true. Every session that meets it pays a small cost until it is fixed.
-
-- Propose a rename for every place the name appears, including links to it in our own repos.
-- Propose clearer wording wherever unclear wording appears, including wording in code.
-
-The caution in [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives) against improvements addressing hypothetical problems is meant for new guards and rules.
+Misalignment of terminology or logic creates friction: obscuring what has been discovered, what exists, and what should come next. It creates redundancy and technical debt. Align early and often. Notice a conflict and propose a fix. Do not set it aside simply because the costs are hidden.
 
 **Backed by:** the peeves [P38, Unfinished work](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#unfinished-work--p38), [P65, Compatibility clutter](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#compatibility-clutter--p65) and [P12, One name per thing](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#one-name-per-thing--p12).
