@@ -273,7 +273,7 @@ document.addEventListener('alpine:init', () => {
       };
       let s = '', lane = 0;
       const text = (x, y, t, anchor, color, rot) =>
-        `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="11" fill="${color}" stroke="var(--color-base-100)" stroke-width="3" paint-order="stroke"${rot ? ` transform="rotate(-90 ${x} ${y})"` : ''}>${t.replace(/[<&]/g, c => c === '<' ? '&lt;' : '&amp;')}</text>`;
+        `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="11" fill="${color}" stroke="var(--color-base-100)" stroke-width="3" paint-order="stroke"${rot ? ` transform="rotate(-90 ${x} ${y})"` : ''}>${window.esc(t)}</text>`;
       this.edges().forEach(e => {
         const a = box(this.vis[e.i].id), b = box(this.vis[e.j].id);
         if (!a || !b) return;
