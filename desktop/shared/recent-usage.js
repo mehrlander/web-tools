@@ -87,8 +87,7 @@
       const itemAt = past(item.at,now), usageAt = usage?.usageAt ?? null;
       const activityAt = itemAt === null ? usageAt : usageAt === null ? itemAt : Math.max(itemAt,usageAt);
       if (activityAt === null || activityAt < cutoff) continue;
-      const rawPlace = String(item.place || (item.kind === 'cloud' ? 'cloud' : 'lenovo')).toLowerCase();
-      const place = rawPlace === 'laptop' ? 'lenovo' : rawPlace;
+      const place = String(item.place || (item.kind === 'cloud' ? 'cloud' : 'lenovo')).toLowerCase();
       const row = {...item,id,identity,place,at:activityAt,itemAt,activityAt,usageAt,
         contextTokens:usage?.contextTokens ?? null,usage:usage || null,
         metadataObservedAt:past(metadata?.observedAt,now)};
