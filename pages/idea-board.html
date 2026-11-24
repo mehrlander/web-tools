@@ -15,9 +15,10 @@
 
   The body is a linked swiper (data/ui-units codes.csv): the list on top, a
   strip of cards below, and the full-screen deck the strip expands into, all
-  three moved by sync(). The brief leads the list and the strip as a card of
-  its own, as the selection closes them, rather than sitting behind an info
-  button in a dialog (html-style rule 12). An SVG sketch renders as an image,
+  three moved by sync(). The brief opens the strip as a card of its own, as the
+  selection closes it; the header's Brief button selects it, so the list holds
+  only the ideas and the selection, and no dialog hides the brief (html-style
+  rule 12). An SVG sketch renders as an image,
   so it cannot run script and its marker ids cannot collide; an HTML sketch
   renders inline, cleaned first. Picks and notes stay in this browser, keyed by the board's
   address without its ref. They leave as text through Copy, and through Send
@@ -79,6 +80,16 @@ document.addEventListener('alpine:init', () => {
   // mistaken for a page that has not updated. The
   // left keeps it clear of the page's FAB, which sits in the bottom-right
   // corner on a phone. note() wires both.
+  // Each kind of idea keeps one color, on its number wherever the number shows (html-style rule 9): the
+  // four principal differences the design-sprint skill names, and control. Any other kind stays neutral.
+  const KIND_TONE = {
+    'information structure': ['bg-sky-100', 'text-sky-800'],
+    'explanatory mechanism': ['bg-violet-100', 'text-violet-800'],
+    'metaphor': ['bg-pink-100', 'text-pink-800'],
+    'borrowed form': ['bg-teal-100', 'text-teal-800'],
+    'control': ['bg-orange-100', 'text-orange-800'],
+  };
+  const tone = kind => KIND_TONE[String(kind || '').toLowerCase()] || ['bg-base-200', 'text-base-content'];
   const NO_SR = 'This browser has no speech recognizer. On a phone, the keyboard\'s microphone dictates into the box.';
   const noteBox = (ph, lead = '') => `<div class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 items-start">
       <div class="flex flex-col">${lead}<button type="button" data-mic class="btn btn-ghost btn-square text-xl"></button></div>
@@ -182,27 +193,34 @@ document.addEventListener('alpine:init', () => {
       const musts = (b.musts || []).map(m => /^.[a-z]/.test(m) ? m.charAt(0).toLowerCase() + m.slice(1) : m);
       return [[null, [b.result, musts.length ? 'A concept must show ' + musts.join('; ') + '.' : ''].filter(Boolean).join(' ')]];
     },
-    // The brief's list row: its first paragraph, unformatted.
-    get briefLead() { return (this.briefParts[0]?.[1] || '').replace(/\*\*|`/g, ''); },
     mark(kind, size = 16) { return window.CallMarks ? window.CallMarks.svg(kind, { size }) : ''; },
+
+    kindText(kind) { return tone(kind)[1]; },
+    // An idea's number on its kind's color, in the list, the card header and the selection.
+    chip(n) { return `<span class="inline-grid place-items-center min-w-6 h-6 px-1 rounded-md text-sm font-semibold tabular-nums ${tone(this.idea(n)?.kind).join(' ')}">${n}</span>`; },
 
     // The deck's subtitle names the card in view, as the strip's header does.
     deckSub() { const i = this.cur; return i > 0 && i < this.last ? i + ' ' + this.at(i).title : this.label(i); },
 
     // One move, from the list, the strip or the expanded deck, reaches the other two.
     // Left and Right step one item; Up and Down step one row of the grid the list lays out (one column on a
-    // phone, up to four on a wide screen); Home and End go to the ends. Focus follows the selection.
+    // phone, up to three on a wide screen); Home and End go to the ends. The list holds slides 1 to last, so
+    // from the brief any key lands on the first idea. Focus follows the selection.
     listKey(e) {
       const list = this.$refs.list;
       const cols = Math.max(1, getComputedStyle(list).gridTemplateColumns.split(' ').filter(Boolean).length);
       const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
-      const to = e.key === 'Home' ? 0 : e.key === 'End' ? this.count - 1 : step === undefined ? null : this.cur + step;
+      const to = e.key === 'Home' ? 1 : e.key === 'End' ? this.last : step === undefined ? null : this.cur === 0 ? 1 : this.cur + step;
       if (to === null) return;
       e.preventDefault();
-      const n = Math.max(0, Math.min(this.count - 1, to));
+      const n = Math.max(1, Math.min(this.last, to));
       this.sync(n, 'list');
-      this.$nextTick(() => list.querySelectorAll('[data-part="item"]')[n]?.focus({ preventScroll: true }));
+      this.$nextTick(() => list.querySelectorAll('[data-part="item"]')[n - 1]?.focus({ preventScroll: true }));
     },
+    // The row in view is tinted and barred at its left edge. Focus moves with it, so the bar stands in for
+    // the browser's focus ring. The list's one tab stop is that row, or the first idea while the brief is in view.
+    row(k) { return this.cur === k ? 'bg-primary/10 shadow-[inset_3px_0_0_var(--color-primary)] outline-none' : 'hover:bg-base-200'; },
+    tab(k) { return this.cur === k || (this.cur === 0 && k === 1) ? 0 : -1; },
     sync(i, from) {
       this.cur = i;
       if (this.deck) this.deck.setSubtitle(this.deckSub());
@@ -234,7 +252,7 @@ document.addEventListener('alpine:init', () => {
     paint(n) {
       const on = this.picked(n);
       document.querySelectorAll(`[data-pick="${n}"]`).forEach(b => {
-        b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-star text-primary' : 'ph-star'}"></i>`;
+        b.innerHTML = `<i class="ph ${on ? 'ph-fill ph-star text-warning' : 'ph-star'}"></i>`;
         b.setAttribute('aria-pressed', on);
       });
     },
@@ -321,8 +339,8 @@ document.addEventListener('alpine:init', () => {
     // board's date beneath.
     renderBrief(el) {
       el.innerHTML = `<div class="rounded-box border border-base-300 bg-base-200 px-5 py-4 grid gap-4">
-        ${this.briefParts.map(([label, text]) => `<section class="grid gap-1">${label ? `<h3 class="text-sm font-semibold text-base-content/60">${label}</h3>` : ''}<div class="grid gap-3">${prose(text)}</div></section>`).join('')}
-        <p class="text-sm text-base-content/50">${esc(this.B.made)}</p>
+        ${this.briefParts.map(([label, text]) => `<section class="grid gap-1">${label ? `<h3 class="text-sm font-semibold text-info">${label}</h3>` : ''}<div class="grid gap-3">${prose(text)}</div></section>`).join('')}
+        <p class="text-sm flex items-center gap-1"><i class="ph ph-calendar-blank"></i>${esc(this.B.made)}</p>
       </div>`;
     },
 
@@ -335,14 +353,14 @@ document.addEventListener('alpine:init', () => {
       const item = (n, icon, lends) => `<button data-go="${n}" class="group grid grid-cols-[7rem_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)] gap-x-3 gap-y-2 content-start text-left">
           ${this.sketch(this.idea(n), 'border border-base-300 rounded-box p-1 overflow-hidden max-h-48')}
           <span class="grid gap-1 content-start">
-            <span class="font-semibold group-hover:underline"><i class="ph ${icon} text-base-content/60 mr-1"></i><span class="tabular-nums text-base-content/50 font-normal">${n}</span> ${esc(this.idea(n).title)}</span>
-            ${lends ? `<span>${esc(lends)}</span>` : '<span class="text-sm text-base-content/60">base</span>'}
+            <span class="font-semibold group-hover:underline flex items-center gap-2"><i class="ph ${icon} text-success"></i>${this.chip(n)}<span>${esc(this.idea(n).title)}</span></span>
+            ${lends ? `<span>${esc(lends)}</span>` : '<span class="text-sm text-success">base</span>'}
           </span>
         </button>`;
       el.innerHTML = `<div class="grid gap-5">
         <div class="grid gap-4 sm:grid-cols-3">${S.pick.map(n => item(n, 'ph-anchor-simple')).join('')}${S.grafts.map(([n, w]) => item(n, 'ph-plus', w)).join('')}</div>
         <div class="grid gap-3">${prose(S.rationale)}</div>
-        <ul class="grid gap-2">${S.assumptions.map(a => `<li class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2"><i class="ph ph-question text-base-content/50 mt-1"></i><span>${esc(a)}</span></li>`).join('')}</ul>
+        <ul class="grid gap-2">${S.assumptions.map(a => `<li class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-2"><i class="ph ph-question text-info mt-1"></i><span>${esc(a)}</span></li>`).join('')}</ul>
         ${noteBox('Note on the selection')}
       </div>`;
       el.querySelectorAll('[data-go]').forEach(b => {
@@ -409,15 +427,19 @@ document.addEventListener('alpine:init', () => {
 <div x-data="ideaBoard()" x-cloak class="h-dvh grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
 
   <header class="bg-base-100 border-b border-base-300 px-4 py-2 flex items-center gap-3">
-    <i class="ph ph-squares-four text-xl"></i>
+    <i class="ph ph-squares-four text-xl text-primary"></i>
     <div class="min-w-0">
       <h1 class="font-semibold text-lg truncate" x-text="B ? B.title : 'Idea board'"></h1>
-      <div class="text-xs text-base-content/60 truncate" x-text="B?.subject"></div>
+      <div class="text-xs truncate" x-text="B?.subject"></div>
     </div>
     <template x-if="B">
       <div class="ml-auto flex items-center gap-1">
+        <!-- The brief is the strip's first card; this button selects it, pressed while it is in view. -->
+        <button class="btn btn-sm gap-1" :class="cur === 0 ? 'btn-active' : 'btn-ghost'" @click="sync(0, 'header')" :aria-pressed="cur === 0" aria-label="Brief" data-title-tip="Background and method">
+          <span class="text-info" x-html="mark('background', 18)"></span><span class="max-sm:hidden">Brief</span>
+        </button>
         <button class="btn btn-ghost btn-sm gap-1 tabular-nums" @click="copy()" aria-label="Copy picks" data-title-tip="Copy picks and notes">
-          <i class="ph text-lg" :class="copied ? 'ph-check' : 'ph-copy'"></i><span x-text="copied ? 'Copied' : picks.length + ' picked'"></span>
+          <i class="ph text-lg" :class="copied ? 'ph-check' : picks.length ? 'ph-fill ph-star text-warning' : 'ph-star'"></i><span x-text="copied ? 'Copied' : picks.length"></span>
         </button>
         <!-- The call form's answer button: ghost, tinted with the primary colour, as the image board's is.
              Shown on every board and disabled without a call, so its absence is never read as a missing feature. -->
@@ -434,38 +456,32 @@ document.addEventListener('alpine:init', () => {
   <!-- The list on top, kept in step with the strip below and with the deck the strip expands into -->
   <template x-if="B">
     <main data-pattern="linked-swiper" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
-      <!-- The selected item is the list's one tab stop (roving tabindex), so focus and its outline sit on the item,
-           drawn just inside it as linked-swiper draws a row's. listKey moves through the grid the list lays out. -->
+      <!-- The row in view is the list's one tab stop (roving tabindex), and listKey moves through the grid the
+           list lays out. The brief is not a row: the header's Brief button selects it. -->
       <ol x-ref="list" role="listbox" aria-label="Concepts" data-part="list" @keydown="listKey($event)"
-          class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-start">
-        <li role="option" data-part="item" :aria-selected="cur === 0 ? 'true' : 'false'" :tabindex="cur === 0 ? 0 : -1" @click="sync(0, 'list'); $el.focus({ preventScroll: true })"
-            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200 -outline-offset-2"
-            :class="[cur === 0 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
-          <span class="justify-self-center text-base-content/70" x-html="mark('background', 26)"></span>
-          <span class="grid min-w-0">
-            <span class="font-semibold">Brief</span>
-            <span class="text-xs text-base-content/60 truncate" x-text="briefLead"></span>
-          </span>
-        </li>
+          class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 content-start">
         <template x-for="(d, i) in B.ideas" :key="d.n">
-          <li role="option" data-part="item" :aria-selected="cur === i + 1 ? 'true' : 'false'" :tabindex="cur === i + 1 ? 0 : -1" @click="sync(i + 1, 'list'); $el.focus({ preventScroll: true })"
-              class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200 -outline-offset-2"
-              :class="[cur === i + 1 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
+          <li role="option" data-part="item" :aria-selected="cur === i + 1 ? 'true' : 'false'" :tabindex="tab(i + 1)" @click="sync(i + 1, 'list'); $el.focus({ preventScroll: true })"
+              class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200"
+              :class="[row(i + 1), thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
             <template x-if="thumbs"><span class="h-12 grid place-items-center overflow-hidden"><img :src="d.src" alt="" class="max-h-12 w-auto bg-white"></span></template>
-            <span class="grid min-w-0">
-              <span class="font-semibold truncate"><span class="tabular-nums text-base-content/50 font-normal" x-text="d.n"></span> <span x-text="d.title"></span></span>
-              <span class="text-xs text-base-content/60 truncate" x-text="d.kind + (role(d.n) ? ' · ' + (role(d.n) === 'base' ? 'base' : 'graft') : '')"></span>
+            <span class="grid min-w-0 gap-0.5">
+              <span class="font-semibold truncate flex items-center gap-2"><span x-html="chip(d.n)"></span><span class="truncate" x-text="d.title"></span></span>
+              <span class="text-xs truncate flex items-center gap-1.5">
+                <span :class="kindText(d.kind)" x-text="d.kind"></span>
+                <template x-if="role(d.n)"><span class="flex items-center gap-0.5 text-success"><i class="ph" :class="role(d.n) === 'base' ? 'ph-anchor-simple' : 'ph-plus'"></i><span x-text="role(d.n) === 'base' ? 'base' : 'graft'"></span></span></template>
+              </span>
             </span>
-            <i class="ph" :class="picked(d.n) ? 'ph-fill ph-star text-primary' : 'ph-star opacity-25'"></i>
+            <i class="ph text-lg" :class="picked(d.n) ? 'ph-fill ph-star text-warning' : 'ph-star opacity-25'"></i>
           </li>
         </template>
-        <li role="option" data-part="item" :aria-selected="cur === last ? 'true' : 'false'" :tabindex="cur === last ? 0 : -1" @click="sync(last, 'list'); $el.focus({ preventScroll: true })"
-            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200 -outline-offset-2"
-            :class="[cur === last && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
-          <span class="justify-self-center text-base-content/70" x-html="mark('conclusion', 26)"></span>
-          <span class="grid min-w-0">
+        <li role="option" data-part="item" :aria-selected="cur === last ? 'true' : 'false'" :tabindex="tab(last)" @click="sync(last, 'list'); $el.focus({ preventScroll: true })"
+            class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200"
+            :class="[row(last), thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
+          <span class="justify-self-center text-success" x-html="mark('conclusion', 26)"></span>
+          <span class="grid min-w-0 gap-0.5">
             <span class="font-semibold">Selection</span>
-            <span class="text-xs text-base-content/60 truncate" x-text="B.selection.pick.concat(B.selection.grafts.map(([n]) => n)).join(' + ')"></span>
+            <span class="flex items-center gap-1 text-xs" x-html="B.selection.pick.concat(B.selection.grafts.map(([n]) => n)).map(n => chip(n)).join('<i class=&quot;ph ph-plus&quot;></i>')"></span>
           </span>
         </li>
       </ol>
@@ -473,9 +489,9 @@ document.addEventListener('alpine:init', () => {
       <section x-ref="detail" data-part="detail" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
         <div class="flex items-center gap-1 pl-4 pr-3 py-1.5 border-b border-base-200">
           <span class="min-w-0 flex-1 flex items-center gap-2">
-            <span x-show="cur === 0" class="shrink-0 text-base-content/60" x-html="mark('background', 18)"></span>
-            <span x-show="cur === last" class="shrink-0 text-base-content/60" x-html="mark('conclusion', 18)"></span>
-            <span x-show="cur > 0 && cur < last" class="shrink-0 tabular-nums text-base-content/50" x-text="cur"></span>
+            <span x-show="cur === 0" class="shrink-0 text-info" x-html="mark('background', 18)"></span>
+            <span x-show="cur === last" class="shrink-0 text-success" x-html="mark('conclusion', 18)"></span>
+            <span x-show="cur > 0 && cur < last" class="shrink-0" x-html="cur > 0 && cur < last ? chip(at(cur).n) : ''"></span>
             <span class="font-semibold truncate" x-text="label(cur)"></span>
           </span>
           <button class="btn btn-ghost btn-sm btn-square" @click="sync(Math.max(0, cur - 1), 'list')" aria-label="Previous"><i class="ph ph-caret-left text-lg"></i></button>
