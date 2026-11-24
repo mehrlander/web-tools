@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stepwise</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/combine/npm/marked/lib/marked.umd.js,npm/dompurify/dist/purify.min.js"></script>
+
+<!--
+  stepwise.html — a document's development, one step at a time, from its
+  one-sentence core to its finished form, read from a `stepwise/1` payload:
+
+    { schema: 'stepwise/1', title, file, repo?, steps: [{ by, note, payload }] }
+
+  `by` is session, critic or owner; `note` is one line on what the step adds;
+  `payload` is the WHOLE document after the step. Nothing about a change is stored:
+  each step is diffed against the one before it (step 1 against nothing) by
+  kits/md-diff.js's redline, which draws the new text with arrivals tinted and
+  departures struck. Leading YAML frontmatter is split off first and shown as a
+  small block of its own, marked by md-diff's word runs, since the redline
+  renders Markdown and a frontmatter block is not Markdown.
+
+  Addresses, as pages/idea-board.html reads them: #gh=owner/repo[@ref]:path
+  (read with the stored GitHub token), #gz=<gzipped base64url JSON>
+  (kits/gz-payload.js), and with neither, the sample at
+  pages/demos/stepwise-writing-sprint.json.
+  &step=N opens at step N and follows the reader. `file` links to GitHub in
+  `repo` when the payload names one, else in the #gh= address's repository at
+  its ref, else in mehrlander/web-tools on main; the document's relative links
+  resolve against it the same way.
+
+  Each step is one slide of a swipeDeck.core track (kits/swipe-deck.js), so a
+  swipe is the house one; the arrows, the buttons and the markers drive the
+  same track.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('kits/gz-payload.js');    // the #gz= codec
+    await gh.load('kits/swipe-deck.js');    // the track
+    await gh.load('kits/guide-render.js');  // Markdown to HTML
+    await gh.load('kits/md-diff.js');       // the redline
+  } finally { window.__depsDone(); }
+</script>
+<script>
+document.addEventListener('alpine:init', () => {
+  const tokenNow = () => window.TOKEN || window.ghAuth?.resolve() || '';
+  const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
+  // Leading frontmatter, split from the body it heads.
+  const FRONT = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+  const split = md => {
+    const m = String(md || '').match(FRONT);
+    return m ? { front: m[1], body: md.slice(m[0].length) } : { front: '', body: String(md || '') };
+  };
+  const h = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  // Who made a step. A critic's step is the one coloured; an owner's is told
+  // apart from a session's by its own hue.
+  const BY = {
+    session: { badge: 'badge-ghost', icon: 'ph-terminal-window', dot: 'bg-base-content/30' },
+    critic: { badge: 'badge-warning', icon: 'ph-magnifying-glass', dot: 'bg-warning' },
+    owner: { badge: 'badge-info', icon: 'ph-user', dot: 'bg-info' },
+  };
+  const by = s => BY[s?.by] || BY.session;
+
+  Alpine.data('stepwise', () => ({
+    B: null, err: '', cur: 0, deck: null, repo: 'mehrlander/web-tools', ref: 'main',
+    get n() { return this.B ? this.B.steps.length : 0; },
+    get fileUrl() { return this.B?.file ? `https://github.com/${this.repo}/blob/${this.ref}/${this.B.file}` : ''; },
+    dot(i) {
+      const here = i === this.cur;
+      return [by(this.B.steps[i]).dot, here ? 'h-4 w-4 border-2 border-base-content' : 'h-2.5 w-2.5'];
+    },
+
+    async init() {
+      await window.__depsReady;
+      try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
+      if (this.B.repo) this.repo = this.B.repo;
+      document.title = this.B.title || 'Stepwise';
+      this.cur = this.stepOf();
+      this.$nextTick(() => {
+        this.deck = swipeDeck.core(this.n, (i, el) => this.render(i, el), {
+          start: this.cur, behavior: 'instant', innerClass: 'w-full', slidePad: 'pb-24',
+        });
+        this.$refs.track.append(this.deck.track);
+        this.deck.onSlide(i => { this.cur = i; this.mark(); });
+        requestAnimationFrame(() => this.deck.go(this.cur, 'instant'));
+      });
+      window.addEventListener('keydown', e => {
+        if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
+        const to = { ArrowLeft: this.cur - 1, ArrowRight: this.cur + 1, Home: 0, End: this.n - 1 }[e.key];
+        if (to == null) return;
+        e.preventDefault();
+        this.go(to);
+      });
+      window.addEventListener('hashchange', () => { const s = this.stepOf(); if (s !== this.cur) this.go(s); });
+    },
+
+    async read() {
+      const gz = param('gz'), spec = param('gh');
+      let B;
+      if (gz) B = await window.GzPayload.decodeJson(gz);
+      else if (spec) {
+        const a = window.RepoAddress.parse(spec);
+        if (!a) throw new Error('#gh= reads owner/repo[@ref]:path, and this is not one: ' + spec);
+        this.repo = a.repo;
+        if (a.ref) this.ref = a.ref;
+        try { B = JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
+        catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+      } else {
+        const r = await fetch('demos/stepwise-writing-sprint.json');
+        if (!r.ok) throw new Error('No payload. Address one with #gh=owner/repo@ref:path or #gz=…');
+        B = await r.json();
+      }
+      if (!B || B.schema !== 'stepwise/1') throw new Error('Not a stepwise/1 payload (schema: ' + (B?.schema ?? 'none') + ')');
+      if (!Array.isArray(B.steps) || !B.steps.length) throw new Error('The payload has no steps');
+      return B;
+    },
+
+    // The step in the address, as a slide index.
+    stepOf() {
+      const s = parseInt(param('step'), 10);
+      return Number.isFinite(s) ? Math.max(0, Math.min(this.n - 1, s - 1)) : 0;
+    },
+    // Rewrites only `step`, so a #gz= or #gh= value keeps its own spelling.
+    mark() {
+      const parts = location.hash.slice(1).split('&').filter(p => p && !/^step=/.test(p));
+      parts.push('step=' + (this.cur + 1));
+      try { history.replaceState(history.state, '', '#' + parts.join('&')); } catch (e) {}
+    },
+    go(i) {
+      const to = Math.max(0, Math.min(this.n - 1, i));
+      if (!this.deck) return;
+      this.cur = to;
+      this.mark();
+      this.deck.go(to, 'instant');
+    },
+
+    // One block's HTML: the guide renderer, cleaned, with relative links
+    // aimed at the document's own folder on GitHub.
+    html(md) {
+      const t = document.createElement('template');
+      t.innerHTML = window.DOMPurify.sanitize(window.GuideRender.render(md, {}).html);
+      const base = `https://github.com/${this.repo}/blob/${this.ref}/${this.B.file || ''}`;
+      for (const a of t.content.querySelectorAll('a[href]')) {
+        const href = a.getAttribute('href');
+        if (/^([a-z][a-z0-9+.-]*:|#|\/\/)/i.test(href)) continue;
+        try { a.setAttribute('href', new URL(href, base).href); a.target = '_blank'; a.rel = 'noopener'; } catch (e) {}
+      }
+      return t.innerHTML;
+    },
+
+    render(i, el) {
+      const s = this.B.steps[i], who = by(s);
+      const was = split(i ? this.B.steps[i - 1].payload : ''), now = split(s.payload);
+      const head = h('div', 'sticky top-0 z-10 bg-base-100 border-b border-base-200 px-4 sm:px-8 py-3 mb-4 grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-start');
+      const badge = h('span', `badge badge-sm ${who.badge} gap-1 mt-1.5`);
+      badge.append(h('i', `ph ${who.icon}`), s.by || 'session');
+      head.append(badge, h('p', 'text-xl leading-8 font-semibold', s.note || ''));
+      const front = h('pre', 'mx-4 sm:mx-8 mb-4 rounded-box border border-base-300 px-3 py-2 font-mono text-xs leading-5 text-base-content/60 whitespace-pre-wrap break-words');
+      const doc = h('div', 'prose prose-xl !max-w-none px-4 sm:px-8 [--rl-wash:8%] [&_h1]:text-[2em]! [&_h2]:text-[1.4em]!');
+      el.replaceChildren(head);
+      if (was.front || now.front) el.append(front);
+      el.append(doc);
+      (async () => {
+        await window.mdDiff.needDiff();
+        if (was.front || now.front) {
+          front.textContent = now.front;
+          window.mdDiff.mark(front, window.mdDiff.runs(was.front, now.front));
+        }
+        await window.mdDiff.redline(doc, was.body, now.body, { html: md => this.html(md) });
+        // A removal reads struck and quiet rather than as a red block.
+        for (const d of el.querySelectorAll('del.md-diff-del')) {
+          d.classList.remove('bg-error/40');
+          d.classList.add('bg-error/10', 'text-base-content/60');
+        }
+      })().catch(e => { doc.textContent = 'Could not draw this step: ' + (e?.message || e); });
+    },
+  }));
+});
+</script>
+</head>
+<body class="bg-base-100 text-base-content [--fab-bottom:4rem]">
+<div x-data="stepwise()" class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
+
+  <header class="border-b border-base-300 px-4 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+    <i class="ph ph-stairs text-xl"></i>
+    <div class="min-w-0">
+      <h1 class="font-semibold text-lg truncate" x-text="B ? B.title : 'Stepwise'"></h1>
+      <a x-show="fileUrl" :href="fileUrl" target="_blank" rel="noopener"
+         class="block truncate font-mono text-xs text-base-content/60 hover:underline" x-text="B?.file"></a>
+    </div>
+    <span x-show="B" class="min-w-[7ch] text-right tabular-nums text-sm text-base-content/70" x-text="(cur + 1) + ' / ' + n"></span>
+  </header>
+
+  <main class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)]">
+    <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
+    <div x-show="!B && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
+    <div x-ref="track" x-show="B" class="min-h-0 min-w-0 h-full"></div>
+  </main>
+
+  <footer x-show="B" class="border-t border-base-300 px-2 py-1 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1">
+    <button type="button" class="btn btn-ghost btn-square" aria-label="Previous step" @click="go(cur - 1)" :disabled="cur === 0">
+      <i class="ph ph-caret-left text-xl"></i>
+    </button>
+    <div class="min-w-0">
+      <template x-if="B && n <= 25">
+        <div class="flex justify-center-safe overflow-x-auto">
+          <template x-for="(s, i) in B.steps" :key="i">
+            <button type="button" class="h-10 w-7 shrink-0 grid place-items-center" :aria-label="'Step ' + (i + 1) + ', ' + s.by"
+                    :aria-current="i === cur ? 'step' : null" @click="go(i)">
+              <span class="rounded-full" :class="dot(i)"></span>
+            </button>
+          </template>
+        </div>
+      </template>
+      <template x-if="B && n > 25">
+        <input type="range" class="range range-xs w-full" min="1" :max="n" :value="cur + 1" aria-label="Step" @input="go($event.target.value - 1)">
+      </template>
+    </div>
+    <button type="button" class="btn btn-ghost btn-square" aria-label="Next step" @click="go(cur + 1)" :disabled="cur === n - 1">
+      <i class="ph ph-caret-right text-xl"></i>
+    </button>
+  </footer>
+</div>
+</body>
+</html>
