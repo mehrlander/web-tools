@@ -392,8 +392,8 @@ def sections(text):
     out, cur, stated = {}, None, None
     for line in text.splitlines():
         # A session's detail caption, which a headless run appends after its
-        # last section: a stamp in code, after a linked ⌂ in code since
-        # 2026-11-20, then the record's mark.
+        # last section: a stamp in code, after a linked ⌂ in code on
+        # 2026-11-20 and 2026-11-21, then the record's mark.
         if re.match(r"^\s*(?:\[`[^`]*`\]\([^)\s]*\))?`[^`]+`\s*💬", line):
             continue
         m = SECTION.match(line)

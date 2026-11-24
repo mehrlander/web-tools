@@ -37,7 +37,7 @@ static class SyncHealthChecks
                 return Task.FromResult(Array.Empty<byte>());
             }
             string Value(string sha) => sha switch {
-                "request" => JsonSerializer.Serialize(new {title="Fixture",createdAt=Published,run=new{method="laptop-daemon"}}),
+                "request" => JsonSerializer.Serialize(new {title="Fixture",createdAt=Published,run=new{method="lenovo-daemon"}}),
                 "claim" => JsonSerializer.Serialize(new {claimedAt=Published,by="fixture"}),
                 "reply" => JsonSerializer.Serialize(new {ok=true,closedAt=Published,data=new{settled=false,reply="Arriving reply"}}),
                 "complete" => JsonSerializer.Serialize(new {ok=true,closedAt=Published,data=new{settled=true,reply="Complete reply"}}),

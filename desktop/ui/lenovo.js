@@ -35,13 +35,13 @@
 
   function collect(data) {
     const result = data.activity.errands.filter(j => recent(j.updatedAt) || ['queued','claimed','reply'].includes(j.state) || j.isNew)
-      .map(j => ({...j, key:`errand:${j.id}`,kind:'errand',provider:j.provider || 'Gemini',location:j.location ?? ((!j.provider || j.provider === 'Gemini') ? 'Laptop' : ''),detail:j.note || '',at:j.updatedAt}));
+      .map(j => ({...j, key:`errand:${j.id}`,kind:'errand',provider:j.provider || 'Gemini',location:j.location ?? ((!j.provider || j.provider === 'Gemini') ? 'Lenovo' : ''),detail:j.note || '',at:j.updatedAt}));
     const local = new Map((data.sessions?.items || []).map(s => [`${s.provider}:${s.id}`, s]));
     for (const event of data.events || []) {
       const key = `${event.provider}:${event.sessionId}`;
       if (!local.has(key) && recent(event.at)) local.set(key, {id:event.sessionId,provider:event.provider,title:event.title,state:event.state,updatedAt:event.at,detail:event.detail,location:event.location,workspace:''});
     }
-    for (const s of local.values()) if (recent(s.updatedAt)) result.push({...s,key:`session:${s.provider}:${s.id}`,kind:'session',location:s.location || 'Laptop',at:s.updatedAt});
+    for (const s of local.values()) if (recent(s.updatedAt)) result.push({...s,key:`session:${s.provider}:${s.id}`,kind:'session',location:s.location || 'Lenovo',at:s.updatedAt});
     for (const s of data.cloud?.items || []) if (recent(s.updatedAt)) result.push({...s,key:`cloud:${s.id}`,kind:'cloud',location:'Cloud',at:s.updatedAt});
     for (const c of data.changes || []) if (!result.some(i => i.key === c.key)) result.push({...c,kind:'change'});
     return result.sort((a,b) => Number(open(b) || needs(b) || b.state === 'queued') - Number(open(a) || needs(a) || a.state === 'queued') || new Date(b.at) - new Date(a.at));
@@ -72,7 +72,7 @@
       const appOpen = snapshot.applications.some(a => keyFor(a.name) === key && /Codex|Gemini|Claude|Antigravity/i.test(a.name) && a.state === 'open');
       const tip = key === 'claude' ? 'Cloud turn hooks report prompts, tool activity and responses. Unfinished turns with no report for three minutes appear quiet. Published checkpoints keep their own time.' : 'Local session events. Unfinished work with no event for three minutes appears quiet.';
       const sourceTip = [unavailable, key === 'claude' ? snapshot.cloud?.notice : '', appOpen ? 'Application process detected.' : '', snapshot.cloud?.capturedAt && key === 'claude' ? `Cloud cache captured ${stamp(snapshot.cloud.capturedAt)}.` : ''].filter(Boolean).join(' ');
-      const sourceLabel = key === 'claude' ? cloudLoading ? 'Cloud records loading' : snapshot.cloud?.notice ? 'Saved cloud records' : records.length ? 'Cloud records connected' : 'No recent cloud records' : appOpen ? 'App open on this laptop' : 'Local sessions';
+      const sourceLabel = key === 'claude' ? cloudLoading ? 'Cloud records loading' : snapshot.cloud?.notice ? 'Saved cloud records' : records.length ? 'Cloud records connected' : 'No recent cloud records' : appOpen ? 'App open on the Lenovo' : 'Local sessions';
       return `<article class="min-w-0 rounded-lg border-l-4 p-3 ${styles[key]}"><div class="flex items-center justify-between gap-2"><div class="min-w-0"><div class="flex items-center"><button data-assistant="${key}" aria-pressed="${assistant === key}" class="flex items-center gap-2 rounded text-base font-semibold hover:underline">${mark(key)}${name}</button>${window.NowView.assistantLink(key,{tooltip:true})}</div><span class="ml-8 block text-xs ${working ? 'font-medium text-emerald-800' : 'text-stone-600'}" data-title-tip="${escape(tip)}">${escape(state)}</span></div><div class="w-28 shrink-0">${usage[key]}</div></div><div class="mt-2 space-y-2">${display.map(s => `<button class="session block w-full rounded text-left hover:bg-white/70" data-pick="${escape(s.key)}"><span class="flex items-center gap-2 text-xs text-stone-500">${badge(s.state)}<span>${escape(s.provider === 'Gemini worker' ? 'Worker' : s.location)}</span>${time(s.at)}</span><span class="mt-1 block truncate text-base leading-6" data-title-tip="${escape(s.title)}">${escape(s.title)}</span>${((s.turn ? s.detail : s.checkpoint?.headline || s.detail)) && (s.state === 'working' || s.kind === 'cloud') ? `<span class="mt-0.5 block truncate text-sm text-stone-600" data-title-tip="${escape((s.turn ? s.detail : s.checkpoint?.headline || s.detail))}">${escape((s.turn ? s.detail : s.checkpoint?.headline || s.detail))}</span>` : ''}${s.checkpoint ? `<span class="mt-1 block text-xs text-violet-800">Checkpoint ${time(s.checkpoint.at)}</span>` : ''}</button>`).join('') || '<p class="py-2 text-base text-stone-500">No recent sessions</p>'}</div><div class="mt-2 text-xs text-stone-500" data-title-tip="${escape(sourceTip)}">${sourceLabel}${key === 'gemini' ? ` · ${waiting.length} queued` : ''}</div></article>`;
     }).join(''));
   }

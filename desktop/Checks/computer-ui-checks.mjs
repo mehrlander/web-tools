@@ -3,10 +3,10 @@ import {readFileSync} from 'node:fs';
 import {JSDOM} from 'jsdom';
 
 const read = path => readFileSync(new URL(path,import.meta.url),'utf8');
-const dom = new JSDOM(read('../phone/index.html'),{url:'https://laptop.example.ts.net/',runScripts:'outside-only',pretendToBeVisual:true});
+const dom = new JSDOM(read('../phone/index.html'),{url:'https://lenovo.example.ts.net/',runScripts:'outside-only',pretendToBeVisual:true});
 const w = dom.window, doc = w.document;
 const now = new Date().toISOString();
-let computer = {schemaVersion:1,machineName:'Laptop',observedAt:now,windowsObservedAt:now,sessionState:'unlocked',remoteSession:false,cpuPercent:12.5,memoryPercent:60,memoryUsedGb:9.6,memoryTotalGb:16,batteryPercent:85,pluggedIn:true,charging:true,applications:[
+let computer = {schemaVersion:1,machineName:'Lenovo',observedAt:now,windowsObservedAt:now,sessionState:'unlocked',remoteSession:false,cpuPercent:12.5,memoryPercent:60,memoryUsedGb:9.6,memoryTotalGb:16,batteryPercent:85,pluggedIn:true,charging:true,applications:[
   {key:'chrome',name:'Chrome',icon:'data:image/png;base64,aGVsbG8=',windows:[{key:'1',title:'Web Tools',minimized:false,inFront:true},{key:'2',title:'<img src=x onerror=alert(1)>',minimized:true,inFront:false}]},
   {key:'terminal',name:'Terminal',icon:'javascript:alert(1)',windows:[{key:'3',title:'Build',minimized:true,inFront:false}]}
 ]};
@@ -20,7 +20,7 @@ w.AbortController = AbortController;
 w.fetch = async path => {
   if (offline) throw new Error('Offline');
   if (path === '/api/v1/computer') { computerReads++; return {ok:!denied,status:denied?403:200,headers:{get:()=> 'computer-etag'},json:async()=>structuredClone(computer)}; }
-  return {ok:true,status:200,headers:{get:()=> 'now-etag'},json:async()=>({schemaVersion:1,machineName:'Laptop',observedAt:now,sources:{notices:[],queueAvailable:true,recordsConnected:true},items:[],events:[]})};
+  return {ok:true,status:200,headers:{get:()=> 'now-etag'},json:async()=>({schemaVersion:1,machineName:'Lenovo',observedAt:now,sources:{notices:[],queueAvailable:true,recordsConnected:true},items:[],events:[]})};
 };
 w.eval(read('../../lib/kits/claude-mark.js'));
 w.eval(read('../../lib/kits/assistant-mark.js'));

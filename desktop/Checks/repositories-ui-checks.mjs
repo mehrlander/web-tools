@@ -15,7 +15,7 @@ const c={key,name:'project',branch:'feature/work',changed:2,untracked:1,conflict
 const other={key:otherKey,name:'project-other',branch:'other',changed:0,untracked:0,conflicts:0,tracked:comp('no-upstream',null,null,null),main:comp('incomplete-history',null,null,'main')};
 const repo={key:repoKey,name:'fixture/project',url:'https://github.com/fixture/project',checkedAt:at,notice:null,checkouts:[c,other]};
 c.upstream='origin/main';c.branchStatus={state:'open',number:4,url:'https://github.com/fixture/project/pull/4',title:'Review <local> work',checkedAt:at,pullRequestState:'open'};
-const data={schemaVersion:1,machineName:'Laptop',observedAt:at,refreshing:[],repositories:[repo]};
+const data={schemaVersion:1,machineName:'Lenovo',observedAt:at,refreshing:[],repositories:[repo]};
 const listing=path=>({schemaVersion:1,rootName:'repos',path,state:'ready',observedAt:at,partial:false,notice:null,entries:(path?['exports','node_modules']:['project','project-other','ordinary']).map(name=>({name,kind:'folder',gitState:path?'ignored':null,bytes:null,modifiedAt:at,role:null}))});
 w.setTimeout=(fn,delay)=>{timers.set(++id,{fn,delay});return id;};w.clearTimeout=k=>timers.delete(k);
 Object.defineProperty(w,'scrollY',{get:()=>top});w.scrollTo=(_x,y)=>{top=y;};w.AbortController=AbortController;
@@ -135,8 +135,8 @@ check(branchPanel().textContent.includes('was current at the automatic check')&&
 repo.mainSync={...repo.mainSync,state:'blocked',reason:'active-session'};c.tracked=comp('behind',0,4,'main');await poll();
 check(primaryIcon().classList.contains('text-amber-700')&&indicator('behind').textContent==='4'
  &&indicator('behind').getAttribute('data-title-tip').includes('session activity was detected')&&indicator('behind').getAttribute('aria-label').includes('Automatic check')
- &&branchPanel().textContent.includes('Automatic update of project was blocked')&&!row().querySelector('[data-menu]').classList.contains('text-amber-700'),
- 'A blocked automatic update marks its repository icon and arrow detail without changing numeric comparisons or GitHub-check freshness.');
+ &&branchPanel().textContent.includes('Automatic update of project was held')&&!row().querySelector('[data-menu]').classList.contains('text-amber-700'),
+ 'A protected folder with a behind comparison retains its amber repository icon and comparison counts without changing GitHub-check freshness.');
 repo.mainSync={...repo.mainSync,state:'failed',reason:'update-unavailable'};await poll();
 check(primaryIcon().classList.contains('text-amber-700')&&branchPanel().textContent.includes('update result could not be confirmed'),
  'An unconfirmed update reports a separate failed outcome without claiming success.');
@@ -153,7 +153,7 @@ check(branchPanel().textContent.includes('a safe update could not be confirmed')
 for(const value of [{...repo.mainSync,state:'updating'},{...repo.mainSync,checkedAt:'not a time'},{...repo.mainSync,updatedAt:'not a time'},
  {...repo.mainSync,reason:'<img src=x onerror=alert(1)>'},{...repo.mainSync,state:'updated',reason:null,folder:null}]){
  repo.mainSync=value;await poll();
- check(!branchPanel().querySelector('[data-main-sync]')&&!primaryIcon().classList.contains('text-amber-700')&&indicator('behind').textContent==='4',
+ check(!branchPanel().querySelector('[data-main-sync]')&&primaryIcon().classList.contains('text-amber-700')&&indicator('behind').textContent==='4',
   'Malformed optional update metadata leaves the valid repository observation and comparison readable.');
 }
 Object.assign(c,beforeMainSync);repo.mainSync={state:'blocked',reason:'activity-unavailable',folder:null,checkedAt:syncChecked,updatedAt:null};await poll();
@@ -268,16 +268,80 @@ data.sync=sync();c.tracked=comp('behind',0,74);await poll();
 check(!/74.*(?:attention|blocked|failed)|(?:attention|blocked|failed).*74/i.test(syncStrip().getAttribute('aria-label')||''),
  'A numerical behind count does not become an automatic-update attention count.');
 repo.mainSync={state:'blocked',reason:'active-session',folder:null,checkedAt:syncChecked,updatedAt:null};await poll();
-check(/(?:1\s+(?:needs?\s+)?attention|attention[^0-9]*1|1\s+blocked)/i.test(syncStrip().getAttribute('aria-label')||'')
+check(/1 protected/i.test(syncStrip().getAttribute('aria-label')||'')&&!/need attention/i.test(syncStrip().getAttribute('aria-label')||'')
  &&syncPanel().textContent.includes('session activity was detected')&&/finish|pause|wait|close|review/i.test(syncPanel().textContent),
- 'One validated repository blocker contributes one attention count and useful next-step guidance.');
+ 'A validated active-session guard contributes one protected count and useful next-step guidance.');
 const folderLink=[...syncPanel().querySelectorAll('[data-folder],a[href]')].find(n=>n.dataset.folder===c.name||n.getAttribute('href')?.includes('folder='+c.name));
 check(folderLink,'The attention panel offers a direct route to the actual work folder.');
 if(folderLink){
  folderLink.focus();const focusKey=folderLink.dataset.focus;await poll();
  check(panelOpen()&&syncPanel().contains(doc.activeElement)&&(!focusKey||doc.activeElement.dataset.focus===focusKey)&&position()===160,
-  'A focused attention link stays inside its open panel during polling without scrolling.');
+  'A focused protected-folder link stays inside its open panel during polling without scrolling.');
 }
+const beforeHealth=structuredClone(c),protectedCases=['active-session','local-changes','ignored-collision','index-flags','sparse-checkout','local-commits','git-operation','updater-busy'];
+c.branch='main';c.upstream='origin/main';c.tracked=comp('current',0,0,'main');c.main=comp('current',0,0,'main');c.branchStatus={state:'main'};
+for(const reason of protectedCases){
+ repo.mainSync={state:'blocked',reason,folder:c.name,checkedAt:syncChecked,updatedAt:null};await poll();
+ check(syncStrip().querySelector('[data-sync-count="protected"]')?.textContent==='1'&&!syncStrip().querySelector('[data-sync-count="attention"]')
+  &&syncPanel().querySelector('[data-sync-group="protected"]')?.textContent.includes('Last comparison with GitHub main: current.')
+  &&primaryIcon().classList.contains('text-emerald-700')&&primaryIcon().getAttribute('aria-label').includes('Protected.'),
+  'An aligned folder stays current and separately protected for the explicit guard: '+reason);
+}
+check(!syncStrip().textContent.includes('protected')&&!syncStrip().textContent.includes('attention')
+ &&syncStrip().querySelector('[data-sync-count="protected"]').getAttribute('aria-hidden')==='true'
+ &&/1 protected/.test(syncStrip().getAttribute('aria-label'))&&!syncPanel().querySelector('details,summary,[aria-expanded]'),
+ 'The strip uses a quiet shield with a count and an accessible total, while the tap panel stays flat without expanders.');
+doc.activeElement.dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+check(!panelOpen()&&doc.activeElement===syncStrip(),'Escape restores the strip after viewing protected-folder details.');
+click('[data-sync-strip]');
+const guardedLink=syncPanel().querySelector('[data-sync-group="protected"] [data-folder]');guardedLink.focus();setTop(160);await poll();
+check(panelOpen()&&doc.activeElement.dataset.focus===guardedLink.dataset.focus&&position()===160,
+ 'A protected-folder detail link preserves keyboard focus and Files scroll during polling.');
+click(`[data-branch-signal="${key}"]`);
+check(branchPanel().textContent.includes('In sync')&&branchPanel().textContent.includes('Protected')
+ &&branchPanel().textContent.includes('was held')&&!branchPanel().textContent.includes('was updated automatically'),
+ 'Tapping the existing repository icon shows current comparison and protection separately without an update claim.');
+click('[data-sync-strip]');
+for(const reason of ['activity-unavailable','activity-uncertain','invalid-source','identity-changed','refs-changed','history-unavailable','fetch-stale','no-default-worktree','ambiguous-default-worktree','constructor','new-unknown-reason']){
+ repo.mainSync={state:'blocked',reason,folder:c.name,checkedAt:syncChecked,updatedAt:null};await poll();
+ check(syncStrip().querySelector('[data-sync-count="attention"]')?.textContent==='1'&&!syncStrip().querySelector('[data-sync-count="protected"]')
+  &&syncPanel().querySelector('[data-sync-group="attention"]')&&primaryIcon().classList.contains('text-amber-700')&&!syncPanel().textContent.includes('native code'),
+  'An uncertain, unavailable, invalid or unfamiliar check stays in Needs attention: '+reason);
+}
+repo.mainSync={state:'failed',reason:'index-flags',folder:c.name,checkedAt:syncChecked,updatedAt:null};await poll();
+check(syncStrip().querySelector('[data-sync-count="attention"]')?.textContent==='1'&&!syncStrip().querySelector('[data-sync-count="protected"]'),
+ 'A failed outcome stays in Needs attention even when its reason also names a known protection guard.');
+repo.mainSync={state:'blocked',reason:'index-flags',folder:c.name,checkedAt:syncChecked,updatedAt:null};
+for(const comparison of [comp('unrelated-history',0,0,'main'),comp('not-checked',0,0,'main'),comp('current',null,null,'main'),comp('current',0,1,'main'),comp('current',-1,0,'main')]){
+ c.tracked=comparison;await poll();
+ check(primaryIcon().classList.contains('text-amber-700')&&syncPanel().querySelector('[data-sync-group="protected"]').textContent.includes('GitHub comparison unavailable.')
+  &&!primaryIcon().getAttribute('aria-label').includes('main: current.'),
+  'Protection does not turn an unknown, unrelated or inconsistent comparison into a current claim: '+JSON.stringify(comparison));
+}
+c.tracked=comp('behind',0,4,'main');await poll();
+check(primaryIcon().classList.contains('text-amber-700')&&indicator('behind').textContent==='4'
+ &&syncPanel().querySelector('[data-sync-group="protected"]').textContent.includes('0 ahead · 4 behind'),
+ 'A protected folder can still be behind, and its numeric warning and detailed comparison remain visible.');
+c.tracked=comp('current',0,0,'main');repo.checkedAt=new Date(Date.now()-900000).toISOString();await poll();
+check(primaryIcon().classList.contains('text-amber-700')&&syncPanel().textContent.includes('GitHub checked 15m ago'),
+ 'A protected folder retains the stale-check warning even when its last comparison was current.');
+repo.checkedAt=at;
+const mixedReasons=['fetch-failed','fetch-failed','fetch-failed','active-session','active-session','active-session','index-flags','index-flags','activity-unavailable','local-changes'];
+const mixedRepositories=mixedReasons.map((reason,index)=>{
+ const extra=structuredClone(repo),hex=(index+1).toString(16);extra.key=hex.repeat(24);extra.name='fixture/health-'+index;
+ extra.checkouts=[{...structuredClone(c),key:(index+16).toString(16).repeat(12),name:'health-'+index,localFiles:null}];
+ extra.mainSync={state:reason==='fetch-failed'?'failed':'blocked',reason,folder:extra.checkouts[0].name,checkedAt:syncChecked,updatedAt:null};return extra;
+});
+data.repositories=mixedRepositories;await poll();
+check(syncStrip().querySelector('[data-sync-count="attention"]')?.textContent==='4'&&syncStrip().querySelector('[data-sync-count="protected"]')?.textContent==='6'
+ &&/4 need attention/.test(syncStrip().getAttribute('aria-label'))&&/6 protected/.test(syncStrip().getAttribute('aria-label'))
+ &&syncPanel().querySelectorAll('[data-sync-group="attention"] > li').length===4&&syncPanel().querySelectorAll('[data-sync-group="protected"] > li').length===6,
+ 'Ten mixed outcomes separate into four checks needing attention and six protected folders, with matching face counts, accessible totals and flat detail groups.');
+check(syncPanel().querySelector('[data-sync-group="attention"]').textContent.includes('the GitHub check failed')
+ &&syncPanel().textContent.includes('Checks run in queue order.')&&!syncPanel().textContent.includes('the GitHub fetch failed'),
+ 'Failure details describe the GitHub check honestly and queue order is explained without a completion deadline or an internet-outage claim.');
+data.repositories=[repo];Object.assign(c,beforeHealth);delete repo.mainSync;await poll();
+
 delete repo.mainSync;data.refreshing=[repoKey];data.sync=sync({active:job({startedAt})});await poll();
 const cached=JSON.parse(w.localStorage.getItem('web-tools-repositories-snapshot'));
 check(!cached.sync&&(!cached.refreshing||cached.refreshing.length===0),'Saved repository observations omit live queue progress and busy keys.');

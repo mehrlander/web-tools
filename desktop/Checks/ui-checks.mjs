@@ -19,7 +19,7 @@ const legacyReview = JSON.stringify({since:Date.now() - 86400000,seen:{'errand:r
 window.localStorage.setItem(legacyReviewKey,legacyReview);
 window.eval(read('../shared/now-shared.js'));
 window.eval(read('../shared/usage-view.js'));
-window.eval(read('../ui/laptop.js'));
+window.eval(read('../ui/lenovo.js'));
 const now = new Date().toISOString();
 const earlier = seconds => new Date(Date.now() - seconds * 1000).toISOString();
 const job = (id,state,title,seconds = 0) => ({id,state,title,note:'',createdAt:earlier(seconds),updatedAt:earlier(seconds),isNew:false});
@@ -33,10 +33,10 @@ const data = {
   daemon:{state:'detected',detail:'Worker process present; task state comes from session events.',lastLogAt:now},
   applications:[{name:'Codex',state:'open',detail:'Application process'},{name:'Ollama',state:'open',detail:'Local service'}],
   places:[{id:'outputs',name:'Outputs'}],downloads:[{name:'<img src=x>.txt',modifiedAt:now}],
-  sessions:{items:[{id:'local',provider:'Codex',title:'Current <b>session</b>',state:'working',updatedAt:now,workspace:'C:/fixture',detail:'Checking the queue',location:'Laptop'}],notices:[]},
+  sessions:{items:[{id:'local',provider:'Codex',title:'Current <b>session</b>',state:'working',updatedAt:now,workspace:'C:/fixture',detail:'Checking the queue',location:'Lenovo'}],notices:[]},
   cloud:{capturedAt:now,items:[{id:'cloud',provider:'Claude',title:'Cloud work',state:'recorded',updatedAt:earlier(30),detail:'Recorded: choice needed',location:'Cloud'}],notice:null},
-  changes:[{key:'errand:result',id:'change-result',provider:'Gemini',title:'A result',state:'complete',at:now,detail:'Result ready',location:'Laptop'}, {key:'cloud:cloud',id:'change-cloud',provider:'Claude',title:'Cloud work',state:'recorded',at:now,detail:'Recorded checkpoint',location:'Cloud'}, {key:'session:Codex:local',id:'change-local',provider:'Codex',title:'Local work',state:'working',at:now,detail:'Started work',location:'Laptop'}],
-  events:[{id:'event',sessionId:'local',provider:'Codex',title:'Current session',state:'working',at:earlier(5),detail:'Turn started',location:'Laptop'}],
+  changes:[{key:'errand:result',id:'change-result',provider:'Gemini',title:'A result',state:'complete',at:now,detail:'Result ready',location:'Lenovo'}, {key:'cloud:cloud',id:'change-cloud',provider:'Claude',title:'Cloud work',state:'recorded',at:now,detail:'Recorded checkpoint',location:'Cloud'}, {key:'session:Codex:local',id:'change-local',provider:'Codex',title:'Local work',state:'working',at:now,detail:'Started work',location:'Lenovo'}],
+  events:[{id:'event',sessionId:'local',provider:'Codex',title:'Current session',state:'working',at:earlier(5),detail:'Turn started',location:'Lenovo'}],
 };
 const snapshot = () => receive({data:{type:'snapshot',data}});
 const click = selector => { const node = doc.querySelector(selector); assert.ok(node, `Missing ${selector}`); node.click(); };
@@ -138,7 +138,7 @@ check(doc.activeElement.dataset.sessionLink === launch.dataset.launch && doc.que
 
 data.sessions.items = []; data.cloud.items = []; data.changes = []; data.events = [];
 data.activity.errands = ['Codex','Gemini','Claude'].flatMap(provider => [
-  {...job(provider+'-queued','queued',provider+' queue'),provider,location:provider === 'Gemini' ? 'Laptop' : ''},
+  {...job(provider+'-queued','queued',provider+' queue'),provider,location:provider === 'Gemini' ? 'Lenovo' : ''},
   {...job(provider+'-claimed','claimed',provider+' accepted'),provider,location:''}
 ]);
 snapshot(); click('[data-assistant=claude]');

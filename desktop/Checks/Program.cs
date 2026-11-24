@@ -17,8 +17,8 @@ if (args.Contains("--sync-health-only")) {
 }
 JsonElement Parse(string text) => JsonSerializer.Deserialize<JsonElement>(text);
 var seen = DateTimeOffset.Parse("2026-01-02T00:00:00Z");
-var request = Parse("""{"title":"Test errand","createdAt":"2026-01-01T00:00:00Z","run":{"method":"laptop-daemon"}}""");
-var claim = Parse("""{"by":"test-laptop","claimedAt":"2026-01-02T01:00:00Z"}""");
+var request = Parse("""{"title":"Test errand","createdAt":"2026-01-01T00:00:00Z","run":{"method":"lenovo-daemon"}}""");
+var claim = Parse("""{"by":"test-lenovo","claimedAt":"2026-01-02T01:00:00Z"}""");
 var done = Parse("""{"ok":true,"closedAt":"2026-01-02T02:00:00Z","data":{"reply":"Ready","settled":true}}""");
 var arriving = Parse("""{"ok":true,"closedAt":"2026-01-02T02:00:00Z","data":{"reply":"First reply","settled":false}}""");
 var declined = Parse("""{"ok":true,"answered":false,"closedAt":"2026-01-02T03:00:00Z","message":"Cancelled by owner","data":{"settled":false,"updatedAt":"2026-01-02T02:00:00Z"}}""");
@@ -39,7 +39,7 @@ Check(Activity.Join("test-1", request, claim, Parse("""{"ok":"false","answered":
 Check(Activity.Join("test-1", request, default, Parse("""{"ok":false,"closedAt":"2026-01-02T03:00:00Z"}"""), false, seen)?.State == "failed", "Failed work is surfaced for review.");
 Check(Activity.Join("test-1", request, default, done, false, seen.AddDays(1))?.IsNew == false, "Reviewed results stop counting as new.");
 Check(Activity.Join("test-1", Parse("""{"run":{"method":"browser"}}"""), default, default, false, seen) is null, "Browser errands do not masquerade as local worker jobs.");
-foreach (var (method, provider) in new[] { ("laptop-daemon", "Gemini"), ("codex-errand", "Codex"), ("claude-errand", "Claude") }) {
+foreach (var (method, provider) in new[] { ("lenovo-daemon", "Gemini"), ("laptop-daemon", "Gemini"), ("codex-errand", "Codex"), ("claude-errand", "Claude") }) {
     var routed = Parse(JsonSerializer.Serialize(new { title = "Routed work", createdAt = seen, run = new { method } }));
     Check(Activity.Join("routed", routed, default, default, false, seen) is { State: "queued" } queued && queued.Provider == provider,
         method + " supplies the correct assistant queue.");
@@ -54,8 +54,9 @@ Check(Activity.Join("unknown", Parse("""{"run":{"method":"future-runner"}}"""), 
     && Activity.Join("missing", Parse("{}"), default, default, false, seen) is null,
     "Unknown and missing methods do not enter an assistant lane.");
 Check(Activity.Join("../../escape", request, default, default, false, seen) is null, "Errand identifiers cannot escape the output folder.");
-foreach (var (method, venue, location) in new[] { ("codex-errand", "personal-laptop", "Laptop"),
-    ("claude-errand", "anthropic-cloud", "Cloud"), ("claude-errand", "personal-laptop", "Laptop") }) {
+foreach (var (method, venue, location) in new[] { ("codex-errand", "lenovo", "Lenovo"),
+    ("codex-errand", "personal-laptop", "Lenovo"),
+    ("claude-errand", "anthropic-cloud", "Cloud"), ("claude-errand", "lenovo", "Lenovo") }) {
     var routed = Parse(JsonSerializer.Serialize(new { run = new { method, venue } }));
     var report = Parse("""{"ok":true,"message":"Finished","data":{"reply":" ","report":"## Findings\nA useful report"}}""");
     Check(Activity.Join("report", routed, claim, report, false, seen) is { } job && job.Location == location
@@ -77,7 +78,7 @@ Check(NavigationPolicy.IsWebTools(NavigationPolicy.AppUrl + "?view=stage"), "The
 Check(!NavigationPolicy.IsWebTools("https://mehrlander.github.io/web-tools-evil/app/"), "A lookalike path is outside the hosted app boundary.");
 Check(!NavigationPolicy.IsWebTools("https://mehrlander.github.io.evil.test/web-tools/app/"), "A lookalike host is outside the hosted app boundary.");
 Check(!NavigationPolicy.IsWebTools("http://mehrlander.github.io/web-tools/app/"), "The app boundary requires HTTPS.");
-Check(!NavigationPolicy.IsLocal("https://desktop.web-tools.local/other.html"), "Only the local laptop document receives desktop actions.");
+Check(!NavigationPolicy.IsLocal("https://desktop.web-tools.local/other.html"), "Only the local Lenovo document receives desktop actions.");
 Check(!NavigationPolicy.IsLocal(NavigationPolicy.LocalUrl + "?untrusted=1"), "An alternate local document URL receives no desktop actions.");
 Check(NavigationPolicy.ErrandUrl("test-1", hasResult: true).Contains("view=files")
     && NavigationPolicy.ErrandUrl("test-1", hasResult: true).Contains("ref=background"),
@@ -108,10 +109,10 @@ try {
         Directory.CreateDirectory(Path.Combine(seed, "errands", directory));
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/test-1.json"), request.GetRawText());
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/test-2.json"), request.GetRawText());
-    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/codex-1.json"), request.GetRawText().Replace("laptop-daemon", "codex-errand"));
-    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/claude-1.json"), request.GetRawText().Replace("laptop-daemon", "claude-errand"));
+    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/codex-1.json"), request.GetRawText().Replace("lenovo-daemon", "codex-errand"));
+    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/claude-1.json"), request.GetRawText().Replace("lenovo-daemon", "claude-errand"));
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/claims/claude-1.json"), claim.GetRawText());
-    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/unknown-1.json"), request.GetRawText().Replace("laptop-daemon", "unknown"));
+    await File.WriteAllTextAsync(Path.Combine(seed, "errands/requests/unknown-1.json"), request.GetRawText().Replace("lenovo-daemon", "unknown"));
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/results/test-1.json"), done.GetRawText());
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/claims/test-1.json"), claim.GetRawText());
     await File.WriteAllTextAsync(Path.Combine(seed, "errands/output/test-1/report.txt"), "Fixture output");
@@ -213,7 +214,7 @@ try {
         await File.WriteAllTextAsync(Path.Combine(seed,"errands/results/" + id + ".json"), done.GetRawText());
     }
     await File.WriteAllTextAsync(Path.Combine(seed,"errands/requests/codex-new-result.json"),
-        """{"title":"Recent Codex result","run":{"method":"codex-errand","venue":"personal-laptop"}}""");
+        """{"title":"Recent Codex result","run":{"method":"codex-errand","venue":"lenovo"}}""");
     await File.WriteAllTextAsync(Path.Combine(seed,"errands/results/codex-new-result.json"),
         JsonSerializer.Serialize(new { ok=true, closedAt=turnAt, data=new { report="Recent report" } }));
     await CommitFixture();
