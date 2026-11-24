@@ -11,7 +11,7 @@ public record Errand(string Id, string Title, string Note, string State,
     public string Venue { get; init; } = "";
     public DateTimeOffset? ClaimedAt { get; init; }
     public string Location => Venue switch {
-        "lenovo" or "personal-laptop" => "Lenovo", "anthropic-cloud" => "Cloud",
+        "lenovo" => "Lenovo", "anthropic-cloud" => "Cloud",
         "" when Provider == "Gemini" => "Lenovo", _ => ""
     };
     public bool IsOpen => State is "queued" or "claimed" or "reply";
@@ -97,7 +97,7 @@ public static class Activity
         if (!ValidId(id) || request.ValueKind != JsonValueKind.Object) return null;
         var run = Child(request, "run");
         var provider = Text(run, "method") switch {
-            "lenovo-daemon" or "laptop-daemon" => "Gemini", "codex-errand" => "Codex", "claude-errand" => "Claude", _ => null
+            "lenovo-daemon" => "Gemini", "codex-errand" => "Codex", "claude-errand" => "Claude", _ => null
         };
         if (provider is null) return null;
         var created = Date(request, "createdAt");
