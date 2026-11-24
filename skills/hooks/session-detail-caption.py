@@ -3,16 +3,17 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    [`⌂`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)`11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) `816k` `1d 2h` [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79)
-    [`⌂`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)`11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) scheduled task `816k` `1d 3h`
+    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) `816k` `1d 2h` [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
+    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) scheduled task `816k` `1d 3h` [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
 
-THE PARTS. The line opens with ⌂ as a code span linking PROGRAM below, then,
-with no space between, when this run printed it, as a code span, in the
-owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a plain
-am or pm. The Claude app draws two code spans with nothing between them as one
-pill, so ⌂ reads as the stamp's icon. Single spaces separate the parts after
-the stamp. 22 counts the messages the owner has typed, and is the link to the
-session page, named by the session id's first eight characters. A turn the
+THE PARTS. The line opens with when this run printed it, as a code span, in
+the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
+plain am or pm. One space separates the parts, and PILL_GAP below, a space and
+a no-break space, separates two code spans. In the Claude app on an iPhone,
+each single space tried between two code spans (ordinary, no-break, en, em and
+thin) drew them touching, while a code span beside plain text kept its gap (the
+owner's screenshots, 2026-11-21). 22 counts the messages the owner has typed, and is the link to the session page, named by the session id's
+first eight characters. A turn the
 owner did not start names what started it next (WHAT STARTED THE TURN, below),
 as the second line does. 816k is the
 context in thousands of tokens, read the way context-size-hint.py reads it:
@@ -29,7 +30,9 @@ are the checkout the project root is in and each folder directly under the
 root that holds a .git, that are documentation, by governing-docs.py beside
 this file (the test warn-governing-docs.sh applies). A
 zero count is left off, and so is a part the transcript cannot supply: the time
-before any owner message, the context before any response.
+before any owner message, the context before any response. The line closes
+with ‹⋯› as a code span linking PROGRAM below, after ✍️, so that every line
+ends on the same mark.
 
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
 `user-calls/<short>-<slug>.json` (the user-calls skill, skills/user-calls/SKILL.md,
@@ -115,6 +118,7 @@ import time
 OWNER_TZ = os.environ.get("OWNER_TZ") or "America/Los_Angeles"
 PAGES = "https://mehrlander.github.io/web-tools/pages/"
 PROGRAM = "https://mehrlander.github.io/web-tools/app/?view=program&program=sessions"
+PILL_GAP = " \u00a0"
 TAIL = 400_000
 USAGE = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
 NOT_OWNER = ("<task-notification", "<agent-message", "[SYSTEM", "<system", "Another Claude")
@@ -546,6 +550,14 @@ def since(first, now):
         return None
 
 
+def joined(parts):
+    """The line: one space between two parts, PILL_GAP between two code spans."""
+    line = parts[0]
+    for before, part in zip(parts, parts[1:]):
+        line += (PILL_GAP if before.startswith("`") and part.startswith("`") else " ") + part
+    return line
+
+
 def main():
     try:
         payload = json.loads(sys.stdin.read() or "{}")
@@ -605,12 +617,13 @@ def main():
     if waiting:
         deck = f"{PAGES}session.html#id={session[:8]}" + (f"&user-call={call}" if call else "")
         parts.append(f"[✍️{waiting}]({deck})")
+    parts.append(f"[`‹⋯›`]({PROGRAM})")
 
     state["waiting"] = waiting
     save(path, state)
     print(json.dumps({"hookSpecificOutput": {
         "hookEventName": event,
-        "additionalContext": f"[`⌂`]({PROGRAM})`{clock(now)}` " + " ".join(parts)
+        "additionalContext": joined([f"`{clock(now)}`"] + parts)
                              + "\nClose the reply with that line, unchanged, as its session detail caption.",
     }}))
 
