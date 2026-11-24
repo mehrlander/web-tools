@@ -96,12 +96,13 @@ test('a lenovo-daemon errand, as errand_runner.py files it, is valid and needs n
            script: 'mehrlander/web-tools-private@main:sessions/tools/errand_runner.py' } });
   assert.equal(E.validate(e).ok, true);
   assert.equal(e.run.outputReturn, 'self-filed', 'the daemon files its own result');
-  const legacy = E.normalize({ id: 'daemon-2026-10-02-status-old', note: 'Legacy status check', purpose: 'test-script',
+  const retired = E.normalize({ id: 'daemon-2026-10-02-status-old', note: 'Retired status check', purpose: 'test-script',
     dest: 'mehrlander/web-tools-private@background:errands/results',
     run: { method: 'laptop-daemon', venue: 'personal-laptop', op: 'status', args: {},
            script: 'mehrlander/web-tools-private@main:sessions/tools/errand_runner.py' } });
-  assert.equal(E.validate(legacy).ok, true);
-  assert.deepEqual([legacy.run.method, legacy.run.venue], ['lenovo-daemon', 'lenovo']);
+  assert.equal(E.validate(retired).ok, false, 'retired laptop-daemon method is rejected');
+  assert.equal(E.validate(E.normalize({ id: 'd2', note: 'n', dest: 'me/r:d',
+    run: { method: 'lenovo-daemon', venue: 'personal-laptop', script: 'me/r@main:x.py' } })).ok, false, 'retired personal-laptop venue is rejected');
   assert.equal(E.validate(E.normalize({ id: 'd', note: 'n', dest: 'me/r:d',
     run: { method: 'lenovo-daemon', venue: 'browser', script: 'me/r@main:x.py' } })).ok, false, 'lenovo only');
 });
