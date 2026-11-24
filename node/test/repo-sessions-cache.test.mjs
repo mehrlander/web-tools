@@ -32,6 +32,43 @@ function load() {
 
 const S = load();
 
+test('local evidence metadata survives the cache without presenting missing usage as zero', () => {
+  const r = { schema: 2, format: 'local-conversation/2', short: 'local123', assistant: 'codex', kind: 'subagent',
+    parent: { session_id: 'native', short: 'parent123' }, capture: { state: 'partial', gaps: ['Missing rollout'] },
+    models: ['model-a'], usage: { state: 'unavailable', scope: 'request-traffic', ledger_records: 0 },
+    usage_ledger: [{ data: { native: 'kept in full record' } }] };
+  const row = S.summarize(r, 'blob');
+  for (const key of ['format', 'kind', 'parent', 'capture', 'models', 'usage']) assert.deepEqual(row[key], r[key]);
+  assert.equal(row.tokens, null);
+  assert.equal('usage_ledger' in row, false);
+  assert.ok(S.ROW_V >= 27);
+});
+
+test('local final replies win native order ties and technical prompts do not fill the owner activity rail', () => {
+  const t = '2026-11-24T10:00:00Z';
+  const r = { schema: 2, format: 'local-conversation/2', assistant: 'codex', kind: 'guardian_review', started: t,
+    opening_ask: 'copied parent history', exchanges: 0,
+    prompts: [{ at: t, text: 'copied parent history', ordinal: 0 }],
+    replies: [{ at: t, ordinal: 1, phase: 'commentary', text: 'Checking' },
+      { at: t, ordinal: 2, phase: 'final', text: 'Final verdict' }] };
+  const row = S.summarize(r, 'blob');
+  assert.equal(row.reply, 'Final verdict');
+  assert.equal(row.ask, 'Approval review');
+  assert.equal(row.askAt, '');
+  assert.equal(row.exchanges, 0);
+  assert.deepEqual(row.beats, []);
+  assert.ok(!JSON.stringify(row.turns).includes('copied parent history'));
+});
+
+test('local schema 2 does not inherit Claude schema 2 command truncation assumptions', () => {
+  const path = 'docs/local.md';
+  const cmd = 'cat ' + 'x'.repeat(200 - 5 - path.length) + ' ' + path;
+  assert.equal(cmd.length, 200);
+  const r = { schema: 2, repos: [{ name: 'web-tools' }], calls: [{ name: 'Bash', arg: cmd }] };
+  assert.deepEqual(S.shellDocsOf(r), {});
+  assert.deepEqual(S.shellDocsOf({ ...r, format: 'local-conversation/2' }), { 'web-tools/docs/local.md': 1 });
+});
+
 test('local provider metadata and native title survive title-export joins', () => {
   const row = S.summarize({ schema: 5, short: 'abc12345', assistant: 'codex', engine: 'codex',
     venue: 'lenovo', title: 'Local work', capture: {state: 'prose'} }, 'blob');

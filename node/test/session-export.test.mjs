@@ -39,6 +39,42 @@ const { model, markdown } = window.sessionExport;
 
 const at = s => `2026-08-09T05:01:${String(s).padStart(2, '0')}Z`;
 
+test('local exports retain provider, phase, parent and actual capture coverage', () => {
+  const r = { schema: 2, format: 'local-conversation/2', assistant: 'codex', kind: 'subagent', title: 'Local work',
+    parent: { short: 'parent123' }, capture: { state: 'partial', gaps: ['History source unavailable.'] },
+    prompts: [], exchanges: 0, injected: [{ at: at(0), text: 'Agent task', origin: { kind: 'subagent' } }],
+    replies: [{ at: at(1), text: 'Result', phase: 'final' }] };
+  const md = markdown(r);
+  assert.match(md, /# Local work/);
+  assert.match(md, /\*\*Agent brief\*\*/);
+  assert.match(md, /\*\*Codex · final\*\*/);
+  assert.match(md, /session\.html#id=parent123/);
+  assert.match(md, /History source unavailable/);
+  assert.doesNotMatch(md, /Assistant prose was not captured|stored under caps|\*\*Claude\*\*/);
+});
+
+test('schema 16 exports do not claim the removed record budgets still apply', () => {
+  const md = markdown({ schema: 16, prompts: [{ text: 'Question' }], replies: [{ text: 'Answer' }] });
+  assert.doesNotMatch(md, /stored under caps/);
+  assert.match(md, /Media bytes and redundant harness copies/);
+});
+
+test('exported unprojected results point to the full record instead of claiming no output', () => {
+  const r = { schema: 2, format: 'local-conversation/2', capture: { state: 'complete' },
+    calls: [{ name: 'dynamicToolCall', output_unprojected: true }] };
+  const md = markdown(r, null, { bodies: true });
+  assert.match(md, /Result not shown here; see full record/);
+  assert.doesNotMatch(md, /No output/);
+});
+
+test('readable local exports name attachment-only inputs without inventing message text', () => {
+  const prompt = { text: '', attachments: [{ type: 'image' }] };
+  const r = { schema: 2, format: 'local-conversation/2', prompts: [prompt] };
+  assert.match(markdown(r), /\*1 attachment\*/);
+  assert.equal(prompt.text, '');
+  assert.match(markdown({ ...r, prompts: [{ text: '', has_attachments: true }] }), /\*Attachment input\*/);
+});
+
 const REC = {
   schema: 4,
   short: 'abc12345',

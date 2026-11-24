@@ -53,6 +53,10 @@ jobs:
         run: |
           python desktop/Checks/work-summary-checks.py
           python desktop/Checks/local-activity-checks.py
+          python desktop/Checks/codex-session-checks.py
+          python desktop/Checks/gemini-session-checks.py
+          python desktop/Checks/local-session-store-checks.py
+          python desktop/Checks/local-session-collect-checks.py
           python desktop/Checks/local-file-checks.py
           python desktop/Checks/lenovo-inventory-checks.py
           python desktop/Checks/folder-explorer-checks.py
