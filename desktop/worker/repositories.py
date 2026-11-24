@@ -483,7 +483,7 @@ def main():
     parser.add_argument('--checkout', action='append')
     parser.add_argument('--update-main', action='store_true')
     mode.add_argument('--local-files', action='store_true')
-    mode.add_argument('--publish-lenovo-files', '--publish-laptop-files', dest='publish_lenovo_files', action='store_true')
+    mode.add_argument('--publish-lenovo-files', dest='publish_lenovo_files', action='store_true')
     args = parser.parse_args()
     if args.update_main and not args.fetch_key:
         parser.error('--update-main requires --fetch')

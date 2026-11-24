@@ -39,7 +39,7 @@ Check(Activity.Join("test-1", request, claim, Parse("""{"ok":"false","answered":
 Check(Activity.Join("test-1", request, default, Parse("""{"ok":false,"closedAt":"2026-01-02T03:00:00Z"}"""), false, seen)?.State == "failed", "Failed work is surfaced for review.");
 Check(Activity.Join("test-1", request, default, done, false, seen.AddDays(1))?.IsNew == false, "Reviewed results stop counting as new.");
 Check(Activity.Join("test-1", Parse("""{"run":{"method":"browser"}}"""), default, default, false, seen) is null, "Browser errands do not masquerade as local worker jobs.");
-foreach (var (method, provider) in new[] { ("lenovo-daemon", "Gemini"), ("laptop-daemon", "Gemini"), ("codex-errand", "Codex"), ("claude-errand", "Claude") }) {
+foreach (var (method, provider) in new[] { ("lenovo-daemon", "Gemini"), ("codex-errand", "Codex"), ("claude-errand", "Claude") }) {
     var routed = Parse(JsonSerializer.Serialize(new { title = "Routed work", createdAt = seen, run = new { method } }));
     Check(Activity.Join("routed", routed, default, default, false, seen) is { State: "queued" } queued && queued.Provider == provider,
         method + " supplies the correct assistant queue.");
@@ -51,11 +51,11 @@ foreach (var (method, provider) in new[] { ("lenovo-daemon", "Gemini"), ("laptop
         method + " retains the result and output after a claim.");
 }
 Check(Activity.Join("unknown", Parse("""{"run":{"method":"future-runner"}}"""), default, done, false, seen) is null
+    && Activity.Join("retired", Parse("""{"run":{"method":"laptop-daemon"}}"""), default, done, false, seen) is null
     && Activity.Join("missing", Parse("{}"), default, default, false, seen) is null,
-    "Unknown and missing methods do not enter an assistant lane.");
+    "Unknown, retired and missing methods do not enter an assistant lane.");
 Check(Activity.Join("../../escape", request, default, default, false, seen) is null, "Errand identifiers cannot escape the output folder.");
 foreach (var (method, venue, location) in new[] { ("codex-errand", "lenovo", "Lenovo"),
-    ("codex-errand", "personal-laptop", "Lenovo"),
     ("claude-errand", "anthropic-cloud", "Cloud"), ("claude-errand", "lenovo", "Lenovo") }) {
     var routed = Parse(JsonSerializer.Serialize(new { run = new { method, venue } }));
     var report = Parse("""{"ok":true,"message":"Finished","data":{"reply":" ","report":"## Findings\nA useful report"}}""");
@@ -63,6 +63,8 @@ foreach (var (method, venue, location) in new[] { ("codex-errand", "lenovo", "Le
         && job.Reply == "## Findings\nA useful report" && job.ClaimedAt == Activity.Date(claim,"claimedAt"),
         "Agent reports preserve their report body, claim time and declared " + location + " venue.");
 }
+Check(Activity.Join("retired-venue", Parse("""{"run":{"method":"codex-errand","venue":"personal-laptop"}}"""), claim, default, false, seen)?.Location == "",
+    "Retired venue identifiers do not map to Lenovo.");
 Check(Activity.Join("stream", request, claim, arriving, false, seen)?.Reply == "First reply",
     "Gemini's streaming reply remains the preferred report body.");
 var fencedReport = "Started the script.\n\n🟡 **Pending:** Waiting.\n\n```json\n[{\"name\":\"report.xlsx\",\"bytes\":20,\"error\":null}]\n```\n\nThe file was saved without errors.\n\n⚫ **Done:** Saved the file.";
