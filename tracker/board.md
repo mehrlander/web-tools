@@ -11,7 +11,7 @@ _Generated from tasks/. Do not hand-edit._
 - 🎫 [Retire `shell`, and name the parts instead of the collection](tasks/retire-shell-name-the-parts-r152bt.md) · M
 
 ## In progress
-- 🎫 [Select tests by what each file reads, and log what each costs](tasks/test-selection-by-reach-p2xtc5.md) · L (`codex/test-cost-and-selection`) (awaiting: final documentation wording review after implementation)
+- 🎫 [Run the tests affected by a change, and measure their time](tasks/test-selection-by-reach-p2xtc5.md) · L (`codex/test-cost-and-selection`) (awaiting: final documentation wording review after implementation)
 
 ## Blocked
 - (none)

@@ -17,13 +17,27 @@ Reach for the lightest tool that proves the thing:
 - **static traversal only** → cheerio / linkedom / a Python parser (table at
   the end)
 
-## Observed test selection: the work loop pilot
+## Choose which tests to rerun while making changes
 
-`npm run test:diff -- --list` prints checks selected from observed file reads, with the baseline and each selection reason. `npm run test:diff` runs the picks. Selection is by whole Node test file, with every case in each picked file running; separately invoked checks are outside the selector's scope. Gates, changed tests and tests with opaque or missing observations run conservatively; an incompatible baseline or an unexplained changed path runs the full suite. Full `npm run preflight` remains required before a pull request.
+Running every automated test after each small edit takes time. These commands can rerun the existing test files connected to the files you changed. The method is being tried out. Before a pull request, still run `npm run preflight`, which updates automatically produced files and runs the full `npm test` collection.
 
-`npm run test:observe` runs the full suite with dependency and elapsed-time observations. A clean, passing, complete full run seeds an ignored local baseline; selected runs cannot replace that baseline. The runner retains local records under `node/.test-observations/`. Public reach observations have no per-run costs, and a different runtime or dependency fingerprint can require a new local baseline. Prefer observations collected on an already needed full run.
+A test file can contain many test cases, each checking a particular result. Selection is by file: if a file contains ten cases, all ten run. The commands cover the JavaScript test files normally run by `npm test`. Browser checks and other separately run commands still need their own assessment.
 
-The [Testing program](../../programs/testing/README.md) owns the pilot's measures and adoption decision; its [Cost and selection process](../../programs/testing/manager.md#cost-and-selection) assesses required checks and coverage gaps that dependency selection cannot determine.
+Run these commands from the repository folder:
+
+| Command | What it does |
+| --- | --- |
+| `npm run test:observe` | Runs all the tests and records which files each test reads and how long each test file takes. |
+| `npm run test:diff -- --list` | Shows which test files would run for your changes and explains each choice, without running tests. |
+| `npm run test:diff` | Runs the selected test files. |
+
+Use an already needed full run to collect the record. A complete, successful recorded run started without uncommitted changes becomes the reference for later selections. Records stay on your machine in `node/.test-observations/`, a folder Git does not upload. A failed run or a run of selected files does not replace that reference.
+
+For example, if you change code that reads comma-separated values (CSV) files, the tool includes test files previously recorded reading that code. Tests that enforce rules across the repository always run, such as checks that a list of files matches the files actually present. New or changed test files also run, along with tests whose file access is unknown or could not be fully recorded, such as tests that launch another program.
+
+When the tool cannot use its saved record or determine which test files to rerun for a change, the tool runs all tests. Changes to shared setup also cause a full run: for example, [node/test/bootstrap.mjs](../../node/test/bootstrap.mjs) contains helpers used by many tests. The record identifies the code version used for that run. A change to the test-running software (Node.js), operating system, processor type or installed libraries can require a new recorded full run.
+
+A test can read a file without checking the behavior you changed. The [Testing program](../../programs/testing/README.md) organizes the project's checking rules, evidence and follow-up work. An agent acting as its manager follows the [checking-plan instructions](../../programs/testing/manager.md#cost-and-selection) to assess which checks and additional cases the change needs. The program reviews the trial's results before proposing wider use of selective runs.
 
 ## npm run shot: real pixels from the working tree
 
