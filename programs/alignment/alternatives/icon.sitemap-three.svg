@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="organization program">
-  <title>organization program</title>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="alignment program">
+  <title>alignment program</title>
   <desc>A sitemap: one node above three, joined by a bar, cut from a blue-600 tile. Drawn on the drawn-mark box and rules (docs/favicons/README.md): solid fills, no strokes, and every gap at least 2.5 units, which is about 1.4 CSS pixels at 16. Chosen 2026-11-07; the ideas it was chosen from are in docs/prototypes/program-mark-ideas.html.</desc>
   <mask id="cut" maskUnits="userSpaceOnUse" x="0" y="0" width="32" height="32">
     <rect width="32" height="32" fill="#fff"/>

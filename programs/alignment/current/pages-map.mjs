@@ -4,8 +4,8 @@
 // the blocks of pages.md between its pages-map markers: the counts, and the
 // meanings of the app and standing values, which docs/vocabularies.csv owns.
 //
-//   node programs/organization/current/pages-map.mjs          writes both
-//   node programs/organization/current/pages-map.mjs --check  exit 1 if either is stale,
+//   node programs/alignment/current/pages-map.mjs          writes both
+//   node programs/alignment/current/pages-map.mjs --check  exit 1 if either is stale,
 //                                                             or page-jobs.csv is out of step
 //
 // Inputs, all read at run time:
@@ -206,7 +206,7 @@ if (check) {
   const absent = Object.keys(blocks).filter(k => !md.includes(B(k)) || !md.includes(E(k)));
   if (absent.length) problems.push(`pages.md lacks the pages-map block(s): ${absent.join(', ')}`);
   else if (md !== mdOut) stale.push('pages.md (its pages-map blocks)');
-  for (const s of stale) problems.push(`${s} is stale: run node programs/organization/current/pages-map.mjs`);
+  for (const s of stale) problems.push(`${s} is stale: run node programs/alignment/current/pages-map.mjs`);
   if (problems.length) { problems.forEach(p => console.error(p)); process.exit(1); }
   console.log(`pages map current: ${rows.length} pages`);
 } else {
