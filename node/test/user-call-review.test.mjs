@@ -191,7 +191,10 @@ test('add refuses edits the last run did not read, and drops the texts the draft
   git(dir, 'add', '.'); git(dir, 'commit', '-qm', 'init'); git(dir, 'push', '-q', 'origin', 'main');
   const store = ['--store', path.join(dir, 'user-calls')];
   const call = { ...CALL({ runs: [{ ...PASS, text: 'Intro.\n\nThe edit as the critic read it.\n' }] }), edits: [{ from: 'a', to: 'The edit as filed later.' }] };
-  let r = run(['add'], JSON.stringify(call), store);
+  let r = run(['add'], JSON.stringify({ ...call, review: undefined }), store);
+  assert.equal(r.status, 1, 'a documentation call with no critic run');
+  assert.match(r.stderr, /filed with the peeves critic's runs/);
+  r = run(['add'], JSON.stringify(call), store);
   assert.equal(r.status, 1);
   assert.match(r.stderr, /last run did not read edit 1 as filed/);
   call.edits = [{ from: 'a', to: 'The edit as the critic read it.' }];
