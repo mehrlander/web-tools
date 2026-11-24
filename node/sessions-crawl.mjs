@@ -61,7 +61,7 @@ function git(cmdArgs, input) {
     input,
     encoding: 'utf8',
     // A record is one blob read whole, and records outgrew the 50 MB this was:
-    // 2026-10-22-be83ffa6.json is 62 MB, and every pass on the laptop daemon
+    // 2026-10-22-be83ffa6.json is 62 MB, and every pass on the Lenovo daemon
     // failed to read it with ENOBUFS (measured 2026-10-23).
     maxBuffer: 512 * 1024 * 1024,
     windowsHide: true,
@@ -175,7 +175,7 @@ const r = await C.fold({
   loadIndex: async () => X,
   runs: CrawlRuns,
   // Which venue ran it, so a reader comparing durations in the run ring can
-  // see that this one was not a browser: --git is the laptop daemon's pass.
+  // see that this one was not a browser: --git is the Lenovo daemon's pass.
   via: gitArg ? 'daemon' : 'ci',
 });
 

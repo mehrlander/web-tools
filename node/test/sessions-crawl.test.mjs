@@ -144,12 +144,12 @@ test('a first pass folds every record and writes the cache, the phone menu and t
   assert.equal(r.sha, s.files[S.CACHE_PATH].sha, 'the sha handed back is the commit\'s');
 });
 
-test('a laptop record, named by a 16-character id, reaches the search index', async () => {
-  // Codex and Gemini records captured on the laptop carry 16 hex characters
+test('a Lenovo record, named by a 16-character id, reaches the search index', async () => {
+  // Codex and Gemini records captured on the Lenovo carry 16 hex characters
   // where a cloud session carries 8; the index matched 8 only.
-  const laptop = record(1, { short: '991771759e3098e9', session_id: '991771759e3098e9-x',
-    prompts: [{ text: 'a vermilion question from the laptop' }] });
-  const s = store([record(0), laptop]);
+  const lenovo = record(1, { short: '991771759e3098e9', session_id: '991771759e3098e9-x',
+    prompts: [{ text: 'a vermilion question from the Lenovo' }] });
+  const s = store([record(0), lenovo]);
   await s.pass();
   const shard = Object.entries(s.files).find(([p]) => p.startsWith('state/sessions-index/'));
   assert.ok(shard, 'an index shard was written');

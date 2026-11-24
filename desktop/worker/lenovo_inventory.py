@@ -12,7 +12,7 @@ from urllib.parse import urlsplit
 
 from local_files import linked
 
-TARGET = 'state/laptop-files.tsv'
+TARGET = 'state/lenovo-files.tsv'
 INTERVAL = 15 * 60
 COLLAPSE = {'node_modules', '.venv', 'venv', '__pycache__', '.pytest_cache'}
 HEADER = 'path\tkind\tgit\tfiles\tbytes\tbranch\tcommit\n'
@@ -246,10 +246,11 @@ def replace_file(repository, base, blob):
     if state and state.split(b' ', 2)[1] != b'tree':
         raise InventoryError('Inventory parent is not a tree')
     entries = tree(repository, state.split(b'\t', 1)[0].split(b' ')[2].decode()) if state else {}
-    previous = entries.get(b'laptop-files.tsv')
+    previous = entries.get(b'lenovo-files.tsv')
     if previous and not previous.startswith(b'100644 blob '):
         raise InventoryError('Inventory destination is not a regular file')
-    entries[b'laptop-files.tsv'] = b'100644 blob ' + blob.encode() + b'\tlaptop-files.tsv'
+    entries.pop(b'laptop-files.tsv', None)
+    entries[b'lenovo-files.tsv'] = b'100644 blob ' + blob.encode() + b'\tlenovo-files.tsv'
     state_tree = text(repository, 'mktree', '-z', data=b'\0'.join(entries.values()) + b'\0')
     root[b'state'] = b'040000 tree ' + state_tree.encode() + b'\tstate'
     return text(repository, 'mktree', '-z', data=b'\0'.join(root.values()) + b'\0')
@@ -281,7 +282,7 @@ def publish(root, repository=None, build=collect, clock=time.time):
         blob = text(repository, 'hash-object', '-w', '--stdin', data=body)
         new_tree = replace_file(repository, base, blob)
         commit = text(repository, 'commit-tree', new_tree, '-p', base,
-                      data=b'Update laptop folder inventory\n\nCo-Authored-By: Codex <codex@openai.com>\n')
+                      data=b'Update Lenovo folder inventory\n\nCo-Authored-By: Codex <codex@openai.com>\n')
         if not re.fullmatch('[0-9a-f]{40}|[0-9a-f]{64}', commit):
             raise InventoryError('Inventory commit unavailable')
         try:

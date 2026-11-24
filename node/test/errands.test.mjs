@@ -79,7 +79,7 @@ test('validate: a note on every errand, an action only for the Stage reads', () 
 test('validate refuses a run its method cannot perform', () => {
   const v = (run, extra = {}) => E.validate(E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run, ...extra }));
   assert.equal(v(RUN).ok, true);
-  assert.match(v({ ...RUN, venue: 'browser' }).error, /ise-f5 runs on personal-laptop or work-machine/);
+  assert.match(v({ ...RUN, venue: 'browser' }).error, /ise-f5 runs on lenovo or work-machine/);
   assert.match(v({ ...RUN, outputReturn: 'courier-message' }).error, /returns by direct-to-clipboard/);
   assert.match(v({ ...RUN, script: 'ps/list.ps1' }).error, /owner\/repo@ref:path/);
   assert.match(v({ ...RUN, method: 'f5' }).error, /unknown run.method/);
@@ -89,18 +89,24 @@ test('validate refuses a run its method cannot perform', () => {
   assert.equal(v(courier, { url: 'https://x.example/' }).ok, true);
 });
 
-test('a laptop-daemon errand, as errand_runner.py files it, is valid and needs no one', () => {
+test('a lenovo-daemon errand, as errand_runner.py files it, is valid and needs no one', () => {
   const e = E.normalize({ id: 'daemon-2026-10-02-status-abc123', note: 'Check that the daemon is running', purpose: 'test-script',
     dest: 'mehrlander/web-tools-private@background:errands/results',
-    run: { method: 'laptop-daemon', venue: 'personal-laptop', op: 'status', args: {},
+    run: { method: 'lenovo-daemon', venue: 'lenovo', op: 'status', args: {},
            script: 'mehrlander/web-tools-private@main:sessions/tools/errand_runner.py' } });
   assert.equal(E.validate(e).ok, true);
   assert.equal(e.run.outputReturn, 'self-filed', 'the daemon files its own result');
+  const legacy = E.normalize({ id: 'daemon-2026-10-02-status-old', note: 'Legacy status check', purpose: 'test-script',
+    dest: 'mehrlander/web-tools-private@background:errands/results',
+    run: { method: 'laptop-daemon', venue: 'personal-laptop', op: 'status', args: {},
+           script: 'mehrlander/web-tools-private@main:sessions/tools/errand_runner.py' } });
+  assert.equal(E.validate(legacy).ok, true);
+  assert.deepEqual([legacy.run.method, legacy.run.venue], ['lenovo-daemon', 'lenovo']);
   assert.equal(E.validate(E.normalize({ id: 'd', note: 'n', dest: 'me/r:d',
-    run: { method: 'laptop-daemon', venue: 'browser', script: 'me/r@main:x.py' } })).ok, false, 'laptop only');
+    run: { method: 'lenovo-daemon', venue: 'browser', script: 'me/r@main:x.py' } })).ok, false, 'lenovo only');
 });
 
-test('pingRequest files a laptop-daemon ping the daemon and the Stage accept', () => {
+test('pingRequest files a lenovo-daemon ping the daemon and the Stage accept', () => {
   const r = E.pingRequest({ prompt: 'What rivers   feed the Columbia?', registry: 'me/reg',
                            now: '2026-10-02T17:00:00.123Z' });
   assert.match(r.id, /^daemon-2026-10-02-ping-[a-z0-9]+$/);
@@ -176,12 +182,12 @@ test('withErrandId puts the id after # @file in PowerShell and first in JavaScri
 test('a computer-use errand carries a prompt: filled from the registry, headed by its id', () => {
   const e = E.normalize({ id: 'e3', note: 'probe', dest: 'me/r:out',
     run: { script: 'me/r@main:errands/prompts/e3.md', method: 'computer-use' } });
-  assert.equal(e.run.venue, 'personal-laptop', 'the one machine a computer-use agent runs on');
+  assert.equal(e.run.venue, 'lenovo', 'the one machine a computer-use agent runs on');
   assert.equal(e.run.outputReturn, 'report-pasted');
   assert.deepEqual(E.validate(e), { ok: true });
   assert.equal(E.withErrandId('Goal: probe.', 'computer-use', 'e3'), 'Errand: e3\n\nGoal: probe.',
     'a prompt gets a plain header, not a JavaScript or PowerShell assignment');
-  assert.match(E.validate({ ...e, run: { ...e.run, venue: 'work-machine' } }).error, /runs on personal-laptop/);
+  assert.match(E.validate({ ...e, run: { ...e.run, venue: 'work-machine' } }).error, /runs on lenovo/);
 });
 
 test('a signed envelope is recognised, and its body becomes the staged file', () => {
@@ -256,5 +262,5 @@ test('a browser method takes no machine; a machine method takes only its own', (
   assert.deepEqual([...E.METHODS['console-enter'].machines], []);
   assert.equal(v({ script: 'me/r@main:c.js', method: 'console-enter' }).ok, true);
   assert.equal(E.normalize({ id: 'x', note: 'n', dest: 'me/r:d', run: { script: 'me/r@main:c.js', method: 'console-enter' } }).run.venue, '');
-  assert.match(v({ script: 'me/r@main:p.ps1', method: 'ise-f5', venue: 'iphone' }).error, /ise-f5 runs on personal-laptop or work-machine/);
+  assert.match(v({ script: 'me/r@main:p.ps1', method: 'ise-f5', venue: 'iphone' }).error, /ise-f5 runs on lenovo or work-machine/);
 });

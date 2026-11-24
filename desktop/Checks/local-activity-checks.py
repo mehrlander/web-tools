@@ -165,7 +165,7 @@ class CaptureChecks(unittest.TestCase):
         def inventory(*args, **kwargs):
             order.append('inventory')
             raise activity.inventory.InventoryError('fixture')
-        with patch.object(sys, 'argv', ['repositories', '--root', str(self.root), '--state', str(self.state), '--publish-laptop-files']), \
+        with patch.object(sys, 'argv', ['repositories', '--root', str(self.root), '--state', str(self.state), '--publish-lenovo-files']), \
              patch.object(activity, 'run', side_effect=capture), \
              patch.object(activity.inventory, 'publish', side_effect=inventory), \
              patch('builtins.print') as output:

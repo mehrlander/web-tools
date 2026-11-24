@@ -37,7 +37,7 @@ route and `basis` the context sessions by how the record knows (`receipt` or
 `reconstructed`). Paths are POSIX throughout, since the records are, whatever
 platform runs this. The output is private by construction, since it is derived
 from the records, so it belongs in the store, never in a public repo; the
-laptop daemon refreshes it there daily (web-tools-private
+Lenovo daemon refreshes it there daily (web-tools-private
 sessions/tools/doc_reads.py).
 """
 import argparse, json, posixpath, re, shlex, subprocess, sys, threading, time

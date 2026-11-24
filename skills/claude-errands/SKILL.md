@@ -1,7 +1,7 @@
 ---
 name: claude-errands
 description: >-
-  Take and do the errands Codex or Gemini on the laptop left for Claude
+  Take and do the errands Codex or Gemini on the Lenovo left for Claude
   (claude-errand requests in web-tools-private): list them, claim the oldest one
   for this machine, do what its prompt asks, and close it with a report. Use when
   the owner says "look for errands left for Claude", "do your errands", "any
@@ -11,8 +11,8 @@ description: >-
 # Claude errands
 
 A Claude errand is a request whose `run.method` is `claude-errand`: work Codex
-or Gemini on the laptop could not do and left for a Claude session. Its
-`run.venue` names the machine it needs, `anthropic-cloud` or `personal-laptop`.
+or Gemini on the Lenovo could not do and left for a Claude session. Its
+`run.venue` names the machine it needs, `anthropic-cloud` or `lenovo`.
 The records sit on web-tools-private's `background` branch, and
 `sessions/tools/agent_errand.py --agent claude` in that repository files, takes
 and closes them; errands/README.md there, "Agent errands", is the design.
@@ -31,7 +31,7 @@ one the errands were filed against. Run every command below from that checkout.
 
 `list` shows each open errand with its venue and any claim. `next` claims the
 oldest open, unclaimed errand for the machine the session runs on
-(`anthropic-cloud` when `CLAUDE_CODE_REMOTE` is set, else `personal-laptop`) and
+(`anthropic-cloud` when `CLAUDE_CODE_REMOTE` is set, else `lenovo`) and
 prints its prompt and the `close` command. An errand for the other machine is
 not this session's to take: name it to the owner and leave it.
 

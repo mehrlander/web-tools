@@ -143,5 +143,5 @@ def inventories(entries, git, checkout_key):
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = list(pool.map(lambda e: collect(e['path'], checkout_key(str(e['path'].resolve()).lower()), git,
                                               max_entries=per_checkout), entries))
-    return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Laptop'),
+    return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Lenovo'),
             'observedAt': stamp(), 'checkouts': rows}
