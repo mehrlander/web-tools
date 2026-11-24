@@ -205,6 +205,40 @@ test('check-off is off until the list turns it on, then done items sink below op
   assert.ok(!('capabilities' in saved('lists/aphorisms.json')), 'turning the last one off removes the key');
 });
 
+test('kinds turn on with their chips, an edit tags an item, and a cleared kind goes', async () => {
+  seed();
+  await data.loadCreatedLists(reg());
+  const list = data.createdList;
+  data.toggleCreatedSettings();
+  data.createdSetKind = true;
+  data.createdSetKinds = 'Draft, draft, open question';
+  await data.saveCreatedSettings();
+  let file = saved('lists/aphorisms.json');
+  assert.deepEqual(plain(file.capabilities), ['kind']);
+  assert.deepEqual(plain(file.kinds), ['draft', 'open-question'], 'normalized and deduplicated');
+  assert.deepEqual(plain(data.createdKinds(list)), ['draft', 'open-question']);
+
+  const it = list.items[0];
+  data.startCreatedEdit(it);
+  data.editKind = 'draft';
+  await data.commitCreatedEdit(list, it);
+  assert.equal(saved('lists/aphorisms.json').items[0].kind, 'draft');
+
+  data.startCreatedEdit(list.items[0]);
+  assert.equal(data.editKind, 'draft', 'the edit opens on the item\u2019s kind');
+  data.editKind = '';
+  await data.commitCreatedEdit(list, list.items[0]);
+  assert.ok(!('kind' in saved('lists/aphorisms.json').items[0]), 'a cleared kind removes the key');
+
+  data.toggleCreatedSettings();
+  assert.equal(data.createdSetKinds, 'draft, open-question');
+  data.createdSetKind = false;
+  data.createdSetKinds = '';
+  await data.saveCreatedSettings();
+  file = saved('lists/aphorisms.json');
+  assert.ok(!('capabilities' in file) && !('kinds' in file), 'turning kinds off removes both keys');
+});
+
 test('a rename moves the file to the new title\u2019s name, and a taken name is refused', async () => {
   seed();
   await data.loadCreatedLists(reg());
