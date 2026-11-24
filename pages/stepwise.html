@@ -82,7 +82,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('stepwise', () => ({
     B: null, err: '', cur: 0, deck: null, repo: 'mehrlander/web-tools', ref: 'main',
     get n() { return this.B ? this.B.steps.length : 0; },
-    get fileUrl() { return this.B?.file ? `https://github.com/${this.repo}/blob/${this.ref}/${this.B.file}` : ''; },
+    get fileUrl() { return this.B?.file ? window.RepoAddress.github.blob(this.repo, this.ref, this.B.file) : ''; },
     dot(i) {
       const here = i === this.cur;
       return [by(this.B.steps[i]).dot, here ? 'h-4 w-4 border-2 border-base-content' : 'h-2.5 w-2.5'];
@@ -157,7 +157,7 @@ document.addEventListener('alpine:init', () => {
     html(md) {
       const t = document.createElement('template');
       t.innerHTML = window.DOMPurify.sanitize(window.GuideRender.render(md, {}).html);
-      const base = `https://github.com/${this.repo}/blob/${this.ref}/${this.B.file || ''}`;
+      const base = window.RepoAddress.github.blob(this.repo, this.ref, this.B.file || '');
       for (const a of t.content.querySelectorAll('a[href]')) {
         const href = a.getAttribute('href');
         if (/^([a-z][a-z0-9+.-]*:|#|\/\/)/i.test(href)) continue;
