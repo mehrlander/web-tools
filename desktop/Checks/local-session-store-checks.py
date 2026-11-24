@@ -23,6 +23,90 @@ def record(items=(), **extras):
                            kind='user', source_items=list(items), **extras)
 
 
+class BackfillStreamingChecks(unittest.TestCase):
+    def record(self, identity, day='2026-11-01'):
+        return sessions.record('codex', identity, 'Fixture', day + 'T00:00:00Z',
+                               '2026-11-03T00:00:00Z', [], [], {}, '', [], [], 'fixture',
+                               kind='user', source_items=[{'id': identity, 'data': {'text': 'Preserved evidence'}}])
+
+    def fake_git(self, records):
+        entries = {format(index + 1, '040x'): (path, store.encode(value))
+                   for index, (path, value) in enumerate(records)}
+        calls = []
+        def git(repository, command, *args, **kwargs):
+            calls.append((command, args))
+            if command == 'ls-tree':
+                return b''.join(('100644 blob ' + oid + '\t' + path).encode() + b'\0'
+                                for oid, (path, _) in entries.items())
+            if command == 'cat-file' and args[0] == 'blob':
+                return entries[args[1]][1]
+            raise AssertionError('Unexpected Git operation')
+        return git, calls
+
+    def test_preview_reconciles_first_record_before_reading_second_prior_body(self):
+        old = [self.record('thread-0001'), self.record('thread-0002')]
+        fresh = [self.record('thread-0001', '2026-11-02'), self.record('thread-0002', '2026-11-02')]
+        git, calls = self.fake_git(old)
+        reader = backfill.PriorRecords(Path('.'), 'frozen-revision', fresh, git=git)
+        self.assertEqual([command for command, _ in calls], ['ls-tree'])
+        def candidates():
+            self.assertEqual(sum(command == 'cat-file' for command, _ in calls), 0)
+            yield fresh[0]
+            self.assertEqual(sum(command == 'cat-file' for command, _ in calls), 1)
+            yield fresh[1]
+        reconciled = []
+        def observed(path, value):
+            reconciled.append(path)
+            self.assertEqual(sum(command == 'cat-file' for command, _ in calls), len(reconciled))
+        with tempfile.TemporaryDirectory() as directory:
+            retained, report = backfill.prepare(candidates(), Path('.'), 'frozen-revision', directory,
+                                                prior=reader, retain=False, on_record=observed)
+            self.assertEqual(retained, [])
+            self.assertEqual(report['records'], 2)
+            self.assertEqual(reconciled, [path for path, _ in old])
+            self.assertTrue(all((Path(directory) / path).is_file() for path, _ in old))
+            self.assertTrue(all(not (Path(directory) / path).exists() for path, _ in fresh))
+        self.assertEqual(sum(command == 'ls-tree' for command, _ in calls), 1)
+        self.assertEqual(sum(command == 'cat-file' for command, _ in calls), 2)
+
+    def test_prepare_default_prior_reader_does_not_materialize_candidate_generator(self):
+        old = [self.record('thread-0001'), self.record('thread-0002')]
+        git, calls = self.fake_git(old)
+        produced = []
+        def candidates():
+            for index, value in enumerate(old):
+                if index:
+                    self.assertEqual(sum(command == 'cat-file' for command, _ in calls), index)
+                produced.append(index)
+                yield value
+        with tempfile.TemporaryDirectory() as directory, patch.object(backfill.inventory, 'git', side_effect=git):
+            _, report = backfill.prepare(candidates(), Path('.'), 'frozen-revision', directory, retain=False)
+        self.assertEqual(produced, [0, 1])
+        self.assertEqual(report['records'], 2)
+        self.assertEqual(sum(command == 'ls-tree' for command, _ in calls), 1)
+
+    def test_lazy_prior_reader_rejects_swapped_identity_and_duplicate_archive_paths(self):
+        first, second = self.record('thread-0001'), self.record('thread-0002')
+        git, calls = self.fake_git([(first[0], second[1])])
+        reader = backfill.PriorRecords(Path('.'), 'frozen-revision', [first, second], git=git)
+        with self.assertRaises(ValueError):
+            reader.read(first[1])
+        duplicate = self.record('thread-0001', '2026-11-02')
+        git, calls = self.fake_git([first, duplicate])
+        reader = backfill.PriorRecords(Path('.'), 'frozen-revision', [first], git=git)
+        with self.assertRaises(ValueError):
+            reader.read(first[1])
+        self.assertEqual(sum(command == 'cat-file' for command, _ in calls), 0)
+
+    def test_hint_collision_is_rejected_before_reading_a_tree(self):
+        first, second = self.record('thread-0001'), self.record('thread-0002')
+        foreign = dict(second[1], short=first[1]['short'])
+        git, calls = self.fake_git([])
+        with self.assertRaises(ValueError):
+            backfill.PriorRecords(Path('.'), 'frozen-revision', [first, ('', foreign)], git=git)
+        self.assertEqual(calls, [])
+
+
 class StoreChecks(unittest.TestCase):
     def test_shorter_source_retains_evidence_and_truthful_counters(self):
         _, prior = record([{'id': 'one', 'data': {'value': 'original'}}, {'id': 'two', 'data': {}}],
