@@ -15,10 +15,11 @@
 
     stepwise/2  { schema, title, file, repo?, steps: [{
                     stage: request | intent | outline | draft,
-                    by: owner | session | critic,
+                    by: owner | session | critic | proxy,
                     note,       one line on what the step adds
                     payload,    the stage's whole text after the step (Markdown)
-                    comments?: [{ on: payload | outline, quoted, by, peeve,
+                    comments?: [{ on: payload | outline, quoted,
+                                  by: critic | proxy, peeve?,
                                   payload, answer: changed | kept | null,
                                   rationale? }] }] }
     stepwise/1  { schema, title, file, repo?, steps: [{ by, note, payload }] },
@@ -43,7 +44,12 @@
   the owner asked for exactly that container, collapsed by default, against
   html-style rule 12's general caution. A comment's quote is marked where it
   falls in the rendered text; tapping a mark opens the comment beneath its
-  block, and the list under the text scrolls to and opens each one.
+  block, and the list under the text scrolls to and opens each one. A
+  comment's `peeve` is an id in web-tools skills/peeves/peeves.csv, read at the
+  #gh= ref when the payload is web-tools' own and from main otherwise; its pill
+  carries the peeve's name and sentence as a title-tip (kits/title-tip.js) and
+  links to the entry in skills/peeves/peeves.md. The proxy, the owner-proxy
+  agent, reviews beside the critic and usually cites no peeve.
 
   Addresses, as pages/idea-board.html reads them: #gh=owner/repo[@ref]:path
   (read with the stored GitHub token), #gz=<gzipped base64url JSON>
@@ -75,6 +81,8 @@
     await gh.load('kits/swipe-deck.js');    // the track
     await gh.load('kits/guide-render.js');  // Markdown to HTML
     await gh.load('kits/md-diff.js');       // the redline
+    await gh.load('kits/csv.js');           // skills/peeves/peeves.csv
+    await gh.load('kits/title-tip.js');     // a peeve pill's name and sentence
   } finally { window.__depsDone(); }
 </script>
 <script>
@@ -94,13 +102,22 @@ document.addEventListener('alpine:init', () => {
     return e;
   };
   const icon = (name, cls = '') => h('i', `ph ${name} ${cls}`);
-  // Who made a step. The critic is the coloured one, and its comments carry
-  // the same hue; the owner is told apart from a session by a hue of its own.
+  // Who made a step or a comment. Each reviewer has a hue, carried by its
+  // badge, its step dots, its marks in the text and its comment cards: the
+  // critic warning, the proxy (the owner-proxy agent, the owner's likely view)
+  // secondary. The owner is info; a session stays neutral.
   const BY = {
     session: { badge: 'badge-ghost', icon: 'ph-terminal-window', dot: 'bg-base-content/30' },
-    critic: { badge: 'badge-warning', icon: 'ph-magnifying-glass', dot: 'bg-warning' },
+    critic: { badge: 'badge-warning', icon: 'ph-magnifying-glass', dot: 'bg-warning',
+              mark: 'bg-warning/20 decoration-[var(--color-warning)]', on: 'bg-warning/40', edge: 'border-warning', tint: 'bg-warning/10' },
+    proxy: { badge: 'badge-secondary', icon: 'ph-user-focus', dot: 'bg-secondary',
+             mark: 'bg-secondary/20 decoration-[var(--color-secondary)]', on: 'bg-secondary/40', edge: 'border-secondary', tint: 'bg-secondary/10' },
     owner: { badge: 'badge-info', icon: 'ph-user', dot: 'bg-info' },
   };
+  const review = c => (c?.by === 'proxy' ? BY.proxy : BY.critic);
+  // A peeve's heading anchor in skills/peeves/peeves.md, by GitHub's rule
+  // over its "### Name · `P29`" heading.
+  const peeveAnchor = (id, name) => (name + ' · ' + id).toLowerCase().replace(/[^\p{L}\p{N} _-]/gu, '').replace(/ /g, '-');
   const by = s => BY[s?.by] || BY.session;
   const STAGES = [
     { k: 'request', label: 'Request', icon: 'ph-chat-circle-text' },
@@ -114,8 +131,7 @@ document.addEventListener('alpine:init', () => {
     changed: { cls: 'badge-success badge-soft', icon: 'ph-check', label: 'changed' },
     kept: { cls: 'badge-ghost', icon: 'ph-anchor-simple', label: 'kept' },
   };
-  const MARK = 'rounded-sm bg-warning/20 underline decoration-2 decoration-[var(--color-warning)] underline-offset-4 cursor-pointer';
-  const MARK_ON = 'bg-warning/40';
+  const MARK = 'rounded-sm underline decoration-2 underline-offset-4 cursor-pointer';
   const calm = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   // A comment's quote in rendered text. The quote is from the source, so its
@@ -160,7 +176,7 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('stepwise', () => ({
-    B: null, err: '', cur: 0, deck: null, repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
+    B: null, err: '', cur: 0, deck: null, peeves: new Map(), peeveRef: 'main', repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
     get n() { return this.B ? this.B.steps.length : 0; },
     get fileUrl() { return this.B?.file ? window.RepoAddress.github.blob(this.repo, this.ref, this.B.file) : ''; },
     // The stages present, in order, each with the step that opens it.
@@ -185,6 +201,9 @@ document.addEventListener('alpine:init', () => {
       if (this.B.repo) this.repo = this.B.repo;
       document.title = this.B.title || 'Stepwise';
       this.cur = this.stepOf();
+      if (this.B.steps.some(s => s.comments.some(c => c.peeve))) {
+        try { await this.loadPeeves(); } catch (e) { /* the pills keep their ids and lose their names */ }
+      }
       this.$nextTick(() => {
         this.deck = swipeDeck.core(this.n, (i, el) => this.render(i, el), {
           start: this.cur, behavior: 'instant', innerClass: 'w-full', slidePad: 'pb-24',
@@ -204,6 +223,17 @@ document.addEventListener('alpine:init', () => {
         this.go(to);
       });
       window.addEventListener('hashchange', () => { const s = this.stepOf(); if (s !== this.cur) this.go(s); });
+    },
+
+    // skills/peeves/peeves.csv from web-tools: at the #gh= ref when the payload
+    // came from web-tools, else from main (beside this page on Pages).
+    async loadPeeves() {
+      const here = param('gh') && this.repo === 'mehrlander/web-tools';
+      const text = here
+        ? (await new GH({ token: tokenNow(), repo: this.repo, ref: this.ref }).get('skills/peeves/peeves.csv')).text
+        : await (await fetch('../skills/peeves/peeves.csv')).text();
+      this.peeveRef = here ? this.ref : 'main';
+      this.peeves = new Map(window.Csv.rows(text).map(r => [r.id, r]));
     },
 
     async read() {
@@ -324,11 +354,33 @@ document.addEventListener('alpine:init', () => {
       card.append(host);
       return { el: card, host };
     },
-    // A comment's own reading: peeve, words, answer, and why it was kept.
+    // A peeve id as a pill: its name and sentence as a title-tip, and a link
+    // to its entry in skills/peeves/peeves.md.
+    peevePill(id) {
+      const wrap = h('span', 'inline-flex items-center gap-0.5');
+      const pill = h('span', 'badge badge-sm badge-outline font-mono', id);
+      const p = this.peeves.get(id);
+      if (p) {
+        pill.dataset.titleTipLead = p.name;
+        pill.dataset.titleTip = p.peeve;
+        pill.tabIndex = 0;
+        const a = h('a', 'btn btn-ghost btn-xs btn-square');
+        a.href = window.RepoAddress.github.blob('mehrlander/web-tools', this.peeveRef, 'skills/peeves/peeves.md') + '#' + peeveAnchor(id, p.name);
+        a.target = '_blank'; a.rel = 'noopener';
+        a.setAttribute('aria-label', `${id} ${p.name} in peeves.md`);
+        a.append(icon('ph-arrow-square-out'));
+        wrap.append(pill, a);
+      } else wrap.append(pill);
+      return wrap;
+    },
+    // A comment's own reading: who, peeve, answer, words, and why it was kept.
     commentBody(c) {
       const box = h('div', 'grid gap-2');
       const badges = h('div', 'flex flex-wrap items-center gap-1');
-      if (c.peeve) badges.append(h('span', 'badge badge-sm badge-warning font-mono', c.peeve));
+      const who = h('span', `badge badge-sm ${review(c).badge} gap-1`);
+      who.append(icon(review(c).icon), c.by === 'proxy' ? 'proxy' : 'critic');
+      badges.append(who);
+      if (c.peeve) badges.append(this.peevePill(c.peeve));
       const a = ANSWER[c.answer];
       if (a) {
         const b = h('span', `badge badge-sm ${a.cls} gap-1`);
@@ -422,7 +474,7 @@ document.addEventListener('alpine:init', () => {
       const marks = s.comments.map((c, k) => {
         const root = c.on === 'outline' && outlineHost ? outlineHost : host;
         return markQuote(root, c.quoted, () => {
-          const m = h('mark', MARK);
+          const m = h('mark', MARK + ' ' + review(c).mark);
           m.dataset.comment = k;
           m.addEventListener('click', () => select(open === k ? -1 : k, false));
           return m;
@@ -430,15 +482,21 @@ document.addEventListener('alpine:init', () => {
       });
       const items = s.comments.map((c, k) => {
         const li = h('li');
-        const b = h('button', 'w-full text-left grid gap-2 rounded-box border border-base-300 px-4 py-3 hover:bg-base-200');
-        b.type = 'button';
+        // A div with the button role, since the peeve link sits inside it.
+        const b = h('div', 'w-full text-left grid gap-2 rounded-box border border-base-300 px-4 py-3 hover:bg-base-200 cursor-pointer');
+        b.setAttribute('role', 'button');
+        b.tabIndex = 0;
         b.append(this.commentBody(c));
         if (c.quoted) {
           const q = h('p', 'flex items-start gap-2 text-sm text-base-content/60');
           q.append(icon(c.on === 'outline' ? STAGE.outline.icon : 'ph-quotes', 'mt-0.5'), h('span', 'line-clamp-2', marks[k].length ? c.quoted : c.quoted + ' (not found in the text)'));
           b.append(q);
         }
-        b.addEventListener('click', () => select(k, true));
+        // A tap on the peeve pill or its link is theirs, not the item's.
+        b.addEventListener('click', e => { if (!e.target.closest('a, [data-title-tip]')) select(k, true); });
+        b.addEventListener('keydown', e => {
+          if (e.target === b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(k, true); }
+        });
         li.append(b);
         list.append(li);
         return b;
@@ -446,10 +504,10 @@ document.addEventListener('alpine:init', () => {
       const select = (k, scroll) => {
         open = k;
         if (card) { card.remove(); card = null; }
-        marks.forEach((ms, x) => ms.forEach(m => m.classList.toggle(MARK_ON, x === k)));
+        marks.forEach((ms, x) => ms.forEach(m => m.classList.toggle(review(s.comments[x]).on, x === k)));
         items.forEach((b, x) => {
-          b.classList.toggle('border-warning', x === k);
-          b.classList.toggle('bg-warning/10', x === k);
+          b.classList.toggle(review(s.comments[x]).edge, x === k);
+          b.classList.toggle(review(s.comments[x]).tint, x === k);
         });
         if (k < 0 || !marks[k].length) return;
         const first = marks[k][0];
@@ -458,7 +516,7 @@ document.addEventListener('alpine:init', () => {
         const root = first.closest('.prose');
         let block = marks[k][marks[k].length - 1];
         while (block.parentElement && block.parentElement !== root) block = block.parentElement;
-        card = h('div', 'not-prose my-4 rounded-box border border-warning bg-base-100 px-4 py-3 shadow-sm');
+        card = h('div', `not-prose my-4 rounded-box border ${review(s.comments[k]).edge} bg-base-100 px-4 py-3 shadow-sm`);
         card.dataset.commentCard = '';
         card.append(this.commentBody(s.comments[k]));
         block.after(card);

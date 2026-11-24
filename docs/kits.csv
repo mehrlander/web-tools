@@ -21,7 +21,7 @@ lib/kits/console.js,consoleKit,console retention + filter + subscribe layer.,119
 lib/kits/content-index.js,ContentIndex,"a word index over the estate's Markdown, so the Search view's Contents mode answers inside the app.",162,no,no,3,yes
 lib/kits/content-registry.js,ContentRegistry,"the epistemic content registry, read in the browser.",111,no,no,5,yes
 lib/kits/crawl-runs.js,CrawlRuns,The `runs` ring: the few facts about a crawl that its output cannot show.,89,no,no,2,yes
-lib/kits/csv.js,Csv,"CSV, small and shared.",68,no,no,13,yes
+lib/kits/csv.js,Csv,"CSV, small and shared.",68,no,no,14,yes
 lib/kits/data-payload.js,DataPayload,Reading a data toss.,190,no,no,4,yes
 lib/kits/data-shelf.js,dataShelf,shelf record schema + helpers.,73,no,no,1,yes
 lib/kits/deck-host.js,deckHost,"the host half of swipe-deck's placement contract, for a page that has no host of its own.",291,no,yes,3,yes
@@ -117,7 +117,7 @@ lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) an
 lib/kits/term-marks.js,TermMarks,a glossary's terms marked where a text first names them (window.TermMarks).,39,no,no,1,yes
 lib/kits/text-collection.js,TextCollection,"the shared Text collection, read in the browser.",599,no,no,6,yes
 lib/kits/text-diff.js,textDiff,"patience diff over lines, plus word-level diff inside a changed line pair.",318,no,no,4,yes
-lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",497,no,yes,37,yes
+lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-title-tip=""…""` in place of `title=""…""`.",497,no,yes,38,yes
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,186,no,no,5,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",693,yes,no,6,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes
