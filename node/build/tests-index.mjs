@@ -142,7 +142,7 @@ function assertionNames(src) {
 }
 
 function method(src) {
-  if (/loadKit/.test(src)) return 'kit';
+  if (/\bloadKit\s*\(/.test(src)) return 'kit';
   if (/startAlpine|makeWindow/.test(src)) return 'alpine';
   if (/spawnSync|execFileSync/.test(src)) return 'spawn';
   if (/readFileSync/.test(src)) return 'read';

@@ -9,6 +9,9 @@
   "tracker": "tracker/board.md",
   "growth": "data/doc-growth/web-tools.json",
   "comments": "data/comments/web-tools.json",
+  "stores": [
+    { "path": "data/tests/reach.json", "shape": "registry", "provenance": "captured", "key": "tests[].path" }
+  ],
   "data": {
     "census": "data/csv-census.csv"
   },
@@ -206,7 +209,13 @@
         "docs/tests-authored.csv",
         "docs/environment/testing.md",
         ".github/workflows/test.yml",
-        ".github/workflows/page-measures.yml"
+        ".github/workflows/page-measures.yml",
+        "node/testing/",
+        "node/test/",
+        "data/tests/reach.json"
+      ],
+      "measures": [
+        "mehrlander/web-tools-private@background:data/tests/latest.json"
       ],
       "reviewers": [
         "portable:owner-proxy",
