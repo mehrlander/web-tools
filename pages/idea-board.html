@@ -190,6 +190,19 @@ document.addEventListener('alpine:init', () => {
     deckSub() { const i = this.cur; return i > 0 && i < this.last ? i + ' ' + this.at(i).title : this.label(i); },
 
     // One move, from the list, the strip or the expanded deck, reaches the other two.
+    // Left and Right step one item; Up and Down step one row of the grid the list lays out (one column on a
+    // phone, up to four on a wide screen); Home and End go to the ends. Focus follows the selection.
+    listKey(e) {
+      const list = this.$refs.list;
+      const cols = Math.max(1, getComputedStyle(list).gridTemplateColumns.split(' ').filter(Boolean).length);
+      const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
+      const to = e.key === 'Home' ? 0 : e.key === 'End' ? this.count - 1 : step === undefined ? null : this.cur + step;
+      if (to === null) return;
+      e.preventDefault();
+      const n = Math.max(0, Math.min(this.count - 1, to));
+      this.sync(n, 'list');
+      this.$nextTick(() => list.querySelectorAll('[data-part="item"]')[n]?.focus({ preventScroll: true }));
+    },
     sync(i, from) {
       this.cur = i;
       if (this.deck) this.deck.setSubtitle(this.deckSub());
@@ -421,10 +434,11 @@ document.addEventListener('alpine:init', () => {
   <!-- The list on top, kept in step with the strip below and with the deck the strip expands into -->
   <template x-if="B">
     <main data-pattern="linked-swiper" class="grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] min-h-0 min-w-0">
-      <ol x-ref="list" role="listbox" aria-label="Concepts" tabindex="0" data-part="list"
-          @keydown.down.prevent="sync(Math.min(count - 1, cur + 1), 'list')" @keydown.up.prevent="sync(Math.max(0, cur - 1), 'list')"
+      <!-- The selected item is the list's one tab stop (roving tabindex), so focus and its outline sit on the item,
+           drawn just inside it as linked-swiper draws a row's. listKey moves through the grid the list lays out. -->
+      <ol x-ref="list" role="listbox" aria-label="Concepts" data-part="list" @keydown="listKey($event)"
           class="max-h-[38dvh] overflow-y-auto border-b border-base-300 grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 content-start">
-        <li role="option" data-part="item" :aria-selected="cur === 0 ? 'true' : 'false'" @click="sync(0, 'list')"
+        <li role="option" data-part="item" :aria-selected="cur === 0 ? 'true' : 'false'" :tabindex="cur === 0 ? 0 : -1" style="outline-offset:-2px" @click="sync(0, 'list'); $el.focus({ preventScroll: true })"
             class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
             :class="[cur === 0 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
           <span class="justify-self-center text-base-content/70" x-html="mark('background', 26)"></span>
@@ -434,7 +448,7 @@ document.addEventListener('alpine:init', () => {
           </span>
         </li>
         <template x-for="(d, i) in B.ideas" :key="d.n">
-          <li role="option" data-part="item" :aria-selected="cur === i + 1 ? 'true' : 'false'" @click="sync(i + 1, 'list')"
+          <li role="option" data-part="item" :aria-selected="cur === i + 1 ? 'true' : 'false'" :tabindex="cur === i + 1 ? 0 : -1" style="outline-offset:-2px" @click="sync(i + 1, 'list'); $el.focus({ preventScroll: true })"
               class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
               :class="[cur === i + 1 && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)_auto]' : 'grid-cols-[minmax(0,1fr)_auto]']">
             <template x-if="thumbs"><span class="h-12 grid place-items-center overflow-hidden"><img :src="d.src" alt="" class="max-h-12 w-auto bg-white"></span></template>
@@ -445,7 +459,7 @@ document.addEventListener('alpine:init', () => {
             <i class="ph" :class="picked(d.n) ? 'ph-fill ph-star text-primary' : 'ph-star opacity-25'"></i>
           </li>
         </template>
-        <li role="option" data-part="item" :aria-selected="cur === last ? 'true' : 'false'" @click="sync(last, 'list')"
+        <li role="option" data-part="item" :aria-selected="cur === last ? 'true' : 'false'" :tabindex="cur === last ? 0 : -1" style="outline-offset:-2px" @click="sync(last, 'list'); $el.focus({ preventScroll: true })"
             class="cursor-pointer grid gap-x-3 items-center px-3 py-2 border-b border-base-200 hover:bg-base-200"
             :class="[cur === last && 'bg-base-200', thumbs ? 'grid-cols-[4rem_minmax(0,1fr)]' : 'grid-cols-[auto_minmax(0,1fr)]']">
           <span class="justify-self-center text-base-content/70" x-html="mark('conclusion', 26)"></span>
