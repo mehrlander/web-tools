@@ -28,7 +28,7 @@ substituting the current repo in URL templates.
 
   The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
   - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
-  - ⌨️ a link that opens the content with a Copy button;
+  - ⌨️ a link that opens the code or text given, with a Copy button;
   - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
   - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
