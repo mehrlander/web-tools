@@ -9,11 +9,11 @@ The phases parallel [`design-sprint`](../design-sprint/SKILL.md)'s.
 
 ## Premise
 
-Writers who have solved a problem on the page leave techniques another writer can borrow: a number given before the abstraction it stands for, one fact to a sentence, a plain test that settles a claim. A writing sprint applies such techniques to a starting text and compares the results. The starting text can be a draft, a prompt, a note or another writer's passage; the sprint treats each as material for the result.
+Writers who have solved a problem on the page leave techniques another writer can borrow: a number given before the abstraction it stands for, one fact to a sentence, a plain test that settles a claim. A writing sprint applies such techniques to a starting text and compares the results. The sprint treats a draft and a prompt alike, as material for the result.
 
-Left to itself, an assistant writes in its own habits, and a named writer invoked as a model yields the assistant's impression of that writer, which carries the same habits. A passage read closely gives a specific technique to borrow instead.
+Left to itself, an assistant writes in its own habits. A named writer invoked as a model yields the assistant's impression of that writer. The impression repeats the same habits. A passage read closely gives a specific technique to borrow instead.
 
-A **move** is such a technique, named as an instruction. home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) files moves by name, each with passages that show it, quoted from home's exemplar pieces. home is private: read it from a checkout beside the project root, or through the GitHub tools.
+home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) files such techniques, called moves, by name, each with the passages that show it. home is private: read it from a checkout beside the project root, or through the GitHub tools.
 
 ## Process
 
@@ -25,44 +25,39 @@ A **move** is such a technique, named as an instruction. home's [`projects/skill
 
 ### 1. Define
 
-**Output: Brief.** One or two lines per item.
+Write one or two lines per item.
 
 - **Reader and effect.** Who reads the text, and what they should know, judge or feel afterward.
 - **What the text must keep.** For a draft, its claims, inventoried as the [`outlining`](../outlining/SKILL.md) skill's claims reference describes. For a prompt or a note, the idea it reaches for.
-- **Tells.** The assistant habits the starting text shows or the request invites: entries in the [`peeves`](../peeves/SKILL.md) list, phrases in home's [model-voice overuse results](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-08-19-model-voice/README.md), and the anti-slop list in home's [blog `VOICE.md`](https://github.com/mehrlander/home/blob/main/.claude/skills/blog/VOICE.md#anti-slop).
-- **Moves.** Three or four moves from `moves.md`, each given one job: a **primary** that shapes the text, a **corrective** that restrains the primary, and an **edit pass** applied last. When no filed move fits, name the move wanted and say that `moves.md` lacks it.
+- **Habits.** The assistant habits the starting text shows or the request invites: entries in the [`peeves`](../peeves/SKILL.md) list, phrases in home's [model-voice overuse results](https://github.com/mehrlander/home/blob/main/projects/text/runs/2026-08-19-model-voice/README.md), and the anti-slop list in home's [blog `VOICE.md`](https://github.com/mehrlander/home/blob/main/.claude/skills/blog/VOICE.md#anti-slop).
+- **Moves.** Chosen from [`moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), each with one job:
+  - three to five candidate **primaries**, each the basis of one variant;
+  - one **corrective**, to restrain the selected primary;
+  - one **edit pass**, applied last.
+
+  When no filed move fits, name the move wanted and say that `moves.md` lacks it.
 
 Stop for agreement or correction, unless the user requested the full run.
 
 ### 2. Vary and select
 
-**Output: Variants and the selection.**
-
-Read every passage filed under each chosen move before drafting. Write three to five variants, each with a different move as its primary, each keeping what the brief says the text must keep. Show them in full, each headed by its move. Then select one, or combine moves from several, against the brief's reader and effect, and give the reason in a sentence.
+Read every passage filed under each chosen move before drafting. While drafting, work from each move's name and passage rather than a writer's name, and leave behind what the passage's entry says to leave behind. Write one variant per candidate primary. Every variant keeps what the brief says the text must keep. Show them in full, each headed by its move. Then select one, or combine moves from several, against the brief's reader and effect, and give the reason in a sentence.
 
 ### 3. Refine
-
-**Output: The text.**
 
 Apply the corrective and the edit pass. Then check the text:
 
 - every claim or idea the brief lists is still present;
-- none of the brief's tells has returned;
-- the `portable:peeves-critic` agent returns PASS;
-- where the reader is new to the subject, the `portable:novice-reader` agent finds no place the text loses them.
+- none of the habits the brief names has returned;
+- the [`portable:peeves-critic`](../agents/peeves-critic.md) agent returns PASS;
+- where the reader is new to the subject, the [`portable:novice-reader`](../agents/novice-reader.md) agent finds no place the text loses them.
 
 Hand over the text, then one line per move naming what it changed.
 
 ### Punch-up
 
-The short form, for a short text or a request to punch one up. Skip the brief's stop and the variants: name the tells and one or two moves in a line, apply the moves in one pass, run the phase 3 checks, and hand over the text with the moves named.
-
-## Key insights
-
-- **Name the move, quote the passage.** While drafting, do not instruct yourself to write like a named writer. Hold the move's name and its passage instead.
-- **Take the move, not the writer.** Each passage in `moves.md` says what not to take from its writer. Period diction, a genre's conventions and a writer's mannerisms do not transfer.
-- **One job per move.** Moves given equal weight average into no manner in particular. The primary sets the manner; the corrective and the edit pass only restrain it.
+The short form, for a short text or a request to punch one up. Skip the brief's stop and the variants: name the habits and one or two moves in a line, apply the moves in one pass, run the phase 3 checks, and hand over the text with the moves named.
 
 ## Extending
 
-`moves.md` begins with moves found in home's exemplar pieces, chosen for clarity, and is meant to grow toward wit, momentum and compression. When a sprint finds a passage that shows a move well, propose it as an entry, following the rules at the head of `moves.md`. Punch-up may become its own skill if it is used apart from the sprint.
+`moves.md` begins with moves from home's [exemplar pieces](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars/pieces). Those pieces were chosen for clarity. Moves for wit, momentum and compression are to follow. When a sprint finds a passage that shows a move well, propose it as an entry, following the rules at the head of `moves.md`.
