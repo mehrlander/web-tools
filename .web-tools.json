@@ -238,18 +238,21 @@
       ]
     },
     {
-      "name": "organization",
-      "label": "Organization",
-      "scope": "how the estate fits together: repositories, registries, maps, session records and history",
-      "icon": "programs/organization/icon.svg",
-      "path": "programs/organization",
+      "name": "alignment",
+      "label": "Alignment",
+      "scope": "how the estate fits together: repositories, registries, maps, repeated prose, lists, session records and history",
+      "icon": "programs/alignment/icon.svg",
+      "path": "programs/alignment",
+      "formerly": ["programs/organization"],
       "governs": [
         ".web-tools.json",
         "docs/manifest-fields.csv",
         "docs/registries.csv",
         "docs/registries.md",
         "docs/properties.csv",
-        "docs/TRACKER.md"
+        "docs/TRACKER.md",
+        "docs/themes.csv",
+        "lib/kits/lists.js"
       ],
       "measures": [
         "mehrlander/web-tools-private@background:state/landings.json",
@@ -272,6 +275,8 @@
         "?view=map&tab=relations",
         "?view=map&tab=public",
         "?view=map&tab=names",
+        "?view=map&tab=themes",
+        "?view=lists",
         "?view=sessions",
         "?view=branches",
         "?view=search"
@@ -286,7 +291,9 @@
           { "kind": "breakdown", "registry": "tracker/board.csv", "by": "status", "only": ["in-progress", "blocked", "backlog", "dormant", "done"],
             "icons": { "in-progress": "ph-circle-half", "blocked": "ph-prohibit", "backlog": "ph-circle", "dormant": "ph-moon", "done": "ph-check-circle" } }
         ] },
-        { "name": "Maps", "icon": "ph-map-trifold", "panels": [{ "kind": "breakdown", "registry": "programs/organization/current/pages.csv", "by": "app", "icons": { "view": "ph-app-window", "full-app": "ph-browsers", "framed": "ph-frame-corners", "linked": "ph-link", "standalone": "ph-file-html" } }] }
+        { "name": "Maps", "icon": "ph-map-trifold", "panels": [{ "kind": "breakdown", "registry": "programs/alignment/current/pages.csv", "by": "app", "icons": { "view": "ph-app-window", "full-app": "ph-browsers", "framed": "ph-frame-corners", "linked": "ph-link", "standalone": "ph-file-html" } }] },
+        { "name": "Repeated prose", "icon": "ph-copy", "panels": [{ "kind": "views", "views": ["?view=map&tab=themes"] }] },
+        { "name": "Lists", "icon": "ph-list-bullets", "panels": [{ "kind": "views", "views": ["?view=lists"] }] }
       ]
     },
     {
@@ -299,7 +306,6 @@
         "docs/QUALIFIED-WRITING.md",
         "skills/doc-craft/",
         "data/doc-growth/",
-        "docs/themes.csv",
         "skills/html-style/",
         "data/ui-units/codebook.md",
         "docs/kits.csv"
@@ -313,7 +319,6 @@
         "?view=map&tab=growth",
         "?view=map&tab=peeves",
         "?view=map&tab=policy",
-        "?view=map&tab=themes",
         "?view=map&tab=model",
         "?view=map&tab=units",
         "?view=map&tab=dimensions",
