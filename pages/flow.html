@@ -17,7 +17,8 @@
               actors:   [{ id, label, icon }]           the map's columns, in order
               variants: [{ id, label }]?                 at most two: the versions compared
               steps:    [{ id, actor, label,
-                           does,      one sentence, or { <variant>: sentence } where the versions differ
+                           gloss,     what the step does, in a sentence; where the versions
+                                      differ, a list of { v, gloss }, one per variant
                            in?,       the variants the step belongs to; all when omitted
                            artifacts?: [{ kind, label, path, repo? }]
                                       kind: skill | script | agent | data | doc | record | page
@@ -107,7 +108,7 @@ document.addEventListener('alpine:init', () => {
     status(s) {
       if (!this.both) return { k: 'shared' };
       if (s.in && s.in.length < this.variants.length) return { k: 'only', vid: s.in[0], hue: this.hue(s.in[0]) };
-      if (s.does && typeof s.does === 'object') return { k: 'changed' };
+      if (Array.isArray(s.gloss)) return { k: 'changed' };
       return { k: 'shared' };
     },
     actorOf(s) { return this.F.actors.find(a => a.id === s.actor) || { label: s.actor, icon: 'ph-circle' }; },
@@ -137,10 +138,15 @@ document.addEventListener('alpine:init', () => {
       this.$nextTick(() => this.build());
       window.addEventListener('keydown', e => {
         if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
-        const to = { ArrowLeft: this.cur - 1, ArrowRight: this.cur + 1, Home: 0, End: this.n - 1 }[e.key];
+        // Up and Down step the map's selection while focus is in the map, and
+        // focus follows the selected node; elsewhere they scroll as usual.
+        const inMap = this.$refs.map.contains(document.activeElement);
+        const to = { ArrowLeft: this.cur - 1, ArrowRight: this.cur + 1, Home: 0, End: this.n - 1,
+          ...(inMap ? { ArrowUp: this.cur - 1, ArrowDown: this.cur + 1 } : {}) }[e.key];
         if (to == null) return;
         e.preventDefault();
         this.go(to);
+        if (inMap) this.$nextTick(() => this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step.id)}"]`)?.focus({ preventScroll: true }));
       });
       // Back after an exit taken: the address names the step to return to.
       window.addEventListener('popstate', () => {
@@ -218,7 +224,7 @@ document.addEventListener('alpine:init', () => {
       if (j <= this.cur) this.passes++;
       this.go(j, { push: true });
     },
-    // The selected node stays in view in the map, with its neighbours around it.
+    // The selected node stays in view in the map; its scroll margin keeps a row either side.
     reveal() {
       this.$nextTick(() => this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
     },
@@ -320,38 +326,20 @@ document.addEventListener('alpine:init', () => {
       root.append(top, title);
 
       // The step's sentence, or each version's side by side where they differ.
-      if (s.does && typeof s.does === 'object') {
+      if (Array.isArray(s.gloss)) {
         const vids = this.v ? [this.v] : this.variants.map(x => x.id);
-        const cmp = h('div', vids.length > 1 ? 'grid gap-4 xl:grid-cols-2' : 'grid');
+        const cmp = h('div', vids.length > 1 ? 'grid gap-4 items-start xl:grid-cols-2' : 'grid');
         vids.forEach(vid => {
-          if (s.does[vid] == null) return;
+          const g = s.gloss.find(x => x.v === vid);
+          if (!g) return;
           const hue = vids.length > 1 ? this.hue(vid) : null;
           const blk = h('div', hue ? `${hue.bar} pl-4 grid gap-1` : 'grid');
           if (hue) blk.append(h('span', `badge ${hue.badge} badge-sm`, this.variants.find(x => x.id === vid)?.label || vid));
-          blk.append(inline(h('p'), s.does[vid]));
+          blk.append(inline(h('p'), g.gloss));
           cmp.append(blk);
         });
         root.append(cmp);
-      } else if (s.does) root.append(inline(h('p'), s.does));
-
-      // The scripts, skills and records the step touches.
-      if (s.artifacts?.length) {
-        const ul = h('ul', 'grid gap-3');
-        s.artifacts.forEach(x => {
-          const repo = x.repo || this.repo, ref = x.repo && x.repo !== this.repo ? 'main' : this.ref;
-          const href = /^https?:/.test(x.path) ? x.path : window.RepoAddress.github.blob(repo, ref, x.path);
-          const li = h('li', 'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 items-start');
-          li.append(icon(KIND[x.kind] || 'ph-file', 'text-2xl mt-0.5 text-base-content/70'));
-          const t = h('div', 'min-w-0 grid');
-          t.append(h('span', 'font-semibold', x.label));
-          const link = h('a', 'link link-hover font-mono text-xs text-base-content/60 truncate', (repo !== this.repo ? repo.split('/')[1] + ': ' : '') + x.path);
-          link.href = href; link.target = '_blank'; link.rel = 'noopener';
-          t.append(link);
-          li.append(t);
-          ul.append(li);
-        });
-        root.append(ul);
-      }
+      } else if (s.gloss) root.append(inline(h('p'), s.gloss));
 
       // The branches the reader can take from here.
       const exits = (s.exits || []).filter(x => this.active().some(vid => this.inV(x, vid)) && this.vis.some(y => y.id === x.to));
@@ -374,6 +362,25 @@ document.addEventListener('alpine:init', () => {
         });
         root.append(ul);
       }
+      // The scripts, skills and records the step touches.
+      if (s.artifacts?.length) {
+        const ul = h('ul', 'grid gap-3');
+        s.artifacts.forEach(x => {
+          const repo = x.repo || this.repo, ref = x.repo && x.repo !== this.repo ? 'main' : this.ref;
+          const href = /^https?:/.test(x.path) ? x.path : window.RepoAddress.github.blob(repo, ref, x.path);
+          const li = h('li', 'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 items-start');
+          li.append(icon(KIND[x.kind] || 'ph-file', 'text-2xl mt-0.5 text-base-content/70'));
+          const t = h('div', 'min-w-0 grid');
+          t.append(h('span', 'font-semibold', x.label));
+          const link = h('a', 'link link-hover font-mono text-xs text-base-content/60 truncate', (repo !== this.repo ? repo.split('/')[1] + ': ' : '') + x.path);
+          link.href = href; link.target = '_blank'; link.rel = 'noopener';
+          t.append(link);
+          li.append(t);
+          ul.append(li);
+        });
+        root.append(ul);
+      }
+
       el.append(root);
     },
   }));
@@ -415,12 +422,12 @@ document.addEventListener('alpine:init', () => {
            :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); margin-right: ${gutter * 16 + 8}px`">
         <template x-for="(a, k) in (F ? F.actors : [])" :key="a.id">
           <div class="sticky top-0 z-10 bg-base-100 py-1 flex items-center gap-1 text-xs font-semibold text-base-content/70" :style="`grid-row: 1; grid-column: ${k + 1}`">
-            <i class="ph text-base" :class="a.icon"></i><span class="truncate" x-text="a.label"></span>
+            <i class="ph text-base shrink-0" :class="a.icon"></i><span class="leading-tight" x-text="a.label"></span>
           </div>
         </template>
         <template x-for="(s, i) in vis" :key="s.id + v">
           <button type="button" :data-step="s.id" @click="go(i)" :aria-current="i === cur ? 'step' : null"
-                  class="relative z-[1] text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
+                  class="relative z-[1] scroll-my-20 text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
                   :class="nodeClass(i)" :style="`grid-row: ${i + 2}; grid-column: ${col(s)}; ` + nodeStyle(i)">
             <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
             <span>
