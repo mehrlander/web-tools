@@ -1,24 +1,22 @@
 # Text boundaries
 
-This map answers one question about the text work: which home project or web-tools program claims each item it touches, and how.
+This map answers one question about the text work: which project or program has a stake in each item it touches, and of what kind.
 
-A home project holds the files in its folder. A web-tools program governs the files its `governs` list in [`.web-tools.json`](../../../.web-tools.json) names. Either can also name an item it does not hold, in its charter, its README or an index it keeps.
+The stakeholders are of two kinds. A project in the [home](https://github.com/mehrlander/home) repository holds the files under its folder, `projects/<name>/`. A web-tools program governs the files its `governs` list in [`.web-tools.json`](../../../.web-tools.json) names. Either can also name an item it does not hold or govern, in its charter, its README or an index it keeps.
 
-## Files
-
-[`boundaries.csv`](boundaries.csv) holds one row per item. [`boundaries.html`](boundaries.html) draws it as a matrix, items by claimant. [`boundaries-map.mjs`](boundaries-map.mjs) rewrites the measured columns, and its `--check` re-derives them.
+[`boundaries.html`](boundaries.html) draws the map as a matrix, items by project and program.
 
 ## Columns
 
-| Column | Holds | How it is set |
-| --- | --- | --- |
-| `project` | the home project whose folder holds the path | measured from the path |
-| `program` | the web-tools program whose `governs` list covers the path | measured from `.web-tools.json` |
-| `named_by` | each project or program that names the item without holding it | recorded, with the place it does so in `basis` |
-| `proposed` | a project or program a pending proposal would move the item to | recorded |
+| Column | How it is set |
+| --- | --- |
+| `project` | measured from the path |
+| `program` | measured from `.web-tools.json` |
+| `named_by` | recorded, with the place each naming is stated in `basis` |
+| `proposed` | recorded: the project or program a pending proposal would move the item to |
 
-An item with no project and no program is held by no one: the map marks it "no program".
+The map marks an item with neither a project nor a program "no program".
 
 ## Scope
 
-The rows are the items the text work has raised placement questions about: the Text project's instruments, probes and audit, the skills the audit's recipes name, the writing rules, the exemplars, and the tools that find repeated prose. An item joins when a session or the owner asks where it belongs.
+A row is an item of home's [Text project](https://github.com/mehrlander/home/blob/main/projects/text/README.md), or of a project or program next to it, whose placement a session or the owner has questioned. [`boundaries.csv`](boundaries.csv) lists them.

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="winter">
+<html lang="en" data-theme="winter" class="[scrollbar-gutter:stable]">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,8 +19,8 @@
   filters.
 -->
 </head>
-<body class="bg-base-100 text-base-content [scrollbar-gutter:stable]">
-<div x-data="boundaries()" x-init="init()" class="min-h-dvh">
+<body class="bg-base-100 text-base-content text-sm">
+<div x-data="boundaries()" x-init="init()" class="min-h-dvh" @keydown.window="key($event)">
   <header class="sticky top-0 z-10 bg-base-100 border-b border-base-300">
     <div class="px-4 pt-3 pb-2 flex items-baseline gap-3 flex-wrap">
       <h1 class="text-lg font-semibold">Text boundaries</h1>
@@ -28,7 +28,7 @@
       <span class="ml-auto flex items-center gap-3 text-xs text-base-content/70">
         <span class="flex items-center gap-1"><span class="inline-block size-3 rounded-full bg-base-content"></span>holds or governs</span>
         <span class="flex items-center gap-1"><span class="inline-block size-3 rounded-full border-2 border-base-content"></span>names</span>
-        <span class="flex items-center gap-1"><span class="inline-block size-3 rounded-full border-2 border-dashed border-accent"></span>proposed</span>
+        <span x-show="count('proposed')" class="flex items-center gap-1"><span class="inline-block size-3 rounded-full border-2 border-dashed border-accent"></span>proposed</span>
       </span>
     </div>
     <div class="px-4 pb-3 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
@@ -43,29 +43,31 @@
 
   <main class="px-4 py-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
     <div class="min-w-0 overflow-x-auto">
-      <table class="table table-sm w-full">
+      <table class="table table-sm table-fixed w-full min-w-[48rem] text-sm">
+        <colgroup><col class="w-[26%]"><template x-for="e in ENT" :key="e.id"><col class="w-[8.5%]"></template><col class="w-[6%]"></colgroup>
         <thead>
           <tr class="border-b-0">
             <th class="sticky left-0 bg-base-100 z-[1]"></th>
             <th :colspan="HOME.length" class="text-center text-xs font-normal text-base-content/60 border-b border-base-300">home projects</th>
             <th :colspan="HUB.length" class="text-center text-xs font-normal text-base-content/60 border-b border-base-300 border-l">web-tools programs</th>
+            <th></th>
           </tr>
           <tr>
             <th class="text-xs font-normal text-base-content/60 sticky left-0 bg-base-100 z-[1]">item</th>
             <template x-for="(e, i) in ENT" :key="e.id">
-              <th class="text-center text-xs font-medium px-1 cursor-default min-w-16" :class="[i === HOME.length ? 'border-l border-base-300' : '', col === e.id ? 'bg-base-200' : '']"
-                  @mouseenter="col = e.id" @mouseleave="col = ''" x-text="e.label"></th>
+              <th class="text-center text-xs font-medium px-1 cursor-default whitespace-normal leading-tight align-bottom" :class="[i === HOME.length ? 'border-l border-base-300' : '', col === e.id ? 'bg-base-200' : '']"
+                  @mouseenter="col = e.id" @mouseleave="col = ''" @click="col = col === e.id ? '' : e.id" x-text="e.label"></th>
             </template>
+            <th class="text-center text-xs font-normal text-base-content/60 border-l border-base-300">stakes</th>
           </tr>
         </thead>
         <template x-for="g in groups()" :key="g.id">
           <tbody>
-            <tr class="border-b-0"><td :colspan="ENT.length + 1" class="pt-4 pb-1 text-xs text-base-content/60"><i class="ph mr-1" :class="g.icon"></i><span x-text="g.label"></span></td></tr>
+            <tr class="border-b-0"><td :colspan="ENT.length + 2" class="pt-4 pb-1 text-xs text-base-content/60"><i class="ph mr-1" :class="g.icon"></i><span x-text="g.label"></span></td></tr>
             <template x-for="r in g.rows" :key="r.item">
               <tr class="cursor-pointer hover:bg-base-200" :class="sel === r.item ? 'bg-base-200' : ''" @click="pick(r.item)" :data-at="'row-' + r.item">
-                <td class="min-w-36 sticky left-0 z-[1]" :class="sel === r.item ? 'bg-base-200' : 'bg-base-100'">
-                  <span class="font-medium" x-text="r.label"></span>
-                  <span x-show="!r.program && !r.project" class="badge badge-xs badge-warning badge-soft ml-1 whitespace-nowrap">no program</span>
+                <td class="sticky left-0 z-[1] truncate" :class="sel === r.item ? 'bg-base-200' : 'bg-base-100'">
+                  <i x-show="!r.program && !r.project" class="ph-fill ph-warning-circle text-warning mr-1"></i><span class="font-medium" x-text="r.label"></span>
                 </td>
                 <template x-for="(e, i) in ENT" :key="e.id">
                   <td class="text-center px-1" :class="[i === HOME.length ? 'border-l border-base-300' : '', col === e.id ? 'bg-base-200' : '']"
@@ -73,6 +75,7 @@
                     <span class="inline-block size-3.5 rounded-full align-middle" :class="markClass(rel(r, e.id))"></span>
                   </td>
                 </template>
+                <td class="text-center tabular-nums border-l border-base-300" :class="claimants(r).size > 1 ? 'font-semibold' : 'text-base-content/40'" x-text="claimants(r).size"></td>
               </tr>
             </template>
           </tbody>
@@ -80,11 +83,11 @@
       </table>
     </div>
 
-    <aside class="min-w-0 lg:sticky lg:top-28 border border-base-300 rounded-box p-4 grid gap-3" x-show="current()">
+    <aside class="min-w-0 sticky z-20 bottom-0 lg:bottom-auto lg:top-28 max-h-[40dvh] lg:max-h-none overflow-y-auto bg-base-100 border border-base-300 rounded-box p-4 grid gap-3 shadow-sm lg:shadow-none" x-show="current()">
       <template x-if="current()">
         <div class="grid gap-3">
-          <div class="flex items-center gap-2 text-base">
-            <i class="ph text-lg" :class="groupOf(current()).icon"></i>
+          <div class="flex items-center gap-2">
+            <i class="ph" :class="groupOf(current()).icon"></i>
             <span class="font-semibold" x-text="current().label"></span>
           </div>
           <a class="link link-hover font-mono text-xs break-all" :href="ghUrl(current().path)" target="_blank" rel="noopener" x-text="current().path"></a>
@@ -99,7 +102,7 @@
               <i class="ph ph-warning-circle"></i><span>no program governs it</span>
             </li>
           </ul>
-          <p class="text-sm text-base-content/80" x-show="current().basis" x-text="current().basis"></p>
+          <p class="text-base-content/80" x-show="current().basis"><i class="ph ph-quotes mr-1"></i><span x-text="current().basis"></span></p>
         </div>
       </template>
     </aside>
@@ -130,7 +133,7 @@ function boundaries() {
     .map(([id, label]) => ({ id, label, side: 'hub' }));
   const GROUPS = [
     ['analysis', 'Analysis', 'ph-magnifying-glass'], ['models', 'Models', 'ph-cpu'], ['audit', 'Audit', 'ph-list-checks'],
-    ['anchoring', 'Anchoring', 'ph-anchor'], ['writing', 'Writing rules', 'ph-pen-nib'], ['styles', 'Styles', 'ph-feather'],
+    ['anchoring', 'Anchoring', 'ph-anchor'], ['writing', 'Writing rules', 'ph-pen-nib'], ['styles', 'Styles', 'ph-books'],
     ['repeated-prose', 'Repeated prose', 'ph-copy'],
   ].map(([id, label, icon]) => ({ id, label, icon }));
   const params = new URLSearchParams(location.search);
@@ -141,6 +144,16 @@ function boundaries() {
     async init() {
       this.rows = parseCsv(await (await fetch('boundaries.csv')).text());
       if (!this.sel) this.sel = (this.rows.find(r => this.claimants(r).size > 1) || this.rows[0] || {}).item || '';
+      else this.$nextTick(() => this.reveal());
+    },
+    visible() { return this.groups().flatMap(g => g.rows); },
+    reveal() { document.querySelector(`[data-at="row-${this.sel}"]`)?.scrollIntoView({ block: 'nearest' }); },
+    key(ev) {
+      if (!['ArrowDown', 'ArrowUp'].includes(ev.key)) return;
+      const v = this.visible(), i = v.findIndex(r => r.item === this.sel);
+      const j = Math.max(0, Math.min(v.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)));
+      if (!v[j]) return;
+      ev.preventDefault(); this.pick(v[j].item); this.$nextTick(() => this.reveal());
     },
     rel(r, id) {
       if (r.proposed === id) return 'proposed';
