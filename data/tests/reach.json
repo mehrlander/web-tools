@@ -2,8 +2,8 @@
   "schema": "web-tools-test-run/1",
   "source": {
     "repo": "mehrlander/web-tools",
-    "checkout_sha": "b9b342053bb43b9dfb1270e5b90fff23d8647bdc",
-    "head_sha": "b9b342053bb43b9dfb1270e5b90fff23d8647bdc",
+    "checkout_sha": "800f31e35d06547a032ea829ea283b58e4bec8a5",
+    "head_sha": "800f31e35d06547a032ea829ea283b58e4bec8a5",
     "base_sha": null,
     "dirty": false
   },
@@ -17,7 +17,7 @@
   "mode": "full",
   "complete": true,
   "exit_code": 0,
-  "finished_at": "2026-11-25T06:09:37.646Z",
+  "finished_at": "2026-11-25T08:30:54.082Z",
   "tests": [
     {
       "path": "node/test/acronym-hint.test.mjs",
