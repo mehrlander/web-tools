@@ -34,7 +34,7 @@ substituting the current repo in URL templates.
 
   Each of 👁️‍🗨️, ⌨️, ✍️ and ⚖️ may also prefix a link to its listed resource elsewhere in a reply.
 
-* **Close every reply** with the caption, then each link [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints with a few words on what it opens, then the closing state.
+* **Close every reply** with three parts, in order. First comes the session detail caption. Next comes each link that [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints, followed by a few words of your own on what it opens. Last comes the closing state.
 
 * **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
 
@@ -82,13 +82,13 @@ substituting the current repo in URL templates.
 
 ## Displaying content
 
-* **A look link 👁️‍🗨️.** A look link opens a page on a guided tour, made as the [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill describes.
+* **A look link 👁️‍🗨️.** A look link opens a page at a marked element with a card saying why, or walks the reader through several such stops. The [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill says how to make one.
 
 * **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or GitHub token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
 
 * **A screenshot.** In web-tools, `npm run shot -- <page>` saves a headless screenshot of a page from the working tree, and `--measure` adds overflow checks at desktop and phone width. The `screenshot-review` skill checks a shot before it is sent, and a file card shows it inline.
 
-* **A file card.** `SendUserFile` attaches a file to the chat as a file card, where images render inline and other types download to the device. When a closing state presents a file card, send the card just before the closing state, even if the reply sent it earlier. The download can be useful for an uncommitted file or one opened in another application, such as a Word document or a workbook, but a rendered link is usually more convenient and preferred.
+* **A file card.** `SendUserFile` attaches a file to the chat as a file card, where images render inline and other types download to the device. When the closing state asks the reader to judge a file card, such as a screenshot, send that card just before the closing state, again if the reply already sent it. The download can be useful for an uncommitted file or one opened in another application, such as a Word document or a workbook, but a rendered link is usually more convenient and preferred.
 
 ## PR events
 
