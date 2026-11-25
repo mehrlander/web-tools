@@ -297,8 +297,7 @@ document.addEventListener('alpine:init', () => {
         return { stroke: one ? one.stroke : 'color-mix(in oklab, var(--color-base-content) 45%, transparent)', dash: one ? one.dash : '' };
       };
       let s = '', lane = 0;
-      const text = (x, y, t, color) =>
-        `<text x="${x}" y="${y}" font-size="13" fill="${color}" stroke="var(--color-base-100)" stroke-width="3" paint-order="stroke">${window.esc(t)}</text>`;
+      const pills = [];
       const edges = this.edges();
       // Edges sharing a node fan out along its edge, so no two meet it at one
       // point: forward edges along its bottom and top, ordered by the other
@@ -321,7 +320,7 @@ document.addEventListener('alpine:init', () => {
         const a = e.a, b = e.b;
         if (!a || !b) return;
         const p = paint(e);
-        let d, lx, ly;
+        let d, first = 0;
         if (e.kind === 'loop') {
           // Out of the source's right side, up the gutter with rounded turns, into the target's right side.
           const gx = gx0 + lane++ * 12, r = 8;
@@ -329,9 +328,7 @@ document.addEventListener('alpine:init', () => {
           const y1 = a.y + a.h / 2 + o1, y2 = b.y + b.h / 2 + off('r' + e.j, e, 6);
           const up = y2 < y1 ? -1 : 1;
           d = `M${a.x + a.w} ${y1} H${gx - r} Q${gx} ${y1} ${gx} ${y1 + up * r} V${y2 - up * r} Q${gx} ${y2} ${gx - r} ${y2} H${b.x + b.w + 2}`;
-          // The label reads across, on the stretch leaving the source: over
-          // the line for the upper of two loops, under it for the lower.
-          lx = a.x + a.w + 8; ly = o1 > 0 ? y1 + 15 : y1 - 5;
+          first = (gx - r - a.x - a.w) / 2;   // a loop's label tries the stretch leaving its step first
         } else {
           // A curve from the source's foot to the target's head. Where a step
           // between them sits across its way, the edge curves out to a channel
@@ -348,16 +345,11 @@ document.addEventListener('alpine:init', () => {
             const my = (y1 + y2) / 2;
             d = `M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}`;
           }
-          lx = x2 + 6; ly = y2 - 5;
         }
         s += `<path d="${d}" fill="none" stroke="${p.stroke}" stroke-width="1.5"${p.dash ? ` stroke-dasharray="${p.dash}"` : ''} marker-end="url(#flow-arrow)" style="color:${p.stroke}"/>`;
-        // Several labels on one edge run side by side, as the rows between steps are too short to stack them.
-        e.labels.forEach(l => {
-          const hue = all.length > 1 ? this.hue(l.vid) : null;
-          s += text(lx, ly, l.label, hue ? hue.ink : 'var(--color-base-content)');
-          lx += l.label.length * 7.5 + 12;
-        });
+        e.labels.forEach(l => pills.push({ d, first, label: l.label, hue: all.length > 1 ? this.hue(l.vid) : null, stroke: p.stroke }));
       });
+      s += this.bubbles(pills, this.vis.map(x => box(x.id)).filter(Boolean));
       // The loops' lanes widen the map's right margin, which moves the grid: draw again.
       if (lane !== this.gutter) { this.gutter = lane; this.$nextTick(() => this.draw()); }
       const W = Math.max(map.scrollWidth, gx0 + lane * 12 + 10), H = map.scrollHeight;
@@ -366,6 +358,50 @@ document.addEventListener('alpine:init', () => {
         <path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>${s}</svg>`;
     },
     gutter: 0,
+
+    // Each edge label as a bubble sitting on its own edge. A bubble tries points
+    // along the edge, its preferred point first and then outward from the
+    // middle, and at each point slides sideways in 12px steps; it takes the
+    // first place that covers no step and no bubble already placed, else the
+    // place that covers least, nearest its point.
+    bubbles(pills, nodes) {
+      if (!pills.length) return '';
+      if (!this._ruler) {
+        const NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('style', 'position:absolute;width:0;height:0;visibility:hidden');
+        this._path = svg.appendChild(document.createElementNS(NS, 'path'));
+        document.body.append(svg);
+        this._ruler = document.createElement('canvas').getContext('2d');
+        this._ruler.font = '12px system-ui, sans-serif';
+      }
+      const H = 18, placed = [];
+      const hit = (r, q) => r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h;
+      const cover = r => nodes.filter(n => hit(r, { x: n.x - 1, y: n.y - 1, w: n.w + 2, h: n.h + 2 })).length * 2 + placed.filter(q => hit(r, q)).length * 3;
+      return pills.map(pl => {
+        this._path.setAttribute('d', pl.d);
+        const L = this._path.getTotalLength();
+        const W = Math.ceil(this._ruler.measureText(pl.label).width) + 16;
+        const at = [pl.first, L / 2, L * 0.35, L * 0.65, L * 0.2, L * 0.8].filter(v => v > 0 && v < L);
+        let best = null;
+        for (const dist of at) {
+          const c = this._path.getPointAtLength(dist);
+          for (const dx of [0, ...Array.from({ length: 24 }, (_, k) => (k >> 1) * 12 + 12).map((v, k) => k % 2 ? -v : v)]) {
+            const r = { x: c.x + dx - W / 2, y: c.y - H / 2, w: W, h: H };
+            const k = cover(r);
+            if (!best || k < best.k) best = { r, k };
+            if (!k) break;
+          }
+          if (!best.k) break;
+        }
+        const r = best.r;
+        placed.push(r);
+        const hue = pl.hue;
+        const fill = hue ? `color-mix(in oklab, ${hue.tint} 14%, var(--color-base-100))` : 'var(--color-base-100)';
+        return `<g><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${H / 2}" fill="${fill}" stroke="${pl.stroke}" stroke-width="1"${hue?.dash ? ` stroke-dasharray="4 3"` : ''}/>`
+          + `<text x="${r.x + r.w / 2}" y="${r.y + H / 2 + 4}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="${hue ? hue.ink : 'var(--color-base-content)'}">${window.esc(pl.label)}</text></g>`;
+      }).join('');
+    },
 
     render(i, el) {
       el.replaceChildren();
@@ -474,7 +510,7 @@ document.addEventListener('alpine:init', () => {
     <div x-show="!F && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
 
     <section x-show="F" x-ref="map" aria-label="Map" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
-      <div x-ref="grid" class="grid gap-x-2 gap-y-5 p-3"
+      <div x-ref="grid" class="grid gap-x-2 gap-y-6 p-3"
            :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); max-width: ${F.actors.length * 13}rem; margin-right: ${gutter * 12 + 8}px`">
         <!-- One backdrop under the lane names, across the gaps and the loops' gutter, so an edge scrolled under them stays hidden. -->
         <div class="sticky top-0 z-10 bg-base-100 -ml-3" :style="`grid-row: 1; grid-column: 1 / -1; margin-right: -${gutter * 12 + 20}px`"></div>
