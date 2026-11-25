@@ -25,7 +25,22 @@ test('a marker at the start of a line with a bold lead is a state', () => {
   assert.deepEqual(CS.marks('work happened\n\n🟢 **Ready to continue.** Named on go.'), ['ready']);
   assert.deepEqual(CS.marks('🟣 **Merged.** It shipped.'), ['merged']);
   // A blockquote still closes a reply; the harness quotes them back that way.
-  assert.deepEqual(CS.marks('> ⚪ **Clean exit.** Done.'), ['clean']);
+  assert.deepEqual(CS.marks('> ⚫ **Clean exit.** Done.'), ['clean']);
+});
+
+test('⚪ reads as standing by and ⚫ as clean exit, with no remapping by date', () => {
+  // The two changed meaning on 2026-11-25: ⚪ was Clean exit and ⚫ was Done.
+  // A record from before that day reads by the new meanings, so its ⚪ is
+  // Standing by, and no key is left for the old Done.
+  assert.deepEqual(CS.marks('⚪ **Standing by:** nothing asked yet.'), ['standby']);
+  assert.deepEqual(CS.marks('⚪ **Clean exit:** an old record.'), ['standby']);
+  assert.deepEqual(CS.marks('⚫ **Clean exit:** all merged.'), ['clean']);
+  assert.deepEqual(CS.marks('⚫ **Done:** an old record.'), ['clean']);
+  assert.equal(CS.GLYPH.standby, '⚪');
+  assert.equal(CS.GLYPH.clean, '⚫');
+  assert.match(CS.GLOSS.standby, /^Standing by:/);
+  assert.match(CS.GLOSS.clean, /^Clean exit:/);
+  assert.ok(!('done' in CS.GLYPH), 'the done key is retired');
 });
 
 test('the vocabulary quoted as a list is not a state', () => {
@@ -34,7 +49,7 @@ test('the vocabulary quoted as a list is not a state', () => {
   const doc = [
     '  - 🟢 **Ready to continue:** work is ready to do now.',
     '  - 🟣 **Merged:** this branch merged.',
-    '* ⚪ **Clean exit:** work here is done.',
+    '* ⚫ **Clean exit:** work here is done.',
   ].join('\n');
   assert.deepEqual(CS.marks(doc), []);
   // And a marker with no bold lead is prose about a state, not one.
@@ -157,9 +172,9 @@ test('a passage that closes twice yields both, in order', () => {
 test('closings and marks agree on what counts as a state', () => {
   // Two readers of one pattern is exactly the split this kit ended, so the
   // quoted-vocabulary case has to fail both.
-  const doc = '  - 🟢 **Ready to continue:** work is ready to do now.\n* ⚪ **Clean exit:** done.';
+  const doc = '  - 🟢 **Ready to continue:** work is ready to do now.\n* ⚫ **Clean exit:** done.';
   assert.deepEqual(CS.closings(doc), []);
-  for (const md of ['🟢 **a** b', '> ⚪ **c** d', 'no state here']) {
+  for (const md of ['🟢 **a** b', '> ⚫ **c** d', 'no state here']) {
     assert.deepEqual(CS.closings(md).map(c => c.key), CS.marks(md));
   }
 });

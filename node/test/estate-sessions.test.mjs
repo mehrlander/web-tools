@@ -830,12 +830,12 @@ test('chips cover only the states present, in the vocabulary\'s order not by cou
   data.sessionRows_ = [
     withState('a1', 'merged'), withState('a2', 'merged'), withState('a3', 'merged'),
     withState('b1', 'ready'),
-    withState('c1', 'clean'),
+    withState('c1', 'standby'),
     stateRow({ short: 'd1' }),
   ];
   assert.deepEqual(plain(data.sessionStates.map(s => [s.key, s.count])),
-    [['ready', 1], ['clean', 1], ['merged', 3]],
-    'ready before clean before merged, though merged is three times either');
+    [['ready', 1], ['standby', 1], ['merged', 3]],
+    'ready before standby before merged, though merged is three times either');
   assert.equal(data.sessionStates[0].mark, '🟢', 'each chip carries its glyph');
   assert.ok(!data.sessionStates.some(s => !s.key),
     'the row with no state gets no chip: an absence is not a state');
