@@ -106,6 +106,7 @@ document.addEventListener('alpine:init', () => {
   const kindOf = k => KIND[k] || { icon: 'ph-file', color: 'text-base-content/60', name: 'File' };
 
   Alpine.data('flow', () => ({
+    LANE_BG: 'color-mix(in oklab, var(--color-base-200) 70%, var(--color-base-100))',
     F: null, err: '', v: '', cur: 0, deck: null, passes: 0, repo: 'mehrlander/web-tools', ref: 'main', svg: '', mapH: 0,
 
     get variants() { return this.F?.variants || []; },
@@ -305,7 +306,7 @@ document.addEventListener('alpine:init', () => {
       if (!this.F || !map) return;
       const box = id => { const el = map.querySelector(`[data-step="${CSS.escape(id)}"]`); return el && { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }; };
       const grid = this.$refs.grid;
-      const gx0 = grid.offsetLeft + grid.offsetWidth + 12;
+      const gx0 = grid.offsetLeft + grid.offsetWidth + 10;
       const all = this.active().filter(Boolean);
       const paint = e => {
         const one = all.length > 1 && e.vids.size === 1 ? this.hue([...e.vids][0]) : null;
@@ -313,6 +314,10 @@ document.addEventListener('alpine:init', () => {
       };
       let s = '', lane = 0;
       const pills = [];
+      // One arrowhead per line color, filled with that color: Safari draws a
+      // marker's context-stroke as black.
+      const heads = new Map();
+      const arrow = c => { if (!heads.has(c)) heads.set(c, 'flow-arrow-' + heads.size); return heads.get(c); };
       const edges = this.edges();
       // Edges sharing a node fan out along its edge, so no two meet it at one
       // point: forward edges along its bottom and top, ordered by the other
@@ -361,16 +366,15 @@ document.addEventListener('alpine:init', () => {
             d = `M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}`;
           }
         }
-        s += `<path d="${d}" fill="none" stroke="${p.stroke}" stroke-width="1.5"${p.dash ? ` stroke-dasharray="${p.dash}"` : ''} marker-end="url(#flow-arrow)" style="color:${p.stroke}"/>`;
+        s += `<path d="${d}" fill="none" stroke="${p.stroke}" stroke-width="1.5"${p.dash ? ` stroke-dasharray="${p.dash}"` : ''} marker-end="url(#${arrow(p.stroke)})"/>`;
         e.labels.forEach(l => pills.push({ d, first, label: l.label, hue: all.length > 1 ? this.hue(l.vid) : null, stroke: p.stroke }));
       });
       s += this.bubbles(pills, this.vis.map(x => box(x.id)).filter(Boolean));
       // The loops' lanes widen the map's right margin, which moves the grid: draw again.
       if (lane !== this.gutter) { this.gutter = lane; this.$nextTick(() => this.draw()); }
-      const W = Math.max(map.scrollWidth, gx0 + lane * 12 + 10), H = map.scrollHeight;
-      this.svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="absolute left-0 top-0 pointer-events-none" aria-hidden="true">
-        <defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-        <path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>${s}</svg>`;
+      const W = Math.max(map.clientWidth, gx0 + lane * 12), H = map.scrollHeight;
+      const defs = [...heads].map(([c, id]) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="${c}"/></marker>`).join('');
+      this.svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="absolute left-0 top-0 pointer-events-none" aria-hidden="true"><defs>${defs}</defs>${s}</svg>`;
     },
     gutter: 0,
 
@@ -526,13 +530,20 @@ document.addEventListener('alpine:init', () => {
     <div x-show="!F && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
 
     <section x-show="F" x-ref="map" aria-label="Map" data-title-tip-tap="none" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
-      <div x-ref="grid" class="grid gap-x-2 gap-y-6 p-3"
-           :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); max-width: ${F.actors.length * 13}rem; margin-right: ${gutter * 12 + 8}px`">
-        <!-- One backdrop under the lane names, across the gaps and the loops' gutter, so an edge scrolled under them stays hidden. -->
-        <div class="sticky top-0 z-10 bg-base-100 -ml-3" :style="`grid-row: 1; grid-column: 1 / -1; margin-right: -${gutter * 12 + 20}px`"></div>
+      <!-- A backdrop under the lane heads, the map's full width, so an edge scrolled beneath them stays hidden. -->
+      <div class="sticky top-0 z-[5] h-[4.5rem] -mb-[4.5rem] bg-base-100"></div>
+      <div x-ref="grid" class="grid gap-x-3 gap-y-6 px-3 pb-3"
+           :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); grid-template-rows: 4.5rem; max-width: ${F.actors.length * 16}rem; margin-right: ${gutter ? gutter * 12 + 8 : 0}px`">
+        <!-- Each lane is a band the height of the map, its head a medallion and a name, so who does a step is read from where it sits. -->
+        <template x-for="(a, k) in (F ? F.actors : [])" :key="'band-' + a.id">
+          <div class="rounded-box" :style="`grid-row: 1 / span ${n + 1}; grid-column: ${k + 1}; background: ${LANE_BG}`"></div>
+        </template>
         <template x-for="(a, k) in (F ? F.actors : [])" :key="a.id">
-          <div class="sticky top-0 z-10 py-1 flex items-center gap-1 text-xs font-semibold text-base-content/70" :style="`grid-row: 1; grid-column: ${k + 1}`">
-            <i class="ph text-base shrink-0" :class="a.icon"></i><span class="leading-tight" x-text="a.label"></span>
+          <div class="sticky top-0 z-10 h-[4.5rem] pt-2 rounded-t-box grid justify-items-center content-center gap-0.5 text-base-content/80"
+               :style="`grid-row: 1; grid-column: ${k + 1}; background: ${LANE_BG}`">
+            <span class="grid place-items-center size-8 rounded-full bg-base-100 border shadow-sm"
+                  :class="step?.actor === a.id ? 'border-primary text-primary ring-2 ring-primary/30' : 'border-base-300'"><i class="ph text-xl" :class="a.icon"></i></span>
+            <span class="text-xs font-semibold leading-tight text-center px-1" :class="step?.actor === a.id ? 'text-primary' : ''" x-text="a.label"></span>
           </div>
         </template>
         <template x-for="(s, i) in vis" :key="s.id + v">
