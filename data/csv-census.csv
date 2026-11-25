@@ -56,7 +56,7 @@ docs/routes-routes.csv,7,7,2682,"[""key"",""repo"",""ref"",""path"",""renders"",
 docs/run-methods.csv,9,6,3955,"[""method"",""machines"",""filed_by"",""output_return"",""rules"",""gloss""]"
 docs/showing-mechanisms.csv,5,11,3451,"[""key"",""glyph"",""label"",""form"",""subject"",""opens"",""handles"",""use"",""reaches"",""misses"",""narrative""]"
 docs/subjects.csv,9,7,2672,"[""key"",""label"",""needs"",""carrier"",""detect"",""icon"",""gloss""]"
-docs/tests-authored.csv,547,3,138510,"[""path"",""kind"",""protects""]"
+docs/tests-authored.csv,547,3,138385,"[""path"",""kind"",""protects""]"
 docs/tests.csv,547,6,480083,"[""path"",""test_count"",""method"",""runner"",""boot_smoke"",""test_names""]"
 docs/text-fields.csv,13,5,4165,"[""field"",""audience"",""gloss"",""use_when"",""instead_of""]"
 docs/themes.csv,108,7,38704,"[""a"",""b"",""w"",""rule"",""quoted"",""shingle"",""scanned""]"
