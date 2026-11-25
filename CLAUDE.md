@@ -12,9 +12,11 @@
 
 The mechanisms, what each reaches and misses, and the rule for picking one are **not restated here**. They live as data in [`docs/showing-mechanisms.csv`](docs/showing-mechanisms.csv) and render in the app's **Map view, Showing tab**; the frame and the record are in [`docs/showing.md`](docs/showing.md).
 
-**So do not decide it by reading. Run it:** `npm run showing` reads the branch's
-changed files and prints the render line to paste, or an honest no-link with the
-reason ([`python/showing.py`](python/showing.py)). No script supplies the honesty
+**So do not decide it by reading. Run it:** `npm run session-render-links` prints
+a render link for each page or file the session's branches changed, in every
+checkout, or an honest no-link with the reason
+([`python/session-render-links.py`](python/session-render-links.py), which runs
+[`python/showing.py`](python/showing.py) per checkout). No script supplies the honesty
 rule: where no link reaches a change, say so and send a headless screenshot.
 
 ## Per-session refresh: thumbnails

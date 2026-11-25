@@ -34,7 +34,7 @@ substituting the current repo in URL templates.
 
   Each of 👁️‍🗨️, ⌨️, ✍️ and ⚖️ may also prefix a link to its listed resource elsewhere in a reply.
 
-* **Close in one order.** End every reply with the caption, the [render line](#displaying-content), then the state, whether or not files changed.
+* **Close every reply** with the caption, then each link [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints with a few words on what it opens, then the closing state.
 
 * **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
 
@@ -82,13 +82,13 @@ substituting the current repo in URL templates.
 
 ## Displaying content
 
-* **A look link 👁️‍🗨️.** A look link opens a page on a guided tour, through fragment handling in [`toss-render.html`](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html). Make the fragment with [`python/look-link.py`](https://github.com/mehrlander/web-tools/blob/main/python/look-link.py), as the [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill describes. Pass it to [`showing`](https://github.com/mehrlander/web-tools/blob/main/python/showing.py) as `--at`, with `--intro "<what changed>"`. The link `showing` prints takes the place of the page's 🥏 link. A 🛵 request to tap a control uses a look link to that control. When the display item is a file card, send it just before the closing state, even if the reply showed it earlier. Without `--at`, `showing` prints plain 🥏 links to the branch's changed files, and with `--path <file>` a link to any file. That output is the render line: paste it unchanged, refresh it after each commit, and add a few words on what each link shows.
+* **A look link 👁️‍🗨️.** A look link opens a page on a guided tour, made as the [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill describes.
 
 * **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or GitHub token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
 
 * **A screenshot.** In web-tools, `npm run shot -- <page>` saves a headless screenshot of a page from the working tree, and `--measure` adds overflow checks at desktop and phone width. The `screenshot-review` skill checks a shot before it is sent, and a file card shows it inline.
 
-* **A file card.** `SendUserFile` attaches a file to the chat as a file card, where images render inline and other types download to the device. The download can be useful for an uncommitted file or one opened in another application, such as a Word document or a workbook, but a rendered link is usually more convenient and preferred.
+* **A file card.** `SendUserFile` attaches a file to the chat as a file card, where images render inline and other types download to the device. When a closing state presents a file card, send the card just before the closing state, even if the reply sent it earlier. The download can be useful for an uncommitted file or one opened in another application, such as a Word document or a workbook, but a rendered link is usually more convenient and preferred.
 
 ## PR events
 
