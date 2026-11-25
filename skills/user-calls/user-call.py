@@ -36,7 +36,7 @@ entry in `item`, with `from` and `to` the entry's {text, note} before and after.
 `add` reads the list at the call's base (else its file's ref) in a checkout of
 its repo in or beside the project root, and refuses an edit whose entry is not
 there as `from` reads. `review` on a list call gives the critic the call's
-entries as text, `**<id>** · <text>` then the note, and each edit's span is its
+entries as text, the term in bold then the note, and each edit's span is its
 entry by id ({item, edit}) rather than a line range.
 
 The store is found the way the notes skill's note.py finds its own: a checkout
@@ -379,11 +379,13 @@ def list_edits(old, new):
 ENTRY_RULE = "\n\n* * *\n\n"
 
 
-def entry_text(item, f):
-    """An entry read as text, as kits/call-answer.js reads it: `**<id>** · <text>`,
+def entry_text(item, f, show_id=False):
+    """An entry read as text, as kits/call-answer.js reads it: its term,
+    `**<text>**`, the id after it as code where the list's header says show_id,
     then its note."""
     f = f if isinstance(f, dict) else {}
-    return f"**{item}** · {f.get('text') or ''}" + (f"\n\n{f['note']}" if f.get("note") else "")
+    return (f"**{f.get('text') or ''}**" + (f" · `{item}`" if show_id else "")
+            + (f"\n\n{f['note']}" if f.get("note") else ""))
 
 
 def entry_ids(c):
@@ -394,8 +396,10 @@ def entry_ids(c):
 def list_reading(json_text, ids):
     """The entries `ids` names, read as one document in that order; and which
     of them the list holds."""
-    items = {x["id"]: x for x in (json.loads(json_text).get("items") or []) if isinstance(x, dict) and x.get("id")}
-    return ENTRY_RULE.join(entry_text(i, items[i]) for i in ids if i in items), [i in items for i in ids]
+    doc = json.loads(json_text)
+    items = {x["id"]: x for x in (doc.get("items") or []) if isinstance(x, dict) and x.get("id")}
+    show = doc.get("show_id") is True
+    return ENTRY_RULE.join(entry_text(i, items[i], show) for i in ids if i in items), [i in items for i in ids]
 
 
 def list_spans_text(path, ids, reading):
@@ -403,7 +407,7 @@ def list_spans_text(path, ids, reading):
     its entry, by id, and the entries follow as the critic is to read them."""
     out = [f"The edits to {path}, one entry each, by id:"]
     out += [f"E{k}  entry {i}" for k, i in enumerate(ids, 1)]
-    out += ["", "The entries, each `**<id>** · <text>` and then its note:", "", reading, ""]
+    out += ["", "The entries, each its term in bold and then its note:", "", reading, ""]
     out.append('Tag each trip with its edit, as P<id> · E<n> · <where> · "<quote>" · <clause>, and a trip '
                "outside every edit with E-. Quote the words exactly as the entry has them. End with "
                "`Verdict: PASS` when no trip falls inside an edit, and `Verdict: FAIL` otherwise.")
@@ -1257,7 +1261,7 @@ def unread_edits(c):
         return []
     if is_list(c):
         return [i + 1 for i, (e, item) in enumerate(zip(c.get("edits") or [], entry_ids(c)))
-                if flat(entry_text(item, e.get("to"))) not in flat(text)]
+                if not any(flat(entry_text(item, e.get("to"), sid)) in flat(text) for sid in (False, True))]
     return [i + 1 for i, e in enumerate(c.get("edits") or []) if flat(e.get("to")) not in flat(text)]
 
 
@@ -1298,7 +1302,7 @@ def change_lines(run, n, nxt):
             hint = f"{n}.c{k} {','.join(x.split('.')[1] for x in held) or '<trips>'}"
         first = (blocks(ch["to"]) or [""])[0]
         at = next(((a, z) for b, a, z in db if b == first), None) if first else None
-        e = next((s for s, x in enumerate(spans, 1) if x and (f"**{x['item']}** · " in ch["to"] + ch["from"] if x.get("item")
+        e = next((s for s, x in enumerate(spans, 1) if x and (f"`{x['item']}`" in ch["to"] + ch["from"] if x.get("item")
                   else x.get("lines") and at and x["lines"][0] <= at[1] and at[0] <= x["lines"][1])), None)
         words = " ".join(str(ch["to"] or ch["from"]).split())
         out.append(f"    c{k}{f' · E{e}' if e else ''}{f' · line {at[0]}' if at else ''} · \"{words[:60]}{'…' if len(words) > 60 else ''}\""

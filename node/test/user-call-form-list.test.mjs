@@ -93,8 +93,8 @@ test('mounting is quiet', () => assert.deepEqual(problems, []));
 
 test("the entries are drawn as their text and note, the list's own reading against the edited one", () => {
   assert.deepEqual(drawn[0], {
-    a: '**two-way-door** · Two-way door\n\nA choice that can be undone cheaply.\n\n* * *\n\n**fact-strip** · Fact strip',
-    b: '**two-way-door** · Two-way door\n\nA decision that can be reversed cheaply.\n\n* * *\n\n**fact-strip** · Fact row',
+    a: '**Two-way door**\n\nA choice that can be undone cheaply.\n\n* * *\n\n**Fact strip**',
+    b: '**Two-way door**\n\nA decision that can be reversed cheaply.\n\n* * *\n\n**Fact row**',
   });
   assert.deepEqual(Array.from(data().doc.status), ['staged', 'staged']);
   assert.equal(data().docPath, 'lists/useful.json', 'the head names the list');

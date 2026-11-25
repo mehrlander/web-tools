@@ -126,18 +126,23 @@ const kit = () => {
   return window.CallAnswer;
 };
 
-test("each entry edit is read as the entry's text and note, so the page decides it as a paragraph", () => {
+test("each entry edit is read as its term and note, the id after the term only where the list shows ids", () => {
   const A = kit();
   assert.equal(A.listOf(CALL), true);
   assert.equal(A.listOf({ file: 'o/r:docs/x.md' }), false);
   assert.deepEqual(A.fileOf({ file: 'o/r@b:lists/useful.json#fact-strip' }), { repo: 'o/r', ref: 'b', path: 'lists/useful.json', item: 'fact-strip' });
   const c = A.listCall(CALL);
-  assert.equal(c.edits[0].from, '**two-way-door** · Two-way door\n\nA choice that can be undone cheaply.');
-  assert.equal(c.edits[1].to, '**fact-strip** · Fact strip\n\nA row of short facts.');
+  assert.equal(c.edits[0].from, '**Two-way door**\n\nA choice that can be undone cheaply.', 'the term leads, and an id the list hides is left out');
+  assert.equal(c.edits[1].to, '**Fact strip**\n\nA row of short facts.');
   assert.equal(A.listCall(c), c, 'a call already read is left as it is');
   const doc = A.listDoc(JSONTEXT, ['two-way-door', 'fact-strip']);
-  assert.equal(doc, c.edits[0].from + '\n\n* * *\n\n**fact-strip** · Fact strip', 'only the entries the call names, in its order');
+  assert.equal(doc, c.edits[0].from + '\n\n* * *\n\n**Fact strip**', 'only the entries the call names, in its order');
   assert.deepEqual(A.stage(doc, c.edits).status, ['staged', 'staged']);
+  const shown = A.listCall(c, true);
+  assert.equal(shown.edits[0].from, '**Two-way door** · `two-way-door`\n\nA choice that can be undone cheaply.', 'with show_id, the id follows the term as code');
+  assert.equal(shown.edits[0].entry, c.edits[0].entry, 'read again from the entry, not from the earlier reading');
+  const withIds = JSON.stringify({ ...LIST, show_id: true }, null, 2);
+  assert.deepEqual(A.stage(A.listDoc(withIds, ['two-way-door', 'fact-strip']), shown.edits).status, ['staged', 'staged']);
 });
 
 test("an uncommitted list call's patch sets only the kept entries, and a committed one's puts back only the discarded", async () => {
@@ -196,7 +201,7 @@ test("a list call's critic runs: spans are entries, the run reads the entries, a
   const spans = review('--spans');
   assert.equal(spans.status, 0, spans.stderr);
   assert.match(spans.stdout, /E1 {2}entry two-way-door\nE2 {2}entry fact-strip/, 'the edits are refreshed from the base, one per changed entry');
-  assert.match(spans.stdout, /\*\*fact-strip\*\* · Fact strip\n\nA row of short facts\./, 'the critic is given the entries to read');
+  assert.match(spans.stdout, /\*\*Fact strip\*\*\n\nA row of short facts\./, 'the critic is given the entries to read');
   const d1 = JSON.parse(readFileSync(draft, 'utf8'));
   assert.equal(d1.edits[0].why, 'the plain word', "the session's why is carried by the entry it names");
 
@@ -208,7 +213,7 @@ test("a list call's critic runs: spans are entries, the run reads the entries, a
   const last = d2.review.runs.at(-1);
   assert.deepEqual(last.edits, [{ item: 'two-way-door' }, { item: 'fact-strip' }]);
   assert.equal(last.trips[0].edit, 2);
-  assert.match(last.text, /^\*\*two-way-door\*\* · Two-way door/);
+  assert.match(last.text, /^\*\*Two-way door\*\*\n/);
   assert.equal(last.trips[0].misquoted, undefined, 'the quote is in the entries the run read');
 
   // Answered: the trip kept, then the call checked as add files it.
