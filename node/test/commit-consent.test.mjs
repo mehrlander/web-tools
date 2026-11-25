@@ -100,6 +100,17 @@ test('a NEW documentation file is not refused: it retracts nothing', () => {
   assert.match(branch.err, /documentation changed: docs\/thing\.md/);
 });
 
+test('a list whose header says "edit": "propose" is held as a document, read from the index', () => {
+  const list = (text) => JSON.stringify({ title: 'Rules', edit: 'propose', items: [{ id: 'a', text }] }, null, 2);
+  const no = gate({ 'lists/rules.json': list('One.') }, { 'lists/rules.json': list('Two.') }, 'Revise a rule\n');
+  assert.equal(no.status, 1);
+  assert.match(no.err, /documentation changed: lists\/rules\.json/);
+
+  // A list made freely is not: its header carries no edit field.
+  const free = (text) => JSON.stringify({ title: 'Jot', items: [{ id: 'a', text }] });
+  assert.equal(gate({ 'lists/jot.json': free('One.') }, { 'lists/jot.json': free('Two.') }, 'Jot\n').status, 0);
+});
+
 test('a generated file is not authored language, and says so in its banner', () => {
   // The second false positive: a docs index the commit hook had rewritten from
   // a CSV three lines earlier.

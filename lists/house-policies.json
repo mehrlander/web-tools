@@ -1,0 +1,101 @@
+{
+  "title": "House policies",
+  "icon": "scales",
+  "edit": "propose",
+  "critic": true,
+  "show_id": true,
+  "id_prefix": "h:",
+  "note": "Each policy states a single preference as something to do; a thing to avoid goes in the [peeves list](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md). A policy that applies only to a private repo goes in that repo's CLAUDE.md.",
+  "items": [
+    {
+      "id": "qualify",
+      "text": "Qualified writing",
+      "group": "Writing",
+      "note": "Write clearly and precisely: account for what the reader lacks, qualify noun phrases, and claim no more than the evidence supports.\n\n**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): [Perspective](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#perspective), [Qualifiers](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#qualifiers) and [Accuracy](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy)."
+    },
+    {
+      "id": "show",
+      "text": "Showing",
+      "group": "Writing",
+      "note": "Show rather than explain.\n\n- Quote a source rather than characterize it.\n- Include a screenshot or a measurement rather than describe behavior.\n- Let structure and labels carry relationships rather than explanatory prose."
+    },
+    {
+      "id": "critical",
+      "text": "What earns space",
+      "group": "Writing",
+      "note": "In a document that future sessions read to decide what to do, include content only where it changes what the reader does.\n\n- If the reader would succeed without a passage, leave it out.\n- Include a reason only where it clarifies intent, and keep it minimal.\n- Before adding to such a document, check whether code derives the fact, a test enforces it, or another document owns it, and link instead.\n\n**Backed by:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md); [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#where-the-rest-of-the-system-lives), the check before adding to a doc."
+    },
+    {
+      "id": "current",
+      "text": "Stay current",
+      "group": "Writing",
+      "note": "Living text says what is true now; history goes to the records built to hold it.\n\n- A comment, doc or skill states the present, not when it changed, what prompted the change, figures measured at the time, or what it used to do.\n- When a living sentence is wrong, fix the sentence; add no \"formerly\" or \"corrected\" note and no dated update line.\n- History belongs in commit messages, a task's progress log and dated or write-once records.\n\n**Backed by:** [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#general-principles), \"State current reality\"."
+    },
+    {
+      "id": "link",
+      "text": "Links",
+      "group": "Handover",
+      "note": "Link every file, pull request, session and page a reply mentions.\n\n- Each link lands on the item it names.\n- For a change a person can see, the link renders the change, and the session opens the link to confirm before handing it over.\n\n**Backed by:** [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#a-reply-that-changed-files), \"Reference is a link\"; in web-tools, [showing.md](https://github.com/mehrlander/web-tools/blob/main/docs/showing.md) and `npm run showing`."
+    },
+    {
+      "id": "merged",
+      "text": "Merged means closed",
+      "group": "Handover",
+      "note": "A merged branch takes no further commits; follow-up work starts again from the current tip of the target branch and opens a new pull request.\n\n**Backed by:** [post-merge-branch-mutation.md](https://github.com/mehrlander/web-tools/blob/main/docs/github/post-merge-branch-mutation.md#rule-of-thumb); [CONVERSATION.md](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), the 🟣 Merged state."
+    },
+    {
+      "id": "look",
+      "text": "Look first",
+      "group": "Evidence and confidence",
+      "note": "Observe before explaining.\n\n- Reproduce the failure, read the log or run a control before proposing a cause.\n- Propose a fix only for a cause that has been observed.\n- When reasoning stalls, add an observation, not more reasoning.\n- Hold a plan as provisional: before acting on an interpretation, look for evidence that would challenge it.\n- Name the assumption the plan depends on most."
+    },
+    {
+      "id": "check",
+      "text": "Checking",
+      "group": "Evidence and confidence",
+      "note": "Verify a claim with a check that could have failed.\n\n- Ask whether the observation itself could be wrong.\n- A check that runs through the component in doubt cannot show that component works.\n- Pair a positive result with a negative control where one is possible."
+    },
+    {
+      "id": "salt",
+      "text": "Readings",
+      "group": "Evidence and confidence",
+      "note": "Report an inference, a paraphrase or a grouping as a reading, with the qualifiers its source gave it, such as \"possibly\" or \"for now\".\n\n- When you cite repo text, say who wrote it, if known, and apply it only to the cases it was written for.\n- When you sort items into categories of your own, say so.\n- When a new category name would go into a registry column, a file name or a document that sessions read, bring it to the owner first.\n\n**Backed by:** [QUALIFIED-WRITING.md](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md#accuracy), rule 6, which every session loads."
+    },
+    {
+      "id": "bold",
+      "text": "Be bold",
+      "group": "Authority",
+      "note": "Advance the work as far as sound judgment permits. Seek the involvement the matter warrants, and make review practical and timely.\n\nOwner involvement runs a spectrum:\n\n- Act: Exercise your judgment and proceed.\n- Inform: Proceed and make the work known.\n- Request approval: Present a developed course for authorization.\n- Request direction: Seek substantive judgment about which course to take.\n\nCareful use of closing state markers helps involve the owner efficiently, and especially use of 🟢 where direction has already been settled and only a prod is needed (the anti-pattern is where every turn ends with an open ended question of what if anything to do next).\n\nCommon cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.\n\n**Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially \"Prepare the calls\"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval."
+    },
+    {
+      "id": "align",
+      "text": "Align on sight",
+      "group": "Authority",
+      "note": "Misalignment of terminology or logic creates friction: obscuring what has been discovered, what exists, and what should come next. It creates redundancy and technical debt. Align early and often. Notice a conflict and propose a fix. Do not set it aside simply because the costs are hidden.\n\n**Backed by:** the peeves [P38, Unfinished work](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#unfinished-work--p38), [P65, Compatibility clutter](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#compatibility-clutter--p65) and [P12, One name per thing](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#one-name-per-thing--p12)."
+    },
+    {
+      "id": "place",
+      "text": "Library folders",
+      "group": "Code placement",
+      "note": "A file under `lib/` goes in the folder named by what it attaches to.\n\n**Backed by:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md), checked by `node/test/code-layers.test.mjs`."
+    },
+    {
+      "id": "tool",
+      "text": "Scripts",
+      "group": "Code placement",
+      "note": "A script outside `lib/` goes with its caller.\n\n**Backed by:** [code-layers.md](https://github.com/mehrlander/web-tools/blob/main/docs/code-layers.md#outside-lib), \"Outside `lib/`\"."
+    },
+    {
+      "id": "source",
+      "text": "Edit the source",
+      "group": "Code placement",
+      "note": "Change a generated file by changing its source and running its generator.\n\n**Backed by:** [web-tools CLAUDE.md](https://github.com/mehrlander/web-tools/blob/main/CLAUDE.md#the-pre-build--the-build-on-commit-hook), \"The pre-build & the build-on-commit hook\"."
+    },
+    {
+      "id": "route",
+      "text": "Address parameters",
+      "group": "Addresses",
+      "note": "Give each parameter a page reads from its address one of four kinds, and give it only that kind's behavior.\n\n- A **route** names a place: a view, a tab, or a record inside it. It stays in the address, which then names where the reader is. A route that names a record scrolls to it and marks it on arrival. Reaching a place through a tab, a link or an icon tapped in a diagram adds a history entry. Stepping between records in a list, by a row, a swipe or an arrow, replaces the entry. Back then returns to the last place reached.\n- An **action** is done once on arrival and then dropped from the address, and a reload does not repeat it.\n- A **look** points the reader at something on the page and changes nothing, as a link carrying the look kit's `#show=` or `#steps=` does.\n- A **setting** changes how the page runs.\n\n**Backed by:** [app-routes.csv](https://github.com/mehrlander/web-tools/blob/main/docs/app-routes.csv), the Web Tools app's routes; [lib/kits/land.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/land.js), how a route lands; [lib/kits/linked-swiper.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js), how a list tells a step from a followed link; [lib/kits/look.js](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js), looks."
+    }
+  ]
+}

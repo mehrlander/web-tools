@@ -6,9 +6,9 @@ The owner's rulings on the program are the notes ([notes skill](../../skills/not
 
 ## Rule placement
 
-The question is where a proposed rule, convention or UI pattern already lives across the governing documents, tests and codebook before a session adds prose to a living file ([`house-policies.md`](../../docs/house-policies.md), [`h:critical`](https://mehrlander.github.io/web-tools/app/?view=map&tab=policy&h=critical)). Wording edits and page reviews go to the program's critics; the Rule placement process locates existing ownership and duplication. Ask the caller for the candidate statement or page path if the question omits either. Three sources answer the question:
+The question is where a proposed rule, convention or UI pattern already lives across the governing documents, tests and the UI codebook. A session asks it before adding prose to a living file, as the house policy [What earns space (`h:critical`)](https://mehrlander.github.io/web-tools/app/?view=map&tab=policy&h=critical) requires. Wording edits and page reviews go to the program's critics; the Rule placement process locates existing ownership and duplication. Ask the caller for the candidate statement or page path if the question omits either. Three sources answer the question:
 
-- **Rule owners:** [`house-policies.md`](../../docs/house-policies.md), [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md), [`peeves.csv`](../../skills/peeves/peeves.csv) (whose `owner` column names the governing document when one exists) and [`html-style`](../../skills/html-style/SKILL.md).
+- **Rule owners:** [`house-policies.json`](../../lists/house-policies.json), [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md), [`peeves.json`](../../lists/peeves.json) and [`html-style`](../../skills/html-style/SKILL.md).
 - **Overlap and growth records:** [`themes.csv`](../../docs/themes.csv), [`matches.csv`](../../data/doc-overlap/matches.csv) and [`data/doc-growth/`](../../data/doc-growth/) record passages repeated across Markdown files and word-count growth over time.
 - **UI codebook:** [`codebook.md`](../../data/ui-units/codebook.md), [`coded.csv`](../../data/ui-units/coded.csv) and [`instances.csv`](../../data/ui-units/instances.csv) (plus `data/ui-units/` in `home` for surfaces outside web-tools) record each unit's layout, parts and kits ([`kits.csv`](../../docs/kits.csv)).
 

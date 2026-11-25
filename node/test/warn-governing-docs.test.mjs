@@ -79,6 +79,19 @@ test('a file with no wording to approve stays silent: regenerated, write-once, o
   assert.equal(edit(gen, 'docs/made.md').status, 0);
 });
 
+test('a list under lists/ whose header says "edit": "propose" warns, and any other JSON stays silent', () => {
+  const lists = { 'lists/rules.json': JSON.stringify({ title: 'Rules', edit: 'propose', items: [] }),
+                  'lists/jot.json': JSON.stringify({ title: 'Jot', items: [] }),
+                  'data/rules.json': JSON.stringify({ title: 'Rules', edit: 'propose', items: [] }),
+                  'lists/broken.json': '{not json' };
+  const r = edit(lists, 'lists/rules.json');
+  assert.equal(r.status, 2);
+  assert.match(r.err, /a list the owner signs off/);
+  assert.equal(edit(lists, 'lists/jot.json').status, 0, 'a list made freely');
+  assert.equal(edit(lists, 'data/rules.json').status, 0, 'outside a lists/ folder');
+  assert.equal(edit(lists, 'lists/broken.json').status, 0, 'a file that does not parse');
+});
+
 // A list whose header says "critic": true: the entries a session adds or
 // changes against HEAD are named for the peeves critic, and a change to an
 // existing entry, or any edit to a list that says "edit": "propose", is
@@ -128,6 +141,7 @@ test('a changed entry, or any entry in a list that says "edit": "propose", is ro
   try {
     const got = p.edit([A, B]);
     assert.equal(got.status, 2);
+    assert.match(got.err, /a list the owner signs off/, 'the documentation warning still speaks');
     assert.match(got.err, /is to a list that says "edit": "propose", so file a user call/);
   } finally { p.done(); }
 });

@@ -477,7 +477,7 @@ def awaiting(repos, names, store, short):
     uncalled = set()
     test = None
     for repo, found in zip(repos, names):
-        found = [rel for rel in found if rel.endswith(".md")]
+        found = [rel for rel in found if rel.endswith((".md", ".json"))]
         if not found:
             continue
         test = test or engine()

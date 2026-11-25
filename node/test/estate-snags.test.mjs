@@ -250,13 +250,18 @@ test('a card finds its snag by id, and draws the notes left on it at either addr
 });
 
 test('an entry renders bold, code and links, and lets no markup through', () => {
-  const html = data.snagHtml('The **push** ran `a *b* c` and [`x.yml`](https://e.x/y) <script>.\n\nA *second* paragraph.');
+  const html = data.noteHtml('The **push** ran `a *b* c` and [`x.yml`](https://e.x/y) <script>.\n\nA *second* paragraph.');
   assert.match(html, /<strong>push<\/strong>/);
   assert.match(html, /<code class="font-mono text-sm">a \*b\* c<\/code>/, 'an asterisk inside code stays one');
   assert.match(html, /<a href="https:\/\/e.x\/y"[^>]*><code[^>]*>x.yml<\/code><\/a>/);
   assert.match(html, /&lt;script&gt;/);
   assert.match(html, /<em>second<\/em>/);
   assert.equal((html.match(/<p /g) || []).length, 2);
+});
+
+test('a run of `- ` lines renders as a bulleted list under the line before it', () => {
+  const html = data.noteHtml('Show rather than explain.\n- Quote a **source**.\n- Measure.\n\nAfter.');
+  assert.match(html, /^<p [^>]*>Show rather than explain.<\/p><ul [^>]*><li>Quote a <strong>source<\/strong>.<\/li><li>Measure.<\/li><\/ul><p /);
 });
 
 test('the dates a snag bit read once each, with a count for a busy day', () => {
