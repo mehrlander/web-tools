@@ -50,7 +50,9 @@
   reveals the next comment, flying in under its block as its mark lights, and
   the move after the last goes on to the next step; a backward move takes the
   last one away, and a step reached backward arrives fully built. The address
-  carries the build, &step=10.3.
+  carries the build, &step=10.3. The owner's later decisions (a request step
+  that adds to the request) and an intent step's Asked and Wants bullets are
+  builds the same way, one bullet per move, none shown on arrival.
 
   A panel step (`by: panel`, pages/demos/stepwise-run-template.md, Panels) is
   an imagined dialog about its lane's text: a roster of `- **TW**, role: what`
@@ -75,9 +77,14 @@
   its ref, else in mehrlander/web-tools on main; relative links in the text
   resolve against it the same way.
 
-  Each step is one slide of a swipeDeck.core track (kits/swipe-deck.js), so a
-  swipe is the house one; the arrows, the buttons, the step dots and the stage
-  strip drive the same track.
+  The page is a list over a detail, kits/linked-swiper.js mounted as
+  pages/inspection.html mounts it (html-style rule 11): the steps as rows, each
+  with its stage, its maker and, where it has builds, numbered tabs for them;
+  the current step's detail below, beside the list on a wide screen. A step's
+  builds are sub-items that are places in its card (swipeDeck.core `card`), so
+  moving between them redraws the card in place. The detail's head row holds
+  the button group that steps through every place, builds and steps alike; a
+  swipe on the detail and the arrow keys do the same.
 -->
 <script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
 <script type="module">
@@ -94,6 +101,7 @@
   try {
     await gh.load('kits/gz-payload.js');    // the #gz= codec
     await gh.load('kits/swipe-deck.js');    // the track
+    await gh.load('kits/linked-swiper.js'); // the list over the detail
     await gh.load('kits/guide-render.js');  // Markdown to HTML
     await gh.load('kits/md-diff.js');       // the redline
     await gh.load('kits/csv.js');           // skills/peeves/peeves.csv
@@ -215,31 +223,23 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('stepwise', () => ({
-    // `cur` is a PLACE: a step, or one build of a critique step. places[] maps
-    // it to { step, b }, b the comments shown.
-    B: null, err: '', cur: 0, places: [], deck: null, peeves: new Map(), peeveRef: 'main', repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
+    // `cur` is a PLACE: a step, or one build of a step. places[] maps it to
+    // { step, b }, b the builds shown.
+    B: null, err: '', cur: 0, places: [], swiper: null, peeves: new Map(), peeveRef: 'main', repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
     get n() { return this.B ? this.B.steps.length : 0; },
     get fileUrl() { return this.B?.file ? window.RepoAddress.github.blob(this.repo, this.ref, this.B.file) : ''; },
-    // The stages present, in order, each with the step that opens it.
-    get stages() {
-      if (!this.B) return [];
-      return STAGES.map(st => ({ ...st, first: this.B.steps.findIndex(s => s.stage === st.k) })).filter(st => st.first >= 0);
-    },
     get step() { return this.places[this.cur]?.step ?? 0; },
     get b() { return this.places[this.cur]?.b ?? 0; },
-    // A step's builds: a panel's turns (the first shown on arrival), or a
-    // review's comments (none shown on arrival).
-    lo(st) { return st.panel ? Math.min(1, st.panel.turns.length) : 0; },
-    hi(st) { return st.panel ? st.panel.turns.length : st.comments.length; },
-    get builds() { return this.B ? this.hi(this.B.steps[this.step]) : 0; },
+    // A step's builds (`kind`, `units`, set in init): a panel's turns, the
+    // first shown on arrival; a review's comments; the bullets the owner adds
+    // to the request, or an intent step's Asked and Wants bullets, none shown
+    // on arrival.
+    lo(st) { return st.kind === 'turns' ? Math.min(1, st.units) : 0; },
+    hi(st) { return st.kind ? st.units : 0; },
     get buildsMore() { return this.B ? this.hi(this.B.steps[this.step]) > this.lo(this.B.steps[this.step]) : false; },
-    get buildNoun() { return this.B?.steps[this.step].panel ? 'turns' : 'comments'; },
+    placeOf(k, sub) { const st = this.B.steps[k]; return this.first(k) + Math.max(0, (sub ?? this.lo(st)) - this.lo(st)); },
     first(k) { return this.places.findIndex(p => p.step === k); },
     get stage() { return this.B ? this.B.steps[this.step].stage : ''; },
-    dot(i) {
-      const here = i === this.step;
-      return [by(this.B.steps[i]).dot, here ? 'h-4 w-4 border-2 border-base-content' : 'h-2.5 w-2.5'];
-    },
     // The last step before i in a stage, or -1.
     before(i, stage) {
       // A panel is a conversation about a lane's text, not a version of it.
@@ -252,36 +252,94 @@ document.addEventListener('alpine:init', () => {
       try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
       if (this.B.repo) this.repo = this.B.repo;
       document.title = this.B.title || 'Stepwise';
+      const bullets = md => (String(md || '').match(/^[-*+][ \t]/gm) || []).length;
+      this.B.steps.forEach((s, k) => {
+        const req = s.stage === 'request' ? this.before(k, 'request') : -1;
+        const prior = req >= 0 ? this.B.steps[req].payload : null;
+        if (s.panel) { s.kind = 'turns'; s.units = s.panel.turns.length; }
+        else if (s.comments.length) { s.kind = 'comments'; s.units = s.comments.length; }
+        else if (prior != null && s.payload.startsWith(prior)) { s.kind = 'bullets'; s.units = bullets(s.payload.slice(prior.length)); }
+        else if (s.stage === 'intent') { s.kind = 'bullets'; s.units = bullets(split(s.payload).body); }
+        if (!s.units) s.kind = null;
+      });
       this.places = this.B.steps.flatMap((s, k) => Array.from({ length: this.hi(s) - this.lo(s) + 1 }, (_, x) => ({ step: k, b: this.lo(s) + x })));
       this.cur = this.stepOf();
       if (this.B.steps.some(s => s.comments.some(c => c.peeve))) {
         try { await this.loadPeeves(); } catch (e) { /* the pills keep their ids and lose their names */ }
       }
-      this.$nextTick(() => {
-        // A critique step's comments are BUILDS: swipeDeck.core's places
-        // (`card`), the way pages/inspection.html steps through a run's
-        // outputs on one card. A forward move on the step reveals its next
-        // comment in place; past the last it moves to the next step. Arriving
-        // backward lands on a step's last place, fully built.
-        this.deck = swipeDeck.core(this.places.length, (i, el) => this.render(i, el), {
-          card: i => this.places[i].step,
-          start: this.cur, behavior: 'instant', innerClass: 'w-full', slidePad: 'pb-24',
-        });
-        this.$refs.track.append(this.deck.track);
-        this.deck.onSlide(i => { this.cur = i; this.mark(); this.enter(this.step); });
-        requestAnimationFrame(() => {
-          this.deck.go(this.cur, 'instant');
-          requestAnimationFrame(() => this.enter(this.step));
-        });
-      });
+      this.$nextTick(() => this.mount());
       window.addEventListener('keydown', e => {
         if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
-        const to = { ArrowLeft: this.cur - 1, ArrowRight: this.cur + 1, Home: 0, End: this.places.length - 1 }[e.key];
-        if (to == null) return;
+        // The detail answers Left and Right itself while the pointer or focus
+        // is on it (swipeDeck.keys); these reach it from anywhere else.
+        if (e.defaultPrevented || !this.swiper) return;
+        const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+        const to = { Home: 0, End: this.places.length - 1 }[e.key];
+        if (d == null && to == null) return;
         e.preventDefault();
-        this.go(to);
+        if (d) this.swiper.step(d); else this.go(to);
       });
       window.addEventListener('hashchange', () => { const s = this.stepOf(); if (s !== this.cur) this.go(s); });
+    },
+
+    // THE LIST OVER THE DETAIL, kits/linked-swiper.js as pages/inspection.html
+    // mounts it: the steps as rows, each step's builds as sub-items that are
+    // places in its card, so a step's builds have numbered tabs on its row and
+    // a move between them redraws the card in place. The head row's button
+    // group steps through every place, builds and steps alike; a swipe on the
+    // card does the same.
+    mount() {
+      const list = this.$refs.list, steps = this.B.steps;
+      list.setAttribute('role', 'listbox');
+      list.setAttribute('aria-label', 'Steps');
+      list.innerHTML = steps.map((s, k) => {
+        const who = by(s), st = STAGE[s.stage];
+        return `<div role="option" tabindex="-1" data-step="${k}" aria-selected="false"
+          class="flex min-h-10 cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-1 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+          <span class="w-5 flex-none text-right font-mono text-xs tabular-nums text-base-content/50">${k + 1}</span>
+          <i class="ph ${st.icon} flex-none text-base-content/60" data-title-tip="${esc(st.label)}"></i>
+          <span class="badge badge-xs ${who.badge} flex-none px-1" data-title-tip="${esc(s.by || 'session')}"><i class="ph ${who.icon}"></i></span>
+          <span class="min-w-0 flex-1 truncate text-sm">${esc(s.note || '')}</span>
+          <span data-ls-tabs></span></div>`;
+      }).join('');
+      const range = st => Array.from({ length: this.hi(st) - this.lo(st) + 1 }, (_, x) => this.lo(st) + x);
+      const NOUN = { turns: 'turn', comments: 'comment', bullets: 'point' };
+      this.swiper = window.linkedSwiper.attach({
+        root: this.$refs.root, list, card: this.$refs.card, key: 'step', noun: 'step', subNoun: 'build',
+        ids: () => steps.map((_, k) => String(k)), sel: () => String(this.step),
+        subs: id => { const st = steps[+id]; return this.hi(st) > this.lo(st) ? range(st) : []; },
+        selSub: () => (this.buildsMore ? this.b : undefined),
+        places: true, slideScroll: true, innerClass: 'w-full', slidePad: 'pt-3 pb-24',
+        tab: (id, sub) => ({ label: String(sub), aria: `${sub} of ${this.hi(steps[+id])} ${NOUN[steps[+id].kind]}s shown` }),
+        head: ({ i, n, id, sub }) => this.head(i, n, +id, sub, NOUN),
+        body: (id, el, sub) => { this.render(this.placeOf(+id, sub), el); },
+        onPick: (id, via, sub) => {
+          this.cur = this.placeOf(+id, sub);
+          this.mark();
+          this.enter(+id);
+        },
+      });
+      requestAnimationFrame(() => requestAnimationFrame(() => this.enter(this.step)));
+    },
+    // The detail's head row: the step's stage and maker, and the button group
+    // that steps through places, its middle the builds shown or the step.
+    head(i, n, k, sub, NOUN) {
+      const s = this.B.steps[k], st = STAGE[s.stage], who = by(s);
+      const lo = this.lo(s), hi = this.hi(s), b = sub ?? lo, more = hi > lo;
+      const noun = NOUN[s.kind];
+      const kindIcon = { turns: 'ph-users-three', comments: 'ph-chat-circle-dots', bullets: 'ph-list-plus' }[s.kind];
+      const back = more && b > lo ? `Previous ${noun}` : 'Previous step';
+      const fwd = more && b < hi ? `Next ${noun}` : 'Next step';
+      const btn = (d, ic, label, off) => `<button type="button" class="btn btn-sm join-item px-2.5" data-swipe-step="${d}" aria-label="${esc(label)}" data-title-tip="${esc(label)}"${off ? ' disabled' : ''}><i class="ph ${ic} text-base"></i></button>`;
+      const mid = more
+        ? `<i class="ph ${kindIcon}"></i><span>${b}/${hi}</span>`
+        : `<span>${k + 1}/${this.n}</span>`;
+      return `<div class="flex min-w-0 flex-1 items-center gap-2">
+          <span class="inline-flex min-w-0 items-center gap-1 text-sm text-base-content/70"><i class="ph ${st.icon}"></i><span class="truncate">${esc(st.label)}</span></span>
+          <span class="badge badge-sm ${who.badge} flex-none gap-1"><i class="ph ${who.icon}"></i>${esc(s.by || 'session')}</span></div>
+        <div class="join flex-none">${btn(-1, 'ph-caret-left', back, i <= 0)}
+          <span class="join-item inline-flex min-w-[6.5ch] items-center justify-center gap-1 border border-base-300 bg-base-100 px-2 font-mono text-xs tabular-nums text-base-content/70">${mid}</span>
+          ${btn(1, 'ph-caret-right', fwd, i >= n - 1)}</div>`;
     },
 
     // skills/peeves/peeves.csv from web-tools: at the #gh= ref when the payload
@@ -341,17 +399,16 @@ document.addEventListener('alpine:init', () => {
     },
     go(i) {
       const to = Math.max(0, Math.min(this.places.length - 1, i));
-      if (!this.deck) return;
-      this.cur = to;
-      this.mark();
-      this.deck.go(to, 'instant');
-      this.enter(this.step);
+      if (!this.swiper) return;
+      const { step, b } = this.places[to];
+      const st = this.B.steps[step];
+      this.swiper.pick(String(step), 'api', this.hi(st) > this.lo(st) ? b : undefined);
     },
     // A step that opens a stage enters, each time the reader arrives on it.
     enter(i) {
       if (i === this.entered) return;
       this.entered = i;
-      const slide = this.deck?.track.children[i];
+      const slide = this.$refs.card?.querySelector('.sd-track')?.children[i];
       if (!slide || calm()) return;
       for (const el of slide.querySelectorAll('[data-enter]')) {
         el.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }],
@@ -372,13 +429,14 @@ document.addEventListener('alpine:init', () => {
       }
       return t.innerHTML;
     },
+    // The owner adding to the request: what was there, then the new lines,
+    // untinted. Its top-level bullets are the step's builds.
     build(host, was, added) {
       host.innerHTML = this.html(was);
       const more = h('div');
       more.innerHTML = this.html(added);
-      more.dataset.enter = '';
       host.append(more);
-      this.entered = -1; this.enter(this.step);
+      return [...more.querySelectorAll('li')].filter(li => !li.parentElement.closest('li'));
     },
     async draw(host, was, now) {
       await window.mdDiff.redline(host, was, now, { html: md => this.html(md) });
@@ -472,16 +530,14 @@ document.addEventListener('alpine:init', () => {
       el.dataset.step = i;
       el.__shown = 0;
       el.__comments = null;
-      el.__turns = null;
+      el.__units = null;
       const s = this.B.steps[i], who = by(s), st = s.stage;
       const j = this.before(i, st), fresh = j < 0;
       const was = split(fresh ? s.payload : this.B.steps[j].payload), now = split(s.payload);
 
-      const head = h('div', 'sticky top-0 z-10 bg-base-100 border-b border-base-200 px-4 sm:px-8 py-3 mb-4 grid grid-cols-[auto_minmax(0,1fr)] gap-3 items-start');
-      const badge = h('span', `badge badge-sm ${who.badge} gap-1 mt-1.5`);
-      badge.append(icon(who.icon), s.by || 'session');
-      head.append(badge, h('p', 'text-xl leading-8 font-semibold', s.note || ''));
-      el.replaceChildren(head);
+      // The step's note leads its detail; the head row above carries its stage
+      // and maker.
+      el.replaceChildren(h('p', 'mx-4 sm:mx-8 mb-4 text-xl leading-8 font-semibold', s.note || ''));
 
       // What came before, kept in reach.
       const req = st === 'request' ? -1 : this.before(i, 'request');
@@ -541,9 +597,21 @@ document.addEventListener('alpine:init', () => {
         // The owner adding to the request reads as a build, not a redline:
         // the new lines enter together, untinted, under what was there.
         const build = st === 'request' && !fresh && now.body.startsWith(was.body);
-        const jobs = [build ? this.build(host, was.body, now.body.slice(was.body.length)) : this.draw(host, was.body, now.body)];
+        let units = null;
+        const jobs = [build ? (units = this.build(host, was.body, now.body.slice(was.body.length)), null) : this.draw(host, was.body, now.body)];
         if (outlineHost) jobs.push(this.draw(outlineHost, this.B.steps[ol].payload, this.B.steps[ol].payload));
         await Promise.all(jobs);
+        // An intent step's bullets, Asked's then Wants's, in document order;
+        // a struck bullet is not one of them.
+        if (s.kind === 'bullets' && !units) {
+          units = [...host.querySelectorAll('li')].filter(li => !li.parentElement.closest('li') && li.dataset.mdRedline !== 'removed');
+        }
+        if (s.kind === 'bullets') {
+          el.__units = units;
+          el.__fly = 'side';
+          el.__shown = 0;
+          this.revealUnits(el, el.__want || 0, false);
+        }
         this.comments(s, el, host, front, outlineHost, outlineFold);
       })().catch(e => { host.textContent = 'Could not draw this step: ' + (e?.message || e); });
     },
@@ -657,18 +725,23 @@ document.addEventListener('alpine:init', () => {
       main.append(row, talk);
       main.dataset.enter = '';
       el.append(main);
-      el.__turns = nodes;
+      el.__units = nodes;
+      el.__fly = 'up';
       el.__shown = 0;
-      this.revealTurns(el, el.__want || 0, false);
+      this.revealUnits(el, el.__want || 0, false);
     },
-    revealTurns(el, b, animate) {
+    // Show the first b units (a panel's turns, a step's bullets). One more
+    // than before, moving forward, enters: a turn rises, a bullet flies in
+    // from the side; under reduced motion it appears without moving.
+    revealUnits(el, b, animate) {
       const was = el.__shown || 0;
-      el.__turns.forEach((n, k) => n.classList.toggle('hidden', k >= b));
+      el.__units.forEach((n, k) => n.classList.toggle('hidden', k >= b));
       el.__shown = b;
-      if (!animate || b !== was + 1) return;
-      const n = el.__turns[b - 1];
+      if (!animate || b !== was + 1 || !el.__units[b - 1]) return;
+      const n = el.__units[b - 1];
       n.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
-      if (!calm()) n.animate([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }],
+      const from = el.__fly === 'side' ? 'translateX(48px)' : 'translateY(18px)';
+      if (!calm()) n.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }],
                              { duration: 360, easing: 'cubic-bezier(.2,.7,.2,1)' });
     },
     // Show the first b comments of the step on slide el. One more than before,
@@ -677,7 +750,7 @@ document.addEventListener('alpine:init', () => {
     // reduced motion it appears without moving.
     reveal(el, b, animate) {
       el.__want = b;
-      if (el.__turns) return this.revealTurns(el, b, animate);
+      if (el.__units) return this.revealUnits(el, b, animate);
       const all = el.__comments;
       if (!all) return;
       const was = el.__shown || 0;
@@ -706,8 +779,8 @@ document.addEventListener('alpine:init', () => {
 });
 </script>
 </head>
-<body class="bg-base-100 text-base-content [--fab-bottom:6.5rem]">
-<div x-data="stepwise()" class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
+<body class="bg-base-100 text-base-content">
+<div x-data="stepwise()" class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
 
   <header class="border-b border-base-300 px-4 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
     <i class="ph ph-stairs text-xl"></i>
@@ -716,54 +789,17 @@ document.addEventListener('alpine:init', () => {
       <a x-show="fileUrl" :href="fileUrl" target="_blank" rel="noopener"
          class="block truncate font-mono text-xs text-base-content/60 hover:underline" x-text="B?.file"></a>
     </div>
-    <div x-show="B" class="min-w-[7ch] grid justify-items-end tabular-nums text-sm text-base-content/70">
-      <span x-text="(step + 1) + ' / ' + n"></span>
-      <span x-show="buildsMore" class="inline-flex items-center gap-1 text-xs text-base-content/50" :aria-label="b + ' of ' + builds + ' ' + buildNoun + ' shown'">
-        <i class="ph" :class="buildNoun === 'turns' ? 'ph-users-three' : 'ph-chat-circle-dots'"></i><span x-text="b + '/' + builds"></span>
-      </span>
-    </div>
+    <span x-show="B" class="min-w-[7ch] text-right tabular-nums text-sm text-base-content/70" x-text="(step + 1) + ' / ' + n"></span>
   </header>
 
-  <main class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)]">
+  <main class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)] p-2">
     <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
     <div x-show="!B && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
-    <div x-ref="track" x-show="B" class="min-h-0 min-w-0 h-full"></div>
-  </main>
-
-  <footer x-show="B" class="border-t border-base-300 px-2 pt-1 grid grid-cols-[minmax(0,1fr)]">
-    <nav x-show="stages.length > 1" aria-label="Stages" class="flex justify-center-safe gap-1 overflow-x-auto">
-      <template x-for="st in stages" :key="st.k">
-        <button type="button" class="btn btn-xs rounded-full gap-1 shrink-0" @click="go(first(st.first))"
-                :class="st.k === stage ? 'btn-neutral' : 'btn-ghost text-base-content/60'" :aria-current="st.k === stage ? 'step' : null">
-          <i class="ph" :class="st.icon"></i><span x-text="st.label"></span>
-        </button>
-      </template>
-    </nav>
-    <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 pb-1">
-      <button type="button" class="btn btn-ghost btn-square" aria-label="Back" @click="go(cur - 1)" :disabled="cur === 0">
-        <i class="ph ph-caret-left text-xl"></i>
-      </button>
-      <div class="min-w-0">
-        <template x-if="B && n <= 25">
-          <div class="flex justify-center-safe overflow-x-auto">
-            <template x-for="(s, i) in B.steps" :key="i">
-              <button type="button" class="h-10 w-6 shrink-0 grid place-items-center" :aria-label="'Step ' + (i + 1) + ', ' + s.stage + ', ' + s.by"
-                      :class="i && B.steps[i - 1].stage !== s.stage ? 'ml-3' : ''"
-                      :aria-current="i === step ? 'step' : null" @click="go(first(i))">
-                <span class="rounded-full" :class="dot(i)"></span>
-              </button>
-            </template>
-          </div>
-        </template>
-        <template x-if="B && n > 25">
-          <input type="range" class="range range-xs w-full" min="1" :max="n" :value="step + 1" aria-label="Step" @input="go(first($event.target.value - 1))">
-        </template>
-      </div>
-      <button type="button" class="btn btn-ghost btn-square" aria-label="Forward" @click="go(cur + 1)" :disabled="cur === places.length - 1">
-        <i class="ph ph-caret-right text-xl"></i>
-      </button>
+    <div x-ref="root" x-show="B" class="min-h-0 min-w-0">
+      <div x-ref="list"></div>
+      <div x-ref="card"></div>
     </div>
-  </footer>
+  </main>
 </div>
 </body>
 </html>
