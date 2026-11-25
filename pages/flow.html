@@ -110,6 +110,7 @@ document.addEventListener('alpine:init', () => {
   Alpine.data('flow', () => ({
     LANE_BG: 'color-mix(in oklab, var(--color-base-200) 70%, var(--color-base-100))',
     o: 'h',   // lanes across (h, the default) or down (v)
+    heading: null,   // the slide a smooth move is on its way to
     F: null, err: '', v: '', cur: 0, deck: null, passes: 0, repo: 'mehrlander/web-tools', ref: 'main', svg: '', mapH: 0,
 
     get variants() { return this.F?.variants || []; },
@@ -236,7 +237,12 @@ document.addEventListener('alpine:init', () => {
         start: this.cur, behavior: 'instant', innerClass: 'w-full', slidePad: 'px-4 pt-3 pb-24',
       });
       this.$refs.track.append(this.deck.track);
-      this.deck.onSlide(i => { if (i !== this.cur) { this.cur = i; this.mark(false); this.reveal(); } });
+      // While a move this page made is under way, the track reports the
+      // slides it passes, the one it is leaving first; only its arrival counts.
+      this.deck.onSlide(i => {
+        if (this.heading != null) { if (i === this.heading) this.heading = null; return; }
+        if (i !== this.cur) { this.cur = i; this.mark(false); this.reveal(); }
+      });
       requestAnimationFrame(() => { this.deck.go(this.cur, 'instant'); this.draw(); this.reveal(); });
       this.mark(false);
     },
@@ -283,6 +289,8 @@ document.addEventListener('alpine:init', () => {
       const to = Math.max(0, Math.min(this.n - 1, i));
       if (!this.deck) return;
       const near = Math.abs(to - this.cur) === 1 && !calm();
+      this.heading = near ? to : null;
+      if (near) setTimeout(() => { if (this.heading === to) this.heading = null; }, 800);
       this.cur = to;
       if (!o.quiet) this.mark(!!o.push);
       this.deck.go(to, near ? 'smooth' : 'instant');
