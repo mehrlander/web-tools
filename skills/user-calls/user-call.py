@@ -8,6 +8,8 @@ docs/envelopes/user-call.md; SKILL.md beside this script says how to run it.
     user-call.py list [session] [--store D]               open user calls, newest first
     user-call.py edits --old A --new B                    a documentation call's edits, from two copies
     user-call.py edits --base REF FILE                    the same, from FILE against its text at REF
+                                                          (of a list, FILE.json: one edit per entry whose
+                                                          text or note changed)
     user-call.py link <id> [--store D] [--at REPO@REF]    the address of the call's page, where it is answered
     user-call.py patch <id> [--store D]                   the latest answer's recorded patch, for git apply
     user-call.py review DRAFT FILE --spans [OUT]          the call's edits as line ranges of FILE, E1, E2, ..., the
@@ -27,6 +29,13 @@ out the changes from it and marks the trips inside an edit still unanswered as
 changed. `add` refuses a call whose edits
 the critic's last run did not read, or with a trip left unanswered, maps each
 run's spans onto the call's edits, and drops the kept texts.
+
+A documentation call may edit entries of a list instead of a document: its
+file names lists/<name>.json, with #<id> for one entry, and each edit names its
+entry in `item`, with `from` and `to` the entry's {text, note} before and after.
+`add` reads the list at the call's base (else its file's ref) in a checkout of
+its repo in or beside the project root, and refuses an edit whose entry is not
+there as `from` reads.
 
 The store is found the way the notes skill's note.py finds its own: a checkout
 whose .web-tools.json on origin/main declares "user-calls" (a path relative to
@@ -134,19 +143,24 @@ def check(c):
             errs.append("brief is required, 200 characters at most: one line of what the edits do")
         if len(rec) > 80 or len(why) > 100:
             errs.append("recommend is 80 characters at most and why 100")
+        listed = is_list(c)
         if not re.fullmatch(r"[^/\s]+/[^@:\s]+(@[^:\s]+)?:\S+", str(c.get("file") or "")):
             errs.append("file must read owner/repo[@ref]:path")
-        elif not re.search(r"\.(md|csv)$", c["file"], re.I):
-            errs.append("a documentation call edits a markdown or CSV file; prose inside code is reviewed on its PR")
+        elif not listed and not re.search(r"\.(md|csv)$", c["file"], re.I):
+            errs.append("a documentation call edits a markdown or CSV file, or entries of a list (lists/x.json); "
+                        "prose inside code is reviewed on its PR")
         if "base" in c and not re.fullmatch(r"[^\s:@]+", str(c.get("base") or "")):
             errs.append("base is the ref the edits were made against, such as main")
         edits = c.get("edits") or []
+        if listed:
+            errs += entry_errors(c)
+            edits = []
         if c.get("new") is not None and c.get("new") is not True:
             errs.append("new is true or absent")
         if c.get("new"):
             if edits:
                 errs.append("a new document carries no edits: the page shows it whole")
-        elif not 1 <= len(edits) <= 40:
+        elif not listed and not 1 <= len(edits) <= 40:
             errs.append("edits is 1 to 40 entries")
         for i, e in enumerate(edits):
             if not isinstance(e, dict) or not str(e.get("from") or "").strip() or not isinstance(e.get("to"), str):
@@ -239,6 +253,125 @@ def check(c):
         errs.append("tree must read owner/repo@ref:path.json")
     errs += shape(c)
     return errs
+
+
+# A list call's file: a lists/ JSON file, with #<id> when it edits one entry.
+LIST_FILE = r"[^/\s]+/[^@:\s]+(@[^:\s]+)?:(\S+/)?lists/[^/\s#]+\.json(#[^\s#]+)?"
+ENTRY_FIELDS = {"text", "note"}
+
+
+def is_list(c):
+    return bool(re.fullmatch(LIST_FILE, str(c.get("file") or "")))
+
+
+def list_target(c):
+    """(repo, ref, path, item) of a list call's file; item is None without #<id>."""
+    spec, frag = (str(c.get("file") or "").split("#", 1) + [None])[:2]
+    head, path = spec.split(":", 1)
+    repo, ref = (head.split("@", 1) + [None])[:2]
+    return repo, ref or "main", path, frag
+
+
+def entry_errors(c):
+    """A list call's edits: each names its entry and gives the entry's text and
+    note before and after, one edit per entry."""
+    errs, edits, one = [], c.get("edits") or [], list_target(c)[3]
+    if c.get("new"):
+        errs.append("a list call edits entries the list holds; a new entry needs no call")
+    if not 1 <= len(edits) <= 40:
+        errs.append("edits is 1 to 40 entries")
+    if one and len(edits) > 1:
+        errs.append(f"file names the one entry {one}: a call on several entries names the list alone")
+    seen = set()
+    for i, e in enumerate(edits):
+        if not isinstance(e, dict):
+            errs.append(f"edits[{i}] is an object")
+            continue
+        item = e.get("item") or one
+        if not isinstance(item, str) or not item.strip():
+            errs.append(f"edits[{i}] names its entry's id in item")
+        elif one and item != one:
+            errs.append(f"edits[{i}].item is {item!r}, but file names entry {one}")
+        elif item in seen:
+            errs.append(f"edits[{i}]: entry {item} has an edit already; one edit per entry")
+        seen.add(item)
+        sides = [e.get("from"), e.get("to")]
+        if not all(isinstance(x, dict) and set(x) <= ENTRY_FIELDS and isinstance(x.get("text"), str) and x["text"].strip()
+                   and isinstance(x.get("note", ""), str) for x in sides):
+            errs.append(f"edits[{i}].from and .to are the entry before and after, each {{text, note?}}")
+        elif sides[0] == sides[1]:
+            errs.append(f"edits[{i}] changes nothing")
+        elif len(str(e.get("why") or "")) > 100:
+            errs.append(f"edits[{i}].why is one clause, 100 characters at most")
+        elif bool(str(e.get("background") or "").strip()) != bool(str(e.get("proposal") or "").strip()):
+            errs.append(f"edits[{i}] gives a background and a proposal together, or neither")
+        elif any(len(str(e.get(k) or "")) > 160 for k in ("background", "proposal")):
+            errs.append(f"edits[{i}].background and .proposal are 160 characters at most")
+        else:
+            errs += notes(e.get("notes"), f"edits[{i}]")
+    return errs
+
+
+def checkout_of(repo):
+    """A checkout of owner/repo in or beside the project root, found by its
+    origin's address, or None."""
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    cands = [root]
+    for base in (root, os.path.dirname(root)):
+        try:
+            cands += [os.path.join(base, d) for d in sorted(os.listdir(base))]
+        except OSError:
+            pass
+    for d in cands:
+        r = git(d, "remote", "get-url", "origin", check=False) if os.path.isdir(d) else None
+        url = r.stdout.decode().strip() if r is not None and r.returncode == 0 else ""
+        if re.search(r"[/:]" + re.escape(repo) + r"(\.git)?/?$", url):
+            return d
+    return None
+
+
+def list_at(repo, ref, path):
+    """The list's items at ref, as {id: item}, read from a checkout of repo
+    (origin's ref first); or an error string."""
+    d = checkout_of(repo)
+    if not d:
+        return f"no checkout of {repo} in or beside the project root to read {path} in"
+    for r in (f"origin/{ref}", ref):
+        shown = git(d, "show", f"{r}:{path}", check=False)
+        if shown.returncode == 0:
+            try:
+                doc = json.loads(shown.stdout.decode("utf-8"))
+            except ValueError:
+                return f"{path} at {ref} is not JSON"
+            items = doc.get("items") if isinstance(doc, dict) else None
+            if not isinstance(items, list):
+                return f"{path} at {ref} is not a list: it has no items"
+            return {it["id"]: it for it in items if isinstance(it, dict) and isinstance(it.get("id"), str)}
+    return f"{repo} has no {path} at {ref}"
+
+
+def entry_base_errors(c, items):
+    """Each edit's entry, as the list holds it at the call's base: there, and
+    reading as the edit's `from`."""
+    errs, one = [], list_target(c)[3]
+    for i, e in enumerate(c.get("edits") or []):
+        item, frm = e.get("item") or one, e.get("from") or {}
+        it = items.get(item)
+        if it is None:
+            errs.append(f"edits[{i}]: the list holds no entry {item}")
+        elif any((it.get(k) or "") != (frm.get(k) or "") for k in ENTRY_FIELDS):
+            errs.append(f"edits[{i}].from is not entry {item} as the list holds it")
+    return errs
+
+
+def list_edits(old, new):
+    """A list call's edits from two copies of a list: one per entry both hold
+    whose text or note differs. Entries added or removed are not edits."""
+    items = lambda t: [x for x in (json.loads(t).get("items") or []) if isinstance(x, dict) and x.get("id")]
+    was = {x["id"]: x for x in items(old)}
+    side = lambda x: {k: x[k] for k in ("text", "note") if x.get(k)}
+    return [{"item": x["id"], "from": side(was[x["id"]]), "to": side(x)}
+            for x in items(new) if x["id"] in was and side(was[x["id"]]) != side(x)]
 
 
 def notes(ns, at):
@@ -1332,7 +1465,8 @@ def answer_lines(r, call=None):
     for d in r.get("decisions") or []:
         n = d.get("edit")
         e = edits[n - 1] if isinstance(n, int) and 0 < n <= len(edits) else {}
-        what = e.get("why") or " ".join(str(e.get("from", "")).split())[:60]
+        frm = e.get("from")
+        what = e.get("why") or (f"entry {e.get('item', '')}" if isinstance(frm, dict) else " ".join(str(frm or "").split())[:60])
         out.append(f"  {n}. {d.get('decision', '')}" + (f"  ({what})" if what else ""))
         if d.get("note"):
             out += ["       " + line for line in d["note"].splitlines()]
@@ -1444,13 +1578,18 @@ def main(argv):
                     sys.exit(f"user-call: {argv[2]} is new at {base}: file the call with \"new\": true and no edits")
                 sys.exit(f"user-call: could not read {argv[2]} at {base}: {shown.stderr.strip()}")
             old_text, new_text = shown.stdout, f.read_text(encoding="utf-8")
+            name = argv[2]
         else:
             argv, old = flag(argv, "--old")
             argv, new = flag(argv, "--new")
             if not old or not new:
                 sys.exit("user-call: edits needs --old and --new, or --base and a file")
             old_text, new_text = Path(old).read_text(encoding="utf-8"), Path(new).read_text(encoding="utf-8")
-        found = edits(old_text, new_text)
+            name = new
+        try:
+            found = list_edits(old_text, new_text) if name.endswith(".json") else edits(old_text, new_text)
+        except ValueError as e:
+            sys.exit(f"user-call: {e}")
         if not found:
             sys.exit("user-call: no change between the two copies")
         print(json.dumps(found, indent=2, ensure_ascii=False))
@@ -1477,6 +1616,10 @@ def main(argv):
                      f"{', '.join(map(str, unread))} as filed: run it again on the document as it stands")
         file_edits(c)
         errs = check(c)
+        if not errs and c.get("kind") == "documentation" and is_list(c):
+            repo, ref, path, _ = list_target(c)
+            items = list_at(repo, c.get("base") or ref, path)
+            errs = [items] if isinstance(items, str) else entry_base_errors(c, items)
         if errs:
             sys.exit("user-call: " + "; ".join(errs))
         cid = f"{c['session']}-{c['slug']}"
