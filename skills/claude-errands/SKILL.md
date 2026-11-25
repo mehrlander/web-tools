@@ -56,8 +56,8 @@ not be done, saying why. `release <id>` frees a claim without closing, so the
 errand can be taken afresh. Repeat `next` until it reports none open, then tell
 the owner, in the reply, each errand's title and outcome.
 
-**`next` also prints tickets.** A ticket is the owner's own request, not
-another assistant's, and `next` prints the ticket's rules above its task. When
+**`next` also prints tickets.** A ticket is the owner's own request, and
+`next` prints the ticket's rules above its task. When
 the repository it is about is not in the session, attach it with `add_repo`.
 Close a finished ticket with the pull request's URL in `--message`. When you
 cannot finish one, close it with `--failed`, which hands it to the other
