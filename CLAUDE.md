@@ -12,7 +12,7 @@
 
 The mechanisms, what each reaches and misses, and the rule for picking one are **not restated here**. They live as data in [`docs/showing-mechanisms.csv`](docs/showing-mechanisms.csv) and render in the app's **Map view, Showing tab**; the frame and the record are in [`docs/showing.md`](docs/showing.md).
 
-**So do not decide it by reading. Run it:** `npm run session-render-links`. It runs [`python/showing.py`](python/showing.py) in each repo checkout beside this one whose branch is ahead of main, and prints a render link for each page or file that branch changed, or a `No render link:` line giving the reason. Where no link reaches a change, say so and send a headless screenshot. The script is [`python/session-render-links.py`](python/session-render-links.py).
+**So do not decide it by reading. Run it:** `npm run session-render-links`. It runs [`python/showing.py`](python/showing.py) in each repo checkout beside this one whose branch is ahead of main. For each page or file that branch changed, it prints a render link; where no link reaches the change, it prints a `No render link:` line giving the reason. Where no link reaches a change, say so and send a headless screenshot. The script is [`python/session-render-links.py`](python/session-render-links.py).
 
 ## Per-session refresh: thumbnails
 

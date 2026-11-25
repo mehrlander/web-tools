@@ -32,7 +32,7 @@ substituting the current repo in URL templates.
   - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
   - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
-  Each of 👁️‍🗨️, ⌨️, ✍️ and ⚖️ may also prefix a link to its listed resource elsewhere in a reply.
+  Each of 👁️‍🗨️, ⌨️, ✍️ and ⚖️ may also prefix a link of the kind its bullet above names, anywhere else in a reply.
 
 * **Close every reply** with three parts, in order. First comes the session detail caption. Next comes each link that [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints, followed by a few words of your own on what it opens. Last comes the closing state.
 
