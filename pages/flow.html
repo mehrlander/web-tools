@@ -11,7 +11,9 @@
   flow.html — a process as a map and a strip of steps: who does each step, the
   scripts, skills and records it touches, and where the process branches or
   loops back. A process with a current and a proposed version shows both in
-  one map, the steps and edges unique to either colored by version.
+  one map as a change: the first version is the text the second changes, in
+  the house's change colors, and an edited sentence reads as kits/md-diff.js's
+  inline change.
 
     flow/1  { schema, title, repo?,
               actors:   [{ id, label, icon }]           the map's columns, in order
@@ -62,6 +64,7 @@
     await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/swipe-deck.js');   // the track
     await gh.load('kits/dock-split.js');   // the seam between map and step
+    await gh.load('kits/md-diff.js');      // a changed sentence's inline reading
     await gh.load('kits/source-peek.js');  // a file's peek card, from its icon in a node or its link on a card
   } finally { window.__depsDone(); }
 </script>
@@ -85,16 +88,18 @@ document.addEventListener('alpine:init', () => {
     });
     return el;
   };
-  // The two versions' treatments, locked across the map, the cards and the
-  // edges: the first is amber, the second blue and dashed, as a proposal
-  // not yet built is drawn on the owner-reader diagram.
+  // Two versions are read as a change, the first as the text it changes and
+  // the second as the change, in the house's change colors (kits/md-diff.js's
+  // redline): what only the first has was removed, red, dashed and struck;
+  // what only the second has was added, green; a step both have whose
+  // sentence differs was edited, an amber bar. One treatment on every view.
   const HUE = [
-    { node: 'border-warning', tint: 'var(--color-warning)', bar: 'border-l-4 border-warning', badge: 'badge-warning', stroke: 'var(--color-warning)', ink: 'color-mix(in oklab, var(--color-warning) 55%, black)', dash: '' },
-    { node: 'border-info border-dashed', tint: 'var(--color-info)', bar: 'border-l-4 border-dashed border-info', badge: 'badge-info', stroke: 'var(--color-info)', ink: 'color-mix(in oklab, var(--color-info) 50%, black)', dash: '6 4' },
+    { kind: 'removed', node: 'border-error/70 border-dashed', tint: 'var(--color-error)', band: 'border-l-4 border-dashed border-error/70 bg-error/5 pl-3', strike: 'line-through decoration-error/60', badge: 'badge-error', stroke: 'color-mix(in oklab, var(--color-error) 75%, transparent)', ink: 'color-mix(in oklab, var(--color-error) 60%, black)', dash: '6 4' },
+    { kind: 'added', node: 'border-success', tint: 'var(--color-success)', band: 'border-l-4 border-success bg-success/10 pl-3', strike: '', badge: 'badge-success', stroke: 'var(--color-success)', ink: 'color-mix(in oklab, var(--color-success) 55%, black)', dash: '' },
   ];
   // A kind of file: its glyph, its color, and its name.
   // The colors mark the kind wherever its icon appears, in a node and on a
-  // card, and keep clear of the versions' amber and blue.
+  // card, and keep clear of the change colors.
   const KIND = {
     script: { icon: 'ph-code', color: 'text-emerald-600', name: 'Script' },
     skill: { icon: 'ph-book-open-text', color: 'text-violet-600', name: 'Skill' },
@@ -145,8 +150,9 @@ document.addEventListener('alpine:init', () => {
     col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
     count(vid) { return this.F ? this.F.steps.filter(s => !vid || !s.in || s.in.includes(vid)).length : 0; },
     nodeClass(i) {
-      if (i === this.cur) return 'border-primary ring-2 ring-primary/30';
+      if (i === this.cur) return 'border-primary ring-2 ring-primary/30' + (this.status(this.vis[i]).k === 'changed' ? ' border-l-4 border-l-warning' : '');
       const st = this.status(this.vis[i]);
+      if (st.k === 'changed') return 'border-base-300 border-l-4 border-l-warning bg-base-100 hover:bg-base-200';
       return st.k === 'only' ? st.hue.node : 'border-base-300 bg-base-100 hover:bg-base-200';
     },
     nodeStyle(i) {
@@ -507,17 +513,26 @@ document.addEventListener('alpine:init', () => {
       const s = this.vis[i];
       const root = h('article', 'grid gap-3 text-base leading-6');
 
-      if (Array.isArray(s.gloss)) {
-        const vids = this.v ? [this.v] : this.variants.map(x => x.id);
-        vids.forEach(vid => {
-          const g = s.gloss.find(x => x.v === vid);
-          if (!g) return;
-          const hue = vids.length > 1 ? this.hue(vid) : null;
-          const p = inline(h('p', hue ? `${hue.bar} pl-3` : ''), g.gloss);
-          if (hue) p.prepend(h('span', `badge ${hue.badge} badge-sm mr-2 align-[0.1em]`, this.variants.find(x => x.id === vid)?.label || vid));
-          root.append(p);
-        });
-      } else if (s.gloss) root.append(inline(h('p'), s.gloss));
+      // The step's sentence. Seen as a change, an edited sentence is the
+      // change's inline reading (kits/md-diff.js): words removed struck,
+      // words added tinted. A step only one version has is a band in its
+      // change color. Seen as one version, the sentence is plain.
+      const gloss = vid => Array.isArray(s.gloss) ? (s.gloss.find(x => x.v === vid)?.gloss || '') : (s.gloss || '');
+      const st = this.status(s);
+      if (st.k === 'changed') {
+        const [a, b] = this.variants.map(x => gloss(x.id));
+        const slot = h('div', 'border-l-4 border-warning pl-3');
+        slot.append(inline(h('p'), b));
+        root.append(slot);
+        window.mdDiff?.inline(a, b).then(box => {
+          if (!box) return;
+          // The reading takes the card's own size, not the guide body's.
+          [box, ...box.querySelectorAll('.guide-body, p')].forEach(e => { e.style.fontSize = 'inherit'; e.style.lineHeight = 'inherit'; e.style.margin = '0'; });
+          slot.replaceChildren(box);
+        }).catch(() => {});
+      } else if (st.k === 'only') {
+        root.append(inline(h('p', `${st.hue.band} ${st.hue.strike}`), gloss(st.vid)));
+      } else root.append(inline(h('p'), gloss(this.v || this.variants[0]?.id)));
 
       // The branches the reader can take from here, one row each.
       const exits = (s.exits || []).filter(x => this.active().some(vid => this.inV(x, vid)) && this.vis.some(y => y.id === x.to));
@@ -526,7 +541,7 @@ document.addEventListener('alpine:init', () => {
         exits.forEach(x => {
           const j = this.vis.findIndex(y => y.id === x.to), back = j <= i;
           const hue = this.both && x.in && x.in.length < this.variants.length ? this.hue(x.in[0]) : null;
-          const b = h('button', `w-full text-left grid grid-cols-[auto_auto_minmax(0,1fr)] items-baseline gap-x-2 py-1.5 hover:bg-base-200 ${hue ? hue.bar + ' pl-2' : ''}`);
+          const b = h('button', `w-full text-left grid grid-cols-[auto_auto_minmax(0,1fr)] items-baseline gap-x-2 py-1.5 hover:bg-base-200 ${hue ? hue.band.replace('pl-3', 'pl-2') : ''}`);
           b.type = 'button';
           b.append(icon(back ? 'ph-arrow-u-up-left' : 'ph-arrow-bend-down-right', 'self-start mt-1'));
           b.append(h('span', 'badge badge-neutral badge-sm', x.label || (back ? 'loop' : 'branch')));
@@ -583,11 +598,11 @@ document.addEventListener('alpine:init', () => {
     <nav x-show="variants.length > 1" aria-label="Version" class="flex items-center gap-2 overflow-x-auto text-xs min-w-0">
       <span class="text-base-content/60 shrink-0">Version</span>
       <button type="button" class="btn btn-xs rounded-full shrink-0 gap-1" :class="!v ? 'btn-neutral' : 'btn-ghost'" @click="setV('')">
-        Both <span class="tabular-nums opacity-70" x-text="count('')"></span>
+        Changes <span class="tabular-nums opacity-70" x-text="count('')"></span>
       </button>
       <template x-for="(x, k) in variants" :key="x.id">
         <button type="button" class="btn btn-xs rounded-full shrink-0 gap-1" :class="v === x.id ? 'btn-neutral' : 'btn-ghost'" @click="setV(x.id)">
-          <span class="inline-block w-3 h-3 rounded-full border-2" :class="k ? 'border-info border-dashed' : 'border-warning'"></span>
+          <span class="inline-block w-3 h-3 rounded-full border-2" :class="k ? 'border-success' : 'border-error/70 border-dashed'"></span>
           <span x-text="x.label"></span><span class="tabular-nums opacity-70" x-text="count(x.id)"></span>
         </button>
       </template>
@@ -621,12 +636,11 @@ document.addEventListener('alpine:init', () => {
                   :class="nodeClass(i) + (o === 'h' ? ' self-center max-w-[10rem]' : ' max-w-full')" :style="nodeAt(s, i) + nodeStyle(i)">
             <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
             <span class="grid">
-              <span x-text="s.label"></span>
-              <span x-show="files(s).length || status(s).k === 'changed'" class="flex gap-0.5 mt-0.5">
+              <span :class="status(s).k === 'only' ? status(s).hue.strike : ''" x-text="s.label"></span>
+              <span x-show="files(s).length" class="flex gap-0.5 mt-0.5">
                 <template x-for="f in files(s)" :key="f.k">
                   <i class="ph text-sm" :class="f.icon + ' ' + f.color" :data-peek="f.addr" :aria-label="f.name"></i>
                 </template>
-                <i x-show="status(s).k === 'changed'" class="ph ph-git-diff text-sm text-base-content/60"></i>
               </span>
             </span>
           </button>
