@@ -121,16 +121,14 @@ document.addEventListener('alpine:init', () => {
     col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
     count(vid) { return this.F ? this.F.steps.filter(s => !vid || !s.in || s.in.includes(vid)).length : 0; },
     nodeClass(i) {
-      if (i === this.cur) return 'bg-neutral text-neutral-content border-neutral';
+      if (i === this.cur) return 'border-primary ring-2 ring-primary/30';
       const st = this.status(this.vis[i]);
       return st.k === 'only' ? st.hue.node : 'border-base-300 bg-base-100 hover:bg-base-200';
     },
-    // A version's own step is tinted over an opaque ground, so an edge behind it stays hidden.
     nodeStyle(i) {
       const st = this.status(this.vis[i]);
-      if (i === this.cur || st.k !== 'only') return '';
-      const t = `color-mix(in oklab, ${st.hue.tint} 12%, var(--color-base-100))`;
-      return `background: ${t};`;
+      const tint = i === this.cur ? 'var(--color-primary)' : st.k === 'only' ? st.hue.tint : '';
+      return tint ? `background: color-mix(in oklab, ${tint} 12%, var(--color-base-100));` : '';
     },
 
     async init() {
@@ -301,28 +299,53 @@ document.addEventListener('alpine:init', () => {
       let s = '', lane = 0;
       const text = (x, y, t, anchor, color, rot) =>
         `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="11" fill="${color}" stroke="var(--color-base-100)" stroke-width="3" paint-order="stroke"${rot ? ` transform="rotate(-90 ${x} ${y})"` : ''}>${window.esc(t)}</text>`;
-      this.edges().forEach(e => {
+      const edges = this.edges();
+      // Edges sharing a node fan out along its edge, so no two meet it at one
+      // point: forward edges along its bottom and top, ordered by the other
+      // end's x; loops along its right side.
+      const fan = new Map();
+      const slot = (key, e, order) => { if (!fan.has(key)) fan.set(key, []); fan.get(key).push({ e, order }); };
+      edges.forEach(e => {
         const a = box(this.vis[e.i].id), b = box(this.vis[e.j].id);
+        if (!a || !b) return;
+        e.a = a; e.b = b;
+        if (e.kind === 'loop') { slot('r' + e.i, e, b.y); slot('r' + e.j, e, a.y); }
+        else { slot('b' + e.i, e, b.x + b.w / 2); slot('t' + e.j, e, a.x + a.w / 2); }
+      });
+      const off = (key, e, gap) => {
+        const list = (fan.get(key) || []).sort((p, q) => p.order - q.order);
+        const k = list.findIndex(x => x.e === e);
+        return k < 0 ? 0 : (k - (list.length - 1) / 2) * gap;
+      };
+      edges.forEach(e => {
+        const a = e.a, b = e.b;
         if (!a || !b) return;
         const p = paint(e);
         let d, lx, ly, la = 'start', rot = false;
         if (e.kind === 'loop') {
-          const gx = gx0 + lane++ * 16;
-          const y1 = a.y + a.h / 2, y2 = b.y + b.h / 2;
-          d = `M${a.x + a.w} ${y1} H${gx} V${y2} H${b.x + b.w + 2}`;
+          // Out of the source's right side, up the gutter with rounded turns, into the target's right side.
+          const gx = gx0 + lane++ * 16, r = 8;
+          const y1 = a.y + a.h / 2 + off('r' + e.i, e, 6), y2 = b.y + b.h / 2 + off('r' + e.j, e, 6);
+          const up = y2 < y1 ? -1 : 1;
+          d = `M${a.x + a.w} ${y1} H${gx - r} Q${gx} ${y1} ${gx} ${y1 + up * r} V${y2 - up * r} Q${gx} ${y2} ${gx - r} ${y2} H${b.x + b.w + 2}`;
           lx = gx - 4; ly = (y1 + y2) / 2; la = 'middle'; rot = true;
         } else {
-          const x1 = a.x + a.w / 2, y1 = a.y + a.h, x2 = b.x + b.w / 2, y2 = b.y - 2;
-          // Down the source's column, across, then into the target; or across
-          // first; whichever column holds no step between the two rows, else
-          // down the gap beside the source.
-          const between = this.vis.slice(e.i + 1, e.j).map(x => this.col(x));
-          const ca = this.col(this.vis[e.i]), cb = this.col(this.vis[e.j]);
-          if (x1 === x2 && !between.includes(ca)) d = `M${x1} ${y1} V${y2}`;
-          else if (!between.includes(cb)) d = `M${x1} ${y1} V${y1 + 9} H${x2} V${y2}`;
-          else if (!between.includes(ca)) d = `M${x1} ${y1} V${y2 - 9} H${x2} V${y2}`;
-          else { const gx = a.x + a.w + 4; d = `M${x1} ${y1} V${y1 + 9} H${gx} V${y2 - 9} H${x2} V${y2}`; }
-          lx = x2 + 5; ly = y2 - 5;
+          // A curve from the source's foot to the target's head. Where a step
+          // between them sits across its way, the edge curves out to a channel
+          // just right of every such step, runs down it, and curves back in.
+          const x1 = a.x + a.w / 2 + off('b' + e.i, e, 10), y1 = a.y + a.h;
+          const x2 = b.x + b.w / 2 + off('t' + e.j, e, 10), y2 = b.y - 2;
+          const lo = Math.min(x1, x2) - 6, hi = Math.max(x1, x2) + 6;
+          const block = this.vis.slice(e.i + 1, e.j).map(x => box(x.id)).filter(m => m && m.x < hi && m.x + m.w > lo);
+          if (block.length) {
+            const X = Math.max(...block.map(m => m.x + m.w)) + 12 + Math.abs(off('b' + e.i, e, 6));
+            const ya = Math.min(...block.map(m => m.y)), yb = Math.max(...block.map(m => m.y + m.h));
+            d = `M${x1} ${y1} C${x1} ${(y1 + ya) / 2} ${X} ${(y1 + ya) / 2} ${X} ${ya} V${yb} C${X} ${(yb + y2) / 2} ${x2} ${(yb + y2) / 2} ${x2} ${y2}`;
+          } else {
+            const my = (y1 + y2) / 2;
+            d = `M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}`;
+          }
+          lx = x2 + 6; ly = y2 - 5;
         }
         s += `<path d="${d}" fill="none" stroke="${p.stroke}" stroke-width="1.5"${p.dash ? ` stroke-dasharray="${p.dash}"` : ''} marker-end="url(#flow-arrow)" style="color:${p.stroke}"/>`;
         // Several labels on one edge run side by side, as the rows between steps are too short to stack them.
@@ -450,14 +473,16 @@ document.addEventListener('alpine:init', () => {
     <section x-show="F" x-ref="map" aria-label="Map" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
       <div x-ref="grid" class="grid gap-x-2 gap-y-5 p-3"
            :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); max-width: ${F.actors.length * 13}rem; margin-right: ${gutter * 16 + 8}px`">
+        <!-- One backdrop under the lane names, across the gaps and the loops' gutter, so an edge scrolled under them stays hidden. -->
+        <div class="sticky top-0 z-10 bg-base-100 -ml-3" :style="`grid-row: 1; grid-column: 1 / -1; margin-right: -${gutter * 16 + 20}px`"></div>
         <template x-for="(a, k) in (F ? F.actors : [])" :key="a.id">
-          <div class="sticky top-0 z-10 bg-base-100 py-1 flex items-center gap-1 text-xs font-semibold text-base-content/70" :style="`grid-row: 1; grid-column: ${k + 1}`">
+          <div class="sticky top-0 z-10 py-1 flex items-center gap-1 text-xs font-semibold text-base-content/70" :style="`grid-row: 1; grid-column: ${k + 1}`">
             <i class="ph text-base shrink-0" :class="a.icon"></i><span class="leading-tight" x-text="a.label"></span>
           </div>
         </template>
         <template x-for="(s, i) in vis" :key="s.id + v">
           <button type="button" :data-step="s.id" @click="go(i)" :aria-current="i === cur ? 'step' : null"
-                  class="relative z-[1] scroll-my-20 text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
+                  class="relative z-[1] scroll-my-20 justify-self-center w-fit max-w-full text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
                   :class="nodeClass(i)" :style="`grid-row: ${i + 2}; grid-column: ${col(s)}; ` + nodeStyle(i)">
             <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
             <span>
