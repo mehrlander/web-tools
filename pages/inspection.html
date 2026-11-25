@@ -179,6 +179,9 @@
     p.tagCh = Math.max(0, ...p.runs.flatMap(r => r.outputs.map(o => (p.tagOf[o.tag]?.label || o.tag || '').length)));
     // Whether any output has flair, which then shares the note's row.
     p.flairy = p.runs.some(r => r.outputs.some(o => o.flair?.length));
+    // Versions: no output rests on a passage, so each is a whole text, such
+    // as a rewrite of its input, and the card shows them side by side.
+    p.versions = p.runs.every(r => r.outputs.every(o => !o.anchor && !o.anchors?.length));
     return p;
   }
 
@@ -300,7 +303,7 @@
       ${judged ? `<div class="join shrink-0" role="radiogroup" aria-label="Verdict">${P.verdicts.map(v => {
         const on = s.verdict === v.verdict;
         return `<button type="button" role="radio" aria-checked="${on}" data-verdict="${esc(v.verdict)}" data-title-tip="${esc(v.gloss || v.label)}"
-          class="btn btn-sm join-item gap-1 px-2.5 ${on ? tone(v.verdict).btn : 'border-base-300 bg-base-100 font-normal'}">${v.icon ? `<i class="ph ${esc(v.icon)}"></i>` : ''}${esc(v.label || v.verdict)}</button>`;
+          class="btn btn-sm join-item gap-1 ${P.versions ? 'px-1.5' : 'px-2.5'} ${on ? tone(v.verdict).btn : 'border-base-300 bg-base-100 font-normal'}">${v.icon ? `<i class="ph ${esc(v.icon)}"></i>` : ''}${esc(v.label || v.verdict)}</button>`;
       }).join('')}</div>` : ''}
       <input data-note value="${esc(s.note)}" placeholder="Note" aria-label="Note" class="input input-sm min-w-0 flex-1 basis-40 max-sm:text-base">
     </div>`;
@@ -325,13 +328,12 @@
       const mine = !!own && on.includes(own);
       const pick = mine ? over.filter(s => s.o === own) : over;
       const role = ['first', 'single', 'again'].find(x => pick.some(s => s.role === x));
-      const ruled = pick.every(s => s.at[0] === 0 && s.at[1] === b.text.length);
       const hue = hueOf(pick.find(s => s.role === role).o);
       const top = mine && first.block === b.id && first.at[0] === a;
       const nums = spans.filter(s => s.at[0] === a).map(({ o, role }) =>
         `<span data-badge="${esc(o.id)}" data-role="${role}" class="${BADGE} ${badgeTone(r.id, o.id, o === own, role)}">${r.outputs.indexOf(o) + 1}</span>`).join('');
       h += `<mark data-run="${esc(r.id)}" data-outs="${esc(on.map(o => o.id).join(' '))}"${mine ? ' data-cur' : ''}${top ? ' data-first' : ''}${tipOf(r, on)} tabindex="-1"`
-        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${ruled ? 'bg-transparent' : fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
+        + ` class="${!mine || on.length > 1 ? 'cursor-pointer ' : ''}relative ${role === 'again' ? '' : 'rounded-sm '}text-inherit box-decoration-clone ${fillOf(mine, role, hue)}">${nums && `<span class="${DISCS}">${nums}</span>`}${t}</mark>`;
     }
     return h;
   }
@@ -362,16 +364,8 @@
   };
   // The open folds, by run and first block, kept through redraws.
   const opened = new Set();
-  // A passage that is its whole block, such as a rewrite set below its
-  // source, is marked by a rule down the block's edge, primary for the card's
-  // own output, rather than a fill over every line of it.
-  const whole = (b, s) => s.block === b.id && s.at[0] === 0 && s.at[1] === b.text.length;
-  const ruleOf = (r, b, own) => {
-    const on = r.outputs.filter(o => o.spans.some(s => whole(b, s)));
-    return !on.length ? '' : on.includes(own) ? ' border-l-3 border-primary pl-3' : ' border-l-3 border-base-content/15 pl-3';
-  };
   const turnHTML = (r, b, own, pad) => `
-      <section data-block="${esc(b.id)}" class="${pad}${ruleOf(r, b, own)}">
+      <section data-block="${esc(b.id)}" class="${pad}">
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]"><span class="${TURN.badge}" data-title-tip="${esc(b.label || b.id)}">${esc(turnNo(b))}</span>${marked(r, b, own)}</p>
       </section>`;
   // A run's turns, each run of two or more quiet ones folded unless opened.
@@ -428,8 +422,28 @@
     });
   }
 
+  // A run as versions: its input first, then each output a card, side by
+  // side where the card is wide enough, its verdict and note at its foot
+  // (rule 15). Two items the reader compares share a row (the comparison).
+  function versionsHTML(r, big) {
+    const src = r.source.blocks.map(b => `<section class="rounded-lg bg-base-300/40 px-3.5 py-2.5">
+        <p class="text-xs font-medium text-base-content/60">${esc(b.label || b.id)}</p>
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(b.text)}</p></section>`).join('');
+    const cols = r.outputs.length > 2 ? '@4xl:grid-cols-3' : r.outputs.length > 1 ? '@3xl:grid-cols-2' : '';
+    const cards = r.outputs.map((o, i) => `<article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}"
+        class="flex min-w-0 flex-col gap-2 rounded-lg border border-base-300 bg-base-100 px-3.5 py-2.5">
+        <p class="flex items-baseline gap-2"><span class="font-semibold">${esc(o.title || 'Output ' + (i + 1))}</span>
+          <span class="font-mono text-xs tabular-nums text-base-content/50">${o.text.length.toLocaleString()} characters</span></p>
+        <p class="flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(o.text)}</p>
+        ${controls(r, o, false)}</article>`).join('');
+    // The foot clears the corner button, so the last card's note is reachable.
+    return `<div data-scope="${esc(r.id)}" class="@container h-full min-h-0 overflow-y-auto overscroll-contain px-3 pt-2.5 pb-20 [scrollbar-gutter:stable] ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
+      <div class="flex flex-col gap-3">${src}<div class="grid gap-3 ${cols}">${cards}</div></div></div>`;
+  }
+
   // A card already showing the run keeps its input where it was and glides.
   function fill(el, r, o, big) {
+    if (P.versions) { el.innerHTML = versionsHTML(r, big); return; }
     const was = el.querySelector(':scope > [data-scope]');
     const y = was?.dataset.scope === r.id ? was.querySelector('[data-pane="in"]').scrollTop : null;
     el.innerHTML = cardHTML(r, o, big);
@@ -563,8 +577,9 @@
   } else {
     // The list and the card, side by side or stacked, and under both the
     // selected output, the width of the page.
+    // Versions carry their controls on their cards, so no strip under both.
     $('root').innerHTML = `<div id="panes"><div id="list" role="listbox" aria-label="Runs" class="[scrollbar-gutter:stable]"></div><div id="card"></div></div>
-      <section id="out" aria-label="Output" class="@container flex-none rounded-lg border border-base-300 bg-base-100 px-3.5 py-2"></section>`;
+      ${P.versions ? '' : `<section id="out" aria-label="Output" class="@container flex-none rounded-lg border border-base-300 bg-base-100 px-3.5 py-2"></section>`}`;
     const list = $('list');
     list.innerHTML = runs().map(rowHTML).join('');
     let sel = (() => { const h = window.UrlParams.get('run'); return runOf(h) ? h : runs()[0]?.id; })();
@@ -603,7 +618,8 @@
     swiper = linkedSwiper.attach({
       root: $('panes'), list, card: $('card'), key: 'run', noun: 'output', subNoun: 'output',
       ids: () => runs().map(r => r.id), sel: () => sel,
-      subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut,
+      // Versions show every output on the run's card: no tabs, no places.
+      ...(P.versions ? {} : { subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut, places: true }),
       // A tab: filled in its verdict's tone where the payload has verdicts,
       // else in its output's stance (hueOf), as its passages are; the open
       // tab stays primary. A dot under the number marks a note.
@@ -616,10 +632,11 @@
       },
       // Room for a run's meta beside six tabs, and its count where verdicts
       // are counted (rule 15).
-      wide: judged ? 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]' : 'grid-cols-[minmax(0,340px)_minmax(0,1fr)]',
+      // Versions have no tabs, so a row is its title and count, and the card
+      // keeps the room its outputs share.
+      wide: P.versions ? 'grid-cols-[minmax(0,280px)_minmax(0,1fr)]' : judged ? 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]' : 'grid-cols-[minmax(0,340px)_minmax(0,1fr)]',
       listMax: 'max-h-[40dvh]', slideScroll: false, innerClass: 'h-full w-full min-w-0',
       name: id => ({ title: runOf(id).title }),
-      places: true,
       body: (id, el, out) => fill(el, runOf(id), outOf(id, out), false),
       onPick: (id, via, out) => { sel = id; selOut = out ?? null; paintOut(sel, selOut); },
       deck: openDeck,
