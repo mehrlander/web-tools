@@ -43,8 +43,9 @@
   text; on draft steps the outline does the same. Both are <details> because
   the owner asked for exactly that container, collapsed by default, against
   html-style rule 12's general caution. A comment's quote is marked where it
-  falls in the rendered text; tapping a mark opens the comment beneath its
-  block, and the list under the text scrolls to and opens each one. A
+  falls in the rendered text, and the comment sits open right after the block
+  that holds it, compact, ruled in its reviewer's hue; a mark and its comment
+  light each other on a tap. A
   comment's `peeve` is an id in web-tools skills/peeves/peeves.csv, read at the
   #gh= ref when the payload is web-tools' own and from main otherwise; its pill
   carries the peeve's name and sentence as a title-tip (kits/title-tip.js) and
@@ -373,25 +374,26 @@ document.addEventListener('alpine:init', () => {
       } else wrap.append(pill);
       return wrap;
     },
-    // A comment's own reading: who, peeve, answer, words, and why it was kept.
+    // A comment, compact: a thin rule in its reviewer's hue, one meta line
+    // (reviewer, peeve, answer), its words, and its rationale muted after it.
     commentBody(c) {
-      const box = h('div', 'grid gap-2');
-      const badges = h('div', 'flex flex-wrap items-center gap-1');
+      const box = h('div', `not-prose grid gap-1 border-l-2 ${review(c).edge} pl-3 ml-1 rounded-r-sm transition-colors duration-500`);
+      const meta = h('div', 'flex flex-wrap items-center gap-1');
       const who = h('span', `badge badge-sm ${review(c).badge} gap-1`);
       who.append(icon(review(c).icon), c.by === 'proxy' ? 'proxy' : 'critic');
-      badges.append(who);
-      if (c.peeve) badges.append(this.peevePill(c.peeve));
+      meta.append(who);
+      if (c.peeve) meta.append(this.peevePill(c.peeve));
       const a = ANSWER[c.answer];
       if (a) {
         const b = h('span', `badge badge-sm ${a.cls} gap-1`);
         b.append(icon(a.icon), a.label);
-        badges.append(b);
+        meta.append(b);
       }
-      if (badges.children.length) box.append(badges);
-      box.append(h('p', 'm-0! text-xl leading-8', c.payload || ''));
+      box.append(meta, h('p', 'm-0! text-lg leading-7', c.payload || ''));
       if (c.rationale) {
-        const why = h('p', 'm-0! text-xl leading-8 text-base-content/80 border-l-2 border-base-300 pl-3');
-        why.textContent = c.rationale;
+        // Two lines at rest; a tap reads the rest.
+        const why = h('p', 'm-0! text-lg leading-7 text-base-content/60 line-clamp-2 cursor-pointer', c.rationale);
+        why.addEventListener('click', () => why.classList.toggle('line-clamp-2'));
         box.append(why);
       }
       return box;
@@ -441,12 +443,19 @@ document.addEventListener('alpine:init', () => {
       if (fresh) main.dataset.enter = '';
       el.append(main);
 
-      // The step's comments, listed under the text.
-      const list = h('ol', 'mx-4 sm:mx-8 mt-6 grid gap-3');
+      // A critique step says how many comments it holds, and from whom.
       if (s.comments.length) {
-        const label = h('div', 'mx-4 sm:mx-8 mt-8 flex items-center gap-2 text-sm text-base-content/70');
-        label.append(icon('ph-chat-circle-dots'), `${s.comments.length} ${s.comments.length === 1 ? 'comment' : 'comments'}`);
-        el.append(label, list);
+        const count = h('div', 'mx-4 sm:mx-8 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-base-content/70');
+        const n = s.comments.length;
+        count.append(icon('ph-chat-circle-dots'), `${n} ${n === 1 ? 'comment' : 'comments'}`);
+        for (const r of ['critic', 'proxy']) {
+          const k = s.comments.filter(c => (c.by === 'proxy' ? 'proxy' : 'critic') === r).length;
+          if (!k) continue;
+          const t = h('span', 'inline-flex items-center gap-1');
+          t.append(h('span', `h-2.5 w-2.5 rounded-full ${BY[r].dot}`), `${k} ${r}`);
+          count.append(t);
+        }
+        main.prepend(count);
       }
 
       (async () => {
@@ -461,67 +470,73 @@ document.addEventListener('alpine:init', () => {
         const jobs = [build ? this.build(host, was.body, now.body.slice(was.body.length)) : this.draw(host, was.body, now.body)];
         if (outlineHost) jobs.push(this.draw(outlineHost, this.B.steps[ol].payload, this.B.steps[ol].payload));
         await Promise.all(jobs);
-        this.comments(s, el, host, outlineHost, outlineFold, list);
+        this.comments(s, host, front, outlineHost, outlineFold);
       })().catch(e => { host.textContent = 'Could not draw this step: ' + (e?.message || e); });
     },
 
-    // Marks each comment's quote, and ties the marks, the list and the card
-    // that opens beneath a mark's block together: selecting any one selects
-    // the others.
-    comments(s, el, host, outlineHost, outlineFold, list) {
+    // Each comment's quote is marked in the text, and the comment itself sits
+    // open right after the block that holds the quote: the list item, the
+    // paragraph or the frontmatter block. Comments on one block stack there in
+    // payload order; one whose quote is not found goes after the text, saying
+    // so. A tap on a mark brings its comment into view and lights it briefly;
+    // a tap on a comment lights its mark.
+    comments(s, host, front, outlineHost, outlineFold) {
       if (!s.comments.length) return;
-      let open = -1, card = null;
-      const marks = s.comments.map((c, k) => {
-        const root = c.on === 'outline' && outlineHost ? outlineHost : host;
-        return markQuote(root, c.quoted, () => {
+      const after = new Map();   // block -> the last comment placed after it
+      const flash = (els, cls) => {
+        for (const e of els) e.classList.add(...cls.split(' '));
+        setTimeout(() => { for (const e of els) e.classList.remove(...cls.split(' ')); }, 1400);
+      };
+      const lost = h('div', 'not-prose mt-6 grid gap-3');
+      s.comments.forEach((c, k) => {
+        const onOutline = c.on === 'outline' && outlineHost;
+        let root = onOutline ? outlineHost : host;
+        let node = null;
+        const make = () => {
           const m = h('mark', MARK + ' ' + review(c).mark);
           m.dataset.comment = k;
-          m.addEventListener('click', () => select(open === k ? -1 : k, false));
+          m.addEventListener('click', () => {
+            node.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+            flash([node], review(c).tint);
+          });
           return m;
+        };
+        let marks = markQuote(root, c.quoted, make);
+        if (!marks.length && front && !onOutline) { marks = markQuote(front, c.quoted, make); if (marks.length) root = front; }
+        node = this.commentBody(c);
+        node.dataset.comment = k;
+        node.dataset.commentCard = '';   // not text a later quote is looked for in
+        node.classList.add('my-3');
+        node.addEventListener('click', e => {
+          if (e.target.closest('a, [data-title-tip]') || !marks.length) return;
+          marks[0].scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+          flash(marks, review(c).on);
         });
-      });
-      const items = s.comments.map((c, k) => {
-        const li = h('li');
-        // A div with the button role, since the peeve link sits inside it.
-        const b = h('div', 'w-full text-left grid gap-2 rounded-box border border-base-300 px-4 py-3 hover:bg-base-200 cursor-pointer');
-        b.setAttribute('role', 'button');
-        b.tabIndex = 0;
-        b.append(this.commentBody(c));
-        if (c.quoted) {
-          const q = h('p', 'flex items-start gap-2 text-sm text-base-content/60');
-          q.append(icon(c.on === 'outline' ? STAGE.outline.icon : 'ph-quotes', 'mt-0.5'), h('span', 'line-clamp-2', marks[k].length ? c.quoted : c.quoted + ' (not found in the text)'));
-          b.append(q);
+        if (!marks.length) {
+          const q = h('p', 'm-0! flex items-start gap-1.5 text-sm text-base-content/60');
+          q.append(icon('ph-quotes', 'mt-0.5'), h('span', 'line-clamp-2', 'Not found in the text: ' + (c.quoted || '')));
+          node.append(q);
+          lost.append(node);
+          return;
         }
-        // A tap on the peeve pill or its link is theirs, not the item's.
-        b.addEventListener('click', e => { if (!e.target.closest('a, [data-title-tip]')) select(k, true); });
-        b.addEventListener('keydown', e => {
-          if (e.target === b && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); select(k, true); }
-        });
-        li.append(b);
-        list.append(li);
-        return b;
+        if (onOutline && outlineFold) outlineFold.open = true;
+        // The block: the list item the quote ends in, else the root's child
+        // holding it, else (the frontmatter) the block itself.
+        const end = marks[marks.length - 1];
+        let block = root === front ? front : end.closest('li');
+        if (!block || !root.contains(block)) {
+          block = end;
+          while (block.parentElement && block.parentElement !== root) block = block.parentElement;
+        }
+        if (root === front) node.classList.add('mx-4', 'sm:mx-8');
+        // Inside a list item, at its end, so the list keeps its numbering.
+        const last = after.get(block);
+        if (last) last.after(node);
+        else if (block.tagName === 'LI') block.append(node);
+        else block.after(node);
+        after.set(block, node);
       });
-      const select = (k, scroll) => {
-        open = k;
-        if (card) { card.remove(); card = null; }
-        marks.forEach((ms, x) => ms.forEach(m => m.classList.toggle(review(s.comments[x]).on, x === k)));
-        items.forEach((b, x) => {
-          b.classList.toggle(review(s.comments[x]).edge, x === k);
-          b.classList.toggle(review(s.comments[x]).tint, x === k);
-        });
-        if (k < 0 || !marks[k].length) return;
-        const first = marks[k][0];
-        if (s.comments[k].on === 'outline' && outlineFold) outlineFold.open = true;
-        // The card opens beneath the block the quote ends in.
-        const root = first.closest('.prose');
-        let block = marks[k][marks[k].length - 1];
-        while (block.parentElement && block.parentElement !== root) block = block.parentElement;
-        card = h('div', `not-prose my-4 rounded-box border ${review(s.comments[k]).edge} bg-base-100 px-4 py-3 shadow-sm`);
-        card.dataset.commentCard = '';
-        card.append(this.commentBody(s.comments[k]));
-        block.after(card);
-        if (scroll) first.scrollIntoView({ block: 'center', behavior: calm() ? 'auto' : 'smooth' });
-      };
+      if (lost.children.length) host.append(lost);
     },
   }));
 });
