@@ -1,6 +1,6 @@
 # Inspection: the envelope contract
 
-An **inspection** shows the owner, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input. The owner may add a note to each output. Where a set of verdicts is declared, the owner may also give each output one verdict from it.
+An **inspection** shows the owner, one at a time, the outputs a model or a script made from its inputs. Each output is anchored to a passage of an input, or is a version of the whole input. The owner may add a note to each output. Where a set of verdicts is declared, the owner may also give each output one verdict from it.
 
 An `inspection/1` payload holds its inputs and outputs as runs, where a run is one input and the outputs made from it. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) shows a run's input with each output's passages marked, and the selected output below it, numbered to match. It appends the notes and verdicts to the payload's [answers file](#answers).
 
@@ -41,11 +41,14 @@ An **output** has an `id` unique in its run and a `text`, and may have:
 
 | Field | Holds |
 | --- | --- |
+| `title` | A heading for an output that is a version, such as "Version 2" |
 | `tag` | One of `tags` |
 | `flair` | Short marks drawn after the text, each `{icon, label, tip}`. The `tip` is the mark's tooltip and says what the label marks. |
 | `note` | The producer's remark, shown as the tooltip of an icon after the text |
 | `anchor` | The passage the output rests on, as `{block, start, end}`. `start` and `end` are offsets into that block's text in code points, with `end` exclusive. Where no span applies, the anchor is `{block}` alone. |
 | `anchors` | A list of anchors, in place of `anchor`, for an output that rests on several passages. The page marks each passage and scrolls to the first. |
+
+**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card carries its `title`, else "Output" and its number, and its verdict and note at its foot.
 
 ## Answers
 
