@@ -120,7 +120,7 @@ The owner chooses which of a session's edits to one markdown or CSV document, or
      "recommend": "Apply all four", "why": "one clause",
      "pr": "owner/repo#n", "materials": [<link>...], "review": {...}}
 
-A list call's `file` is `owner/repo@ref:lists/x.json`, with `#<id>` for one entry; each edit names its entry in `item`, with `from` and `to` as `{text, note?}`. `add` checks each entry is in the list at `base`. In its `review`, each span is `{item, edit}`, the entry's id in place of `lines`.
+A list call's `file` is `owner/repo@ref:lists/x.json`, with `#<id>` for one entry; each edit names its entry in `item`, with `from` and `to` as `{text, note?}`. `user-call.py add` checks that each entry is in the list at `base`. In its `review`, each span is `{item, edit}`, the entry's id in place of `lines`.
 
 - For edits not yet made, leave out `base`: the page shows them as proposed changes to `file`. The answer's patch then puts the kept ones in.
 - A document the main branch does not hold yet has `"new": true` and no edits. Its page shows the file whole. The answer approves it.
@@ -159,4 +159,4 @@ A documentation answer adds:
 - `notes`, [{on, note}], the owner's notes on text no edit touches, `on` being that text's first words;
 - `call`, `file` and `base`, as the page read them;
 - `target` and `commit`, when the edits were committed from the page;
-- otherwise `patch`, the confirmed edits as a diff (for a list, of its JSON with the kept entries set), with `apply: "session"`. Apply it with the [`user-calls`](../../skills/user-calls/SKILL.md) skill's `user-call.py patch` command, in a checkout of the file's repo.
+- otherwise `patch`, the confirmed edits as a diff (for a list, a diff of its JSON with each kept entry's text and note replaced), with `apply: "session"`. Apply it with the [`user-calls`](../../skills/user-calls/SKILL.md) skill's `user-call.py patch` command, in a checkout of the file's repo.
