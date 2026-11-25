@@ -1,7 +1,8 @@
 // A documentation user call on entries of a list (lists/*.json): the limits
 // user-call.py's `add` holds it to, the check that each edit's entry is in the
 // list at the call's base, the edits it derives from two copies of a list, and
-// kits/call-answer.js's reading of the entries and the patch an answer carries.
+// kits/call-answer.js's reading of the entries and the patch an answer carries,
+// and the peeves critic's runs on it, whose spans are entries by id.
 //
 // What can go wrong is an answer that changes another entry, or more of the
 // file than the kept entries, or a call filed on an entry the list never held.
@@ -171,4 +172,51 @@ test('a list laid out by hand changes only where the kept entry stands', () => {
   assert.equal(A.setEntries(hand, [['x', { text: 'New', note: 'N' }]]), hand.replace('"text": "Old"', '"text": "New"'));
   assert.throws(() => A.setEntries(hand, [['x', { text: 'Old' }]]), /cannot place the note/, 'a note dropped from a hand layout is not guessed at');
   assert.throws(() => A.setEntries(JSONTEXT, [['nope', { text: 'a' }]]), /no entry nope/);
+});
+
+// The peeves critic on a list call: the critic reads the call's entries as
+// text, each edit's span is its entry by id, and the runs file with the call
+// as a Markdown call's do.
+test("a list call's critic runs: spans are entries, the run reads the entries, and add maps each span to its edit", () => {
+  const tmp = mkdtempSync(path.join(tmpdir(), 'user-call-list-review-'));
+  git(tmp, 'init', '-q', '-b', 'main');
+  mkdirSync(path.join(tmp, 'lists'));
+  const file = path.join(tmp, 'lists', 'useful.json');
+  writeFileSync(file, JSONTEXT);
+  git(tmp, 'add', '.');
+  git(tmp, 'commit', '-qm', 'init');
+  const next = structuredClone(LIST);
+  next.items[0].note = 'A decision that can be reversed cheaply.';
+  next.items[2].note = 'A row of short facts.';
+  writeFileSync(file, JSON.stringify(next, null, 2) + '\n');
+  const draft = path.join(tmp, 'draft.json');
+  writeFileSync(draft, JSON.stringify({ ...CALL, edits: [{ ...CALL.edits[0], why: 'the plain word' }] }));
+  const review = (...a) => spawnSync('python3', ['-B', SCRIPT, 'review', draft, file, ...a], { encoding: 'utf8', env: ENV });
+
+  const spans = review('--spans');
+  assert.equal(spans.status, 0, spans.stderr);
+  assert.match(spans.stdout, /E1 {2}entry two-way-door\nE2 {2}entry fact-strip/, 'the edits are refreshed from the base, one per changed entry');
+  assert.match(spans.stdout, /\*\*fact-strip\*\* · Fact strip\n\nA row of short facts\./, 'the critic is given the entries to read');
+  const d1 = JSON.parse(readFileSync(draft, 'utf8'));
+  assert.equal(d1.edits[0].why, 'the plain word', "the session's why is carried by the entry it names");
+
+  const report = 'Trips:\n\n- P06 · E2 · fact-strip · "short facts" · Name which facts.\n\nClear: P01\n\nVerdict: FAIL';
+  writeFileSync(path.join(tmp, 'r.md'), report);
+  const r1 = review(path.join(tmp, 'r.md'));
+  assert.equal(r1.status, 0, r1.stderr);
+  const d2 = JSON.parse(readFileSync(draft, 'utf8'));
+  const last = d2.review.runs.at(-1);
+  assert.deepEqual(last.edits, [{ item: 'two-way-door' }, { item: 'fact-strip' }]);
+  assert.equal(last.trips[0].edit, 2);
+  assert.match(last.text, /^\*\*two-way-door\*\* · Two-way door/);
+  assert.equal(last.trips[0].misquoted, undefined, 'the quote is in the entries the run read');
+
+  // Answered: the trip kept, then the call checked as add files it.
+  assert.equal(spawnSync('python3', ['-B', SCRIPT, 'review', draft, '--kept', '1', 'the facts vary by page'], { encoding: 'utf8' }).status, 0);
+  const d3 = JSON.parse(readFileSync(draft, 'utf8'));
+  const [unread, filed] = pyMany([['unread_edits', [d3]], ['file_edits', [d3]]]);
+  assert.deepEqual(unread, [], 'the last run read every edit as filed');
+  assert.deepEqual(filed.review.runs[0].edits, [{ item: 'two-way-door', edit: 1 }, { item: 'fact-strip', edit: 2 }]);
+  assert.equal(filed.review.runs[0].text, undefined, 'the text the run read is dropped at filing');
+  assert.deepEqual(pyMany([['check', [filed]]])[0], []);
 });

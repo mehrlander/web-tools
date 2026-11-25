@@ -35,7 +35,9 @@ file names lists/<name>.json, with #<id> for one entry, and each edit names its
 entry in `item`, with `from` and `to` the entry's {text, note} before and after.
 `add` reads the list at the call's base (else its file's ref) in a checkout of
 its repo in or beside the project root, and refuses an edit whose entry is not
-there as `from` reads.
+there as `from` reads. `review` on a list call gives the critic the call's
+entries as text, `**<id>** · <text>` then the note, and each edit's span is its
+entry by id ({item, edit}) rather than a line range.
 
 The store is found the way the notes skill's note.py finds its own: a checkout
 whose .web-tools.json on origin/main declares "user-calls" (a path relative to
@@ -374,6 +376,56 @@ def list_edits(old, new):
             for x in items(new) if x["id"] in was and side(was[x["id"]]) != side(x)]
 
 
+ENTRY_RULE = "\n\n* * *\n\n"
+
+
+def entry_text(item, f):
+    """An entry read as text, as kits/call-answer.js reads it: `**<id>** · <text>`,
+    then its note."""
+    f = f if isinstance(f, dict) else {}
+    return f"**{item}** · {f.get('text') or ''}" + (f"\n\n{f['note']}" if f.get("note") else "")
+
+
+def entry_ids(c):
+    one = list_target(c)[3] if is_list(c) else None
+    return [e.get("item") or one for e in c.get("edits") or [] if isinstance(e, dict)]
+
+
+def list_reading(json_text, ids):
+    """The entries `ids` names, read as one document in that order; and which
+    of them the list holds."""
+    items = {x["id"]: x for x in (json.loads(json_text).get("items") or []) if isinstance(x, dict) and x.get("id")}
+    return ENTRY_RULE.join(entry_text(i, items[i]) for i in ids if i in items), [i in items for i in ids]
+
+
+def list_spans_text(path, ids, reading):
+    """The block for the critic's prompt on a list call: each edit's span is
+    its entry, by id, and the entries follow as the critic is to read them."""
+    out = [f"The edits to {path}, one entry each, by id:"]
+    out += [f"E{k}  entry {i}" for k, i in enumerate(ids, 1)]
+    out += ["", "The entries, each `**<id>** · <text>` and then its note:", "", reading, ""]
+    out.append('Tag each trip with its edit, as P<id> · E<n> · <where> · "<quote>" · <clause>, and a trip '
+               "outside every edit with E-. Quote the words exactly as the entry has them. End with "
+               "`Verdict: PASS` when no trip falls inside an edit, and `Verdict: FAIL` otherwise.")
+    return "\n".join(out)
+
+
+def refresh_entries(draft, found):
+    """refresh_edits for a list call: what the session wrote on an edit is
+    carried by the entry it names."""
+    one = list_target(draft)[3]
+    by_item = {e["item"]: e for e in found}
+    dropped = []
+    for k, e in enumerate(draft.get("edits") or [], 1):
+        hit, carry = by_item.get(e.get("item") or one), {x: e[x] for x in CARRY if x in e}
+        if hit is not None:
+            hit.update(carry)
+        elif carry:
+            dropped.append(k)
+    draft["edits"] = found
+    return dropped
+
+
 def notes(ns, at):
     """An edit's notes: what it is for, each a correction or a clarification."""
     if ns is None:
@@ -439,10 +491,12 @@ def review_errors(r):
             errs.append(f"{at}.trips is a list"); trips = []
         spans = run.get("edits")
         if spans is not None and (not isinstance(spans, list) or len(spans) > 40 or not all(
-                isinstance(s, dict) and isinstance(s.get("lines"), list) and len(s["lines"]) == 2
-                and all(isinstance(x, int) and x > 0 for x in s["lines"]) and s["lines"][0] <= s["lines"][1]
+                isinstance(s, dict) and (isinstance(s.get("item"), str) and s["item"] if "item" in s else
+                isinstance(s.get("lines"), list) and len(s["lines"]) == 2
+                and all(isinstance(x, int) and x > 0 for x in s["lines"]) and s["lines"][0] <= s["lines"][1])
                 and (s.get("edit") is None or isinstance(s["edit"], int) and s["edit"] > 0) for s in spans)):
-            errs.append(f"{at}.edits are up to 40 spans the critic was given, each {{lines: [first, last], edit}}")
+            errs.append(f"{at}.edits are up to 40 spans the critic was given, each {{lines: [first, last], edit}}, "
+                        "or for a list {item, edit}")
             spans = None
         inside = [t for t in trips if not (isinstance(t, dict) and t.get("edit") == 0)]
         if (v == "fail") != bool(inside) or (v == "unknown" and trips):
@@ -1176,6 +1230,10 @@ def file_edits(c):
                 f, base = flat(s.pop("from", None)), s.pop("base", None)
                 if "edit" in s:
                     continue
+                if "item" in s:
+                    ids = entry_ids(c)
+                    s["edit"] = ids.index(s["item"]) + 1 if s["item"] in ids else None
+                    continue
                 if c.get("new"):
                     s["edit"] = 1; continue
                 hit = None
@@ -1197,6 +1255,9 @@ def unread_edits(c):
     text = runs[-1].get("text") if runs else None
     if not isinstance(text, str):
         return []
+    if is_list(c):
+        return [i + 1 for i, (e, item) in enumerate(zip(c.get("edits") or [], entry_ids(c)))
+                if flat(entry_text(item, e.get("to"))) not in flat(text)]
     return [i + 1 for i, e in enumerate(c.get("edits") or []) if flat(e.get("to")) not in flat(text)]
 
 
@@ -1237,7 +1298,8 @@ def change_lines(run, n, nxt):
             hint = f"{n}.c{k} {','.join(x.split('.')[1] for x in held) or '<trips>'}"
         first = (blocks(ch["to"]) or [""])[0]
         at = next(((a, z) for b, a, z in db if b == first), None) if first else None
-        e = next((s for s, x in enumerate(spans, 1) if x and at and x["lines"][0] <= at[1] and at[0] <= x["lines"][1]), None)
+        e = next((s for s, x in enumerate(spans, 1) if x and (f"**{x['item']}** · " in ch["to"] + ch["from"] if x.get("item")
+                  else x.get("lines") and at and x["lines"][0] <= at[1] and at[0] <= x["lines"][1])), None)
         words = " ".join(str(ch["to"] or ch["from"]).split())
         out.append(f"    c{k}{f' · E{e}' if e else ''}{f' · line {at[0]}' if at else ''} · \"{words[:60]}{'…' if len(words) > 60 else ''}\""
                    + (f"  answers {', '.join(f'{n}.{x}' for x in ch['answers'])}" if ch.get("answers")
@@ -1517,6 +1579,44 @@ def main(argv):
                 sys.exit("user-call: --note takes one line on the latest run, for a draft that holds one")
             runs[-1]["note"] = argv[4].strip()
             shown = [(len(runs), runs[-1])]
+        elif is_list(draft) or argv[3].endswith(".json"):
+            # A list call: the critic reads the call's entries as text, and an
+            # edit's span is its entry, by id.
+            raw = Path(argv[3]).read_text(encoding="utf-8").replace("\r\n", "\n")
+            ref = base_ref or draft.get("base")
+            try:
+                if ref:
+                    old, why = text_at(argv[3], ref)
+                    if old is None:
+                        sys.exit(f"user-call: could not read {argv[3]} at {ref}: "
+                                 + ("a new list has no entries to edit" if why == "new" else why))
+                    dropped = refresh_entries(draft, list_edits(old, raw))
+                    warn(f"edit {k}'s why, background, proposal or notes matched no edit now, so they were dropped"
+                         for k in dropped)
+                ids = entry_ids(draft)
+                text, held = list_reading(raw, ids)
+            except (ValueError, AttributeError) as e:
+                sys.exit(f"user-call: {argv[3]} is not a list: {e}")
+            missing = [k for k, h in enumerate(held, 1) if not h]
+            spans = [{"item": i} for i in ids]
+            if want_spans:
+                if not ids or missing:
+                    sys.exit("user-call: " + (f"edit {', '.join(map(str, missing))} names an entry {argv[3]} does not hold"
+                                              if missing else "the draft holds no edits: give it a base, as \"base\": \"main\", or its edits"))
+                draft_path.write_text(json.dumps(draft, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                block = list_spans_text(argv[3], ids, text)
+                if out_path:
+                    Path(out_path).write_text(block + "\n", encoding="utf-8")
+                    print(f"wrote the spans of {len(ids)} edit{'s' if len(ids) != 1 else ''} to {out_path}")
+                else:
+                    print(block)
+                return
+            report = Path(argv[4]).read_text(encoding="utf-8") if len(argv) > 4 else sys.stdin.read()
+            if missing:
+                warn([f"edit {', '.join(map(str, missing))} names an entry {argv[3]} does not hold, so this run keeps no spans"])
+            add_run(draft, text, report, spans=None if missing or not ids else spans)
+            runs = draft["review"]["runs"]
+            shown = [(n, r) for n, r in enumerate(runs, 1)][-2:]
         else:
             text = Path(argv[3]).read_text(encoding="utf-8").replace("\r\n", "\n")
             ref, old = base_ref or draft.get("base"), None
