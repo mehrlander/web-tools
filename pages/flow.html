@@ -37,8 +37,8 @@
   (read with the stored GitHub token), #gz=<gzipped base64url JSON>
   (kits/gz-payload.js), and with neither, pages/demos/flow-critic-review.json.
   &step=<id> opens at a step and follows the reader; &v=<variant> shows one
-  version, and without it a two-version flow shows both. &o=v lays the lanes
-  down as columns; without it they run across as rows, the steps left to right.
+  version, and without it a two-version flow shows both. &o=h lays the lanes
+  across as rows, the steps left to right; without it they run down as columns.
 
   Each step is one slide of a swipeDeck.core track (kits/swipe-deck.js); the
   map, the arrows, the keys and the dots drive the same track. The map sits
@@ -104,11 +104,12 @@ document.addEventListener('alpine:init', () => {
     record: { icon: 'ph-archive', color: 'text-fuchsia-600', name: 'Record' },
     page: { icon: 'ph-browser', color: 'text-cyan-700', name: 'Page' },
   };
+  const calm = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const kindOf = k => KIND[k] || { icon: 'ph-file', color: 'text-base-content/60', name: 'File' };
 
   Alpine.data('flow', () => ({
     LANE_BG: 'color-mix(in oklab, var(--color-base-200) 70%, var(--color-base-100))',
-    o: 'h',   // lanes across (h, the default) or down (v)
+    o: 'v',   // lanes down (v, the default) or across (h)
     F: null, err: '', v: '', cur: 0, deck: null, passes: 0, repo: 'mehrlander/web-tools', ref: 'main', svg: '', mapH: 0,
 
     get variants() { return this.F?.variants || []; },
@@ -139,7 +140,7 @@ document.addEventListener('alpine:init', () => {
     col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
     count(vid) { return this.F ? this.F.steps.filter(s => !vid || !s.in || s.in.includes(vid)).length : 0; },
     nodeClass(i) {
-      if (i === this.cur) return 'border-primary ring-2 ring-primary/30';
+      if (i === this.cur) return 'border-primary/40';
       const st = this.status(this.vis[i]);
       return st.k === 'only' ? st.hue.node : 'border-base-300 bg-base-100 hover:bg-base-200';
     },
@@ -156,7 +157,7 @@ document.addEventListener('alpine:init', () => {
       document.title = this.F.title || 'Flow';
       const v = param('v');
       this.v = this.variants.some(x => x.id === v) ? v : (this.variants.length === 1 ? this.variants[0].id : '');
-      this.o = param('o') === 'v' ? 'v' : 'h';
+      this.o = param('o') === 'h' ? 'h' : 'v';
       this.cur = this.indexOf(param('step'));
       this.$nextTick(() => this.build());
       window.addEventListener('keydown', e => {
@@ -176,7 +177,7 @@ document.addEventListener('alpine:init', () => {
         const i = this.indexOf(param('step'));
         if (i !== this.cur) this.go(i, { quiet: true });
       });
-      new ResizeObserver(() => this.draw()).observe(this.$refs.map);
+      new ResizeObserver(() => { this.draw(); this.ring(); }).observe(this.$refs.map);
       this.seam();
     },
 
@@ -243,7 +244,7 @@ document.addEventListener('alpine:init', () => {
       if (o === this.o) return;
       this.o = o;
       this.mark(false);
-      this.$nextTick(() => { this.draw(); this.reveal(); });
+      this.$nextTick(() => { this.draw(); this.reveal(); setTimeout(() => this.ring(), 0); });
     },
     // The map's layout, both ways: lanes as rows with the steps running
     // across, or lanes as columns with the steps running down.
@@ -273,16 +274,18 @@ document.addEventListener('alpine:init', () => {
     mark(push) {
       const p = location.hash.slice(1).split('&').filter(x => x && !/^(step|v|o)=/.test(x));
       if (this.v && this.variants.length > 1) p.push('v=' + encodeURIComponent(this.v));
-      if (this.o === 'v') p.push('o=v');
+      if (this.o === 'h') p.push('o=h');
       if (this.step) p.push('step=' + encodeURIComponent(this.step.id));
       try { history[push ? 'pushState' : 'replaceState'](history.state, '', '#' + p.join('&')); } catch (e) {}
     },
+    // A step to a neighbour slides the card and glides the map; a jump cuts.
     go(i, o = {}) {
       const to = Math.max(0, Math.min(this.n - 1, i));
       if (!this.deck) return;
+      const near = Math.abs(to - this.cur) === 1 && !calm();
       this.cur = to;
       if (!o.quiet) this.mark(!!o.push);
-      this.deck.go(to, 'instant');
+      this.deck.go(to, near ? 'smooth' : 'instant');
       this.reveal();
     },
     take(x) {
@@ -294,7 +297,19 @@ document.addEventListener('alpine:init', () => {
     // The selected node stays in view in the map; its scroll margin keeps a row
     // either side, and with lanes across it is centred so the steps on both sides show.
     reveal() {
-      this.$nextTick(() => this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`)?.scrollIntoView({ block: 'nearest', inline: this.o === 'h' ? 'center' : 'nearest' }));
+      this.$nextTick(() => {
+        this.ring();
+        this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`)
+          ?.scrollIntoView({ block: 'nearest', inline: this.o === 'h' ? 'center' : 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+      });
+    },
+    // The selection is one ring over the map that glides from step to step,
+    // drawn over the selected node's box.
+    ringStyle: 'opacity: 0',
+    ring() {
+      const el = this.$refs.map?.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`);
+      if (!el) { this.ringStyle = 'opacity: 0'; return; }
+      this.ringStyle = `left: ${el.offsetLeft - 3}px; top: ${el.offsetTop - 3}px; width: ${el.offsetWidth + 6}px; height: ${el.offsetHeight + 6}px`;
     },
 
     // Every edge the map draws: the path each version takes from step to step,
@@ -600,9 +615,9 @@ document.addEventListener('alpine:init', () => {
                   class="relative z-[1] scroll-my-20 scroll-mx-24 justify-self-center w-fit text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
                   :class="nodeClass(i) + (o === 'h' ? ' self-center max-w-[10rem]' : ' max-w-full')" :style="nodeAt(s, i) + nodeStyle(i)">
             <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
-            <span>
+            <span class="grid">
               <span x-text="s.label"></span>
-              <span class="inline-flex gap-0.5 align-middle">
+              <span x-show="kinds(s).length || status(s).k === 'changed'" class="flex gap-0.5 mt-0.5">
                 <template x-for="k in kinds(s)" :key="k.k">
                   <i class="ph text-sm" :class="k.icon + ' ' + k.color" :data-title-tip="k.tip"
                      :data-title-tip-lead="k.name" :data-title-tip-lead-icon="'ph ' + k.icon + ' ' + k.color"></i>
@@ -614,6 +629,7 @@ document.addEventListener('alpine:init', () => {
         </template>
       </div>
       <div x-html="svg"></div>
+      <div aria-hidden="true" class="absolute z-[2] pointer-events-none rounded-box border-2 border-primary shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-primary)_20%,transparent)] transition-all duration-300 ease-out motion-reduce:transition-none" :style="ringStyle"></div>
     </section>
 
     <div x-show="F" x-ref="seam" class="h-3"></div>
