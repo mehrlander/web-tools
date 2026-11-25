@@ -1,4 +1,4 @@
-// Every tracked path must be one Windows can hold, or a clone on the laptop
+// Every tracked path must be one Windows can hold, or a clone on the Lenovo
 // fails its checkout.
 import test from 'node:test';
 import assert from 'node:assert/strict';

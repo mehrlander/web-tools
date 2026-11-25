@@ -16,9 +16,9 @@ window.__shell = Alpine.reactive({ mapTab: 'watch', _authState: 'auth', hasToken
 window.history.replaceState({}, '', '?view=map&tab=watch');
 window.TOKEN = 'fixture';
 const triggers = `id,machine,path,starts
-ping,personal-laptop,A ping errand,A request
+ping,lenovo,A ping errand,A request
 fork,actions-hosted,Pull requests from forks,A pull request
-tools,personal-laptop,The daemon's tools,A tick
+tools,lenovo,The daemon's tools,A tick
 plugin,,The plugin's hooks,A session start
 odd,Home laptop,An old spelling,Anything
 odd2,Home laptop,Another old spelling,Anything
@@ -47,11 +47,11 @@ test('the groups follow docs/machines.csv, under its labels, read from the hub',
   const labels = Object.fromEntries(window.Csv.rows(readFileSync(path.join(repoRoot, 'docs/machines.csv'), 'utf8')).map(v => [v.machine, v.label]));
   const groups = data.watchGroups;
   assert.deepEqual(plain(groups.slice(0, 2).map(g => [g.machine, g.label, g.rows.map(r => r.id)])),
-    [['personal-laptop', labels['personal-laptop'], ['ping', 'tools']], ['actions-hosted', labels['actions-hosted'], ['fork']]]);
+    [['lenovo', labels['lenovo'], ['ping', 'tools']], ['actions-hosted', labels['actions-hosted'], ['fork']]]);
   assert.ok(asked.some(a => a.repo === data.hub() && a.file === 'docs/machines.csv'));
   const watch = [...el.querySelectorAll('section')].find(x => x.getAttribute('x-show') === "mapTab==='watch'");
   const heads = [...watch.querySelectorAll('[data-part="list"] h3')].map(h => h.textContent.trim());
-  assert.deepEqual(plain(heads), [labels['personal-laptop'], labels['actions-hosted'], 'Home laptop', 'Any machine']);
+  assert.deepEqual(plain(heads), [labels['lenovo'], labels['actions-hosted'], 'Home laptop', 'Any machine']);
 });
 
 test('a value machines.csv lacks keeps its own group, and a blank one reads as any machine, last', () => {

@@ -25,7 +25,7 @@ async function fixture(hash,{repositoryStatus=503}={}){
   const entry=(name,kind='file')=>({name,kind,gitState:null,bytes:kind==='file'?4:null,modifiedAt:at,role:null});
   w.fetch=async(raw,options={})=>{
     const url=new URL(raw,w.location),method=options.method||'GET';requests.push({url,method,...options});
-    if(url.pathname==='/api/v1/repositories')return {ok:repositoryStatus===200,status:repositoryStatus,headers:new Headers(),json:async()=>({schemaVersion:1,machineName:'Laptop',observedAt:at,refreshing:[],repositories:[]})};
+    if(url.pathname==='/api/v1/repositories')return {ok:repositoryStatus===200,status:repositoryStatus,headers:new Headers(),json:async()=>({schemaVersion:1,machineName:'Lenovo',observedAt:at,refreshing:[],repositories:[]})};
     if(url.pathname==='/api/v1/files'){
       const path=url.searchParams.get('path'),root=url.searchParams.get('root')||'gh';
       const entries=root==='downloads'?(path?[entry('photo.png')]:[entry('Photos','folder'),entry('existing.png')]):path==='run'?[entry('validation.png'),entry('<img onerror=x>.txt')]:[entry(root==='outputs'?'run':'project','folder')];

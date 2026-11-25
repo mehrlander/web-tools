@@ -2,7 +2,7 @@ using System.Diagnostics;
 
 namespace WebTools.Desktop;
 
-public record CollectedActivity(DateTimeOffset ObservedAt, LaptopSnapshot Snapshot, double SyncMilliseconds);
+public record CollectedActivity(DateTimeOffset ObservedAt, LenovoSnapshot Snapshot, double SyncMilliseconds);
 
 // One owner of the readers and journal, independent of any browser or window.
 public sealed class ActivityCollector
@@ -43,11 +43,11 @@ public sealed class ActivityCollector
                     var watch = Stopwatch.StartNew();
                     var activity = active.Cached(settings.SeenThrough);
                     activity = activity with { Errands = activity.Errands.Select(j => j with {
-                        HasLocalOutput = Directory.Exists(LaptopSignals.Outbox(j.Id)) }).ToList() };
+                        HasLocalOutput = Directory.Exists(LenovoSignals.Outbox(j.Id)) }).ToList() };
                     var now = DateTimeOffset.UtcNow;
                     if (now - processesChecked > TimeSpan.FromSeconds(10)) {
-                        daemon = LaptopSignals.Daemon(Path.Combine(root, "web-tools-private"));
-                        applications = LaptopSignals.Applications();
+                        daemon = LenovoSignals.Daemon(Path.Combine(root, "web-tools-private"));
+                        applications = LenovoSignals.Applications();
                         processesChecked = now;
                     }
                     var current = LocalWorkReader.Join(sessions.Read(now), Path.Combine(UserSettings.DataDirectory, "work", "summaries.json"), now);
@@ -58,8 +58,8 @@ public sealed class ActivityCollector
                     var cloud = active.Cloud;
                     var updates = SessionLinks.HydrateChanges(changes.Observe(current.Items.Concat(cloud.Items), activity.Errands, now),
                         cloud.SessionUrls,sessionLinks.GeminiInstance);
-                    var snapshot = new LaptopSnapshot(activity, daemon, applications, LaptopSignals.Places(root),
-                        LaptopSignals.Downloads(), Environment.MachineName, settings.SeenThrough, current,
+                    var snapshot = new LenovoSnapshot(activity, daemon, applications, LenovoSignals.Places(root),
+                        LenovoSignals.Downloads(), Environment.MachineName, settings.SeenThrough, current,
                         watch.Elapsed.TotalMilliseconds, cloud, events, updates, usage.Latest, sessionLinks.GeminiInstance);
                     Volatile.Write(ref latest, new(now, snapshot, active.SyncMilliseconds));
                     Volatile.Write(ref error, null);

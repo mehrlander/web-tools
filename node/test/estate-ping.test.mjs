@@ -1,5 +1,5 @@
 // alpineComponents/estate.js — Ping, questions put to Gemini from the Lists
-// view. Sending files a laptop-daemon `ping` errand in the registry; the pane
+// view. Sending files a lenovo-daemon `ping` errand in the registry; the pane
 // then follows each ask through the folder listings (sent, thinking once
 // claimed, reply arriving until explicitly settled) and shows Gemini's reply. Driven over
 // a fake GH and a stubbed shell; no network, no pixels. The fake registry has
@@ -108,7 +108,8 @@ test('sending files one ping errand and lists the question as sent', async () =>
   assert.equal(ref, 'background', 'filed on the errand branch, not main');
   assert.equal(value.dest, REGISTRY + '@background:errands/results');
   assert.match(id, /^daemon-\d{4}-\d{2}-\d{2}-ping-[a-z0-9]+$/);
-  assert.equal(value.run.method, 'laptop-daemon');
+  assert.equal(value.run.method, 'lenovo-daemon');
+  assert.equal(value.run.venue, 'lenovo');
   assert.equal(value.run.op, 'ping');
   assert.equal(value.run.args.prompt, 'Which rivers feed the Columbia? A short list.');
   assert.match(message, /^Ping Gemini/);
@@ -119,7 +120,7 @@ test('sending files one ping errand and lists the question as sent', async () =>
 test('a question moves to thinking when claimed, then shows the reply', async () => {
   await seed();
   const id = await send('rivers?');
-  FILES['errands/claims/' + id + '.json'] = { id, by: 'laptop' };
+  FILES['errands/claims/' + id + '.json'] = { id, by: 'lenovo' };
   await data.loadPings({ quiet: true }); settle();
   assert.equal(data.pingItems[0].stage, 'thinking');
 
@@ -257,7 +258,7 @@ test('Check files a status errand, and the answer turns the marker active', asyn
   assert.equal(SAVES[0].ref, 'background');
   assert.equal(data.daemonHealth.level, 'checking');
   const id = data.daemon.check.id;
-  FILES['errands/results/' + id + '.json'] = { id, ok: true, closedAt: minsAgo(0), data: { op: 'status', host: 'laptop' } };
+  FILES['errands/results/' + id + '.json'] = { id, ok: true, closedAt: minsAgo(0), data: { op: 'status', host: 'lenovo' } };
   await data.readCheck();
   assert.equal(data.daemonHealth.level, 'up');
   assert.equal(data.daemonText, 'Daemon active just now');

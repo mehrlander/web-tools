@@ -9,6 +9,7 @@
   const svg=path=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" class="size-4 shrink-0" aria-hidden="true">${path}</svg>`;
   const icons={refresh:svg('<path d="M20 7v5h-5M4 17v-5h5M5.3 8a7 7 0 0 1 11.6-3L20 8M4 16l3.1 3A7 7 0 0 0 18.7 16"/>'),
     warning:svg('<path d="m12 3 10 18H2L12 3ZM12 9v5m0 3v1"/>'),
+    shield:svg('<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/>'),
     changes:svg('<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5M8 12h6m-3-3v6m-3 3h6"/>'),
     untracked:svg('<path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8l-5-5ZM14 3v5h5M8 14h8m-4-4v8"/>'),
     local:svg('<path d="M3 7V5h7l2 2h9v13H3ZM8 12h8m-8 4h5"/>'),
@@ -58,12 +59,13 @@
     'active-session':'session activity was detected in the folder',
     'activity-unavailable':'session activity could not be checked',
     'activity-uncertain':'session activity could not be matched confidently',
-    'fetch-failed':'the GitHub fetch failed',
+    'fetch-failed':'the GitHub check failed',
     'update-unavailable':'the update result could not be confirmed',
     'merge-failed':'the update command did not finish successfully',
     'verification-failed':'the resulting checkout could not be verified',
     'post-update-changes':'local changes were detected after the update'
   };
+  const protectedReasons=new Set(['active-session','local-changes','ignored-collision','index-flags','sparse-checkout','local-commits','git-operation','updater-busy']);
   function mainSyncDetail(repo,checkout){
     const value=repo?.mainSync;
     if(!value||!['current','updated','blocked','failed'].includes(value.state)||!utc(value.checkedAt)
@@ -75,12 +77,20 @@
     if(folder==null&&['current','updated'].includes(value.state))return null;
     const subject=folder?'Default folder '+folder:'Repository automatic update',action=folder?'Automatic update of '+folder:'Repository automatic update';
     const reason=Object.hasOwn(mainSyncReasons,value.reason)?mainSyncReasons[value.reason]:'a safe update could not be confirmed';
-    const summary=value.state==='current'?subject+' was current at the automatic check.':value.state==='updated'?subject+' was updated automatically.':action+' '+(value.state==='blocked'?'was blocked':'failed')+': '+reason+'.';
+    const protectedFolder=value.state==='blocked'&&protectedReasons.has(value.reason);
+    const summary=value.state==='current'?subject+' was current at the automatic check.':value.state==='updated'?subject+' was updated automatically.':action+' '+(protectedFolder?'was held':value.state==='blocked'?'was blocked':'failed')+': '+reason+'.';
     const checked='Automatic check '+ago(value.checkedAt)+' ('+stamp(value.checkedAt)+').';
     const updated=value.updatedAt?'Last automatic update '+ago(value.updatedAt)+' ('+stamp(value.updatedAt)+').':'';
-    return {folder,summary,time:[checked,updated].filter(Boolean).join(' '),text:[summary,checked,updated].filter(Boolean).join(' '),attention:['blocked','failed'].includes(value.state)};
+    return {folder,summary,time:[checked,updated].filter(Boolean).join(' '),text:[summary,checked,updated].filter(Boolean).join(' '),protected:protectedFolder,attention:!protectedFolder&&['blocked','failed'].includes(value.state)};
   }
   const utc=value=>typeof value==='string'&&/(?:Z|\+00:00)$/.test(value)&&Number.isFinite(Date.parse(value))&&Date.parse(value)>0&&Date.parse(value)<=Date.now()+30000;
+  function comparisonStatus(checkout){
+    const value=checkout?.tracked,known=value&&['current','ahead','behind','diverged'].includes(value.state)
+      &&typeof value.branch==='string'&&value.branch.length>0&&Number.isSafeInteger(value.ahead)&&value.ahead>=0&&Number.isSafeInteger(value.behind)&&value.behind>=0
+      &&({current:value.ahead===0&&value.behind===0,ahead:value.ahead>0&&value.behind===0,behind:value.ahead===0&&value.behind>0,diverged:value.ahead>0&&value.behind>0})[value.state];
+    const current=Boolean(known&&value.state==='current');
+    return {known:Boolean(known),current,text:known?'Last comparison with GitHub '+value.branch+': '+(current?'current':value.ahead.toLocaleString()+' ahead · '+value.behind.toLocaleString()+' behind')+'.':'GitHub comparison unavailable.'};
+  }
   function syncJob(value,phase){
     if(!value||typeof value!=='object'||!/^[a-f0-9]{24}$/.test(value.key)||!['check','update'].includes(value.mode)||!utc(value.queuedAt))return null;
     const started=value.startedAt,finished=value.finishedAt,outcome=value.outcome;
@@ -104,14 +114,16 @@
   }
   const repoName=key=>data?.repositories.find(repo=>repo.key===key)?.name.split('/').at(-1)||'Repository';
   const elapsed=value=>{const seconds=Math.max(0,Math.floor((Date.now()-Date.parse(value))/1000));return seconds<60?seconds+'s':Math.floor(seconds/60)+'m';};
-  function syncAttention(){
-    return (data?.repositories||[]).flatMap(repo=>{
+  function syncHealth(){
+    const health={attention:[],protected:[]};
+    for(const repo of data?.repositories||[]){
       const checkout=repo.mainSync?.folder?repo.checkouts.find(row=>row.name===repo.mainSync.folder):repo.checkouts[0];
       const detail=mainSyncDetail(repo,checkout);
-      return detail?.attention?[{repo,checkout,detail}]:[];
-    });
+      if(detail?.attention||detail?.protected)health[detail.protected?'protected':'attention'].push({repo,checkout,detail});
+    }
+    return health;
   }
-  const guidance=reason=>({
+  const syncGuidance={
     'active-session':'Finish the active work before the next automatic check.',
     'activity-uncertain':'Review session activity before updating this folder.',
     'activity-unavailable':'Restore session readings before an automatic update can proceed.',
@@ -122,12 +134,13 @@
     'sparse-checkout':'Review the sparse checkout before updating.',
     'git-operation':'Let the current Git operation finish; a later scheduled check can retry.',
     'updater-busy':'Let the current automatic check finish.',
-    'fetch-failed':'Check the laptop’s GitHub connection. A later scheduled check can retry.',
-    'git-unavailable':'Check Git on the laptop, then let the scheduled check retry.',
+    'fetch-failed':'A later scheduled check can retry. If failures continue, review GitHub access on the Lenovo.',
+    'git-unavailable':'Check Git on the Lenovo, then let the scheduled check retry.',
     'no-default-worktree':'Keep a clean default-branch folder available for automatic updates.',
     'ambiguous-default-worktree':'Review which default-branch folder should be kept current.',
     'post-update-changes':'Review the folder and its local changes before continuing.'
-  })[reason]||'Review the folder before updating. A later scheduled check will recheck safety.';
+  };
+  const guidance=reason=>Object.hasOwn(syncGuidance,reason)?syncGuidance[reason]:'Review the folder before updating. A later scheduled check will recheck safety.';
   function syncFolder(repo,checkout,label,focus){
     const target=checkout||repo?.checkouts.find(row=>row.branch===row.main?.branch)||repo?.checkouts[0];
     if(!target)return `<span class="min-w-0 break-words">${escape(label)}</span>`;
@@ -135,20 +148,21 @@
   }
   function syncPanel(){
     if(popup?.type!=='sync')return '';
-    const sync=liveProgress(),attention=syncAttention(),observation=data?'Folder observation '+ago(data.observedAt)+' ('+stamp(data.observedAt)+').':'No folder observation available.';
+    const sync=liveProgress(),health=syncHealth(),observation=data?'Folder observation '+ago(data.observedAt)+' ('+stamp(data.observedAt)+').':'No folder observation available.';
     const line=(job,label,time)=>{const repo=data?.repositories.find(row=>row.key===job.key);return `<li class="flex items-start justify-between gap-3 py-1.5"><span class="min-w-0">${syncFolder(repo,null,repoName(job.key),'sync:job:'+job.key)}<span class="block text-[11px] text-stone-500">${escape(job.mode==='update'?'Automatic check':'Manual GitHub check')}</span></span><span class="shrink-0 text-right text-[11px] text-stone-500">${escape(label)}<span class="block">${escape(time)}</span></span></li>`;};
     const completed=sync?.lastCompleted,outcome=completed&&({checked:'Check finished',failed:'Check failed',unconfirmed:'Result unconfirmed'})[completed.outcome];
+    const group=(kind,label,tone)=>health[kind].length?`<h3 class="mt-2 border-t border-stone-100 pt-2 font-medium ${tone}">${label} · ${health[kind].length}</h3><ul data-sync-group="${kind}" class="divide-y divide-stone-100">${health[kind].map(({repo,checkout,detail})=>`<li class="py-2">${syncFolder(repo,checkout,repo.name.split('/').at(-1),'sync:'+kind+':'+repo.key)}<p class="${tone}">${escape(detail.summary)}</p>${detail.folder?`<p class="text-stone-600">${escape(comparisonStatus(checkout).text+' '+checkAge(repo))}</p>`:''}<p class="text-[11px] text-stone-500">${escape(detail.time)}</p><p class="mt-1 text-stone-600">${escape(guidance(repo.mainSync.reason))}</p></li>`).join('')}</ul>`:'';
     return `<section id="repository-sync-panel" data-popup="sync:all" role="region" aria-label="Repository sync" class="absolute left-0 top-full z-30 mt-1 w-80 max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs leading-5 shadow-lg"><h2 class="font-medium text-stone-900">Repository sync</h2><p class="text-[11px] text-stone-500">${escape(observation)}</p>`
       +(!sync?`<p class="py-2 text-stone-600">${apiConnected()?'Live sync status unavailable.':'Saved observations. Current sync activity is unavailable.'}</p>`:`<ul class="divide-y divide-stone-100">${sync.active?line(sync.active,'Checking',elapsed(sync.active.startedAt)):''}${sync.queued.map(job=>line(job,'Queued',ago(job.queuedAt))).join('')}${sync.awaitingObservation.map(job=>line(job,'Awaiting reading',ago(job.finishedAt))).join('')}</ul>${sync.scanning?`<p class="py-1 text-stone-600">Reading folders · ${escape(elapsed(sync.scanStartedAt))}</p>`:''}${!sync.active&&!sync.queued.length&&!sync.awaitingObservation.length&&!sync.scanning?'<p class="py-1 text-stone-600">No check running.</p>':''}${completed?`<p class="mt-1 border-t border-stone-100 pt-2 text-stone-600">${escape(outcome)} · ${escape(repoName(completed.key))}<span class="block text-[11px] text-stone-500">${escape(ago(completed.finishedAt)+' ('+stamp(completed.finishedAt)+')')}</span></p>`:''}`)
-      +(attention.length?`<h3 class="mt-2 border-t border-stone-100 pt-2 font-medium text-amber-800">Needs attention · ${attention.length}</h3><ul class="divide-y divide-stone-100">${attention.map(({repo,checkout,detail})=>`<li class="py-2">${syncFolder(repo,checkout,repo.name.split('/').at(-1),'sync:attention:'+repo.key)}<p class="text-amber-800">${escape(detail.summary)}</p><p class="text-[11px] text-stone-500">${escape(detail.time)}</p><p class="mt-1 text-stone-600">${escape(guidance(repo.mainSync.reason))}</p></li>`).join('')}</ul>`:'')
-      +'<p class="mt-2 border-t border-stone-100 pt-2 text-[11px] text-stone-500">Manual Check GitHub refreshes comparisons only. A completed check does not mean a folder was updated.</p></section>';
+      +group('attention','Needs attention','text-amber-800')+group('protected','Protected','text-stone-600')
+      +'<p class="mt-2 border-t border-stone-100 pt-2 text-[11px] text-stone-500">Checks run in queue order. Manual Check GitHub refreshes comparisons only. A completed check does not mean a folder was updated.</p></section>';
   }
   function syncStrip(){
-    const sync=liveProgress(),attention=syncAttention(),open=popup?.type==='sync';
+    const sync=liveProgress(),health=syncHealth(),open=popup?.type==='sync';
     const label=sync?.active?'Checking '+repoName(sync.active.key)+' · '+elapsed(sync.active.startedAt):sync?.scanning?'Reading folders · '+elapsed(sync.scanStartedAt):sync?.awaitingObservation.length?'Awaiting folder reading':sync?.queued.length?'Checks queued':sync?'No check running':apiConnected()?'Sync status unavailable':'Saved sync status';
     const queued=sync?.queued.length||0,waiting=sync?.awaitingObservation.length||0;
-    const title=[label,queued?queued+' queued':'',waiting?waiting+' awaiting reading':'',attention.length?attention.length+' need attention':''].filter(Boolean).join('. ');
-    return `<div class="relative mt-2"><button data-sync-strip data-focus="all:sync" aria-label="${escape(title)}" aria-expanded="${open}" aria-controls="repository-sync-panel" class="flex min-h-8 w-full min-w-0 items-center gap-2 rounded-md px-1 text-left text-[11px] text-stone-600 focus-visible:outline-2 focus-visible:outline-sky-700"><span class="shrink-0 ${sync?.active?'motion-safe:animate-spin':''}">${icons.refresh}</span><span class="min-w-0 flex-1 truncate">${escape(label)}</span>${queued?`<span class="inline-flex shrink-0 items-center gap-0.5" aria-hidden="true">${icons.queue}${queued}</span>`:''}${waiting?`<span class="inline-flex shrink-0 items-center gap-0.5 tabular-nums" aria-hidden="true">${icons.observation}${waiting}</span>`:''}${attention.length?`<span class="inline-flex shrink-0 items-center gap-0.5 text-amber-700" aria-hidden="true">${icons.warning}${attention.length}</span>`:''}</button>${syncPanel()}</div>`;
+    const title=[label,queued?queued+' queued':'',waiting?waiting+' awaiting reading':'',health.attention.length?health.attention.length+' need attention':'',health.protected.length?health.protected.length+' protected':''].filter(Boolean).join('. ');
+    return `<div class="relative mt-2"><button data-sync-strip data-focus="all:sync" aria-label="${escape(title)}" aria-expanded="${open}" aria-controls="repository-sync-panel" class="flex min-h-8 w-full min-w-0 items-center gap-2 rounded-md px-1 text-left text-[11px] text-stone-600 focus-visible:outline-2 focus-visible:outline-sky-700"><span class="shrink-0 ${sync?.active?'motion-safe:animate-spin':''}">${icons.refresh}</span><span class="min-w-0 flex-1 truncate">${escape(label)}</span>${queued?`<span class="inline-flex shrink-0 items-center gap-0.5" aria-hidden="true">${icons.queue}${queued}</span>`:''}${waiting?`<span class="inline-flex shrink-0 items-center gap-0.5 tabular-nums" aria-hidden="true">${icons.observation}${waiting}</span>`:''}${health.attention.length?`<span data-sync-count="attention" class="inline-flex shrink-0 items-center gap-0.5 tabular-nums text-amber-700" aria-hidden="true">${icons.warning}${health.attention.length}</span>`:''}${health.protected.length?`<span data-sync-count="protected" class="inline-flex shrink-0 items-center gap-0.5 tabular-nums text-stone-500" aria-hidden="true">${icons.shield}${health.protected.length}</span>`:''}</button>${syncPanel()}</div>`;
   }
   function syncSignal(repo,checkout){
     const sync=liveProgress();if(!sync||!repo||selectedRoot!=='gh'||selected||selectedFile)return '';
@@ -161,7 +175,7 @@
     if(!active)return;
     el('connection').textContent=denied?'Access unavailable':apiConnected()?'Connected':data?'Saved':failed?'Offline':'Connecting…';
     el('connection').removeAttribute('title');
-    el('connection').setAttribute('aria-label',apiConnected()?'Connected to '+(data?.machineName||'the laptop'):data?'Saved laptop observation from '+stamp(data.observedAt):el('connection').textContent);
+    el('connection').setAttribute('aria-label',apiConnected()?'Connected to '+(data?.machineName||'the Lenovo'):data?'Saved Lenovo observation from '+stamp(data.observedAt):el('connection').textContent);
   }
   function comparison(value,key,compact=false){
     const checkout=checkoutFor(key.split(':')[0]),repo=checkout&&repoFor(checkout),update=mainSyncDetail(repo,checkout),upstream=checkout?.upstream?.startsWith('origin/')?checkout.upstream.slice(7):'',age=checkAge(repo)+(repo?.notice?' '+repo.notice:'')+(upstream&&upstream!==value?.branch?' Configured upstream: GitHub '+upstream+'.':'')+(update?.folder?' '+update.text:'');
@@ -182,9 +196,10 @@
     const open=popup?.type==='branch'&&popup.key===checkout.key,repo=repoFor(checkout),url=safeUrl(repo),update=mainSyncDetail(repo,checkout);
     const href=url&&Number.isInteger(meta.number)&&meta.number>0&&meta.url===url+'/pull/'+meta.number?meta.url:null;
     const detail=state==='snapshot'?'Detached copy of GitHub '+(checkout.main?.branch||'default branch')+'.':state==='review'?meta.pullRequestState==='merged'?'The PR merged; local history still needs review.':meta.pullRequestState==='closed'?'The PR closed without merging.':'No pull request found for this branch.':'';
-    const known=Number.isInteger(checkout.tracked.ahead)&&Number.isInteger(checkout.tracked.behind),sync=known?checkout.tracked.ahead===0&&checkout.tracked.behind===0?'In sync':checkout.tracked.ahead.toLocaleString()+' ahead · '+checkout.tracked.behind.toLocaleString()+' behind':'Comparison unavailable';
-    const iconTone=asRepository?(update?.attention?'text-amber-700':'text-emerald-700'):kind[1];
-    const label=kind[2]+' for '+checkout.branch+' in '+checkout.name+(update?'. '+update.text:'');
+    const comparison=comparisonStatus(checkout),sync=comparison.known?comparison.current?'In sync':checkout.tracked.ahead.toLocaleString()+' ahead · '+checkout.tracked.behind.toLocaleString()+' behind':'Comparison unavailable';
+    const stale=repo?.notice||!utc(repo?.checkedAt)||Date.now()-Date.parse(repo.checkedAt)>600000;
+    const iconTone=asRepository?(update?.attention||stale||!comparison.current||checkout.tracked.branch!==checkout.branch?'text-amber-700':'text-emerald-700'):kind[1];
+    const label=kind[2]+' for '+checkout.branch+' in '+checkout.name+(asRepository?'. '+comparison.text:'')+(update?'. '+(update.protected?'Protected. ':'')+update.text:'');
     return `<span class="relative inline-flex shrink-0 ${asRepository?'self-stretch items-center':''}"><button data-branch-signal="${checkout.key}" data-focus="${checkout.key}:branch" aria-label="${escape(label)}" aria-expanded="${open}" aria-haspopup="true" aria-controls="branch-${checkout.key}" class="inline-flex ${asRepository?'min-h-10 w-6':'size-5'} ${iconTone} shrink-0 items-center justify-center ${open?'rounded bg-stone-100 ring-1 ring-current':''}">${icons[asRepository?'repository':kind[0]]}</button>`
       +`<span id="branch-${checkout.key}" data-popup="branch:${checkout.key}" ${open?'':'hidden'} role="region" aria-label="Branch status for ${escape(checkout.name)}" class="absolute left-0 ${asRepository?'top-10':'top-6'} z-30 block w-64 max-w-[calc(100vw-3rem)] rounded-xl border border-stone-200 bg-white px-3 py-2 text-xs font-normal leading-5 shadow-lg"><span class="block font-medium ${kind[1]}">${kind[2]}</span>`
       +(asRepository?`<span class="block font-medium text-stone-800">${escape(checkout.name)}</span><span class="block text-stone-600">${escape(checkout.branch)}</span>`:'')
@@ -193,7 +208,7 @@
       +(detail?`<span class="block text-stone-600">${escape(detail)}</span>`:'')
       +`<span class="block text-stone-600">${escape(checkout.tracked.branch?'Compared with GitHub '+checkout.tracked.branch:'No GitHub comparison target')}</span>`
       +(asRepository?`<span class="block text-stone-600">${escape(sync)}</span>${repo?.notice?`<span class="block text-amber-800">${escape(repo.notice)}</span>`:''}`:'')
-      +(update?`<span data-main-sync class="mt-1 block border-t border-stone-100 pt-1 ${update.attention?'text-amber-800':'text-stone-600'}">${escape(update.summary)}</span><span class="block text-[10px] text-stone-500">${escape(update.time)}</span>`:'')
+      +(update?`<span data-main-sync class="mt-1 block border-t border-stone-100 pt-1 ${update.attention?'text-amber-800':'text-stone-600'}">${update.protected?'<span class="inline-flex items-center gap-1 text-stone-500">'+icons.shield+'Protected</span><span class="block">'+escape(update.summary)+'</span>':escape(update.summary)}</span><span class="block text-[10px] text-stone-500">${escape(update.time)}</span>`:'')
       +(asRepository?`<span class="mt-1 block border-t border-stone-100 pt-1 text-[10px] text-stone-500">${escape(checkAge(repo))}</span>`:'')
       +(!asRepository&&meta.checkedAt?`<span class="mt-1 block border-t border-stone-100 pt-1 text-[10px] text-stone-500">Checked ${escape(ago(meta.checkedAt))}</span>`:'')
       +'</span></span>';

@@ -11,7 +11,7 @@ checkout.localFiles={key,name:'project',state:'ready',observedAt:at,partial:fals
  {key:'c'.repeat(24),path:'cache/',kind:'folder',gitState:'ignored',bytes:2400,files:2,modifiedAt:at,partial:false,role:'Cache'},
  {key:'d'.repeat(24),path:'src/deep-cache/',kind:'folder',gitState:'ignored',bytes:5000,files:3,modifiedAt:at,partial:false,role:null}
 ]};
-const snapshot={schemaVersion:1,machineName:'Laptop',observedAt:at,refreshing:[],repositories:[{key:'b'.repeat(24),name:'fixture/project',url:'https://github.com/fixture/project',checkedAt:at,checkouts:[checkout]}]};
+const snapshot={schemaVersion:1,machineName:'Lenovo',observedAt:at,refreshing:[],repositories:[{key:'b'.repeat(24),name:'fixture/project',url:'https://github.com/fixture/project',checkedAt:at,checkouts:[checkout]}]};
 const entry=(name,kind='folder',gitState=null)=>({name,kind,gitState,bytes:kind==='file'?128:null,modifiedAt:at,role:null});
 const listing=(path,entries)=>({schemaVersion:1,rootName:'repos',path,state:'ready',observedAt:at,entries,partial:false,notice:null});
 const folders=new Map([

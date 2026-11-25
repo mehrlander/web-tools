@@ -1,4 +1,4 @@
-"""Keep daily token totals from Claude Code's laptop logs, without copying content.
+"""Keep daily token totals from Claude Code's Lenovo logs, without copying content.
 
 Counts cover only locally retained Claude Code responses, including subagents.
 Days use UTC. Repeated stream entries and copied transcripts share one response
