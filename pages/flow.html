@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  flow.html — a process as a map and a strip of steps: who does each step, the
+  scripts, skills and records it touches, and where the process branches or
+  loops back. A process with a current and a proposed version shows both in
+  one map, the steps and edges unique to either colored by version.
+
+    flow/1  { schema, title, repo?,
+              actors:   [{ id, label, icon }]           the map's columns, in order
+              variants: [{ id, label }]?                 at most two: the versions compared
+              steps:    [{ id, actor, label,
+                           gloss,     what the step does, in a sentence; where the versions
+                                      differ, a list of { v, gloss }, one per variant
+                           in?,       the variants the step belongs to; all when omitted
+                           artifacts?: [{ kind, label, path, repo? }]
+                                      kind: skill | script | agent | data | doc | record | page
+                           exits?:    [{ to, label, when, in? }],
+                           end? }] }
+
+  STEPS ARE LISTED IN MAIN-PATH ORDER, and that order is the swipe. A step
+  leads to the next step listed that shares its variant, unless it is `end`.
+  An exit is a branch the reader chooses on the step's card: one to an earlier
+  step is a loop, drawn in the map's right gutter, and taking it counts a pass
+  in the header; one to the step that follows anyway labels that edge. So the
+  swipe never cycles, while every loop stays on the map and one tap away. An
+  exit taken is a history entry, so Back returns along the path.
+
+  Addresses, as pages/stepwise.html reads them: #gh=owner/repo[@ref]:path
+  (read with the stored GitHub token), #gz=<gzipped base64url JSON>
+  (kits/gz-payload.js), and with neither, pages/demos/flow-critic-review.json.
+  &step=<id> opens at a step and follows the reader; &v=<variant> shows one
+  version, and without it a two-version flow shows both.
+
+  Each step is one slide of a swipeDeck.core track (kits/swipe-deck.js); the
+  map, the arrows, the keys and the dots drive the same track. The map sits
+  over the step at every width, a list over its detail, so the page fits one
+  takeover; the seam between them is kits/dock-split.js, its height kept in
+  this browser and reset by a double-click.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('kits/gz-payload.js');   // the #gz= codec
+    await gh.load('kits/swipe-deck.js');   // the track
+    await gh.load('kits/dock-split.js');   // the seam between map and step
+  } finally { window.__depsDone(); }
+</script>
+<script>
+document.addEventListener('alpine:init', () => {
+  const tokenNow = () => window.TOKEN || window.ghAuth?.resolve() || '';
+  const hashParams = () => new URLSearchParams(location.hash.slice(1));
+  const param = k => hashParams().get(k) || new URLSearchParams(location.search).get(k);
+  const h = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const icon = (name, cls = '') => h('i', `ph ${name} ${cls}`);
+  // Text with `code` spans, built as nodes so nothing in the payload is HTML.
+  const inline = (el, text) => {
+    String(text || '').split(/(`[^`]+`)/).forEach(part => {
+      if (/^`[^`]+`$/.test(part)) el.append(h('code', 'font-mono text-[0.9em] bg-base-200 rounded px-1', part.slice(1, -1)));
+      else if (part) el.append(document.createTextNode(part));
+    });
+    return el;
+  };
+  // The two versions' treatments, locked across the map, the cards and the
+  // edges: the first is amber, the second blue and dashed, as a proposal
+  // not yet built is drawn on the owner-reader diagram.
+  const HUE = [
+    { node: 'border-warning', tint: 'var(--color-warning)', bar: 'border-l-4 border-warning', badge: 'badge-warning', stroke: 'var(--color-warning)', ink: 'color-mix(in oklab, var(--color-warning) 55%, black)', dash: '' },
+    { node: 'border-info border-dashed', tint: 'var(--color-info)', bar: 'border-l-4 border-dashed border-info', badge: 'badge-info', stroke: 'var(--color-info)', ink: 'color-mix(in oklab, var(--color-info) 50%, black)', dash: '6 4' },
+  ];
+  const KIND = {
+    skill: 'ph-book-open-text', script: 'ph-code', agent: 'ph-robot', data: 'ph-table',
+    doc: 'ph-file-text', record: 'ph-archive', page: 'ph-browser',
+  };
+
+  Alpine.data('flow', () => ({
+    F: null, err: '', v: '', cur: 0, deck: null, passes: 0, repo: 'mehrlander/web-tools', ref: 'main', svg: '', mapH: 0,
+
+    get variants() { return this.F?.variants || []; },
+    get both() { return this.variants.length > 1 && !this.v; },
+    get vis() { return this.F ? this.F.steps.filter(s => this.shows(s)) : []; },
+    get n() { return this.vis.length; },
+    get step() { return this.vis[this.cur]; },
+    shows(s) { return !this.v || !s.in || s.in.includes(this.v); },
+    inV(x, v) { return !v || !x.in || x.in.includes(v); },
+    // The versions the reader is looking at: one, both, or none for a flow with none.
+    active() { return this.v ? [this.v] : (this.variants.length ? this.variants.map(x => x.id) : [null]); },
+    hue(vid) { return HUE[this.variants.findIndex(x => x.id === vid)] || null; },
+    // Shared, changed, or one version's own; only drawn when both show.
+    status(s) {
+      if (!this.both) return { k: 'shared' };
+      if (s.in && s.in.length < this.variants.length) return { k: 'only', vid: s.in[0], hue: this.hue(s.in[0]) };
+      if (Array.isArray(s.gloss)) return { k: 'changed' };
+      return { k: 'shared' };
+    },
+    // The kinds of file a step touches, each once, in the order first listed: drawn as icons in its node.
+    kinds(s) { return [...new Set((s.artifacts || []).map(x => x.kind))].map(k => KIND[k] || 'ph-file'); },
+    actorOf(s) { return this.F.actors.find(a => a.id === s.actor) || { label: s.actor, icon: 'ph-circle' }; },
+    col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
+    count(vid) { return this.F ? this.F.steps.filter(s => !vid || !s.in || s.in.includes(vid)).length : 0; },
+    nodeClass(i) {
+      if (i === this.cur) return 'border-primary ring-2 ring-primary/30';
+      const st = this.status(this.vis[i]);
+      return st.k === 'only' ? st.hue.node : 'border-base-300 bg-base-100 hover:bg-base-200';
+    },
+    nodeStyle(i) {
+      const st = this.status(this.vis[i]);
+      const tint = i === this.cur ? 'var(--color-primary)' : st.k === 'only' ? st.hue.tint : '';
+      return tint ? `background: color-mix(in oklab, ${tint} 12%, var(--color-base-100));` : '';
+    },
+
+    async init() {
+      await window.__depsReady;
+      try { this.F = await this.read(); } catch (e) { this.err = e.message; return; }
+      if (this.F.repo) this.repo = this.F.repo;
+      document.title = this.F.title || 'Flow';
+      const v = param('v');
+      this.v = this.variants.some(x => x.id === v) ? v : (this.variants.length === 1 ? this.variants[0].id : '');
+      this.cur = this.indexOf(param('step'));
+      this.$nextTick(() => this.build());
+      window.addEventListener('keydown', e => {
+        if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
+        // Up and Down step the map's selection while focus is in the map, and
+        // focus follows the selected node; elsewhere they scroll as usual.
+        const inMap = this.$refs.map.contains(document.activeElement);
+        const to = { ArrowLeft: this.cur - 1, ArrowRight: this.cur + 1, Home: 0, End: this.n - 1,
+          ...(inMap ? { ArrowUp: this.cur - 1, ArrowDown: this.cur + 1 } : {}) }[e.key];
+        if (to == null) return;
+        e.preventDefault();
+        this.go(to);
+        if (inMap) this.$nextTick(() => this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step.id)}"]`)?.focus({ preventScroll: true }));
+      });
+      // Back after an exit taken: the address names the step to return to.
+      window.addEventListener('popstate', () => {
+        const i = this.indexOf(param('step'));
+        if (i !== this.cur) this.go(i, { quiet: true });
+      });
+      new ResizeObserver(() => this.draw()).observe(this.$refs.map);
+      this.seam();
+    },
+
+    // The map's height, dragged at the seam: at least two rows of the map and
+    // of the step, kept in this browser on release; a double-click goes back
+    // to the default, 40% of the space.
+    seam() {
+      const KEY = 'flow:map-h', main = this.$refs.main, el = this.$refs.seam;
+      try { const v = +localStorage.getItem(KEY); if (v > 0) this.mapH = v; } catch (e) {}
+      if (!window.dockSplit || !el) return;
+      const r = () => main.getBoundingClientRect();
+      const pct = px => px / Math.max(1, r().height) * 100;
+      const split = window.dockSplit.attach(el, {
+        axis: 'row', from: 'start', label: 'Height of the map',
+        bounds: r,
+        value: () => pct(this.$refs.map.getBoundingClientRect().height),
+        min: () => pct(120), max: () => Math.max(pct(120), 100 - pct(200)),
+        onChange: p => { this.mapH = Math.round(p * r().height / 100); },
+        onCommit: () => { try { localStorage.setItem(KEY, String(this.mapH)); } catch (e) {} },
+      });
+      el.addEventListener('dblclick', () => { this.mapH = 0; try { localStorage.removeItem(KEY); } catch (e) {} split.refresh(); });
+    },
+
+    async read() {
+      const gz = param('gz'), spec = param('gh');
+      let F;
+      if (gz) F = await window.GzPayload.decodeJson(gz);
+      else if (spec) {
+        const a = window.RepoAddress.parse(spec);
+        if (!a) throw new Error('#gh= reads owner/repo[@ref]:path, and this is not one: ' + spec);
+        this.repo = a.repo;
+        if (a.ref) this.ref = a.ref;
+        try { F = JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
+        catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+      } else {
+        const r = await fetch('demos/flow-critic-review.json');
+        if (!r.ok) throw new Error('No payload. Address one with #gh=owner/repo@ref:path or #gz=…');
+        F = await r.json();
+      }
+      if (F?.schema !== 'flow/1') throw new Error('Not a flow payload (schema: ' + (F?.schema ?? 'none') + ')');
+      if (!Array.isArray(F.steps) || !F.steps.length) throw new Error('The payload has no steps');
+      if (!Array.isArray(F.actors) || !F.actors.length) throw new Error('The payload has no actors');
+      const ids = new Set(F.steps.map(s => s.id));
+      F.steps.forEach((s, i) => (s.exits || []).forEach(x => {
+        if (!ids.has(x.to)) throw new Error(`Step ${i + 1} (${s.id}) exits to ${x.to}, which no step is`);
+      }));
+      return F;
+    },
+
+    indexOf(id) { return Math.max(0, this.vis.findIndex(s => s.id === id)); },
+
+    // A new track for the steps showing; called again when the version changes.
+    build() {
+      this.$refs.track.replaceChildren();
+      this.deck = swipeDeck.core(this.n, (i, el) => this.render(i, el), {
+        start: this.cur, behavior: 'instant', innerClass: 'w-full', slidePad: 'px-4 pt-4 pb-24 sm:px-6',
+      });
+      this.$refs.track.append(this.deck.track);
+      this.deck.onSlide(i => { if (i !== this.cur) { this.cur = i; this.mark(false); this.reveal(); } });
+      requestAnimationFrame(() => { this.deck.go(this.cur, 'instant'); this.draw(); this.reveal(); });
+      this.mark(false);
+    },
+    setV(v) {
+      if (v === this.v) return;
+      const id = this.step?.id;
+      this.v = v;
+      this.cur = this.vis.findIndex(s => s.id === id);
+      if (this.cur < 0) this.cur = 0;
+      this.$nextTick(() => this.build());
+    },
+    // Rewrites only step and v, so a #gz= or #gh= value keeps its own spelling.
+    mark(push) {
+      const p = location.hash.slice(1).split('&').filter(x => x && !/^(step|v)=/.test(x));
+      if (this.v && this.variants.length > 1) p.push('v=' + encodeURIComponent(this.v));
+      if (this.step) p.push('step=' + encodeURIComponent(this.step.id));
+      try { history[push ? 'pushState' : 'replaceState'](history.state, '', '#' + p.join('&')); } catch (e) {}
+    },
+    go(i, o = {}) {
+      const to = Math.max(0, Math.min(this.n - 1, i));
+      if (!this.deck) return;
+      this.cur = to;
+      if (!o.quiet) this.mark(!!o.push);
+      this.deck.go(to, 'instant');
+      this.reveal();
+    },
+    take(x) {
+      const j = this.vis.findIndex(s => s.id === x.to);
+      if (j < 0) return;
+      if (j <= this.cur) this.passes++;
+      this.go(j, { push: true });
+    },
+    // The selected node stays in view in the map; its scroll margin keeps a row either side.
+    reveal() {
+      this.$nextTick(() => this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+    },
+
+    // Every edge the map draws: the path each version takes from step to step,
+    // and each exit that is not that path.
+    edges() {
+      const vis = this.vis, out = new Map();
+      const add = (i, j, vid, kind, label) => {
+        const k = `${i}>${j}>${kind}>${kind === 'next' ? '' : label}`;
+        const e = out.get(k) || { i, j, kind, vids: new Set(), labels: [] };
+        e.vids.add(vid);
+        if (label) e.labels.push({ label, vid });
+        out.set(k, e);
+      };
+      const next = (i, vid) => {
+        if (vis[i].end) return -1;
+        for (let j = i + 1; j < vis.length; j++) if (this.inV(vis[j], vid)) return j;
+        return -1;
+      };
+      vis.forEach((s, i) => this.active().forEach(vid => {
+        if (!this.inV(s, vid)) return;
+        const j = next(i, vid);
+        if (j >= 0) add(i, j, vid, 'next');
+        (s.exits || []).forEach(x => {
+          if (!this.inV(x, vid)) return;
+          const t = vis.findIndex(y => y.id === x.to);
+          if (t < 0) return;
+          if (t === j) add(i, j, vid, 'next', x.label);
+          else add(i, t, vid, t <= i ? 'loop' : 'skip', x.label);
+        });
+      }));
+      return [...out.values()];
+    },
+    // The edges as SVG over the map, from the nodes' laid-out boxes.
+    draw() {
+      const map = this.$refs.map;
+      if (!this.F || !map) return;
+      const box = id => { const el = map.querySelector(`[data-step="${CSS.escape(id)}"]`); return el && { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }; };
+      const grid = this.$refs.grid;
+      const gx0 = grid.offsetLeft + grid.offsetWidth + 12;
+      const all = this.active().filter(Boolean);
+      const paint = e => {
+        const one = all.length > 1 && e.vids.size === 1 ? this.hue([...e.vids][0]) : null;
+        return { stroke: one ? one.stroke : 'color-mix(in oklab, var(--color-base-content) 45%, transparent)', dash: one ? one.dash : '' };
+      };
+      let s = '', lane = 0;
+      const pills = [];
+      const edges = this.edges();
+      // Edges sharing a node fan out along its edge, so no two meet it at one
+      // point: forward edges along its bottom and top, ordered by the other
+      // end's x; loops along its right side.
+      const fan = new Map();
+      const slot = (key, e, order) => { if (!fan.has(key)) fan.set(key, []); fan.get(key).push({ e, order }); };
+      edges.forEach(e => {
+        const a = box(this.vis[e.i].id), b = box(this.vis[e.j].id);
+        if (!a || !b) return;
+        e.a = a; e.b = b;
+        if (e.kind === 'loop') { slot('r' + e.i, e, b.y); slot('r' + e.j, e, a.y); }
+        else { slot('b' + e.i, e, b.x + b.w / 2); slot('t' + e.j, e, a.x + a.w / 2); }
+      });
+      const off = (key, e, gap) => {
+        const list = (fan.get(key) || []).sort((p, q) => p.order - q.order);
+        const k = list.findIndex(x => x.e === e);
+        return k < 0 ? 0 : (k - (list.length - 1) / 2) * gap;
+      };
+      edges.forEach(e => {
+        const a = e.a, b = e.b;
+        if (!a || !b) return;
+        const p = paint(e);
+        let d, first = 0;
+        if (e.kind === 'loop') {
+          // Out of the source's right side, up the gutter with rounded turns, into the target's right side.
+          const gx = gx0 + lane++ * 12, r = 8;
+          const o1 = off('r' + e.i, e, 6);
+          const y1 = a.y + a.h / 2 + o1, y2 = b.y + b.h / 2 + off('r' + e.j, e, 6);
+          const up = y2 < y1 ? -1 : 1;
+          d = `M${a.x + a.w} ${y1} H${gx - r} Q${gx} ${y1} ${gx} ${y1 + up * r} V${y2 - up * r} Q${gx} ${y2} ${gx - r} ${y2} H${b.x + b.w + 2}`;
+          first = (gx - r - a.x - a.w) / 2;   // a loop's label tries the stretch leaving its step first
+        } else {
+          // A curve from the source's foot to the target's head. Where a step
+          // between them sits across its way, the edge curves out to a channel
+          // just right of every such step, runs down it, and curves back in.
+          const x1 = a.x + a.w / 2 + off('b' + e.i, e, 10), y1 = a.y + a.h;
+          const x2 = b.x + b.w / 2 + off('t' + e.j, e, 10), y2 = b.y - 2;
+          const lo = Math.min(x1, x2) - 6, hi = Math.max(x1, x2) + 6;
+          const block = this.vis.slice(e.i + 1, e.j).map(x => box(x.id)).filter(m => m && m.x < hi && m.x + m.w > lo);
+          if (block.length) {
+            const X = Math.max(...block.map(m => m.x + m.w)) + 12 + Math.abs(off('b' + e.i, e, 6));
+            const ya = Math.min(...block.map(m => m.y)), yb = Math.max(...block.map(m => m.y + m.h));
+            d = `M${x1} ${y1} C${x1} ${(y1 + ya) / 2} ${X} ${(y1 + ya) / 2} ${X} ${ya} V${yb} C${X} ${(yb + y2) / 2} ${x2} ${(yb + y2) / 2} ${x2} ${y2}`;
+          } else {
+            const my = (y1 + y2) / 2;
+            d = `M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}`;
+          }
+        }
+        s += `<path d="${d}" fill="none" stroke="${p.stroke}" stroke-width="1.5"${p.dash ? ` stroke-dasharray="${p.dash}"` : ''} marker-end="url(#flow-arrow)" style="color:${p.stroke}"/>`;
+        e.labels.forEach(l => pills.push({ d, first, label: l.label, hue: all.length > 1 ? this.hue(l.vid) : null, stroke: p.stroke }));
+      });
+      s += this.bubbles(pills, this.vis.map(x => box(x.id)).filter(Boolean));
+      // The loops' lanes widen the map's right margin, which moves the grid: draw again.
+      if (lane !== this.gutter) { this.gutter = lane; this.$nextTick(() => this.draw()); }
+      const W = Math.max(map.scrollWidth, gx0 + lane * 12 + 10), H = map.scrollHeight;
+      this.svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="absolute left-0 top-0 pointer-events-none" aria-hidden="true">
+        <defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>${s}</svg>`;
+    },
+    gutter: 0,
+
+    // Each edge label as a bubble sitting on its own edge. A bubble tries points
+    // along the edge, its preferred point first and then outward from the
+    // middle, and at each point slides sideways in 12px steps; it takes the
+    // first place that covers no step and no bubble already placed, else the
+    // place that covers least, nearest its point.
+    bubbles(pills, nodes) {
+      if (!pills.length) return '';
+      if (!this._ruler) {
+        const NS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('style', 'position:absolute;width:0;height:0;visibility:hidden');
+        this._path = svg.appendChild(document.createElementNS(NS, 'path'));
+        document.body.append(svg);
+        this._ruler = document.createElement('canvas').getContext('2d');
+        this._ruler.font = '12px system-ui, sans-serif';
+      }
+      const H = 18, placed = [];
+      const hit = (r, q) => r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h;
+      const cover = r => nodes.filter(n => hit(r, { x: n.x - 1, y: n.y - 1, w: n.w + 2, h: n.h + 2 })).length * 2 + placed.filter(q => hit(r, q)).length * 3;
+      return pills.map(pl => {
+        this._path.setAttribute('d', pl.d);
+        const L = this._path.getTotalLength();
+        const W = Math.ceil(this._ruler.measureText(pl.label).width) + 16;
+        const at = [pl.first, L / 2, L * 0.35, L * 0.65, L * 0.2, L * 0.8].filter(v => v > 0 && v < L);
+        let best = null;
+        for (const dist of at) {
+          const c = this._path.getPointAtLength(dist);
+          for (const dx of [0, ...Array.from({ length: 24 }, (_, k) => (k >> 1) * 12 + 12).map((v, k) => k % 2 ? -v : v)]) {
+            const r = { x: c.x + dx - W / 2, y: c.y - H / 2, w: W, h: H };
+            const k = cover(r);
+            if (!best || k < best.k) best = { r, k };
+            if (!k) break;
+          }
+          if (!best.k) break;
+        }
+        const r = best.r;
+        placed.push(r);
+        const hue = pl.hue;
+        const fill = hue ? `color-mix(in oklab, ${hue.tint} 14%, var(--color-base-100))` : 'var(--color-base-100)';
+        return `<g><rect x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="${H / 2}" fill="${fill}" stroke="${pl.stroke}" stroke-width="1"${hue?.dash ? ` stroke-dasharray="4 3"` : ''}/>`
+          + `<text x="${r.x + r.w / 2}" y="${r.y + H / 2 + 4}" text-anchor="middle" font-size="12" font-family="system-ui, sans-serif" fill="${hue ? hue.ink : 'var(--color-base-content)'}">${window.esc(pl.label)}</text></g>`;
+      }).join('');
+    },
+
+    render(i, el) {
+      el.replaceChildren();
+      const s = this.vis[i], a = this.actorOf(s), st = this.status(s);
+      const root = h('article', 'grid gap-6 text-xl leading-8');
+      const top = h('div', 'flex flex-wrap items-center gap-2 text-xs');
+      const who = h('span', 'badge badge-ghost gap-1');
+      who.append(icon(a.icon), document.createTextNode(a.label));
+      top.append(who);
+      if (st.k === 'only')  top.append(h('span', `badge ${st.hue.badge}`, (this.variants.find(x => x.id === st.vid)?.label || st.vid) + ' only'));
+      if (st.k === 'changed') top.append(h('span', 'badge badge-soft', 'differs by version'));
+      const title = h('h2', 'text-2xl font-semibold leading-tight', s.label);
+      root.append(top, title);
+
+      // The step's sentence, or each version's side by side where they differ.
+      if (Array.isArray(s.gloss)) {
+        const vids = this.v ? [this.v] : this.variants.map(x => x.id);
+        const cmp = h('div', 'grid gap-4');
+        vids.forEach(vid => {
+          const g = s.gloss.find(x => x.v === vid);
+          if (!g) return;
+          const hue = vids.length > 1 ? this.hue(vid) : null;
+          const blk = h('div', hue ? `${hue.bar} pl-4 grid gap-1` : 'grid');
+          if (hue) blk.append(h('span', `badge ${hue.badge} badge-sm`, this.variants.find(x => x.id === vid)?.label || vid));
+          blk.append(inline(h('p'), g.gloss));
+          cmp.append(blk);
+        });
+        root.append(cmp);
+      } else if (s.gloss) root.append(inline(h('p'), s.gloss));
+
+      // The branches the reader can take from here.
+      const exits = (s.exits || []).filter(x => this.active().some(vid => this.inV(x, vid)) && this.vis.some(y => y.id === x.to));
+      if (exits.length) {
+        const ul = h('div', 'grid divide-y divide-base-300 border-y border-base-300');
+        exits.forEach(x => {
+          const j = this.vis.findIndex(y => y.id === x.to), back = j <= i;
+          const hue = this.both && x.in && x.in.length < this.variants.length ? this.hue(x.in[0]) : null;
+          const b = h('button', `w-full text-left grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 py-3 hover:bg-base-200 ${hue ? hue.bar + ' pl-3' : ''}`);
+          b.type = 'button';
+          b.append(icon(back ? 'ph-arrow-u-up-left' : 'ph-arrow-bend-down-right', 'text-2xl mt-0.5'));
+          const t = h('div', 'grid gap-1 min-w-0');
+          const head = h('div', 'flex flex-wrap items-center gap-2 text-xs');
+          head.append(h('span', 'badge badge-neutral', x.label || (back ? 'loop' : 'branch')));
+          head.append(document.createTextNode((back ? 'back to ' : 'on to ') + (j + 1) + '. ' + this.vis[j].label));
+          t.append(head, inline(h('span'), x.when || ''));
+          b.append(t);
+          b.addEventListener('click', () => this.take(x));
+          ul.append(b);
+        });
+        root.append(ul);
+      }
+      // The scripts, skills and records the step touches.
+      if (s.artifacts?.length) {
+        const ul = h('ul', 'grid gap-3');
+        s.artifacts.forEach(x => {
+          const repo = x.repo || this.repo, ref = x.repo && x.repo !== this.repo ? 'main' : this.ref;
+          const href = /^https?:/.test(x.path) ? x.path : window.RepoAddress.github.blob(repo, ref, x.path);
+          const li = h('li', 'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 items-start');
+          li.append(icon(KIND[x.kind] || 'ph-file', 'text-2xl mt-0.5 text-base-content/70'));
+          const t = h('div', 'min-w-0 grid');
+          t.append(h('span', 'font-semibold', x.label));
+          const link = h('a', 'link link-hover font-mono text-xs text-base-content/60 truncate', (repo !== this.repo ? repo.split('/')[1] + ': ' : '') + x.path);
+          link.href = href; link.target = '_blank'; link.rel = 'noopener';
+          t.append(link);
+          li.append(t);
+          ul.append(li);
+        });
+        root.append(ul);
+      }
+
+      el.append(root);
+    },
+  }));
+});
+</script>
+</head>
+<body class="bg-base-100 text-base-content [--fab-bottom:4.5rem]">
+<div x-data="flow()" class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)_auto]">
+
+  <header class="border-b border-base-300 px-4 py-2 grid gap-1">
+    <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+      <i class="ph ph-flow-arrow text-xl"></i>
+      <h1 class="font-semibold text-lg truncate" x-text="F ? F.title : 'Flow'"></h1>
+      <span x-show="F" class="flex items-center gap-2 text-sm text-base-content/70 tabular-nums">
+        <span x-show="passes" class="badge badge-ghost gap-1 min-w-[4ch]"><i class="ph ph-arrow-u-up-left"></i><span x-text="passes"></span></span>
+        <span class="min-w-[7ch] text-right" x-text="(cur + 1) + ' / ' + n"></span>
+      </span>
+    </div>
+    <nav x-show="variants.length > 1" aria-label="Version" class="flex items-center gap-2 overflow-x-auto text-xs">
+      <span class="text-base-content/60 shrink-0">Version</span>
+      <button type="button" class="btn btn-xs rounded-full shrink-0 gap-1" :class="!v ? 'btn-neutral' : 'btn-ghost'" @click="setV('')">
+        Both <span class="tabular-nums opacity-70" x-text="count('')"></span>
+      </button>
+      <template x-for="(x, k) in variants" :key="x.id">
+        <button type="button" class="btn btn-xs rounded-full shrink-0 gap-1" :class="v === x.id ? 'btn-neutral' : 'btn-ghost'" @click="setV(x.id)">
+          <span class="inline-block w-3 h-3 rounded-full border-2" :class="k ? 'border-info border-dashed' : 'border-warning'"></span>
+          <span x-text="x.label"></span><span class="tabular-nums opacity-70" x-text="count(x.id)"></span>
+        </button>
+      </template>
+    </nav>
+  </header>
+
+  <main x-ref="main" class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)]"
+        :style="`grid-template-rows: ${mapH ? mapH + 'px' : 'minmax(0,2fr)'} auto minmax(0,3fr)`">
+    <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
+    <div x-show="!F && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
+
+    <section x-show="F" x-ref="map" aria-label="Map" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
+      <div x-ref="grid" class="grid gap-x-2 gap-y-6 p-3"
+           :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); max-width: ${F.actors.length * 13}rem; margin-right: ${gutter * 12 + 8}px`">
+        <!-- One backdrop under the lane names, across the gaps and the loops' gutter, so an edge scrolled under them stays hidden. -->
+        <div class="sticky top-0 z-10 bg-base-100 -ml-3" :style="`grid-row: 1; grid-column: 1 / -1; margin-right: -${gutter * 12 + 20}px`"></div>
+        <template x-for="(a, k) in (F ? F.actors : [])" :key="a.id">
+          <div class="sticky top-0 z-10 py-1 flex items-center gap-1 text-xs font-semibold text-base-content/70" :style="`grid-row: 1; grid-column: ${k + 1}`">
+            <i class="ph text-base shrink-0" :class="a.icon"></i><span class="leading-tight" x-text="a.label"></span>
+          </div>
+        </template>
+        <template x-for="(s, i) in vis" :key="s.id + v">
+          <button type="button" :data-step="s.id" @click="go(i)" :aria-current="i === cur ? 'step' : null"
+                  class="relative z-[1] scroll-my-20 justify-self-center w-fit max-w-full text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
+                  :class="nodeClass(i)" :style="`grid-row: ${i + 2}; grid-column: ${col(s)}; ` + nodeStyle(i)">
+            <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
+            <span>
+              <span x-text="s.label"></span>
+              <span class="inline-flex gap-0.5 align-middle opacity-70">
+                <template x-for="k in kinds(s)" :key="k"><i class="ph text-sm" :class="k"></i></template>
+                <i x-show="status(s).k === 'changed'" class="ph ph-git-diff text-sm"></i>
+              </span>
+            </span>
+          </button>
+        </template>
+      </div>
+      <div x-html="svg"></div>
+    </section>
+
+    <div x-show="F" x-ref="seam" class="h-3"></div>
+
+    <section x-show="F" aria-label="Step" class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)]">
+      <div x-ref="track" class="min-h-0 min-w-0 h-full"></div>
+    </section>
+  </main>
+
+  <footer x-show="F" class="border-t border-base-300 px-2 py-1 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1">
+    <button type="button" class="btn btn-ghost btn-square" aria-label="Previous step" @click="go(cur - 1)" :disabled="cur === 0">
+      <i class="ph ph-caret-left text-xl"></i>
+    </button>
+    <div class="min-w-0 flex justify-center-safe overflow-x-auto">
+      <template x-if="n <= 25">
+        <div class="flex">
+          <template x-for="(s, i) in vis" :key="s.id + v">
+            <button type="button" class="h-10 w-6 shrink-0 grid place-items-center" :aria-label="'Step ' + (i + 1) + ', ' + s.label"
+                    :aria-current="i === cur ? 'step' : null" @click="go(i)">
+              <span class="rounded-full" :class="i === cur ? 'h-4 w-4 bg-neutral' : 'h-2.5 w-2.5 bg-base-content/30'"></span>
+            </button>
+          </template>
+        </div>
+      </template>
+      <template x-if="n > 25">
+        <input type="range" class="range range-xs w-full" min="1" :max="n" :value="cur + 1" aria-label="Step" @input="go($event.target.value - 1)">
+      </template>
+    </div>
+    <button type="button" class="btn btn-ghost btn-square" aria-label="Next step" @click="go(cur + 1)" :disabled="cur === n - 1">
+      <i class="ph ph-caret-right text-xl"></i>
+    </button>
+  </footer>
+</div>
+</body>
+</html>

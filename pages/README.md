@@ -31,6 +31,7 @@ the link-dense text twin of the visual index above.
 | `diff-tool` | Diff | [view](https://mehrlander.github.io/web-tools/pages/diff-tool.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/diff-tool.html) |
 | `doc-growth` | Doc Growth | [view](https://mehrlander.github.io/web-tools/pages/doc-growth.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/doc-growth.html) |
 | `entities` | Entities | [view](https://mehrlander.github.io/web-tools/pages/entities.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/entities.html) |
+| `flow` | Flow | [view](https://mehrlander.github.io/web-tools/pages/flow.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/flow.html) |
 | `gist-editor` | Gist Editor | [view](https://mehrlander.github.io/web-tools/pages/gist-editor.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/gist-editor.html) |
 | `idea-board` | Idea board | [view](https://mehrlander.github.io/web-tools/pages/idea-board.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/idea-board.html) |
 | `image-board` | Image board | [view](https://mehrlander.github.io/web-tools/pages/image-board.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/image-board.html) |
