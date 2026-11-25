@@ -101,6 +101,7 @@
   try {
     await gh.load('kits/gz-payload.js');    // the #gz= codec
     await gh.load('kits/swipe-deck.js');    // the track
+    await gh.load('kits/dock-split.js');    // the seams between list and detail
     await gh.load('kits/linked-swiper.js'); // the list over the detail
     await gh.load('kits/guide-render.js');  // Markdown to HTML
     await gh.load('kits/md-diff.js');       // the redline
@@ -313,6 +314,9 @@ document.addEventListener('alpine:init', () => {
         subs: id => { const st = steps[+id]; return this.hi(st) > this.lo(st) ? range(st) : []; },
         selSub: () => (this.buildsMore ? this.b : undefined),
         places: true, slideScroll: true, innerClass: 'w-full', slidePad: 'pt-3 pb-24',
+        // Side by side, the kit's own seam sets the list's width; stacked, the
+        // list's cap is --sw-list, which the row seam below sets.
+        seam: 'wt-stepwise-list-w', listMax: 'max-h-[var(--sw-list,38vh)]',
         tab: (id, sub) => ({ label: String(sub), aria: `${sub} of ${this.hi(steps[+id])} ${NOUN[steps[+id].kind]}s shown` }),
         head: ({ i, n, id, sub }) => this.head(i, n, +id, sub, NOUN),
         body: (id, el, sub) => { this.render(this.placeOf(+id, sub), el); },
@@ -322,7 +326,54 @@ document.addEventListener('alpine:init', () => {
           this.enter(+id);
         },
       });
+      this.rowSeam();
       requestAnimationFrame(() => requestAnimationFrame(() => this.enter(this.step)));
+    },
+    // THE SEAM BETWEEN THE STACKED LIST AND THE DETAIL, kits/dock-split.js as
+    // lib/alpineComponents/user-call-form.js places its seam under the list of
+    // edits: the kit owns the gesture and the list's height is ours. A drag
+    // runs from the list's top to the foot of the page, so the pointer's place
+    // is the list's height, from one row up to the whole list, never so tall
+    // that the detail keeps under 160px. The height is kept in this browser on
+    // release; a double-click goes back to the default cap (38% of the view).
+    // It shows only while the list is stacked (the kit's data-ls-stacked).
+    rowSeam() {
+      const root = this.$refs.root, list = this.$refs.list, el = this.$refs.seam;
+      if (!window.dockSplit || !el || this._seam) return;
+      const KEY = 'wt-stepwise-list-h', ROW = 40, KEEP = 160;
+      // Shown only while stacked. Inline, because dock-split's stylesheet is
+      // unlayered and outranks the `hidden` utility, as linked-swiper notes
+      // for its own seam.
+      const show = () => { el.style.display = root.hasAttribute('data-ls-stacked') ? '' : 'none'; };
+      new MutationObserver(show).observe(root, { attributes: true, attributeFilter: ['data-ls-stacked'] });
+      show();
+      const set = px => (px ? root.style.setProperty('--sw-list', px + 'px') : root.style.removeProperty('--sw-list'));
+      let h = 0;
+      try { h = +localStorage.getItem(KEY) || 0; } catch (e) {}
+      set(h);
+      // Measured from half the seam's height below the list's top, so the
+      // grip, which sits that far under the list's foot, does not jump when
+      // it is taken.
+      const span = () => {
+        const l = list.getBoundingClientRect(), b = root.getBoundingClientRect();
+        const top = l.top + el.getBoundingClientRect().height / 2;
+        return { top, bottom: b.bottom, height: Math.max(1, b.bottom - top), left: b.left, right: b.right, width: b.width };
+      };
+      const pct = px => px / span().height * 100;
+      this._seam = window.dockSplit.attach(el, {
+        axis: 'row', from: 'start', label: 'Height of the list of steps',
+        bounds: span,
+        value: () => pct(list.getBoundingClientRect().height),
+        min: () => pct(ROW),
+        max: () => { const r = span(); return Math.max(pct(ROW), Math.min(list.scrollHeight, r.height - KEEP) / r.height * 100); },
+        onChange: p => { h = Math.round(p * span().height / 100); set(h); },
+        onCommit: () => { try { localStorage.setItem(KEY, String(h)); } catch (e) {} },
+      });
+      el.addEventListener('dblclick', () => {
+        h = 0; set(0);
+        try { localStorage.removeItem(KEY); } catch (e) {}
+        this._seam?.refresh?.();
+      });
     },
     // The detail's head row: the step's stage and maker, and the button group
     // that steps through places, its middle the builds shown or the step.
@@ -801,8 +852,10 @@ document.addEventListener('alpine:init', () => {
   <main class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)] p-2">
     <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
     <div x-show="!B && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
-    <div x-ref="root" x-show="B" class="min-h-0 min-w-0">
+    <!-- Stacked (data-ls-stacked), a third row holds the seam between the list and the detail. -->
+    <div x-ref="root" x-show="B" class="min-h-0 min-w-0 data-ls-stacked:grid-rows-[auto_12px_minmax(0,1fr)] data-ls-stacked:gap-y-0">
       <div x-ref="list"></div>
+      <div x-ref="seam" class="h-3"></div>
       <div x-ref="card"></div>
     </div>
   </main>
