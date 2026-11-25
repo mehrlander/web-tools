@@ -4,24 +4,19 @@
   "repo": "mehrlander/web-tools",
   "actors": [
     {
+      "id": "owner",
+      "label": "User",
+      "icon": "ph-user"
+    },
+    {
       "id": "session",
-      "label": "Session",
+      "label": "Main agent",
       "icon": "ph-terminal-window"
     },
     {
-      "id": "tool",
-      "label": "user-call.py",
-      "icon": "ph-gear-six"
-    },
-    {
-      "id": "critic",
-      "label": "Peeves critic",
-      "icon": "ph-magnifying-glass"
-    },
-    {
-      "id": "owner",
-      "label": "Owner",
-      "icon": "ph-user"
+      "id": "subagent",
+      "label": "Subagents",
+      "icon": "ph-robot"
     }
   ],
   "variants": [
@@ -50,7 +45,7 @@
     },
     {
       "id": "spans",
-      "actor": "tool",
+      "actor": "session",
       "label": "Number the edits",
       "gloss": "`review DRAFT FILE --spans` prints the edits as line ranges E1, E2 and so on, measured against the call's base.",
       "artifacts": [
@@ -72,7 +67,7 @@
     },
     {
       "id": "prompt-new",
-      "actor": "tool",
+      "actor": "session",
       "label": "Print the prompt",
       "in": [
         "proposed"
@@ -88,7 +83,7 @@
     },
     {
       "id": "read",
-      "actor": "critic",
+      "actor": "subagent",
       "label": "Read for peeves",
       "gloss": [
         {
@@ -131,7 +126,7 @@
     },
     {
       "id": "resolve-new",
-      "actor": "tool",
+      "actor": "session",
       "label": "Resolve the run",
       "in": [
         "proposed"
@@ -153,7 +148,7 @@
     },
     {
       "id": "parse",
-      "actor": "tool",
+      "actor": "session",
       "label": "Set the verdict",
       "gloss": "Parse the report's trips. A trip inside an edit fails the run.",
       "artifacts": [
@@ -222,7 +217,7 @@
     },
     {
       "id": "file",
-      "actor": "tool",
+      "actor": "session",
       "label": "File the call",
       "gloss": [
         {

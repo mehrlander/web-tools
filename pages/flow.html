@@ -115,6 +115,8 @@ document.addEventListener('alpine:init', () => {
       if (Array.isArray(s.gloss)) return { k: 'changed' };
       return { k: 'shared' };
     },
+    // The kinds of file a step touches, each once, in the order first listed: drawn as icons in its node.
+    kinds(s) { return [...new Set((s.artifacts || []).map(x => x.kind))].map(k => KIND[k] || 'ph-file'); },
     actorOf(s) { return this.F.actors.find(a => a.id === s.actor) || { label: s.actor, icon: 'ph-circle' }; },
     col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
     count(vid) { return this.F ? this.F.steps.filter(s => !vid || !s.in || s.in.includes(vid)).length : 0; },
@@ -323,9 +325,11 @@ document.addEventListener('alpine:init', () => {
           lx = x2 + 5; ly = y2 - 5;
         }
         s += `<path d="${d}" fill="none" stroke="${p.stroke}" stroke-width="1.5"${p.dash ? ` stroke-dasharray="${p.dash}"` : ''} marker-end="url(#flow-arrow)" style="color:${p.stroke}"/>`;
-        e.labels.forEach((l, k) => {
+        // Several labels on one edge run side by side, as the rows between steps are too short to stack them.
+        e.labels.forEach(l => {
           const hue = all.length > 1 ? this.hue(l.vid) : null;
-          s += text(lx, ly - (rot ? 0 : k * 13), l.label, la, hue ? hue.ink : 'var(--color-base-content)', rot);
+          s += text(lx, ly, l.label, la, hue ? hue.ink : 'var(--color-base-content)', rot);
+          if (!rot) lx += l.label.length * 6 + 10;
         });
       });
       // The loops' lanes widen the map's right margin, which moves the grid: draw again.
@@ -458,7 +462,10 @@ document.addEventListener('alpine:init', () => {
             <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
             <span>
               <span x-text="s.label"></span>
-              <i x-show="status(s).k === 'changed'" class="ph ph-git-diff text-xs opacity-70"></i>
+              <span class="inline-flex gap-0.5 align-middle opacity-70">
+                <template x-for="k in kinds(s)" :key="k"><i class="ph text-sm" :class="k"></i></template>
+                <i x-show="status(s).k === 'changed'" class="ph ph-git-diff text-sm"></i>
+              </span>
             </span>
           </button>
         </template>
