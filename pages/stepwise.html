@@ -15,7 +15,7 @@
 
     stepwise/2  { schema, title, file, repo?, steps: [{
                     stage: request | intent | outline | draft,
-                    by: owner | session | critic | proxy,
+                    by: owner | session | critic | proxy | panel,
                     note,       one line on what the step adds
                     payload,    the stage's whole text after the step (Markdown)
                     comments?: [{ on: payload | outline, quoted,
@@ -50,8 +50,17 @@
   reveals the next comment, flying in under its block as its mark lights, and
   the move after the last goes on to the next step; a backward move takes the
   last one away, and a step reached backward arrives fully built. The address
-  carries the build, &step=10.3. A
-  comment's `peeve` is an id in web-tools skills/peeves/peeves.csv, read at the
+  carries the build, &step=10.3.
+
+  A panel step (`by: panel`, pages/demos/stepwise-run-template.md, Panels) is
+  an imagined dialog about its lane's text: a roster of `- **TW**, role: what`
+  lines, then turns opening `**TW:**`. It is drawn as a conversation, not
+  diffed: the roster as a row of initials (the role as a title-tip), each turn
+  beside its speaker in that speaker's hue, the last set off as the proposed
+  wording. Its turns are builds the same way, the first shown on arrival. The
+  next non-panel step of the lane diffs against the step before the panel.
+
+  A comment's `peeve` is an id in web-tools skills/peeves/peeves.csv, read at the
   #gh= ref when the payload is web-tools' own and from main otherwise; its pill
   carries the peeve's name and sentence as a title-tip (kits/title-tip.js) and
   links to the entry in skills/peeves/peeves.md. The proxy, the owner-proxy
@@ -119,6 +128,27 @@ document.addEventListener('alpine:init', () => {
     proxy: { badge: 'badge-secondary', icon: 'ph-user-focus', dot: 'bg-secondary',
              mark: 'bg-secondary/20 decoration-[var(--color-secondary)]', on: 'bg-secondary/40', edge: 'border-secondary', tint: 'bg-secondary/10' },
     owner: { badge: 'badge-info', icon: 'ph-user', dot: 'bg-info' },
+    panel: { badge: 'badge-neutral', icon: 'ph-users-three', dot: 'bg-neutral' },
+  };
+  // A panel's speakers, each a hue of its own in roster order: theme hues the
+  // critic, the proxy and the owner do not hold.
+  const VOICES = [
+    { av: 'bg-primary text-primary-content', say: 'bg-primary/10', edge: 'border-primary' },
+    { av: 'bg-accent text-accent-content', say: 'bg-accent/10', edge: 'border-accent' },
+    { av: 'bg-success text-success-content', say: 'bg-success/10', edge: 'border-success' },
+    { av: 'bg-neutral text-neutral-content', say: 'bg-base-200', edge: 'border-neutral' },
+  ];
+  // A panel step's payload: a roster of `- **TW**, role: what they do` lines,
+  // then turns, each a paragraph opening `**TW:**`.
+  const panelOf = md => {
+    const roster = [], turns = [];
+    for (const m of String(md || '').matchAll(/^[-*] \*\*([^*]+)\*\*,\s*([^:\n]+?)(?::\s*(.*))?$/gm)) roster.push({ who: m[1].trim(), role: m[2].trim(), what: (m[3] || '').trim() });
+    for (const para of String(md || '').split(/\n\s*\n/)) {
+      const m = para.trim().match(/^\*\*([^*:]+):\*\*\s*([\s\S]*)$/);
+      if (m) turns.push({ who: m[1].trim(), text: m[2].trim() });
+    }
+    for (const t of turns) if (!roster.some(r => r.who === t.who)) roster.push({ who: t.who, role: '', what: '' });
+    return { roster, turns };
   };
   const review = c => (c?.by === 'proxy' ? BY.proxy : BY.critic);
   // A peeve's heading anchor in skills/peeves/peeves.md, by GitHub's rule
@@ -194,7 +224,13 @@ document.addEventListener('alpine:init', () => {
     },
     get step() { return this.places[this.cur]?.step ?? 0; },
     get b() { return this.places[this.cur]?.b ?? 0; },
-    get builds() { return this.B ? this.B.steps[this.step].comments.length : 0; },
+    // A step's builds: a panel's turns (the first shown on arrival), or a
+    // review's comments (none shown on arrival).
+    lo(st) { return st.panel ? Math.min(1, st.panel.turns.length) : 0; },
+    hi(st) { return st.panel ? st.panel.turns.length : st.comments.length; },
+    get builds() { return this.B ? this.hi(this.B.steps[this.step]) : 0; },
+    get buildsMore() { return this.B ? this.hi(this.B.steps[this.step]) > this.lo(this.B.steps[this.step]) : false; },
+    get buildNoun() { return this.B?.steps[this.step].panel ? 'turns' : 'comments'; },
     first(k) { return this.places.findIndex(p => p.step === k); },
     get stage() { return this.B ? this.B.steps[this.step].stage : ''; },
     dot(i) {
@@ -203,7 +239,8 @@ document.addEventListener('alpine:init', () => {
     },
     // The last step before i in a stage, or -1.
     before(i, stage) {
-      for (let j = i - 1; j >= 0; j--) if (this.B.steps[j].stage === stage) return j;
+      // A panel is a conversation about a lane's text, not a version of it.
+      for (let j = i - 1; j >= 0; j--) if (this.B.steps[j].stage === stage && this.B.steps[j].by !== 'panel') return j;
       return -1;
     },
 
@@ -212,7 +249,7 @@ document.addEventListener('alpine:init', () => {
       try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
       if (this.B.repo) this.repo = this.B.repo;
       document.title = this.B.title || 'Stepwise';
-      this.places = this.B.steps.flatMap((s, k) => Array.from({ length: s.comments.length + 1 }, (_, b) => ({ step: k, b })));
+      this.places = this.B.steps.flatMap((s, k) => Array.from({ length: this.hi(s) - this.lo(s) + 1 }, (_, x) => ({ step: k, b: this.lo(s) + x })));
       this.cur = this.stepOf();
       if (this.B.steps.some(s => s.comments.some(c => c.peeve))) {
         try { await this.loadPeeves(); } catch (e) { /* the pills keep their ids and lose their names */ }
@@ -277,7 +314,9 @@ document.addEventListener('alpine:init', () => {
       B.steps = B.steps.map((s, i) => {
         const stage = v1 ? 'draft' : s.stage;
         if (!STAGE[stage]) throw new Error(`Step ${i + 1} has no stage this page knows (${stage})`);
-        return { ...s, stage, payload: String(s.payload ?? ''), comments: v1 ? [] : (s.comments || []) };
+        const out = { ...s, stage, payload: String(s.payload ?? ''), comments: v1 ? [] : (s.comments || []) };
+        if (out.by === 'panel') { out.panel = panelOf(out.payload); out.comments = []; }
+        return out;
       });
       return B;
     },
@@ -288,12 +327,13 @@ document.addEventListener('alpine:init', () => {
       const [s, b] = String(param('step') || '').split('.').map(x => parseInt(x, 10));
       if (!Number.isFinite(s)) return 0;
       const k = Math.max(0, Math.min(this.n - 1, s - 1));
-      return this.first(k) + Math.max(0, Math.min(this.B.steps[k].comments.length, b || 0));
+      const st = this.B.steps[k];
+      return this.first(k) + Math.max(0, Math.min(this.hi(st), Number.isFinite(b) ? b : this.lo(st)) - this.lo(st));
     },
     // Rewrites only `step`, so a #gz= or #gh= value keeps its own spelling.
     mark() {
       const parts = location.hash.slice(1).split('&').filter(p => p && !/^step=/.test(p));
-      parts.push('step=' + (this.step + 1) + (this.b ? '.' + this.b : ''));
+      parts.push('step=' + (this.step + 1) + (this.b > this.lo(this.B.steps[this.step]) ? '.' + this.b : ''));
       try { history.replaceState(history.state, '', '#' + parts.join('&')); } catch (e) {}
     },
     go(i) {
@@ -429,6 +469,7 @@ document.addEventListener('alpine:init', () => {
       el.dataset.step = i;
       el.__shown = 0;
       el.__comments = null;
+      el.__turns = null;
       const s = this.B.steps[i], who = by(s), st = s.stage;
       const j = this.before(i, st), fresh = j < 0;
       const was = split(fresh ? s.payload : this.B.steps[j].payload), now = split(s.payload);
@@ -446,6 +487,7 @@ document.addEventListener('alpine:init', () => {
         el.append(this.folded('request', qn.el));
         this.draw(qn.host, this.B.steps[req].payload, this.B.steps[req].payload);
       }
+      if (s.panel) { this.renderPanel(i, el, s); return; }
       let outlineHost = null, outlineFold = null;
       const ol = st === 'draft' ? this.before(i, 'outline') : -1;
       if (ol >= 0) {
@@ -573,12 +615,66 @@ document.addEventListener('alpine:init', () => {
       el.__comments = built;
       this.reveal(el, el.__want || 0, false);
     },
+    // A panel step: the text under discussion folded above, the roster as a
+    // row of initials, then the conversation, a turn per build. The last turn,
+    // the panel's proposed wording read aloud, is set off.
+    renderPanel(i, el, s) {
+      const st = s.stage, j = this.before(i, st);
+      if (j >= 0) {
+        const card = st === 'outline' ? this.outlineCard(false) : { el: h('div', 'py-3'), host: h('div', PROSE + ' px-4') };
+        if (!card.el.contains(card.host)) card.el.append(card.host);
+        card.el.classList.replace('border', 'border-0');
+        el.append(this.folded(st, card.el));
+        this.draw(card.host, this.B.steps[j].payload, this.B.steps[j].payload);
+      }
+      const { roster, turns } = s.panel;
+      const voice = who => VOICES[Math.max(0, roster.findIndex(r => r.who === who)) % VOICES.length];
+      const avatar = (r, size) => {
+        const v = voice(r.who);
+        const a = h('span', 'shrink-0');
+        const disc = h('span', `${v.av} ${size} rounded-full grid place-items-center font-mono text-xs font-semibold`, r.who);
+        if (r.role) { disc.dataset.titleTipLead = r.role; if (r.what) disc.dataset.titleTip = r.what; else disc.dataset.titleTip = r.role; disc.tabIndex = 0; }
+        a.append(disc);
+        return a;
+      };
+      const row = h('div', 'mx-4 sm:mx-8 mb-4 flex flex-wrap items-center gap-2');
+      for (const r of roster) row.append(avatar(r, 'w-9 h-9'));
+      const talk = h('div', 'mx-4 sm:mx-8 grid gap-3');
+      const nodes = turns.map((t, k) => {
+        const r = roster.find(x => x.who === t.who) || { who: t.who };
+        const v = voice(t.who), last = k === turns.length - 1 && turns.length > 1;
+        const line = h('div', 'grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start hidden');
+        const say = h('div', `${PROSE.replace('prose-xl', 'prose-lg')} ${v.say} rounded-box rounded-tl-sm px-3 py-2` + (last ? ` border-2 ${v.edge}` : ''));
+        say.innerHTML = this.html(t.text);
+        line.append(avatar(r, 'w-8 h-8'), say);
+        talk.append(line);
+        return line;
+      });
+      const main = h('div');
+      main.append(row, talk);
+      main.dataset.enter = '';
+      el.append(main);
+      el.__turns = nodes;
+      el.__shown = 0;
+      this.revealTurns(el, el.__want || 0, false);
+    },
+    revealTurns(el, b, animate) {
+      const was = el.__shown || 0;
+      el.__turns.forEach((n, k) => n.classList.toggle('hidden', k >= b));
+      el.__shown = b;
+      if (!animate || b !== was + 1) return;
+      const n = el.__turns[b - 1];
+      n.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+      if (!calm()) n.animate([{ opacity: 0, transform: 'translateY(18px)' }, { opacity: 1, transform: 'none' }],
+                             { duration: 360, easing: 'cubic-bezier(.2,.7,.2,1)' });
+    },
     // Show the first b comments of the step on slide el. One more than before,
     // moving forward, is a build: the comment flies in under its block, its
     // mark lights as it lands, and the two are brought into view. Under
     // reduced motion it appears without moving.
     reveal(el, b, animate) {
       el.__want = b;
+      if (el.__turns) return this.revealTurns(el, b, animate);
       const all = el.__comments;
       if (!all) return;
       const was = el.__shown || 0;
@@ -619,8 +715,8 @@ document.addEventListener('alpine:init', () => {
     </div>
     <div x-show="B" class="min-w-[7ch] grid justify-items-end tabular-nums text-sm text-base-content/70">
       <span x-text="(step + 1) + ' / ' + n"></span>
-      <span x-show="builds" class="inline-flex items-center gap-1 text-xs text-base-content/50" :aria-label="b + ' of ' + builds + ' comments shown'">
-        <i class="ph ph-chat-circle-dots"></i><span x-text="b + '/' + builds"></span>
+      <span x-show="buildsMore" class="inline-flex items-center gap-1 text-xs text-base-content/50" :aria-label="b + ' of ' + builds + ' ' + buildNoun + ' shown'">
+        <i class="ph" :class="buildNoun === 'turns' ? 'ph-users-three' : 'ph-chat-circle-dots'"></i><span x-text="b + '/' + builds"></span>
       </span>
     </div>
   </header>
