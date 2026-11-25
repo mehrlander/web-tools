@@ -13,7 +13,7 @@ The folder's README links the term probes to this file and says only what is par
 
 ## Status
 
-A probe's [research declaration](manifest.md#research-declarations) gives its `status`: `living`, `measured` or `record`, as the [docs catalog](README.md) defines them. A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
+A probe's [research declaration](manifest.md#research-declarations) gives its `status`: `living`, `measured` or `record`, as the [docs catalog](README.md) defines them. It may also give a `lifecycle`, where the inquiry stands: `planned` (posed, not yet run), `active` (under way), `maintained` (its findings kept current) or `revising` (reopened because its scope grew or a finding was challenged). A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
 
 ## Sources
 

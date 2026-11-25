@@ -101,3 +101,16 @@ test("a declaration's status is living, measured or record", t => {
   assert.equal(r.status, 1);
   assert.match(r.stdout, /research one\/README\.md has status done, not one of living, measured, record/);
 });
+
+test("a declaration's lifecycle is planned, active, maintained or revising", t => {
+  const root = fixture(t, GOOD);
+  const manifest = JSON.parse(readFileSync(path.join(root, '.web-tools.json'), 'utf8'));
+  manifest.research[0].lifecycle = 'maintained';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  assert.equal(run(root).status, 0);
+  manifest.research[1].lifecycle = 'finished';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  const r = run(root);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /research one\/README\.md has lifecycle finished, not one of planned, active, maintained, revising/);
+});

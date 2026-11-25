@@ -152,6 +152,8 @@ test('a declared status rides on the account, and an unknown one invalidates it'
   assert.ok(data.validResearchEntry(entry));
   for (const status of ['living', 'measured', 'record']) assert.ok(data.validResearchEntry({ ...entry, status }));
   assert.ok(!data.validResearchEntry({ ...entry, status: 'closed' }));
+  for (const lifecycle of ['planned', 'active', 'maintained', 'revising']) assert.ok(data.validResearchEntry({ ...entry, lifecycle }));
+  assert.ok(!data.validResearchEntry({ ...entry, lifecycle: 'finished' }));
 });
 
 test('a repository on the registry hidden list leaves research, its strip and projects', async () => {
