@@ -48,7 +48,7 @@ An **output** has an `id` unique in its run and a `text`, and may have:
 | `anchor` | The passage the output rests on, as `{block, start, end}`. `start` and `end` are offsets into that block's text in code points, with `end` exclusive. Where no span applies, the anchor is `{block}` alone. |
 | `anchors` | A list of anchors, in place of `anchor`, for an output that rests on several passages. The page marks each passage and scrolls to the first. |
 
-**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card carries its `title`, else "Output" and its number, and its verdict and note at its foot.
+**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card is headed by its `title`, or by "Output" and its number where it has none. Its verdict and note sit at its foot.
 
 ## Answers
 
