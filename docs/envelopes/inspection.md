@@ -1,6 +1,6 @@
 # Inspection: the envelope contract
 
-An **inspection** shows the owner model outputs, one by one. Each output is anchored to a passage of an input, or is a version of the whole input. The owner may add a note to each output. Where a set of verdicts is declared, the owner may also give each output one verdict from it.
+An **inspection** shows model outputs, one by one. Each output is anchored to a passage of an input, or is a version of the whole input. The owner may add a note to each output. Where a set of verdicts is declared, the owner may also give each output one verdict from it.
 
 An `inspection/1` payload holds its inputs and outputs as runs, where a run is one input and the outputs made from it. 🔷 [pages/inspection.html](https://mehrlander.github.io/web-tools/pages/inspection.html) shows a run's input with each output's passages marked, and the selected output below it, numbered to match. It appends the notes and verdicts to the payload's [answers file](#answers).
 
