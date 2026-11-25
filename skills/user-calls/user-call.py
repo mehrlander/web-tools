@@ -696,6 +696,11 @@ def parse_report(text):
     secs, stated = sections(text)
     run = {"verdict": "unknown", "trips": [], "clear": [], "candidates": [], "preexisting": [], "report": text}
     if "trips" not in secs:
+        # A stated PASS from a report that names no peeve anywhere has no
+        # trips to list, so it passes; any other report without the section
+        # has no verdict to read.
+        if stated == "pass" and not re.search(r"\b" + PEEVE + r"\b", text):
+            run["verdict"] = "pass"
         return run
     trips, prose, entry = [], [], None
     for line in secs["trips"]:

@@ -239,3 +239,14 @@ test("a list report's trips grouped under their entry's id take that entry's spa
   assert.deepEqual(pyMany([['review_errors', [{ runs: [{ ...r, trips: r.trips.map((t) => ({ ...t, answer: 'kept', why: 'w' })) }] }]]])[0], [],
     "the entry's id in the report stands for the tag");
 });
+
+test('a stated PASS that names no peeve passes without a Trips section; one that names a peeve, or a FAIL, has no verdict', () => {
+  const [ok, named, fail] = pyMany([
+    ['parse_report', ['Run 2: all seven notes pass.\n\n- two-way-door: PASS.\n\nVerdict: PASS']],
+    ['parse_report', ['Run 2: P05 is gone.\n\nVerdict: PASS']],
+    ['parse_report', ['Run 2: one note still reads poorly.\n\nVerdict: FAIL']],
+  ]);
+  assert.equal(ok.verdict, 'pass');
+  assert.equal(named.verdict, 'unknown', 'a peeve named outside a Trips section may be a trip in another shape');
+  assert.equal(fail.verdict, 'unknown');
+});
