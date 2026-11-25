@@ -133,7 +133,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **16. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
-**17. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
+**17. No boilerplate.** Shape each value to its content. Use a label only where structure and context can't make the meaning of the value clear. Use placement, proximity, icons and ingenuity to offer dense clusters of information that the reader can see as an entity and its kind at once.
 
 **18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
