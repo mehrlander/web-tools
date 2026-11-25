@@ -297,8 +297,8 @@ document.addEventListener('alpine:init', () => {
         return { stroke: one ? one.stroke : 'color-mix(in oklab, var(--color-base-content) 45%, transparent)', dash: one ? one.dash : '' };
       };
       let s = '', lane = 0;
-      const text = (x, y, t, anchor, color, rot) =>
-        `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="13" fill="${color}" stroke="var(--color-base-100)" stroke-width="3" paint-order="stroke"${rot ? ` transform="rotate(-90 ${x} ${y})"` : ''}>${window.esc(t)}</text>`;
+      const text = (x, y, t, color) =>
+        `<text x="${x}" y="${y}" font-size="13" fill="${color}" stroke="var(--color-base-100)" stroke-width="3" paint-order="stroke">${window.esc(t)}</text>`;
       const edges = this.edges();
       // Edges sharing a node fan out along its edge, so no two meet it at one
       // point: forward edges along its bottom and top, ordered by the other
@@ -321,14 +321,17 @@ document.addEventListener('alpine:init', () => {
         const a = e.a, b = e.b;
         if (!a || !b) return;
         const p = paint(e);
-        let d, lx, ly, la = 'start', rot = false;
+        let d, lx, ly;
         if (e.kind === 'loop') {
           // Out of the source's right side, up the gutter with rounded turns, into the target's right side.
-          const gx = gx0 + lane++ * 20, r = 8;
-          const y1 = a.y + a.h / 2 + off('r' + e.i, e, 6), y2 = b.y + b.h / 2 + off('r' + e.j, e, 6);
+          const gx = gx0 + lane++ * 12, r = 8;
+          const o1 = off('r' + e.i, e, 6);
+          const y1 = a.y + a.h / 2 + o1, y2 = b.y + b.h / 2 + off('r' + e.j, e, 6);
           const up = y2 < y1 ? -1 : 1;
           d = `M${a.x + a.w} ${y1} H${gx - r} Q${gx} ${y1} ${gx} ${y1 + up * r} V${y2 - up * r} Q${gx} ${y2} ${gx - r} ${y2} H${b.x + b.w + 2}`;
-          lx = gx - 5; ly = (y1 + y2) / 2; la = 'middle'; rot = true;
+          // The label reads across, on the stretch leaving the source: over
+          // the line for the upper of two loops, under it for the lower.
+          lx = a.x + a.w + 8; ly = o1 > 0 ? y1 + 15 : y1 - 5;
         } else {
           // A curve from the source's foot to the target's head. Where a step
           // between them sits across its way, the edge curves out to a channel
@@ -351,13 +354,13 @@ document.addEventListener('alpine:init', () => {
         // Several labels on one edge run side by side, as the rows between steps are too short to stack them.
         e.labels.forEach(l => {
           const hue = all.length > 1 ? this.hue(l.vid) : null;
-          s += text(lx, ly, l.label, la, hue ? hue.ink : 'var(--color-base-content)', rot);
-          if (!rot) lx += l.label.length * 7.5 + 12;
+          s += text(lx, ly, l.label, hue ? hue.ink : 'var(--color-base-content)');
+          lx += l.label.length * 7.5 + 12;
         });
       });
       // The loops' lanes widen the map's right margin, which moves the grid: draw again.
       if (lane !== this.gutter) { this.gutter = lane; this.$nextTick(() => this.draw()); }
-      const W = Math.max(map.scrollWidth, gx0 + lane * 20 + 10), H = map.scrollHeight;
+      const W = Math.max(map.scrollWidth, gx0 + lane * 12 + 10), H = map.scrollHeight;
       this.svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="absolute left-0 top-0 pointer-events-none" aria-hidden="true">
         <defs><marker id="flow-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
         <path d="M0 0 L10 5 L0 10 z" fill="context-stroke"/></marker></defs>${s}</svg>`;
@@ -472,9 +475,9 @@ document.addEventListener('alpine:init', () => {
 
     <section x-show="F" x-ref="map" aria-label="Map" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
       <div x-ref="grid" class="grid gap-x-2 gap-y-5 p-3"
-           :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); max-width: ${F.actors.length * 13}rem; margin-right: ${gutter * 20 + 8}px`">
+           :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); max-width: ${F.actors.length * 13}rem; margin-right: ${gutter * 12 + 8}px`">
         <!-- One backdrop under the lane names, across the gaps and the loops' gutter, so an edge scrolled under them stays hidden. -->
-        <div class="sticky top-0 z-10 bg-base-100 -ml-3" :style="`grid-row: 1; grid-column: 1 / -1; margin-right: -${gutter * 20 + 20}px`"></div>
+        <div class="sticky top-0 z-10 bg-base-100 -ml-3" :style="`grid-row: 1; grid-column: 1 / -1; margin-right: -${gutter * 12 + 20}px`"></div>
         <template x-for="(a, k) in (F ? F.actors : [])" :key="a.id">
           <div class="sticky top-0 z-10 py-1 flex items-center gap-1 text-xs font-semibold text-base-content/70" :style="`grid-row: 1; grid-column: ${k + 1}`">
             <i class="ph text-base shrink-0" :class="a.icon"></i><span class="leading-tight" x-text="a.label"></span>
