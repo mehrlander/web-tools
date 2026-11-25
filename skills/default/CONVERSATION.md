@@ -26,11 +26,13 @@ substituting the current repo in URL templates.
 
   Use 🟢 for a closing state that needs only confirmation to proceed.
 
-  The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
+  **Resource-supported states.** The following closing states have supporting resources. Make the whole lead its link, as `[✍️ **Sign-off needed:**](<url>)`:
   - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
   - ⌨️ a link that opens the code or text given, with a Copy button;
   - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
   - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
+
+  These glyphs may also prefix a link to such a resource elsewhere in a reply.
 
 * **Close in one order.** End every reply with the caption, the [render line](#displaying-content), then the state, whether or not files changed.
 
