@@ -82,7 +82,7 @@ function seed() {
       'lists/aphorisms.json': json({ title: 'Aphorisms', icon: 'quotes', items: [{ id: 'l1', text: 'Testing beats guessing.' }] }),
     },
     [HUB]: {
-      'lists/house-policies.json': json({ title: 'House policies', icon: 'scales', edit: 'propose', note: 'lead',
+      'lists/house-policies.json': json({ title: 'House policies', icon: 'scales', edit: 'propose', show_id: true, id_prefix: 'h:', note: 'lead',
         items: [{ id: 'qualify', text: 'Qualified writing', group: 'Writing', note: 'Write clearly.' }] }),
     },
   };
@@ -138,4 +138,12 @@ test('renaming a proposed list keeps its file where the builders read it', async
   await data.saveCreatedSettings();
   assert.deepEqual(plain(SAVES.map(s => [s.repo, s.path])), [[HUB, 'lists/house-policies.json']]);
   assert.equal(JSON.parse(FILES[HUB]['lists/house-policies.json']).title, 'Policies');
+});
+
+test('a list whose header sets show_id labels each item with its prefixed id, and others show none', async () => {
+  seed();
+  await data.loadCreatedLists(new FakeGH({ repo: REGISTRY }));
+  const [aph, hp] = data.createdLists;
+  assert.equal(data.createdIdLabel(hp, hp.items[0]), 'h:qualify');
+  assert.equal(data.createdIdLabel(aph, aph.items[0]), '');
 });

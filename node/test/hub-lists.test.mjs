@@ -33,6 +33,7 @@ test('the hub\'s lists parse in the Lists kit\'s shape, with unique ids and a pr
   for (const l of found) {
     assert.ok(L.isList({ ...l.header, items: l.items }), l.path + ' is a list');
     assert.equal(l.header.edit, 'propose', l.path + ' says its changes are proposed');
+    assert.equal(l.header.show_id, true, l.path + ' shows each item\'s id, which citations name');
     assert.equal(l.icon, l.header.icon, l.path + ' names an icon the kit keeps');
     const ids = l.items.map(it => it.id);
     assert.equal(new Set(ids).size, ids.length, l.path + ' has unique ids');
