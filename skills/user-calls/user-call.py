@@ -696,6 +696,12 @@ def parse_report(text):
     secs, stated = sections(text)
     run = {"verdict": "unknown", "trips": [], "clear": [], "candidates": [], "preexisting": [], "report": text}
     if "trips" not in secs:
+        # Trip lines in the critic's own form, with no Trips heading over
+        # them (a report on several files, headed by file), are its trips.
+        loose = [x for x in text.split("\n") if trip_of(x)]
+        if loose:
+            secs = {**secs, "trips": loose}
+    if "trips" not in secs:
         # A stated PASS from a report that names no peeve anywhere has no
         # trips to list, so it passes; any other report without the section
         # has no verdict to read.
@@ -1134,10 +1140,17 @@ def add_run(draft, doc_text, report_text, when=None, spans=None):
     # A trip named by its entry takes that entry's span, or E- for an entry
     # outside every edit; with no spans it stays untagged, inside.
     items = [s.get("item") for s in spans or [] if s]
+    lined = [s.get("lines") if s else None for s in spans or []]
     for t in run["trips"]:
         item = t.pop("item", None)
         if item is not None and items:
             t["edit"] = items.index(item) + 1 if item in items else 0
+        # A trip placed by line rather than tagged takes the span holding
+        # that line, or E- for a line outside every span.
+        at = re.match(r"lines?\s+(\d+)", str(t.get("where") or ""))
+        if "edit" not in t and at and any(lined):
+            n = int(at.group(1))
+            t["edit"] = next((k for k, ln in enumerate(lined, 1) if ln and ln[0] <= n <= ln[1]), 0)
     if run["trips"] and any(t.get("edit") != 0 for t in run["trips"]):
         run["verdict"] = "fail"
     elif run["trips"] and run["verdict"] == "fail":

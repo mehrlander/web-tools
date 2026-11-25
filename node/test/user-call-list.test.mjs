@@ -250,3 +250,11 @@ test('a stated PASS that names no peeve passes without a Trips section; one that
   assert.equal(named.verdict, 'unknown', 'a peeve named outside a Trips section may be a trip in another shape');
   assert.equal(fail.verdict, 'unknown');
 });
+
+test('trip lines with no Trips heading are trips, and one placed by line takes the span holding it', () => {
+  const report = '**docs/x.md**\n\n- P06 · line 12 · "the add step" · Name the command.\n- P05 · line 40 · "set" · Say what is set.\n\nClear: P01\n\nVerdict: FAIL';
+  const [draft] = pyMany([['add_run', [{}, 'text', report, 't', [{ lines: [10, 14], from: '' }]]]]);
+  const r = draft.review.runs[0];
+  assert.equal(r.verdict, 'fail');
+  assert.deepEqual(r.trips.map((t) => [t.peeve, t.edit]), [['P06', 1], ['P05', 0]], 'a line outside every span is E-');
+});
