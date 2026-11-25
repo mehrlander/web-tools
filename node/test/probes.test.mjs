@@ -12,7 +12,7 @@ import { repoRoot } from './bootstrap.mjs';
 const script = path.join(repoRoot, 'python/probes.py');
 const run = (root, ...args) => spawnSync('python3', [script, '--root', root, ...args],
   { cwd: repoRoot, encoding: 'utf8' });
-const HEAD = 'probe,date,title,path,question,summary,standing,bundle';
+const HEAD = 'probe,date,title,path,question,summary,notes,bundle';
 
 function fixture(t, rows) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'probes-'));
@@ -57,7 +57,6 @@ test('each broken rule is named with its row', t => {
   for (const want of [
     /probes\.csv:2: probe 2026-01-02-tie is dated 2026-01-02, not 2026-01-03/,
     /probes\.csv:2: path 2026-01-02-tie\.md is dated 2026-01-02, not 2026-01-03/,
-    /probes\.csv:2: standing won is not one of failed, mixed, open, worked/,
     /probes\.csv:3: 2026-01-02-tie is listed twice/,
     /probes\.csv:3: title is empty/,
     /probes\.csv:3: path missing\.md names nothing in the folder/,
