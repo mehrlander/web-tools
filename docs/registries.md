@@ -136,12 +136,12 @@ that holds it:
 
 | | An entry stands for | It changes by |
 | --- | --- | --- |
-| **Registry** | a thing, found by its key | being edited when the thing changes |
+| **Registry** | a target, found by its key | being edited when the target changes |
 | **Stream** | an event, at the time it happened | never; a later entry corrects it |
 
 A stream entry carries its **event time**: when the event happened, not when the
 entry was written. A date alone does not make a stream entry. A task's `opened`
-and `closed` mark a thing that is edited as it moves, so a task is a registry
+and `closed` mark a target that is edited as it moves, so a task is a registry
 entry, and its progress log is a stream inside it.
 
 A **snapshot** is a stream entry whose content is a registry as it stood at one
