@@ -548,3 +548,15 @@ test('a narrowed workbook reference is claimed by the grid', () => {
   assert.ok(!grid.claims({ name: 'a.csv', ext: 'csv', content: '' }, { filter: { col: 'a', find: 'b' } }),
     'a csv is the table mode, not this one');
 });
+
+// Excel's exported VBA modules (.bas, .cls, .frm) open in the Code view and
+// highlight as Prism's `vba` alias, since Prism knows no `bas` language.
+test('a VBA module opens in the Code view, marked for Prism as vba', () => {
+  const code = window.ViewRegistry.modules.find(m => m.id === 'code');
+  for (const ext of ['bas', 'cls', 'frm']) {
+    const f = { ext, content: 'Option Explicit\nSub A()\nEnd Sub' };
+    assert.ok(code.test(f), `${ext} is offered the Code view`);
+    assert.match(code.render(f), /class="language-vba"/, `${ext} renders as language-vba`);
+  }
+  assert.match(code.render({ ext: 'ps1', content: 'Write-Host 1' }), /class="language-ps1"/, 'other extensions keep their own name');
+});

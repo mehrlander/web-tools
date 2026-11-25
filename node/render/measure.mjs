@@ -19,6 +19,7 @@
 import { readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
+import { pageShot } from '../build/shot-store.mjs';
 
 export const PHONE = { width: 390, height: 844 };
 
@@ -115,17 +116,15 @@ async function probePixels([before, after]) {
   return { ...out, changedPct: +(100 * n / (w * b.height)).toFixed(2), changedBox: n ? [x0, y0, x1, y1] : null };
 }
 
-// The committed thumbnail a page's shot is compared with, mirroring
-// node/build/pages-shots.mjs: pages/<p>.png, kit demos under kit-demos/,
-// skills/<name>/demo.html under skill-demos/<name>.png.
+// The stored thumbnail a page's shot is compared with: the page's shot in
+// web-tools-private's thumbs/, beside this checkout, as node/build/pages-shots.mjs
+// names it (node/build/shot-store.mjs). With no store beside the checkout, as in
+// CI, there is none to compare with.
 export function thumbFor(repoRoot, pagePath) {
   const rel = pagePath.split(path.sep).join('/');
-  const skill = rel.match(/^skills\/([^/]+)\/demo\.html$/)?.[1];
-  const key = rel.startsWith('pages/') ? rel.slice(6)
-    : rel.startsWith('lib/kits/demos/') ? 'kit-demos/' + rel.slice(15)
-    : skill ? `skill-demos/${skill}.html` : null;
-  const fp = key && path.join(repoRoot, 'pages', 'thumbs', key.replace(/\.html$/, '.png'));
-  return fp && existsSync(fp) ? fp : null;
+  if (!/^(pages\/|lib\/kits\/demos\/|skills\/[^/]+\/demo\.html$)/.test(rel)) return null;
+  const fp = path.join(repoRoot, '..', 'web-tools-private', pageShot(rel));
+  return existsSync(fp) ? fp : null;
 }
 
 // Desktop first, on the page as shot; then the phone width, with its own PNG;

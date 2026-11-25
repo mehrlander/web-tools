@@ -17,7 +17,7 @@ tests,method,computed,node/build/tests-index.mjs,value,column,yes,kit;alpine;spa
 tests,runner,computed,node/build/tests-index.mjs,value,column,yes,,,locator,"suite for a *.test.mjs file, else the npm script that runs it, else unrun"
 tests,boot_smoke,computed,node/build/tests-index.mjs,counted,column,no,,,label,"which tests only check a component mounts, as indices into test_names; the property is per assertion, so a file-level count is the length rather than the record. Blank on the same browser-driven checks, for the same reason"
 harness,role,recorded,,counted,column,yes,,,value,what the file is for; blanks are counted rather than hidden
-harness,layer,computed,node/build/tools-index.mjs,value,column,yes,python;python/annotate;python/swarm;node;node/build;node/render;node/render/scenarios;.githooks;.claude;.claude/hooks;skills/hooks;.github/workflows,,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
+harness,layer,computed,node/build/tools-index.mjs,value,column,yes,python;python/annotate;python/swarm;node;node/build;node/render;node/render/scenarios;node/testing;.githooks;.claude;.claude/hooks;skills/hooks;.github/workflows,,label,"which folder the file sits in. The domain is closed and owned by harness.csv's own layers glossary block, the same arrangement as manifest-fields.consumer; docs/code-layers.md is the prose behind it"
 harness,lines,computed,node/build/tools-index.mjs,value,column,yes,,,value,file length
 harness,invocation,computed,node/build/tools-index.mjs,value,column,yes,,,value,"the route execution arrives on: pulled (npm:<script>, argv, imported, driver) or event-fired (env:build, git:<name>, session:SessionStart, hook:<event>, ci:<events>), with 'none found' the warning state"
 harness,callers,computed,node/build/tools-index.mjs,none,list,yes,,,locator,"what runs the file: a harness file that imports it, runs it by path, runs its npm script or finds it through plugin_script; node/test/ when the suite imports it; a tracked .md that gives the command to run it"
@@ -212,7 +212,7 @@ subjects,detect,recorded,,value,column,yes,,,value,"the rule that recognizes thi
 subjects,icon,recorded,,value,column,yes,,,value,the phosphor glyph the FAB's layer row wears for this type; owner of fab.js's SUBJECT_ICON literal
 subjects,gloss,recorded,,value,column,yes,,,value,what an object of this type is
 run-methods,machines,recorded,,none,list,no,,machines,value,"the machines this method's script runs on, docs/machines.csv keys, where the machine decides what the script reaches; none for a script run in a browser page. An errand's run.venue must be one when the method lists any"
-run-methods,filed_by,recorded,,value,list,no,,writers,value,"the writers that file an errand of this method, docs/writers.csv keys: a Claude session for most methods, Codex or Gemini on the laptop for claude-errand. The harness map draws each errand route from a filer's machine to a machine the method runs on"
+run-methods,filed_by,recorded,,value,list,no,,writers,value,"the writers that file an errand of this method, docs/writers.csv keys: a Claude session for most methods, Codex or Gemini on the Lenovo for claude-errand. The harness map draws each errand route from a filer's machine to a machine the method runs on"
 run-methods,output_return,recorded,,value,column,yes,direct-to-clipboard;courier-message;report-pasted;job-log;self-filed,,value,how the script's output comes back; filled into run.outputReturn when a record omits it
 run-methods,rules,recorded,,value,list,no,,,value,"what a script written for this method must do; the contract a session writes the script to"
 run-methods,gloss,recorded,,value,column,yes,,,value,what a person does to run it
@@ -387,3 +387,12 @@ formats,producer,recorded,,value,column,yes,,,locator,"the script or skill that 
 formats,envelope,recorded,,value,column,yes,yes;no,,label,"whether the format belongs to the envelope family, by the membership test in docs/envelopes/README.md"
 formats,route,recorded,,none,column,yes,,routes-routes,locator,the toss route that renders the format; blank where none does
 formats,gloss,recorded,,value,column,yes,,,value,what one document of the format carries
+pages-map,visibility,computed,programs/alignment/current/pages-map.mjs,value,column,yes,public;private,,label,"whether the page's repository is public, from GitHub's repository search"
+pages-map,catalogues,computed,programs/alignment/current/pages-map.mjs,counted,list,no,gallery;manifest;landing;utilities;units;forms,,label,the catalogues that name the page; blank for none
+pages-map,declared_by,computed,programs/alignment/current/pages-map.mjs,counted,list,no,,,label,the repositories whose .web-tools.json declares the page under `pages` or as a project's landing
+pages-map,app,computed,programs/alignment/current/pages-map.mjs,value,column,yes,view;full-app;framed;linked;standalone,,label,"how the page relates to the Web Tools app, the first value that holds"
+pages-map,linked_from,computed,programs/alignment/current/pages-map.mjs,value,column,yes,,,value,"the number of files in app/index.html and lib/ whose code lines, comment lines and demo folders excepted, name the page"
+pages-map,names_private,computed,programs/alignment/current/pages-map.mjs,counted,list,no,,,label,"for a page in a public repository, the private repositories its source names as owner/repo, or none; blank for a page in a private repository, whose source is not read"
+page-jobs,standing,recorded,,value,column,yes,product;service;exhibit;experiment;record,,label,"what the page is for, judged from its source or its note"
+page-jobs,job,recorded,,counted,list,no,respond;follow;read;explore;make,,label,"the jobs the page does for a reader, as data/ui-units/codes.csv defines them; blank where data/ui-units/coded.csv codes the page, which owns its job there"
+page-jobs,basis,recorded,,value,column,yes,source;note;name,,label,"what the judgment read: the page source, the note a manifest or the gallery gives it, or its name alone"

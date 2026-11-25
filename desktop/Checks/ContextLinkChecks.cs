@@ -9,7 +9,7 @@ static class ContextLinkChecks
         const string thread = "00000000-0000-0000-0000-000000000001";
         // These names follow the existing Python local-conversation fixture contract.
         const string codex = "a6f9dc04f81fdc14", gemini = "1eddb81cf175d941";
-        object Row(string id, string provider, string day = "2026-11-18", string venue = "laptop", string state = "prose") =>
+        object Row(string id, string provider, string day = "2026-11-18", string venue = "lenovo", string state = "prose") =>
             new { id, assistant = provider, day, venue, capture = new { state } };
         var cloud = CloudSessions.Parse(JsonSerializer.Serialize(new { generatedAt = now, rows = new[] {
             Row(codex,"codex"), Row(gemini,"gemini",state:"partial"),
@@ -30,9 +30,9 @@ static class ContextLinkChecks
             && SessionLinks.CapturedRecord("Claude",thread,cloud.CapturedRecords) is null,
             "Missing captures, provider mismatches and cloud session IDs never produce guessed local-record links.");
         var local = new LocalSession(thread,"Codex","Working locally","working",now,"private folder");
-        var snapshot = new LaptopSnapshot(new(now,now,"fixture",true,null,[]),new("unknown","",null),[],[],[],"Fixture",now,
+        var snapshot = new LenovoSnapshot(new(now,now,"fixture",true,null,[]),new("unknown","",null),[],[],[],"Fixture",now,
             new([local,local with { Provider = "Gemini" },local with { Id = "00000000-0000-0000-0000-000000000099" }],[]),0,cloud,[],
-            [new("session:Codex:" + thread,"change","Codex","Saved local work","idle",now,"","Laptop",null)]);
+            [new("session:Codex:" + thread,"change","Codex","Saved local work","idle",now,"","Lenovo",null)]);
         var phone = PhoneActivity.Create(snapshot,now);
         check(phone.Items.Count(i => i.Url is not null) == 2
             && phone.Items.Single(i => i.Provider == "Codex" && i.Id == thread).Url == codexUrl

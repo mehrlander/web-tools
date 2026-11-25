@@ -180,7 +180,7 @@ test('the traveling docs link only to targets that travel with them', () => {
 });
 
 // The list mirrors VENDORED in node/build/vendor-docs.mjs, which writes files when imported.
-const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md', 'acronyms.md'];
+const VENDORED = ['CONVERSATION.md', 'QUALIFIED-WRITING.md'];
 
 test('vendored copies in the default skill stay byte-identical to docs/', () => {
   for (const name of VENDORED) {

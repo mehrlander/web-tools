@@ -11,7 +11,7 @@ order,rule,kind,sources,command,outputs,repair,description
 10,renders-in,generate,lib;pages;docs/registries.csv;node/build/registries-reach.mjs,npm run registries-reach,docs/registries.csv,yes,the registries' renders_in column
 11,themes-graph,generate,*.md;python/duplicated-claims.py,npm run themes-graph,docs/themes.csv,yes,the graph of claims repeated across documents
 12,docs-reach,generate,skills;lib;pages;docs;node/build/docs-reach.mjs,npm run docs-reach,docs/docs.csv,yes,the documentation registry's reach and words columns
-13,plugin-copies,package,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;docs/acronyms.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md;skills/default/acronyms.md,yes,the default skill's copies of the documents it delivers
+13,plugin-copies,package,docs/CONVERSATION.md;docs/QUALIFIED-WRITING.md;node/build/vendor-docs.mjs,npm run vendor-docs,skills/default/CONVERSATION.md;skills/default/QUALIFIED-WRITING.md,yes,the default skill's copies of the documents it delivers
 14,policy-skills,package,docs/house-policies.md;node/build/policy-skills.mjs,npm run policy-skills,plugins/h/skills,yes,"the h plugin's skills, one per house policy"
 15,peeves-csv,package,skills/peeves/peeves.md;node/build/peeves-csv.mjs,npm run peeves-csv,skills/peeves/peeves.csv,yes,the peeves list as CSV
 16,comment-blocks,generate,*.js;*.mjs;*.html;*.py;*.md;docs/*.csv,npm run comment-blocks,data/comments/web-tools.json,yes,every comment block in the code and the documents it names

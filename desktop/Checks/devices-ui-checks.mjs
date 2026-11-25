@@ -6,7 +6,7 @@ const read = path => readFileSync(new URL(path,import.meta.url),'utf8');
 const dom = new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window, doc=w.document, timers=new Map(), requests=[];
 let nextTimer=0, top=0, offline=false, denied=false, postStatus=200, held, checks=0;
-let data={schemaVersion:1,machineName:'Laptop',observedAt:new Date().toISOString(),reachable:true,sessionAvailable:true,source:'Player',title:'A track <img src=x onerror=alert(1)>',artist:'An artist',album:'An album',playbackState:'playing',positionSeconds:32,endSeconds:180,canPlayPause:true,canGoPrevious:false,canGoNext:true};
+let data={schemaVersion:1,machineName:'Lenovo',observedAt:new Date().toISOString(),reachable:true,sessionAvailable:true,source:'Player',title:'A track <img src=x onerror=alert(1)>',artist:'An artist',album:'An album',playbackState:'playing',positionSeconds:32,endSeconds:180,canPlayPause:true,canGoPrevious:false,canGoNext:true};
 w.setTimeout=(fn,delay)=>{timers.set(++nextTimer,{fn,delay});return nextTimer;};
 w.clearTimeout=id=>timers.delete(id);
 Object.defineProperty(w,'scrollY',{get:()=>top}); w.scrollTo=(_x,y)=>{top=y;};
@@ -41,7 +41,7 @@ check(action.path==='/api/v1/devices/stereo/play-pause' && action.headers['X-Web
 release();held=null;await flush();await flush();
 check(doc.querySelector('#devices').textContent.includes('Control sent'),'An acknowledged control gives compact inline feedback.');
 data.sessionAvailable=false;data.canPlayPause=false;data.canGoNext=false;await poll();
-check(doc.querySelector('#devices').textContent.includes('No media playing') && doc.querySelector('[data-media=play-pause]').disabled && !doc.querySelector('[data-media=volume-up]').disabled,'No media playing is distinct from Bridge unavailability, and laptop volume remains available.');
+check(doc.querySelector('#devices').textContent.includes('No media playing') && doc.querySelector('[data-media=play-pause]').disabled && !doc.querySelector('[data-media=volume-up]').disabled,'No media playing is distinct from Bridge unavailability, and Lenovo volume remains available.');
 offline=true;await poll();const before=requests.length;click('[data-media=volume-up]');
 check([...doc.querySelectorAll('[data-media]')].every(n=>n.disabled) && requests.length===before && doc.querySelector('#devices').textContent.includes('Controls are disabled'),'Offline observations never offer or queue media controls.');
 click('[data-view=now]');check(position()===280 && doc.querySelector('#panel-computer').inert && !doc.querySelector('#panel-now').inert,'Now retains its independent reading position.');

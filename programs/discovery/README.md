@@ -28,6 +28,6 @@ A proposed change to a governed file goes to [owner-proxy](../../skills/agents/o
 
 ## Not this program's
 
-- Searching the owner's own files and records: the [Organization](../organization/README.md) program.
+- Searching the owner's own files and records: the [Alignment](../alignment/README.md) program.
 - The checks that guard code and data: the [Testing](../testing/README.md) program.
-- The registry model in [`registries.md`](../../docs/registries.md), including its authored, derived and captured classes: the [Organization](../organization/README.md) program.
+- The registry model in [`registries.md`](../../docs/registries.md), including its authored, derived and captured classes: the [Alignment](../alignment/README.md) program.

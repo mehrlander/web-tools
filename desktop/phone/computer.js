@@ -13,7 +13,7 @@
   function connection() {
     if (!active) return;
     const live = fresh();
-    const text = live ? 'Laptop live' : data ? 'Last seen ' + stamp(data.observedAt) : 'Laptop unreachable';
+    const text = live ? 'Lenovo live' : data ? 'Last seen ' + stamp(data.observedAt) : 'Lenovo unreachable';
     el('connection').innerHTML = `<span class="inline-flex items-center gap-1 ${live ? 'text-emerald-800' : 'text-amber-800'}"><span class="size-1.5 rounded-full ${live ? 'bg-emerald-600' : 'bg-amber-500'}" aria-hidden="true"></span>${live ? 'Live' : data ? 'Last seen' : failures ? 'Offline' : 'Connecting…'}</span>`;
     el('connection').title = text;
   }
@@ -26,14 +26,14 @@
     const viewport = scrollPosition();
     const focused = document.activeElement?.dataset.computerApp;
     if (!data) {
-      el('computer').innerHTML = `<p class="px-3 py-4 text-sm text-stone-500">${failures ? 'Laptop unreachable. Use Windows App above to connect.' : 'Reading your computer…'}</p>`;
+      el('computer').innerHTML = `<p class="px-3 py-4 text-sm text-stone-500">${failures ? 'Lenovo unreachable. Use Windows App above to connect.' : 'Reading your computer…'}</p>`;
       connection(); return;
     }
     el('machine').textContent = data.machineName;
     const live = fresh(), count = data.applications.reduce((sum,a) => sum + a.windows.length,0);
     const session = ({locked:'Locked',unlocked:'Unlocked',disconnected:'Session disconnected',unknown:'Session status unavailable'})[data.sessionState] || 'Session status unavailable';
     const sessionText = session + (data.remoteSession === true ? ' · Remote desktop' : data.remoteSession === false ? ' · Local desktop' : '');
-    const status = !live ? `Laptop unreachable or readings paused · Last seen ${stamp(data.observedAt)}` : data.notice;
+    const status = !live ? `Lenovo unreachable or readings paused · Last seen ${stamp(data.observedAt)}` : data.notice;
     const battery = data.batteryPercent;
     const power = data.charging ? 'Charging' : data.pluggedIn === true ? 'Plugged in' : data.pluggedIn === false ? 'On battery' : 'Power unavailable';
     const memory = finite(data.memoryUsedGb) && finite(data.memoryTotalGb) ? `${data.memoryUsedGb} / ${data.memoryTotalGb} GB` : 'Reading memory';

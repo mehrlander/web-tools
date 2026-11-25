@@ -49,7 +49,7 @@ public static class PhoneActivity
         return preview[..Math.Min(preview.Length, 320)];
     }
 
-    public static PhoneErrandSnapshot Errands(LaptopSnapshot snapshot, DateTimeOffset observedAt) =>
+    public static PhoneErrandSnapshot Errands(LenovoSnapshot snapshot, DateTimeOffset observedAt) =>
         new(1, observedAt, snapshot.Activity.Revision is not null, snapshot.Activity.Connected,
             snapshot.Activity.SyncedAt, snapshot.Activity.Notice, snapshot.Activity.Errands.Select(ErrandItem).ToList());
 
@@ -57,7 +57,7 @@ public static class PhoneActivity
         || session.Location == "Cloud" && new[] { "needs you", "choice needed", "attention", "direction needed" }
             .Any(s => session.Detail.Contains(s, StringComparison.OrdinalIgnoreCase));
 
-    public static PhoneSnapshot Create(LaptopSnapshot snapshot, DateTimeOffset observedAt, string? error = null)
+    public static PhoneSnapshot Create(LenovoSnapshot snapshot, DateTimeOffset observedAt, string? error = null)
     {
         var items = snapshot.Activity.Errands.Where(j => j.IsOpen || j.UpdatedAt > observedAt.AddDays(-1))
             .Select(ErrandItem).ToList();
@@ -95,7 +95,7 @@ public static class PhoneActivity
 
     // Reply bodies are requested only for the selected result. Request notes,
     // machine paths, downloads and native actions are outside the phone API.
-    public static string? Reply(LaptopSnapshot snapshot, string id)
+    public static string? Reply(LenovoSnapshot snapshot, string id)
     {
         var job = snapshot.Activity.Errands.Find(j => j.Id == id && j.State is "reply" or "complete" or "failed" or "declined");
         if (job is null) return null;

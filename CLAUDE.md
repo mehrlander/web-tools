@@ -12,14 +12,11 @@
 
 The mechanisms, what each reaches and misses, and the rule for picking one are **not restated here**. They live as data in [`docs/showing-mechanisms.csv`](docs/showing-mechanisms.csv) and render in the app's **Map view, Showing tab**; the frame and the record are in [`docs/showing.md`](docs/showing.md).
 
-**So do not decide it by reading. Run it:** `npm run showing` reads the branch's
-changed files and prints the render line to paste, or an honest no-link with the
-reason ([`python/showing.py`](python/showing.py)). No script supplies the honesty
-rule: where no link reaches a change, say so and send a headless screenshot.
+**So do not decide it by reading. Run it:** `npm run session-render-links`. It runs [`python/showing.py`](python/showing.py) in each repo checkout beside this one whose branch is ahead of main. For each page or file that branch changed, it prints a render link; where no link reaches the change, it prints a `No render link:` line giving the reason. In that case, also send a headless screenshot. The script is [`python/session-render-links.py`](python/session-render-links.py).
 
 ## Per-session refresh: thumbnails
 
-Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit. Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
+Before a merge, if any `pages/*.html` changed this session (`git diff main...HEAD --name-only`), regenerate just those pages' thumbnails (`npm run pages-shots -- <page…>`) and commit them in [web-tools-private](https://github.com/mehrlander/web-tools-private). Thumbs are refreshed once per session, not per commit, because screenshots are slow and not byte-deterministic; the commit hook only warns about them. The hook regenerates the catalogs with each commit.
 
 ## Guide-PR support: platform auto-create is on
 
@@ -33,7 +30,7 @@ The `gh.load` chain it replaces is the repo's default, not a legacy path. [`docs
 
 Every **deterministic** generated file is owned by one commit-time hook, [`.githooks/pre-commit`](.githooks/pre-commit). Before a `git commit` it runs the rules in [`docs/commit-rules.csv`](docs/commit-rules.csv), which regenerate and stage, in the same commit, whatever the pending changes touch. [`node/README.md`](node/README.md#the-refresh-model) says what a rule is and why their order matters.
 
-Don't hand-edit a file the hook writes; edit the source and let the hook refresh it. Thumbnails (`pages/thumbs/*.png`) are the exception (see "Per-session refresh" above).
+Don't hand-edit a file the hook writes; edit the source and let the hook refresh it.
 
 **Git owns the hook, not Claude:** a `PreToolUse` hook disappears when the session root sits above this repo. Run `npm run setup` once per checkout for hooks, the CSV merge driver, and dependencies; `npm run ready` checks without writing. Claude's startup scripts delegate to that shared path. `--no-verify` bypasses it. Details: [extending.md](docs/environment/extending.md).
 
