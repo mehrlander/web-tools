@@ -6,7 +6,7 @@ description: "Hand over a look link: a page link whose fragment scrolls to one e
 # Look markers
 
 A **look link** is a page link whose `#fragment` puts a **look marker** on one
-element: the page scrolls there, tints it, and shows a card saying why. A marker
+element: the page scrolls there, tints it, and shows a note on what to see or do there. A marker
 can also ring a control the reader must tap before going on, and a **walkthrough** is a
 sequence of markers. The grammar is in the header of
 [`lib/kits/look.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js).

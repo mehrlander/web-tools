@@ -85,7 +85,7 @@ substituting the current repo in URL templates.
 
 ## Displaying content
 
-* **A look link 👁️‍🗨️.** A look link opens a page at a marked element with a card saying why, or walks the reader through several such stops. The [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill says how to make one.
+* **A look link 👁️‍🗨️.** A look link opens a page with one element highlighted and a note on what to see or do there, or steps through several. The [`look-markers`](https://github.com/mehrlander/web-tools/blob/main/skills/look-markers/SKILL.md) skill says how to make one.
 
 * **Content in the link.** A `#gz=` link carries its content gzipped and base64url-encoded in the address, so it needs no commit or GitHub token; a link's length caps the content. `toss-render.html#gz=` renders a page carried this way. The Web Tools app's `#gz=` carries text files; in web-tools, `npm run -s stage-link -- <file>` prints one that opens the file with a Copy button. For a result that keeps source data in the browser, `npm run -s reception-link -- <fn.js> --note "<what is wanted>"` in web-tools prints a link that runs `<fn.js>` on what the reader pastes.
 
