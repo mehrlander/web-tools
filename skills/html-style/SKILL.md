@@ -139,11 +139,11 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **19. Themes.** Pages may use daisyUI themes, most often `winter`. Do not provide dark mode.
 
-**20. A row's icons show what a click on them does.** An icon on a list row, alone or with a count or a word, takes the form that matches its click.
+**20. Make icon behavior consistent and predictable.** An icon on a list row, alone or paired with a count or a word, should look like what clicking it does.
 
-- When a click on the icon opens, navigates or toggles something, make the icon a `button` or `a` with `cursor-pointer`. Tailwind 4 gives a plain `button` the arrow. On hover, turn the icon `hover:text-primary`. Dim a glyph that keeps its own colour, such as an emoji or a brand mark, with `hover:opacity-75`.
-- When the icon also opens a card on hover, the card holds the explanation and is the icon's only popup. Name the icon with `aria-label`.
-- When the icon only labels, keep the default cursor and a steady colour. A title-tip may name it.
+- If clicking opens, navigates, or toggles something, make the icon a button or link with `cursor-pointer`, since Tailwind 4 gives plain buttons the arrow. On hover, use `hover:text-primary`, or `hover:opacity-75` for an emoji or brand mark that keeps its own colour.
+- If the icon also has a hover card, the card does the explaining and is its only popup. Name the icon with `aria-label`.
+- If the icon only labels, keep the default cursor and a steady colour so it never looks clickable. A title tooltip can name it.
 
 ## Handing a page over
 
