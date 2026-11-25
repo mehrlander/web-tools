@@ -61,6 +61,7 @@
     await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/swipe-deck.js');   // the track
     await gh.load('kits/dock-split.js');   // the seam between map and step
+    await gh.load('kits/title-tip.js');    // what a node's file icons are
   } finally { window.__depsDone(); }
 </script>
 <script>
@@ -90,10 +91,19 @@ document.addEventListener('alpine:init', () => {
     { node: 'border-warning', tint: 'var(--color-warning)', bar: 'border-l-4 border-warning', badge: 'badge-warning', stroke: 'var(--color-warning)', ink: 'color-mix(in oklab, var(--color-warning) 55%, black)', dash: '' },
     { node: 'border-info border-dashed', tint: 'var(--color-info)', bar: 'border-l-4 border-dashed border-info', badge: 'badge-info', stroke: 'var(--color-info)', ink: 'color-mix(in oklab, var(--color-info) 50%, black)', dash: '6 4' },
   ];
+  // A kind of file: its glyph, its color, and its name in a title-tip's lead.
+  // The colors mark the kind wherever its icon appears, in a node and on a
+  // card, and keep clear of the versions' amber and blue.
   const KIND = {
-    skill: 'ph-book-open-text', script: 'ph-code', agent: 'ph-robot', data: 'ph-table',
-    doc: 'ph-file-text', record: 'ph-archive', page: 'ph-browser',
+    script: { icon: 'ph-code', color: 'text-emerald-600', name: 'Script' },
+    skill: { icon: 'ph-book-open-text', color: 'text-violet-600', name: 'Skill' },
+    agent: { icon: 'ph-robot', color: 'text-rose-600', name: 'Agent' },
+    data: { icon: 'ph-table', color: 'text-teal-600', name: 'Data' },
+    doc: { icon: 'ph-file-text', color: 'text-indigo-500', name: 'Document' },
+    record: { icon: 'ph-archive', color: 'text-fuchsia-600', name: 'Record' },
+    page: { icon: 'ph-browser', color: 'text-cyan-700', name: 'Page' },
   };
+  const kindOf = k => KIND[k] || { icon: 'ph-file', color: 'text-base-content/60', name: 'File' };
 
   Alpine.data('flow', () => ({
     F: null, err: '', v: '', cur: 0, deck: null, passes: 0, repo: 'mehrlander/web-tools', ref: 'main', svg: '', mapH: 0,
@@ -115,8 +125,13 @@ document.addEventListener('alpine:init', () => {
       if (Array.isArray(s.gloss)) return { k: 'changed' };
       return { k: 'shared' };
     },
-    // The kinds of file a step touches, each once, in the order first listed: drawn as icons in its node.
-    kinds(s) { return [...new Set((s.artifacts || []).map(x => x.kind))].map(k => KIND[k] || 'ph-file'); },
+    // The kinds of file a step touches, each once, in the order first listed:
+    // drawn as icons in its node, each with a title-tip naming its files.
+    kinds(s) {
+      const by = new Map();
+      (s.artifacts || []).forEach(x => { if (!by.has(x.kind)) by.set(x.kind, []); by.get(x.kind).push(x); });
+      return [...by].map(([k, xs]) => ({ ...kindOf(k), k, tip: xs.map(x => x.label + ' · ' + (x.repo && x.repo !== this.repo ? x.repo.split('/')[1] + ': ' : '') + x.path).join('\n') }));
+    },
     actorOf(s) { return this.F.actors.find(a => a.id === s.actor) || { label: s.actor, icon: 'ph-circle' }; },
     col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
     count(vid) { return this.F ? this.F.steps.filter(s => !vid || !s.in || s.in.includes(vid)).length : 0; },
@@ -460,7 +475,8 @@ document.addEventListener('alpine:init', () => {
           const repo = x.repo || this.repo, ref = x.repo && x.repo !== this.repo ? 'main' : this.ref;
           const href = /^https?:/.test(x.path) ? x.path : window.RepoAddress.github.blob(repo, ref, x.path);
           const li = h('li', 'grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 items-start');
-          li.append(icon(KIND[x.kind] || 'ph-file', 'text-2xl mt-0.5 text-base-content/70'));
+          const kd = kindOf(x.kind);
+          li.append(icon(kd.icon, 'text-2xl mt-0.5 ' + kd.color));
           const t = h('div', 'min-w-0 grid');
           t.append(h('span', 'font-semibold', x.label));
           const link = h('a', 'link link-hover font-mono text-xs text-base-content/60 truncate', (repo !== this.repo ? repo.split('/')[1] + ': ' : '') + x.path);
@@ -509,7 +525,7 @@ document.addEventListener('alpine:init', () => {
     <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
     <div x-show="!F && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
 
-    <section x-show="F" x-ref="map" aria-label="Map" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
+    <section x-show="F" x-ref="map" aria-label="Map" data-title-tip-tap="none" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
       <div x-ref="grid" class="grid gap-x-2 gap-y-6 p-3"
            :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); max-width: ${F.actors.length * 13}rem; margin-right: ${gutter * 12 + 8}px`">
         <!-- One backdrop under the lane names, across the gaps and the loops' gutter, so an edge scrolled under them stays hidden. -->
@@ -526,9 +542,12 @@ document.addEventListener('alpine:init', () => {
             <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
             <span>
               <span x-text="s.label"></span>
-              <span class="inline-flex gap-0.5 align-middle opacity-70">
-                <template x-for="k in kinds(s)" :key="k"><i class="ph text-sm" :class="k"></i></template>
-                <i x-show="status(s).k === 'changed'" class="ph ph-git-diff text-sm"></i>
+              <span class="inline-flex gap-0.5 align-middle">
+                <template x-for="k in kinds(s)" :key="k.k">
+                  <i class="ph text-sm" :class="k.icon + ' ' + k.color" :data-title-tip="k.tip"
+                     :data-title-tip-lead="k.name" :data-title-tip-lead-icon="'ph ' + k.icon + ' ' + k.color"></i>
+                </template>
+                <i x-show="status(s).k === 'changed'" class="ph ph-git-diff text-sm text-base-content/60"></i>
               </span>
             </span>
           </button>
