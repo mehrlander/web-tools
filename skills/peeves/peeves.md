@@ -139,8 +139,6 @@ When cleaning up, reduce rather than add; do not add rules, guards or documentat
 
 **Look for:** a guard script for one mistake; a fan-out nobody asked for; a cleanup that added lines
 
-**Owner:** web-tools CLAUDE.md (wary of improvements for hypothetical problems)
-
 **Area:** process · **Detector:** reader · **Sessions:** 25 · **Status:** guidance
 
 ### Read the guide first · `P35`

@@ -173,7 +173,6 @@
       "text": "Reduce when cleaning up",
       "note": "When cleaning up, reduce rather than add; do not add rules, guards or documentation for a single incident or a hypothetical, and do not widen the scope (orchestration, fan-outs) without being asked.",
       "look_for": "a guard script for one mistake; a fan-out nobody asked for; a cleanup that added lines",
-      "owner": "web-tools CLAUDE.md (wary of improvements for hypothetical problems)",
       "area": "process",
       "detector": "reader",
       "sessions": 25,
