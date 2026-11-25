@@ -542,7 +542,9 @@ def review_errors(r):
             if e is not None:
                 if not isinstance(e, int) or isinstance(e, bool) or e < 0 or (spans is not None and e > len(spans)):
                     errs.append(f"{tat}.edit is the span it was tagged with, 1 to {len(spans) if spans else 40}, or 0 for E-")
-                elif not re.search(rf"\bE{e}\b" if e else r"\bE\s?[-–—]|\bE0\b|\boutside\b", report, re.I):
+                elif not (spans and e and spans[e - 1].get("item") and f"`{spans[e - 1]['item']}`" in report) and not (
+                        e == 0 and t.get("where") and f"`{t['where']}`" in report) and not re.search(
+                        rf"\bE{e}\b" if e else r"\bE\s?[-–—]|\bE0\b|\boutside\b", report, re.I):
                     errs.append(f"{tat}: its tag {f'E{e}' if e else 'E-'} is not in the run's report")
             if "misquoted" in t and not isinstance(t["misquoted"], bool):
                 errs.append(f"{tat}.misquoted is true or false")
@@ -695,9 +697,20 @@ def parse_report(text):
     run = {"verdict": "unknown", "trips": [], "clear": [], "candidates": [], "preexisting": [], "report": text}
     if "trips" not in secs:
         return run
-    trips, prose = [], []
+    trips, prose, entry = [], [], None
     for line in secs["trips"]:
         t = trip_of(line) if line.strip() else None
+        if t:
+            trips.append(t)
+            continue
+        # A list's form: an entry's id in code on a bullet of its own, and
+        # under it a bullet per peeve, `P05: "<quote>". <clause>`, the entry
+        # standing for the edit tag (add_run maps it to its span).
+        head = ENTRY_HEAD.match(line)
+        if head:
+            entry = head.group(1)
+            continue
+        t = entry_trip(line, entry) if entry else None
         if t:
             trips.append(t)
         elif line.strip():
@@ -721,6 +734,22 @@ def parse_report(text):
     if stated and stated != run["verdict"] and run["verdict"] != "unknown":
         run["stated"] = stated
     return run
+
+
+ENTRY_HEAD = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+`([^`\s]+)`")
+ENTRY_TRIP = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\**(" + PEEVE + r")\**(?:\s*\([^)]*\))?\s*:\s*(.*)$")
+
+
+def entry_trip(line, entry):
+    """A trip in a list's form, on the entry `entry`, or None."""
+    m = ENTRY_TRIP.match(line)
+    if not m:
+        return None
+    rest, quote = m.group(2).strip(), ""
+    q = re.match(r'^["“](.+?)["”](?=[.;:,]?(?:\s|$))[.;:,]?\s*(.*)$', rest)
+    if q:
+        quote, rest = q.group(1), q.group(2)
+    return {"peeve": m.group(1), "item": entry, "where": entry, "quote": quote, "clause": rest}
 
 
 LISTY = re.compile(r"^\s*(?:[-*+]|\d+[.)]|\|)\s")
@@ -1097,6 +1126,17 @@ def add_run(draft, doc_text, report_text, when=None, spans=None):
     run = parse_report(report_text)
     if spans is not None:
         run["edits"] = [s if s else {"lines": None, "from": ""} for s in spans]
+    # A trip named by its entry takes that entry's span, or E- for an entry
+    # outside every edit; with no spans it stays untagged, inside.
+    items = [s.get("item") for s in spans or [] if s]
+    for t in run["trips"]:
+        item = t.pop("item", None)
+        if item is not None and items:
+            t["edit"] = items.index(item) + 1 if item in items else 0
+    if run["trips"] and any(t.get("edit") != 0 for t in run["trips"]):
+        run["verdict"] = "fail"
+    elif run["trips"] and run["verdict"] == "fail":
+        run["verdict"] = "pass"
     mark_misquotes(run, doc_text)
     run["at"] = when or stamp()
     run["text"] = doc_text

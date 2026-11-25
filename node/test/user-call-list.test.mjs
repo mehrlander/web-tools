@@ -225,3 +225,17 @@ test("a list call's critic runs: spans are entries, the run reads the entries, a
   assert.equal(filed.review.runs[0].text, undefined, 'the text the run read is dropped at filing');
   assert.deepEqual(pyMany([['check', [filed]]])[0], []);
 });
+
+test("a list report's trips grouped under their entry's id take that entry's span", () => {
+  const report = '**Trips**\n\n- `two-way-door` (two-way door)\n  - P05: "undone cheaply". Name it.\n  - P74 (also): the note runs on.\n- `standfirst`\n  - P01: "headline". Provenance.\n\nVerdict: FAIL';
+  const [run] = pyMany([['parse_report', [report]]]);
+  assert.equal(run.verdict, 'fail');
+  assert.deepEqual(run.trips.map((t) => [t.peeve, t.item, t.quote]), [['P05', 'two-way-door', 'undone cheaply'], ['P74', 'two-way-door', ''], ['P01', 'standfirst', 'headline']]);
+  const [draft] = pyMany([['add_run', [{}, 'text', report, 't', [{ item: 'two-way-door' }, { item: 'fact-strip' }]]]]);
+  const r = draft.review.runs[0];
+  assert.deepEqual(r.trips.map((t) => t.edit), [1, 1, 0], 'an entry outside the call is E-');
+  assert.equal(r.trips[0].item, undefined);
+  assert.equal(r.verdict, 'fail');
+  assert.deepEqual(pyMany([['review_errors', [{ runs: [{ ...r, trips: r.trips.map((t) => ({ ...t, answer: 'kept', why: 'w' })) }] }]]])[0], [],
+    "the entry's id in the report stands for the tag");
+});
