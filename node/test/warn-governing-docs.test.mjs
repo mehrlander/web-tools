@@ -140,6 +140,7 @@ test('a changed entry, or any entry in a list that says "edit": "propose", is ro
   const p = listRepo({ critic: true, edit: 'propose' }, [A]);
   try {
     const got = p.edit([A, B]);
+    assert.equal(got.status, 2);
     assert.match(got.err, /a list the owner signs off/, 'the documentation warning still speaks');
     assert.match(got.err, /is to a list that says "edit": "propose", so file a user call/);
   } finally { p.done(); }
