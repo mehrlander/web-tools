@@ -965,7 +965,7 @@ test('a rebuilt row reaches the screen, rather than freezing at first paint', as
   data.sessionScope = 'all';
   data.sessionRepoFilter = '';
   data.activity = {};
-  const ask = () => [...window.document.querySelectorAll('p')]
+  const ask = () => [...window.document.querySelectorAll('[data-part="summary"]')]
     .map(p => p.textContent.trim()).find(t => /ASK/.test(t));
 
   data.sessionRows_ = [window.RepoSessionsCache.summarize(rec({ opening_ask: 'FIRST ASK' }), 'sha1')];
@@ -1011,6 +1011,30 @@ const transcriptCard = (row) => {
   return data.rowCard;
 };
 const roles = (c) => c.turns.map(t => t.role[0]).join('');
+
+test('the ask card holds the opening ask alone, whole once the record is read', () => {
+  // The row truncates the ask to one line and caps it at ASK_CHARS; this card
+  // is where the reader sees all of it, without the rest of the transcript.
+  const long = 'Combine the four Funding tabs into one. '.repeat(10).trim();
+  const body = rec({ schema: 4, opening_ask: long,
+                     prompts: [{ at: '2026-08-05T13:00:00Z', text: long },
+                               { at: '2026-08-05T15:00:00Z', text: 'and now this' }],
+                     replies: [{ at: '2026-08-05T14:00:00Z', text: 'partway' }] });
+  const row = window.RepoSessionsCache.summarize(body, 'x');
+  assert.equal(row.ask.length, window.RepoSessionsCache.ASK_CHARS, 'the row carries the cut ask');
+  data.closeRowCard();
+  data.openSessionCard(row, 'ask', null);
+  assert.equal(data.rowCard?.kind, 'prose');
+  assert.equal(roles(data.rowCard), 'u', 'one turn: the ask, and nothing after it');
+  assert.equal(data.rowCard.turns[0].md, row.ask.trim(), 'the row\'s ask until the record is read');
+  data.openSessionCard(row, 'ask', null);
+  assert.equal(data.rowCard, null, 'it toggles on its own trigger');
+  data._records[row.id] = body;
+  data.openSessionCard(row, 'ask', null);
+  assert.equal(data.rowCard.turns[0].md, long, 'the record\'s whole ask');
+  data._records[row.id] = undefined;
+  data.closeRowCard();
+});
 
 test('the card is the ask, the scroll back, and the reply, in that order', () => {
   const row = window.RepoSessionsCache.summarize(
