@@ -37,8 +37,8 @@
   (read with the stored GitHub token), #gz=<gzipped base64url JSON>
   (kits/gz-payload.js), and with neither, pages/demos/flow-critic-review.json.
   &step=<id> opens at a step and follows the reader; &v=<variant> shows one
-  version, and without it a two-version flow shows both. &o=h lays the lanes
-  across as rows, the steps left to right; without it they run down as columns.
+  version, and without it a two-version flow shows both. &o=v lays the lanes
+  down as columns; without it they run across as rows, the steps left to right.
 
   Each step is one slide of a swipeDeck.core track (kits/swipe-deck.js); the
   map, the arrows, the keys and the dots drive the same track. The map sits
@@ -109,7 +109,7 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('flow', () => ({
     LANE_BG: 'color-mix(in oklab, var(--color-base-200) 70%, var(--color-base-100))',
-    o: 'v',   // lanes down (v, the default) or across (h)
+    o: 'h',   // lanes across (h, the default) or down (v)
     F: null, err: '', v: '', cur: 0, deck: null, passes: 0, repo: 'mehrlander/web-tools', ref: 'main', svg: '', mapH: 0,
 
     get variants() { return this.F?.variants || []; },
@@ -140,7 +140,7 @@ document.addEventListener('alpine:init', () => {
     col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
     count(vid) { return this.F ? this.F.steps.filter(s => !vid || !s.in || s.in.includes(vid)).length : 0; },
     nodeClass(i) {
-      if (i === this.cur) return 'border-primary/40';
+      if (i === this.cur) return 'border-primary ring-2 ring-primary/30';
       const st = this.status(this.vis[i]);
       return st.k === 'only' ? st.hue.node : 'border-base-300 bg-base-100 hover:bg-base-200';
     },
@@ -157,7 +157,7 @@ document.addEventListener('alpine:init', () => {
       document.title = this.F.title || 'Flow';
       const v = param('v');
       this.v = this.variants.some(x => x.id === v) ? v : (this.variants.length === 1 ? this.variants[0].id : '');
-      this.o = param('o') === 'h' ? 'h' : 'v';
+      this.o = param('o') === 'v' ? 'v' : 'h';
       this.cur = this.indexOf(param('step'));
       this.$nextTick(() => this.build());
       window.addEventListener('keydown', e => {
@@ -177,7 +177,7 @@ document.addEventListener('alpine:init', () => {
         const i = this.indexOf(param('step'));
         if (i !== this.cur) this.go(i, { quiet: true });
       });
-      new ResizeObserver(() => { this.draw(); this.ring(); }).observe(this.$refs.map);
+      new ResizeObserver(() => this.draw()).observe(this.$refs.map);
       this.seam();
     },
 
@@ -244,7 +244,7 @@ document.addEventListener('alpine:init', () => {
       if (o === this.o) return;
       this.o = o;
       this.mark(false);
-      this.$nextTick(() => { this.draw(); this.reveal(); setTimeout(() => this.ring(), 0); });
+      this.$nextTick(() => { this.draw(); this.reveal(); });
     },
     // The map's layout, both ways: lanes as rows with the steps running
     // across, or lanes as columns with the steps running down.
@@ -274,11 +274,11 @@ document.addEventListener('alpine:init', () => {
     mark(push) {
       const p = location.hash.slice(1).split('&').filter(x => x && !/^(step|v|o)=/.test(x));
       if (this.v && this.variants.length > 1) p.push('v=' + encodeURIComponent(this.v));
-      if (this.o === 'h') p.push('o=h');
+      if (this.o === 'v') p.push('o=v');
       if (this.step) p.push('step=' + encodeURIComponent(this.step.id));
       try { history[push ? 'pushState' : 'replaceState'](history.state, '', '#' + p.join('&')); } catch (e) {}
     },
-    // A step to a neighbour slides the card and glides the map; a jump cuts.
+    // A step to a neighbour slides the card and scrolls the map smoothly; a jump cuts.
     go(i, o = {}) {
       const to = Math.max(0, Math.min(this.n - 1, i));
       if (!this.deck) return;
@@ -298,18 +298,9 @@ document.addEventListener('alpine:init', () => {
     // either side, and with lanes across it is centred so the steps on both sides show.
     reveal() {
       this.$nextTick(() => {
-        this.ring();
         this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`)
           ?.scrollIntoView({ block: 'nearest', inline: this.o === 'h' ? 'center' : 'nearest', behavior: calm() ? 'auto' : 'smooth' });
       });
-    },
-    // The selection is one ring over the map that glides from step to step,
-    // drawn over the selected node's box.
-    ringStyle: 'opacity: 0',
-    ring() {
-      const el = this.$refs.map?.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`);
-      if (!el) { this.ringStyle = 'opacity: 0'; return; }
-      this.ringStyle = `left: ${el.offsetLeft - 3}px; top: ${el.offsetTop - 3}px; width: ${el.offsetWidth + 6}px; height: ${el.offsetHeight + 6}px`;
     },
 
     // Every edge the map draws: the path each version takes from step to step,
@@ -629,7 +620,6 @@ document.addEventListener('alpine:init', () => {
         </template>
       </div>
       <div x-html="svg"></div>
-      <div aria-hidden="true" class="absolute z-[2] pointer-events-none rounded-box border-2 border-primary shadow-[0_0_0_4px_color-mix(in_oklab,var(--color-primary)_20%,transparent)] transition-all duration-300 ease-out motion-reduce:transition-none" :style="ringStyle"></div>
     </section>
 
     <div x-show="F" x-ref="seam" class="h-3"></div>
