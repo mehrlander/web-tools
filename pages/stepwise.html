@@ -45,7 +45,12 @@
   html-style rule 12's general caution. A comment's quote is marked where it
   falls in the rendered text, and the comment sits open right after the block
   that holds it, compact, ruled in its reviewer's hue; a mark and its comment
-  light each other on a tap. A
+  light each other on a tap. On a critique step the comments are builds, as
+  in a slide deck: the step arrives with its text alone, each forward move
+  reveals the next comment, flying in under its block as its mark lights, and
+  the move after the last goes on to the next step; a backward move takes the
+  last one away, and a step reached backward arrives fully built. The address
+  carries the build, &step=10.3. A
   comment's `peeve` is an id in web-tools skills/peeves/peeves.csv, read at the
   #gh= ref when the payload is web-tools' own and from main otherwise; its pill
   carries the peeve's name and sentence as a title-tip (kits/title-tip.js) and
@@ -177,7 +182,9 @@ document.addEventListener('alpine:init', () => {
   }
 
   Alpine.data('stepwise', () => ({
-    B: null, err: '', cur: 0, deck: null, peeves: new Map(), peeveRef: 'main', repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
+    // `cur` is a PLACE: a step, or one build of a critique step. places[] maps
+    // it to { step, b }, b the comments shown.
+    B: null, err: '', cur: 0, places: [], deck: null, peeves: new Map(), peeveRef: 'main', repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
     get n() { return this.B ? this.B.steps.length : 0; },
     get fileUrl() { return this.B?.file ? window.RepoAddress.github.blob(this.repo, this.ref, this.B.file) : ''; },
     // The stages present, in order, each with the step that opens it.
@@ -185,9 +192,13 @@ document.addEventListener('alpine:init', () => {
       if (!this.B) return [];
       return STAGES.map(st => ({ ...st, first: this.B.steps.findIndex(s => s.stage === st.k) })).filter(st => st.first >= 0);
     },
-    get stage() { return this.B ? this.B.steps[this.cur].stage : ''; },
+    get step() { return this.places[this.cur]?.step ?? 0; },
+    get b() { return this.places[this.cur]?.b ?? 0; },
+    get builds() { return this.B ? this.B.steps[this.step].comments.length : 0; },
+    first(k) { return this.places.findIndex(p => p.step === k); },
+    get stage() { return this.B ? this.B.steps[this.step].stage : ''; },
     dot(i) {
-      const here = i === this.cur;
+      const here = i === this.step;
       return [by(this.B.steps[i]).dot, here ? 'h-4 w-4 border-2 border-base-content' : 'h-2.5 w-2.5'];
     },
     // The last step before i in a stage, or -1.
@@ -201,24 +212,31 @@ document.addEventListener('alpine:init', () => {
       try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
       if (this.B.repo) this.repo = this.B.repo;
       document.title = this.B.title || 'Stepwise';
+      this.places = this.B.steps.flatMap((s, k) => Array.from({ length: s.comments.length + 1 }, (_, b) => ({ step: k, b })));
       this.cur = this.stepOf();
       if (this.B.steps.some(s => s.comments.some(c => c.peeve))) {
         try { await this.loadPeeves(); } catch (e) { /* the pills keep their ids and lose their names */ }
       }
       this.$nextTick(() => {
-        this.deck = swipeDeck.core(this.n, (i, el) => this.render(i, el), {
+        // A critique step's comments are BUILDS: swipeDeck.core's places
+        // (`card`), the way pages/inspection.html steps through a run's
+        // outputs on one card. A forward move on the step reveals its next
+        // comment in place; past the last it moves to the next step. Arriving
+        // backward lands on a step's last place, fully built.
+        this.deck = swipeDeck.core(this.places.length, (i, el) => this.render(i, el), {
+          card: i => this.places[i].step,
           start: this.cur, behavior: 'instant', innerClass: 'w-full', slidePad: 'pb-24',
         });
         this.$refs.track.append(this.deck.track);
-        this.deck.onSlide(i => { this.cur = i; this.mark(); this.enter(i); });
+        this.deck.onSlide(i => { this.cur = i; this.mark(); this.enter(this.step); });
         requestAnimationFrame(() => {
           this.deck.go(this.cur, 'instant');
-          requestAnimationFrame(() => this.enter(this.cur));
+          requestAnimationFrame(() => this.enter(this.step));
         });
       });
       window.addEventListener('keydown', e => {
         if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
-        const to = { ArrowLeft: this.cur - 1, ArrowRight: this.cur + 1, Home: 0, End: this.n - 1 }[e.key];
+        const to = { ArrowLeft: this.cur - 1, ArrowRight: this.cur + 1, Home: 0, End: this.places.length - 1 }[e.key];
         if (to == null) return;
         e.preventDefault();
         this.go(to);
@@ -264,24 +282,27 @@ document.addEventListener('alpine:init', () => {
       return B;
     },
 
-    // The step in the address, as a slide index.
+    // The address as a place: &step=10 is step 10 unbuilt, &step=10.3 the
+    // same step with three comments shown.
     stepOf() {
-      const s = parseInt(param('step'), 10);
-      return Number.isFinite(s) ? Math.max(0, Math.min(this.n - 1, s - 1)) : 0;
+      const [s, b] = String(param('step') || '').split('.').map(x => parseInt(x, 10));
+      if (!Number.isFinite(s)) return 0;
+      const k = Math.max(0, Math.min(this.n - 1, s - 1));
+      return this.first(k) + Math.max(0, Math.min(this.B.steps[k].comments.length, b || 0));
     },
     // Rewrites only `step`, so a #gz= or #gh= value keeps its own spelling.
     mark() {
       const parts = location.hash.slice(1).split('&').filter(p => p && !/^step=/.test(p));
-      parts.push('step=' + (this.cur + 1));
+      parts.push('step=' + (this.step + 1) + (this.b ? '.' + this.b : ''));
       try { history.replaceState(history.state, '', '#' + parts.join('&')); } catch (e) {}
     },
     go(i) {
-      const to = Math.max(0, Math.min(this.n - 1, i));
+      const to = Math.max(0, Math.min(this.places.length - 1, i));
       if (!this.deck) return;
       this.cur = to;
       this.mark();
       this.deck.go(to, 'instant');
-      this.enter(to);
+      this.enter(this.step);
     },
     // A step that opens a stage enters, each time the reader arrives on it.
     enter(i) {
@@ -314,7 +335,7 @@ document.addEventListener('alpine:init', () => {
       more.innerHTML = this.html(added);
       more.dataset.enter = '';
       host.append(more);
-      this.entered = -1; this.enter(this.cur);
+      this.entered = -1; this.enter(this.step);
     },
     async draw(host, was, now) {
       await window.mdDiff.redline(host, was, now, { html: md => this.html(md) });
@@ -399,7 +420,15 @@ document.addEventListener('alpine:init', () => {
       return box;
     },
 
-    render(i, el) {
+    // `i` is a place. A place on the step the slide already shows is a build:
+    // only the comments shown change.
+    render(at, el) {
+      const { step: i, b } = this.places[at];
+      el.__want = b;
+      if (el.dataset.step === String(i) && el.firstChild) { this.reveal(el, b, true); return; }
+      el.dataset.step = i;
+      el.__shown = 0;
+      el.__comments = null;
       const s = this.B.steps[i], who = by(s), st = s.stage;
       const j = this.before(i, st), fresh = j < 0;
       const was = split(fresh ? s.payload : this.B.steps[j].payload), now = split(s.payload);
@@ -470,7 +499,7 @@ document.addEventListener('alpine:init', () => {
         const jobs = [build ? this.build(host, was.body, now.body.slice(was.body.length)) : this.draw(host, was.body, now.body)];
         if (outlineHost) jobs.push(this.draw(outlineHost, this.B.steps[ol].payload, this.B.steps[ol].payload));
         await Promise.all(jobs);
-        this.comments(s, host, front, outlineHost, outlineFold);
+        this.comments(s, el, host, front, outlineHost, outlineFold);
       })().catch(e => { host.textContent = 'Could not draw this step: ' + (e?.message || e); });
     },
 
@@ -480,8 +509,9 @@ document.addEventListener('alpine:init', () => {
     // payload order; one whose quote is not found goes after the text, saying
     // so. A tap on a mark brings its comment into view and lights it briefly;
     // a tap on a comment lights its mark.
-    comments(s, host, front, outlineHost, outlineFold) {
+    comments(s, el, host, front, outlineHost, outlineFold) {
       if (!s.comments.length) return;
+      const built = [];
       const after = new Map();   // block -> the last comment placed after it
       const flash = (els, cls) => {
         for (const e of els) e.classList.add(...cls.split(' '));
@@ -492,10 +522,12 @@ document.addEventListener('alpine:init', () => {
         const onOutline = c.on === 'outline' && outlineHost;
         let root = onOutline ? outlineHost : host;
         let node = null;
+        // A mark is plain until its comment is revealed (reveal, below).
         const make = () => {
-          const m = h('mark', MARK + ' ' + review(c).mark);
+          const m = h('mark', 'bg-transparent text-inherit scroll-mt-32');
           m.dataset.comment = k;
           m.addEventListener('click', () => {
+            if (node.classList.contains('hidden')) return;
             node.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
             flash([node], review(c).tint);
           });
@@ -506,7 +538,8 @@ document.addEventListener('alpine:init', () => {
         node = this.commentBody(c);
         node.dataset.comment = k;
         node.dataset.commentCard = '';   // not text a later quote is looked for in
-        node.classList.add('my-3');
+        node.classList.add('my-3', 'hidden');
+        built.push({ c, node, marks });
         node.addEventListener('click', e => {
           if (e.target.closest('a, [data-title-tip]') || !marks.length) return;
           marks[0].scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
@@ -537,6 +570,38 @@ document.addEventListener('alpine:init', () => {
         after.set(block, node);
       });
       if (lost.children.length) host.append(lost);
+      el.__comments = built;
+      this.reveal(el, el.__want || 0, false);
+    },
+    // Show the first b comments of the step on slide el. One more than before,
+    // moving forward, is a build: the comment flies in under its block, its
+    // mark lights as it lands, and the two are brought into view. Under
+    // reduced motion it appears without moving.
+    reveal(el, b, animate) {
+      el.__want = b;
+      const all = el.__comments;
+      if (!all) return;
+      const was = el.__shown || 0;
+      all.forEach(({ c, node, marks }, k) => {
+        const on = k < b;
+        node.classList.toggle('hidden', !on);
+        for (const m of marks) m.className = on ? `${MARK} ${review(c).mark} scroll-mt-32` : 'bg-transparent text-inherit scroll-mt-32';
+      });
+      el.__shown = b;
+      if (!animate || b !== was + 1) return;
+      const { c, node, marks } = all[b - 1];
+      const smooth = calm() ? 'auto' : 'smooth';
+      if (marks.length) marks[0].scrollIntoView({ block: 'start', behavior: smooth });
+      else node.scrollIntoView({ block: 'center', behavior: smooth });
+      if (!calm()) {
+        node.animate([{ opacity: 0, transform: 'translateX(56px)' }, { opacity: 1, transform: 'none' }],
+                     { duration: 380, easing: 'cubic-bezier(.2,.7,.2,1)' });
+      }
+      const lit = review(c).on;
+      setTimeout(() => {
+        for (const m of marks) m.classList.add(lit);
+        setTimeout(() => { for (const m of marks) m.classList.remove(lit); }, 1200);
+      }, calm() ? 0 : 300);
     },
   }));
 });
@@ -552,7 +617,12 @@ document.addEventListener('alpine:init', () => {
       <a x-show="fileUrl" :href="fileUrl" target="_blank" rel="noopener"
          class="block truncate font-mono text-xs text-base-content/60 hover:underline" x-text="B?.file"></a>
     </div>
-    <span x-show="B" class="min-w-[7ch] text-right tabular-nums text-sm text-base-content/70" x-text="(cur + 1) + ' / ' + n"></span>
+    <div x-show="B" class="min-w-[7ch] grid justify-items-end tabular-nums text-sm text-base-content/70">
+      <span x-text="(step + 1) + ' / ' + n"></span>
+      <span x-show="builds" class="inline-flex items-center gap-1 text-xs text-base-content/50" :aria-label="b + ' of ' + builds + ' comments shown'">
+        <i class="ph ph-chat-circle-dots"></i><span x-text="b + '/' + builds"></span>
+      </span>
+    </div>
   </header>
 
   <main class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)]">
@@ -564,14 +634,14 @@ document.addEventListener('alpine:init', () => {
   <footer x-show="B" class="border-t border-base-300 px-2 pt-1 grid grid-cols-[minmax(0,1fr)]">
     <nav x-show="stages.length > 1" aria-label="Stages" class="flex justify-center-safe gap-1 overflow-x-auto">
       <template x-for="st in stages" :key="st.k">
-        <button type="button" class="btn btn-xs rounded-full gap-1 shrink-0" @click="go(st.first)"
+        <button type="button" class="btn btn-xs rounded-full gap-1 shrink-0" @click="go(first(st.first))"
                 :class="st.k === stage ? 'btn-neutral' : 'btn-ghost text-base-content/60'" :aria-current="st.k === stage ? 'step' : null">
           <i class="ph" :class="st.icon"></i><span x-text="st.label"></span>
         </button>
       </template>
     </nav>
     <div class="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1 pb-1">
-      <button type="button" class="btn btn-ghost btn-square" aria-label="Previous step" @click="go(cur - 1)" :disabled="cur === 0">
+      <button type="button" class="btn btn-ghost btn-square" aria-label="Back" @click="go(cur - 1)" :disabled="cur === 0">
         <i class="ph ph-caret-left text-xl"></i>
       </button>
       <div class="min-w-0">
@@ -580,17 +650,17 @@ document.addEventListener('alpine:init', () => {
             <template x-for="(s, i) in B.steps" :key="i">
               <button type="button" class="h-10 w-6 shrink-0 grid place-items-center" :aria-label="'Step ' + (i + 1) + ', ' + s.stage + ', ' + s.by"
                       :class="i && B.steps[i - 1].stage !== s.stage ? 'ml-3' : ''"
-                      :aria-current="i === cur ? 'step' : null" @click="go(i)">
+                      :aria-current="i === step ? 'step' : null" @click="go(first(i))">
                 <span class="rounded-full" :class="dot(i)"></span>
               </button>
             </template>
           </div>
         </template>
         <template x-if="B && n > 25">
-          <input type="range" class="range range-xs w-full" min="1" :max="n" :value="cur + 1" aria-label="Step" @input="go($event.target.value - 1)">
+          <input type="range" class="range range-xs w-full" min="1" :max="n" :value="step + 1" aria-label="Step" @input="go(first($event.target.value - 1))">
         </template>
       </div>
-      <button type="button" class="btn btn-ghost btn-square" aria-label="Next step" @click="go(cur + 1)" :disabled="cur === n - 1">
+      <button type="button" class="btn btn-ghost btn-square" aria-label="Forward" @click="go(cur + 1)" :disabled="cur === places.length - 1">
         <i class="ph ph-caret-right text-xl"></i>
       </button>
     </div>
