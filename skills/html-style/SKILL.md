@@ -143,7 +143,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 - If clicking opens, navigates, or toggles something, make the icon a button or link with `cursor-pointer`, since Tailwind 4 gives plain buttons the arrow. On hover, use `hover:text-primary`, or `hover:opacity-75` for an emoji or brand mark that keeps its own colour.
 - If the icon also has a hover card, the card does the explaining and is its only popup. Name the icon with `aria-label`.
-- If the icon only labels, keep the default cursor and a steady colour so it never looks clickable. A title tooltip can name it.
+- If the icon only labels, keep the default cursor and a steady colour so it never looks clickable. A title-tip can name it.
 
 ## Handing a page over
 
