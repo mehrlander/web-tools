@@ -48,6 +48,7 @@
     "stranded-titles": "python3 python/stranded-titles.py",
     "upstreams": "python3 python/upstream-skills.py",
     "showing": "python3 python/showing.py",
+    "session-render-links": "python3 python/session-render-links.py",
     "stage-link": "node node/stage-link.mjs",
     "reception-link": "node node/reception-link.mjs",
     "now-file": "node desktop/now-file.mjs",
