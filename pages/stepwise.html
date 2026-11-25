@@ -259,6 +259,9 @@ document.addEventListener('alpine:init', () => {
         if (s.panel) { s.kind = 'turns'; s.units = s.panel.turns.length; }
         else if (s.comments.length) { s.kind = 'comments'; s.units = s.comments.length; }
         else if (prior != null && s.payload.startsWith(prior)) { s.kind = 'bullets'; s.units = bullets(s.payload.slice(prior.length)); }
+        // A first request step that ends in bullets (the owner's later
+        // decisions under the request) brings them in as builds too.
+        else if (s.stage === 'request' && prior == null && bullets(s.payload)) { s.kind = 'bullets'; s.units = bullets(s.payload); }
         else if (s.stage === 'intent') { s.kind = 'bullets'; s.units = bullets(split(s.payload).body); }
         if (!s.units) s.kind = null;
       });
@@ -597,8 +600,11 @@ document.addEventListener('alpine:init', () => {
         // The owner adding to the request reads as a build, not a redline:
         // the new lines enter together, untinted, under what was there.
         const build = st === 'request' && !fresh && now.body.startsWith(was.body);
+        const cut = st === 'request' && fresh && s.kind === 'bullets' ? now.body.search(/^[-*+][ \t]/m) : -1;
         let units = null;
-        const jobs = [build ? (units = this.build(host, was.body, now.body.slice(was.body.length)), null) : this.draw(host, was.body, now.body)];
+        const jobs = [build ? (units = this.build(host, was.body, now.body.slice(was.body.length)), null)
+          : cut > 0 ? (units = this.build(host, now.body.slice(0, cut), now.body.slice(cut)), null)
+          : this.draw(host, was.body, now.body)];
         if (outlineHost) jobs.push(this.draw(outlineHost, this.B.steps[ol].payload, this.B.steps[ol].payload));
         await Promise.all(jobs);
         // An intent step's bullets, Asked's then Wants's, in document order;
