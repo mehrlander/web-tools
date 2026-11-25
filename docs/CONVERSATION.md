@@ -18,10 +18,10 @@ substituting the current repo in URL templates.
   - ⌨️ **Take this:** Gives text, code, or other content for use.
   - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes.
   - 🟠 **Attention:** A concrete problem must be settled before proceeding.
-  - ⚪ **Clean exit:** The session's work is complete; the reader can end the session or bring more.
+  - ⚪ **Ready for instruction:** No work has been requested or implied yet.
   - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
   - 🔴 **Closed:** This branch closed unmerged. State why in one line.
-  - ⚫ **Done:** Every workstream merged or closed.
+  - ⚫ **Clean exit:** The session's work is complete, and every workstream is merged or closed.
   - 🔵 **Short answer:** The reply answers a question, and the next move is the reader's. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
   Use 🟢 for a closing state that needs only confirmation to proceed.
