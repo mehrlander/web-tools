@@ -257,4 +257,6 @@ test('trip lines with no Trips heading are trips, and one placed by line takes t
   const r = draft.review.runs[0];
   assert.equal(r.verdict, 'fail');
   assert.deepEqual(r.trips.map((t) => [t.peeve, t.edit]), [['P06', 1], ['P05', 0]], 'a line outside every span is E-');
+  assert.deepEqual(pyMany([['review_errors', [{ runs: [{ ...r, trips: r.trips.map((t) => ({ ...t, answer: 'kept', why: 'w' })) }] }]]])[0], [],
+    "the line in the report stands for the tag");
 });

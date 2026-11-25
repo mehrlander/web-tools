@@ -543,7 +543,8 @@ def review_errors(r):
                 if not isinstance(e, int) or isinstance(e, bool) or e < 0 or (spans is not None and e > len(spans)):
                     errs.append(f"{tat}.edit is the span it was tagged with, 1 to {len(spans) if spans else 40}, or 0 for E-")
                 elif not (spans and e and spans[e - 1].get("item") and f"`{spans[e - 1]['item']}`" in report) and not (
-                        e == 0 and t.get("where") and f"`{t['where']}`" in report) and not re.search(
+                        e == 0 and t.get("where") and f"`{t['where']}`" in report) and not (
+                        re.match(r"lines?\s+\d+", str(t.get("where") or "")) and flat(t["where"]) in flat(report)) and not re.search(
                         rf"\bE{e}\b" if e else r"\bE\s?[-–—]|\bE0\b|\boutside\b", report, re.I):
                     errs.append(f"{tat}: its tag {f'E{e}' if e else 'E-'} is not in the run's report")
             if "misquoted" in t and not isinstance(t["misquoted"], bool):
