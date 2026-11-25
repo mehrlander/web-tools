@@ -2,7 +2,7 @@
 
 A run writes one text from the owner's words, in stages. After each reviewed stage, two reviewers read the stage's output and the writer revises before going on. The stepwise viewer shows every file.
 
-Inputs, in the run folder: `request.md` (the owner's request, verbatim) and `decisions.md` (the owner's later decisions, verbatim quotes).
+Inputs, in the run folder: `request.md` (the owner's request, verbatim), `decisions.md` (the owner's later decisions, verbatim quotes) and `pointers.md` (where the things the owner names live, so no one supplies them mid-run). The viewer shows the request and the decisions as one step, the decisions arriving as builds.
 
 Rules for every stage: extreme succinctness; no filler; no em dashes.
 
