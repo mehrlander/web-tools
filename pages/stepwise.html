@@ -146,6 +146,9 @@ document.addEventListener('alpine:init', () => {
     for (const para of String(md || '').split(/\n\s*\n/)) {
       const m = para.trim().match(/^\*\*([^*:]+):\*\*\s*([\s\S]*)$/);
       if (m) turns.push({ who: m[1].trim(), text: m[2].trim() });
+      // A paragraph with no speaker continues the turn before it, such as the
+      // proposed wording a last turn reads aloud.
+      else if (turns.length && para.trim()) turns[turns.length - 1].text += '\n\n' + para.trim();
     }
     for (const t of turns) if (!roster.some(r => r.who === t.who)) roster.push({ who: t.who, role: '', what: '' });
     return { roster, turns };
