@@ -55,6 +55,7 @@ skills/notes/SKILL.md,skills/tend/SKILL.md,8,,lib kits findings js https github 
 skills/design-sprint/SKILL.md,skills/doc-craft/SKILL.md,8,,the user calls https github com mehrlander web tools blob main skills user calls skill md skill,10,224
 pages/drop/fills-concepts/2-tagged-factory/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,224
 pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concepts/3-reactive-surface/PROMPT.md,8,,each was pasted into its own fresh session see catalog md for the cross page analysis;the prompt that generated the pages in this folder aic,10,224
+docs/manifest.md,skills/claude-errands/SKILL.md,8,,errands readme md tickets https github com mehrlander web tools private blob main errands readme md tickets,10,224
 docs/environment/container.md,docs/environment/extending.md,8,,a cloud setup script https code claude com docs en claude code on the web environment caching,10,224
 skills/gold-set/SKILL.md,skills/wayback/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,224
 skills/gold-set/SKILL.md,skills/scour/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,224
@@ -105,6 +106,8 @@ docs/envelopes/approval.md,docs/envelopes/surface.md,3,,schemas profiles approva
 docs/TRACKER.md,skills/tasks/SKILL.md,3,,entry to restamp a fact add a new entry that corrects it,10,224
 docs/CONVERSATION.md,programs/alignment/manager.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,224
 desktop/README.md,skills/tend/SKILL.md,3,,readme md https github com mehrlander web tools private blob main;https github com mehrlander web tools private blob background state,10,224
+desktop/README.md,skills/claude-errands/SKILL.md,3,,https github com mehrlander web tools private blob main errands readme md,10,224
 desktop/README.md,programs/discovery/manager.md,3,,readme md https github com mehrlander web tools private blob main;https github com mehrlander web tools private blob background state,10,224
+desktop/README.md,docs/manifest.md,3,,https github com mehrlander web tools private blob main errands readme md,10,224
 README.md,skills/html-style/SKILL.md,3,,https mehrlander github io web tools app view map tab kits;https mehrlander github io web tools pages toss render html,10,224
 CLAUDE.md,node/README.md,3,,the rules in docs commit rules csv docs commit rules csv;test yml github workflows test yml runs npm test on,10,224

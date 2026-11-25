@@ -74,19 +74,23 @@ test("the patch and the address are the file's, frontmatter included", () => {
   const [o2, n2] = T.full(file, base, base.replace('One.', 'Uno.').replace('Two.', 'Dos.'));
   assert.equal(T.where(file, o2, n2), 'me/r@main:docs/a.md (lines 6, 8)');
   assert.equal(T.where(file, o, o), 'me/r@main:docs/a.md', 'no change, no lines');
-  assert.match(T.prompt(file, 'PATCH'), /`docs\/a\.md` in me\/r \(branch main\)[\s\S]*git apply[\s\S]*```diff\nPATCH\n```$/);
+  assert.match(T.prompt(file, 'PATCH'), /^Apply this edit to `docs\/a\.md` in me\/r \(branch main\)\.[^\n]*\n\n```diff\nPATCH\n```$/);
+  assert.match(T.prompt(file, 'PATCH', '  Keep the heading.  '), /\n\nThe owner adds: Keep the heading\.\n\n```diff/, "the owner's note rides with the patch");
 });
 
-test('claudeRequest writes the record agent_errand.py files for --agent claude', () => {
-  const r = E.claudeRequest({ title: 'Apply an edit to  docs/a.md', prompt: 'do it', registry: 'me/reg', now: '2026-11-24T23:00:00.500Z' });
-  assert.match(r.id, /^claude-2026-11-24-[a-z0-9]+$/);
+test("ticketRequest writes the record agent_errand.py files for --agent ticket", () => {
+  const r = E.ticketRequest({ title: 'Apply an edit to  docs/a.md', prompt: 'do it', openTo: ['codex', 'gemini'],
+                              subject: 'me/r@main:docs/a.md', registry: 'me/reg', now: '2026-11-25T01:00:00.500Z' });
+  assert.match(r.id, /^ticket-2026-11-25-[a-z0-9]+$/);
   assert.match(r.id, /^[a-z0-9][a-z0-9.-]{0,95}$/, "the daemon's id rule");
   assert.equal(r.title, 'Apply an edit to docs/a.md');
-  assert.deepEqual(r.run, { method: 'claude-errand', venue: 'anthropic-cloud',
-                            script: 'mehrlander/web-tools-private@main:sessions/tools/agent_errand.py', args: { prompt: 'do it' } });
+  assert.deepEqual(r.run, { method: 'agent-ticket', script: 'mehrlander/web-tools-private@main:sessions/tools/agent_errand.py',
+                            args: { prompt: 'do it', open_to: ['gemini', 'codex'], subject: 'me/r@main:docs/a.md' } },
+                   'takers in the one fixed order, and no venue: a ticket names no machine');
   assert.equal(r.dest, 'me/reg@background:errands/results');
-  assert.equal(r.createdAt, '2026-11-24T23:00:00Z');
+  assert.equal(r.createdAt, '2026-11-25T01:00:00Z');
   assert.equal(E.validate(E.normalize(r)).ok, true);
-  assert.throws(() => E.claudeRequest({ title: 't', prompt: ' ' }), /needs a prompt/);
-  assert.throws(() => E.claudeRequest({ title: 't', prompt: 'p', venue: 'work-machine' }), /runs on/);
+  assert.equal(E.ticketRequest({ title: 't', prompt: 'p' }).run.args.open_to, undefined, 'none picked is anyone');
+  assert.throws(() => E.ticketRequest({ title: 't', prompt: ' ' }), /needs a prompt/);
+  assert.throws(() => E.ticketRequest({ title: 't', prompt: 'p', openTo: ['grok'] }), /not grok/);
 });

@@ -33,7 +33,7 @@ lib/kits/doc-index.js,DocIndex,"every estate repo's Markdown, with word counts, 
 lib/kits/dock-split.js,dockSplit,the drag handle between two panes.,263,no,yes,19,yes
 lib/kits/docx.js,docxKit,"WordprocessingML (.docx) preparation: what a Word file has to have done to it before a browser renderer draws it faithfully, and what it knows about itself…",512,no,no,1,yes
 lib/kits/dom-shot.js,DomShot,render a live DOM node to a PNG in the browser.,218,no,no,1,yes
-lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,506,no,no,8,yes
+lib/kits/errands.js,Errands,one record for everything a session needs a person's browser to do.,524,no,no,8,yes
 lib/kits/estate-search.js,EstateSearch,"The estate's search calls, in one place, with one cache.",658,no,no,9,yes
 lib/kits/export.js,exporter,"export a page to a portable, self-resolving copy: ""download this page plus the data it read()s"" as one zip, optionally with its code inlined.",210,no,yes,9,yes
 lib/kits/file-correspondence.js,FileCorrespondence,Associate submitted text with one file at one repository revision.,184,no,no,2,yes
@@ -61,7 +61,7 @@ lib/kits/md-edit-tabs.js,mdEditVariants,"Wikipedia's source editor for one markd
 lib/kits/md-edit.js,mdEdit,"edit one section of a markdown file where it is rendered, and save it back to the repository it came from.",985,no,no,6,yes
 lib/kits/md-history.js,mdHistory,"a markdown document read WITH the history of its passages: what each one used to say, the commit that changed it, and the variants the Text collection holds…",277,no,no,2,yes
 lib/kits/md-surface.js,MdSurface,"a markdown buffer shown RENDERED, and still aimed at by character offset, so a text surface can edit its source while the reader looks at the document.",1173,no,no,7,yes
-lib/kits/md-track.js,mdTrack,"typing over a rendered markdown document makes a tracked change: the reading becomes its own redline, and stays open to typing.",571,no,no,3,yes
+lib/kits/md-track.js,mdTrack,"typing over a rendered markdown document makes a tracked change: the reading becomes its own redline, and stays open to typing.",649,no,no,3,yes
 lib/kits/md-unwrap.js,mdUnwrap,join hard-wrapped markdown lines into one line per paragraph.,142,no,no,1,yes
 lib/kits/md-variants.js,mdVariants,"a markdown document read WITH the variants retained against its paragraphs, and the proposals among them made for this file.",715,no,yes,8,yes
 lib/kits/messaging.js,messaging,string-path pub/sub.,73,no,yes,4,yes
