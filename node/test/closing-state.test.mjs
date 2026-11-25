@@ -97,7 +97,7 @@ test('every key the pattern can produce is complete in all three tables', () => 
     assert.ok(CS.HUE[k], 'no hue for ' + k);
     assert.equal(CS.MARK[CS.GLYPH[k]], k, 'glyph and key disagree for ' + k);
   }
-  assert.equal(keys.length, 14);
+  assert.equal(keys.length, 15);
 });
 
 test('direction and choice read in both spellings, and 🆚 still reads as choice', () => {
@@ -162,4 +162,10 @@ test('closings and marks agree on what counts as a state', () => {
   for (const md of ['🟢 **a** b', '> ⚪ **c** d', 'no state here']) {
     assert.deepEqual(CS.closings(md).map(c => c.key), CS.marks(md));
   }
+});
+
+test('take this reads with and without its selector, and as a linked lead', () => {
+  // ⌨️ Take this joined on 2026-11-24; its lead links the content handed over.
+  for (const g of ['⌨️', '⌨']) assert.deepEqual(CS.marks(g + ' **Take this:** the script.'), ['take'], g);
+  assert.deepEqual(CS.marks('Done.\n\n[⌨️ **Take this:**](https://example.com/#gz=x) the script.'), ['take']);
 });
