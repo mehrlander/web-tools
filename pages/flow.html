@@ -37,7 +37,8 @@
   (read with the stored GitHub token), #gz=<gzipped base64url JSON>
   (kits/gz-payload.js), and with neither, pages/demos/flow-critic-review.json.
   &step=<id> opens at a step and follows the reader; &v=<variant> shows one
-  version, and without it a two-version flow shows both.
+  version, and without it a two-version flow shows both. &o=v lays the lanes
+  down as columns; without it they run across as rows, the steps left to right.
 
   Each step is one slide of a swipeDeck.core track (kits/swipe-deck.js); the
   map, the arrows, the keys and the dots drive the same track. The map sits
@@ -107,6 +108,7 @@ document.addEventListener('alpine:init', () => {
 
   Alpine.data('flow', () => ({
     LANE_BG: 'color-mix(in oklab, var(--color-base-200) 70%, var(--color-base-100))',
+    o: 'h',   // lanes across (h, the default) or down (v)
     F: null, err: '', v: '', cur: 0, deck: null, passes: 0, repo: 'mehrlander/web-tools', ref: 'main', svg: '', mapH: 0,
 
     get variants() { return this.F?.variants || []; },
@@ -154,6 +156,7 @@ document.addEventListener('alpine:init', () => {
       document.title = this.F.title || 'Flow';
       const v = param('v');
       this.v = this.variants.some(x => x.id === v) ? v : (this.variants.length === 1 ? this.variants[0].id : '');
+      this.o = param('o') === 'v' ? 'v' : 'h';
       this.cur = this.indexOf(param('step'));
       this.$nextTick(() => this.build());
       window.addEventListener('keydown', e => {
@@ -236,6 +239,28 @@ document.addEventListener('alpine:init', () => {
       requestAnimationFrame(() => { this.deck.go(this.cur, 'instant'); this.draw(); this.reveal(); });
       this.mark(false);
     },
+    setO(o) {
+      if (o === this.o) return;
+      this.o = o;
+      this.mark(false);
+      this.$nextTick(() => { this.draw(); this.reveal(); });
+    },
+    // The map's layout, both ways: lanes as rows with the steps running
+    // across, or lanes as columns with the steps running down.
+    get gridStyle() {
+      if (!this.F) return '';
+      const L = this.F.actors.length;
+      return this.o === 'h'
+        ? `grid-template-columns: 5.5rem repeat(${this.n}, max-content); grid-template-rows: repeat(${L}, auto); margin-bottom: ${this.gutter ? this.gutter * 12 + 8 : 0}px`
+        : `grid-template-columns: repeat(${L}, minmax(5rem, 1fr)); grid-template-rows: 1.25rem; max-width: ${L * 16}rem; margin-right: ${this.gutter ? this.gutter * 12 + 8 : 0}px`;
+    },
+    bandStyle(k) {
+      return (this.o === 'h'
+        ? `grid-row: ${k + 1}; grid-column: 2 / span ${this.n}; margin-right: -0.75rem;`
+        : `grid-row: 2 / span ${this.n}; grid-column: ${k + 1}; margin-bottom: -0.75rem;`) + ` background: ${this.LANE_BG}`;
+    },
+    headStyle(k) { return this.o === 'h' ? `grid-row: ${k + 1}; grid-column: 1` : `grid-row: 1; grid-column: ${k + 1}`; },
+    nodeAt(s, i) { return this.o === 'h' ? `grid-row: ${this.col(s)}; grid-column: ${i + 2}; ` : `grid-row: ${i + 2}; grid-column: ${this.col(s)}; `; },
     setV(v) {
       if (v === this.v) return;
       const id = this.step?.id;
@@ -246,8 +271,9 @@ document.addEventListener('alpine:init', () => {
     },
     // Rewrites only step and v, so a #gz= or #gh= value keeps its own spelling.
     mark(push) {
-      const p = location.hash.slice(1).split('&').filter(x => x && !/^(step|v)=/.test(x));
+      const p = location.hash.slice(1).split('&').filter(x => x && !/^(step|v|o)=/.test(x));
       if (this.v && this.variants.length > 1) p.push('v=' + encodeURIComponent(this.v));
+      if (this.o === 'v') p.push('o=v');
       if (this.step) p.push('step=' + encodeURIComponent(this.step.id));
       try { history[push ? 'pushState' : 'replaceState'](history.state, '', '#' + p.join('&')); } catch (e) {}
     },
@@ -265,9 +291,10 @@ document.addEventListener('alpine:init', () => {
       if (j <= this.cur) this.passes++;
       this.go(j, { push: true });
     },
-    // The selected node stays in view in the map; its scroll margin keeps a row either side.
+    // The selected node stays in view in the map; its scroll margin keeps a row
+    // either side, and with lanes across it is centred so the steps on both sides show.
     reveal() {
-      this.$nextTick(() => this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`)?.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
+      this.$nextTick(() => this.$refs.map.querySelector(`[data-step="${CSS.escape(this.step?.id || '')}"]`)?.scrollIntoView({ block: 'nearest', inline: this.o === 'h' ? 'center' : 'nearest' }));
     },
 
     // Every edge the map draws: the path each version takes from step to step,
@@ -306,7 +333,9 @@ document.addEventListener('alpine:init', () => {
       if (!this.F || !map) return;
       const box = id => { const el = map.querySelector(`[data-step="${CSS.escape(id)}"]`); return el && { x: el.offsetLeft, y: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight }; };
       const grid = this.$refs.grid;
-      const gx0 = grid.offsetLeft + grid.offsetWidth + 10;
+      const H_ = this.o === 'h';
+      const gx0 = grid.offsetLeft + grid.offsetWidth + 10;   // lanes down: loops run in a gutter at the right
+      const gy0 = grid.offsetTop + grid.offsetHeight + 10;   // lanes across: in a gutter below
       const all = this.active().filter(Boolean);
       const paint = e => {
         const one = all.length > 1 && e.vids.size === 1 ? this.hue([...e.vids][0]) : null;
@@ -328,7 +357,10 @@ document.addEventListener('alpine:init', () => {
         const a = box(this.vis[e.i].id), b = box(this.vis[e.j].id);
         if (!a || !b) return;
         e.a = a; e.b = b;
-        if (e.kind === 'loop') { slot('r' + e.i, e, b.y); slot('r' + e.j, e, a.y); }
+        if (H_) {
+          if (e.kind === 'loop') { slot('b' + e.i, e, -b.x); slot('b' + e.j, e, -a.x); }
+          else { slot('r' + e.i, e, b.y + b.h / 2); slot('l' + e.j, e, a.y + a.h / 2); }
+        } else if (e.kind === 'loop') { slot('r' + e.i, e, b.y); slot('r' + e.j, e, a.y); }
         else { slot('b' + e.i, e, b.x + b.w / 2); slot('t' + e.j, e, a.x + a.w / 2); }
       });
       const off = (key, e, gap) => {
@@ -341,7 +373,31 @@ document.addEventListener('alpine:init', () => {
         if (!a || !b) return;
         const p = paint(e);
         let d, first = 0;
-        if (e.kind === 'loop') {
+        if (H_ && e.kind === 'loop') {
+          // Down from the source's foot to the gutter under the lanes, back along it, up into the target's foot.
+          const gy = gy0 + lane++ * 12, r = 8;
+          const x1 = a.x + a.w / 2 + off('b' + e.i, e, 10), y1 = a.y + a.h;
+          const x2 = b.x + b.w / 2 + off('b' + e.j, e, 10), y2 = b.y + b.h + 2;
+          const back = x2 < x1 ? -1 : 1;
+          d = `M${x1} ${y1} V${gy - r} Q${x1} ${gy} ${x1 + back * r} ${gy} H${x2 - back * r} Q${x2} ${gy} ${x2} ${gy - r} V${y2}`;
+          first = (gy - r - y1) + Math.abs(x2 - x1) / 2;   // a loop's label tries the middle of its run along the gutter
+        } else if (H_) {
+          // A curve from the source's right side to the target's left. Where a
+          // step between them sits across its way, the edge dips to a channel
+          // just under every such step, runs along it, and rises back.
+          const x1 = a.x + a.w, y1 = a.y + a.h / 2 + off('r' + e.i, e, 8);
+          const x2 = b.x - 2, y2 = b.y + b.h / 2 + off('l' + e.j, e, 8);
+          const lo = Math.min(y1, y2) - 6, hi = Math.max(y1, y2) + 6;
+          const block = this.vis.slice(e.i + 1, e.j).map(x => box(x.id)).filter(m => m && m.y < hi && m.y + m.h > lo);
+          if (block.length) {
+            const Y = Math.max(...block.map(m => m.y + m.h)) + 10;
+            const xa = Math.min(...block.map(m => m.x)), xb = Math.max(...block.map(m => m.x + m.w));
+            d = `M${x1} ${y1} C${(x1 + xa) / 2} ${y1} ${(x1 + xa) / 2} ${Y} ${xa} ${Y} H${xb} C${(xb + x2) / 2} ${Y} ${(xb + x2) / 2} ${y2} ${x2} ${y2}`;
+          } else {
+            const mx = (x1 + x2) / 2;
+            d = `M${x1} ${y1} C${mx} ${y1} ${mx} ${y2} ${x2} ${y2}`;
+          }
+        } else if (e.kind === 'loop') {
           // Out of the source's right side, up the gutter with rounded turns, into the target's right side.
           const gx = gx0 + lane++ * 12, r = 8;
           const o1 = off('r' + e.i, e, 6);
@@ -372,7 +428,8 @@ document.addEventListener('alpine:init', () => {
       s += this.bubbles(pills, this.vis.map(x => box(x.id)).filter(Boolean));
       // The loops' lanes widen the map's right margin, which moves the grid: draw again.
       if (lane !== this.gutter) { this.gutter = lane; this.$nextTick(() => this.draw()); }
-      const W = Math.max(map.clientWidth, gx0 + lane * 12), H = map.scrollHeight;
+      const W = H_ ? Math.max(map.clientWidth, grid.offsetLeft + grid.offsetWidth + 12) : Math.max(map.clientWidth, gx0 + lane * 12);
+      const H = H_ ? Math.max(map.clientHeight, gy0 + lane * 12) : map.scrollHeight;
       const defs = [...heads].map(([c, id]) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="${c}"/></marker>`).join('');
       this.svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="absolute left-0 top-0 pointer-events-none" aria-hidden="true"><defs>${defs}</defs>${s}</svg>`;
     },
@@ -380,7 +437,8 @@ document.addEventListener('alpine:init', () => {
 
     // Each edge label as a bubble sitting on its own edge. A bubble tries points
     // along the edge, its preferred point first and then outward from the
-    // middle, and at each point slides sideways in 12px steps; it takes the
+    // middle, and at each point tries just over and under the line, then
+    // slides along it in 12px steps; it takes the
     // first place that covers no step and no bubble already placed, else the
     // place that covers least, nearest its point.
     bubbles(pills, nodes) {
@@ -405,8 +463,9 @@ document.addEventListener('alpine:init', () => {
         let best = null;
         for (const dist of at) {
           const c = this._path.getPointAtLength(dist);
-          for (const dx of [0, ...Array.from({ length: 24 }, (_, k) => (k >> 1) * 12 + 12).map((v, k) => k % 2 ? -v : v)]) {
-            const r = { x: c.x + dx - W / 2, y: c.y - H / 2, w: W, h: H };
+          const slide = Array.from({ length: 24 }, (_, k) => (k >> 1) * 12 + 12).map((v, k) => [k % 2 ? -v : v, 0]);
+          for (const [dx, dy] of [[0, 0], [0, -(H + 2)], [0, H + 2], ...slide, [0, -(2 * H + 4)], [0, 2 * H + 4]]) {
+            const r = { x: c.x + dx - W / 2, y: c.y + dy - H / 2, w: W, h: H };
             const k = cover(r);
             if (!best || k < best.k) best = { r, k };
             if (!k) break;
@@ -493,11 +552,15 @@ document.addEventListener('alpine:init', () => {
       <i class="ph ph-flow-arrow text-xl"></i>
       <h1 class="font-semibold text-lg truncate" x-text="F ? F.title : 'Flow'"></h1>
       <span x-show="F" class="flex items-center gap-2 text-sm text-base-content/70 tabular-nums">
+<nav x-show="F" aria-label="Lanes" class="join shrink-0">
+      <button type="button" class="btn btn-xs join-item" :class="o === 'h' ? 'btn-neutral' : 'btn-ghost'" @click="setO('h')" aria-label="Lanes across"><i class="ph ph-rows text-sm"></i></button>
+      <button type="button" class="btn btn-xs join-item" :class="o === 'v' ? 'btn-neutral' : 'btn-ghost'" @click="setO('v')" aria-label="Lanes down"><i class="ph ph-columns text-sm"></i></button>
+    </nav>
         <span x-show="passes" class="badge badge-ghost gap-1 min-w-[4ch]"><i class="ph ph-arrow-u-up-left"></i><span x-text="passes"></span></span>
         <span class="min-w-[7ch] text-right" x-text="(cur + 1) + ' / ' + n"></span>
       </span>
     </div>
-    <nav x-show="variants.length > 1" aria-label="Version" class="flex items-center gap-2 overflow-x-auto text-xs">
+    <nav x-show="variants.length > 1" aria-label="Version" class="flex items-center gap-2 overflow-x-auto text-xs min-w-0">
       <span class="text-base-content/60 shrink-0">Version</span>
       <button type="button" class="btn btn-xs rounded-full shrink-0 gap-1" :class="!v ? 'btn-neutral' : 'btn-ghost'" @click="setV('')">
         Both <span class="tabular-nums opacity-70" x-text="count('')"></span>
@@ -517,17 +580,16 @@ document.addEventListener('alpine:init', () => {
     <div x-show="!F && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
 
     <section x-show="F" x-ref="map" aria-label="Map" data-title-tip-tap="none" class="relative min-h-0 overflow-auto [scrollbar-gutter:stable]">
-      <!-- A backdrop under the lane heads, the map's full width, so an edge scrolled beneath them stays hidden. -->
-      <div class="sticky top-0 z-[5] h-[2.75rem] -mb-[2.75rem] bg-base-100"></div>
-      <div x-ref="grid" class="grid gap-x-3 gap-y-6 px-3 pb-3"
-           :style="F && `grid-template-columns: repeat(${F.actors.length}, minmax(5rem, 1fr)); grid-template-rows: 1.25rem; max-width: ${F.actors.length * 16}rem; margin-right: ${gutter ? gutter * 12 + 8 : 0}px`">
+      <!-- Lanes down: a backdrop under the lane heads, the map's full width, so an edge scrolled beneath them stays hidden. -->
+      <div x-show="o === 'v'" class="sticky top-0 z-[5] h-[2.75rem] -mb-[2.75rem] bg-base-100"></div>
+      <div x-ref="grid" class="grid" :class="o === 'h' ? 'w-max gap-x-6 gap-y-3 p-3 pl-0' : 'gap-x-3 gap-y-6 px-3 pb-3'" :style="gridStyle">
         <!-- Each lane is a band the height of its steps, headed above by a medallion and a name, so who does a step is read from where it sits. -->
         <template x-for="(a, k) in (F ? F.actors : [])" :key="'band-' + a.id">
-          <div class="rounded-box" :style="`grid-row: 2 / span ${n}; grid-column: ${k + 1}; margin-bottom: -0.75rem; background: ${LANE_BG}`"></div>
+          <div class="rounded-box" :style="bandStyle(k)"></div>
         </template>
         <template x-for="(a, k) in (F ? F.actors : [])" :key="a.id">
-          <div class="sticky top-0 z-10 self-start h-[2.75rem] bg-base-100 grid justify-items-center content-center text-base-content/80"
-               :style="`grid-row: 1; grid-column: ${k + 1}`">
+          <div class="sticky z-10 bg-base-100 grid justify-items-center content-center text-base-content/80"
+               :class="o === 'h' ? 'left-0 self-stretch -my-1.5 py-1.5 px-1' : 'top-0 self-start h-[2.75rem]'" :style="headStyle(k) + (o === 'h' && k === F.actors.length - 1 && gutter ? `; margin-bottom: -${gutter * 12 + 14}px; padding-bottom: ${gutter * 12 + 20}px` : '')">
             <span class="grid place-items-center size-7 rounded-full bg-base-100 border shadow-sm"
                   :class="step?.actor === a.id ? 'border-primary text-primary ring-2 ring-primary/30' : 'border-base-300'"><i class="ph text-lg" :class="a.icon"></i></span>
             <span class="text-xs font-semibold leading-tight text-center px-1" :class="step?.actor === a.id ? 'text-primary' : ''" x-text="a.label"></span>
@@ -535,8 +597,8 @@ document.addEventListener('alpine:init', () => {
         </template>
         <template x-for="(s, i) in vis" :key="s.id + v">
           <button type="button" :data-step="s.id" @click="go(i)" :aria-current="i === cur ? 'step' : null"
-                  class="relative z-[1] scroll-my-20 justify-self-center w-fit max-w-full text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
-                  :class="nodeClass(i)" :style="`grid-row: ${i + 2}; grid-column: ${col(s)}; ` + nodeStyle(i)">
+                  class="relative z-[1] scroll-my-20 scroll-mx-24 justify-self-center w-fit text-left rounded-box border px-2 py-1.5 text-sm leading-5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-1.5"
+                  :class="nodeClass(i) + (o === 'h' ? ' self-center max-w-[10rem]' : ' max-w-full')" :style="nodeAt(s, i) + nodeStyle(i)">
             <span class="tabular-nums text-xs opacity-60 pt-px" x-text="i + 1"></span>
             <span>
               <span x-text="s.label"></span>
