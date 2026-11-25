@@ -1,6 +1,6 @@
 {
   "schema": "stepwise/2",
-  "title": "Writing Sprint, live run 2 (2026-11-24)",
+  "title": "Writing Sprint, run 3 from the template (2026-11-24)",
   "file": "skills/writing-sprint/SKILL.md",
   "steps": [
     {
@@ -19,46 +19,31 @@
       "stage": "intent",
       "by": "session",
       "note": "The writer's reading: what the owner asked for and wants.",
-      "payload": "👤 **Asked:** A `writing-sprint` skill, sibling to design-sprint, that punches up a text, draft or prompt alike, by channeling writers through their compelling passages, filed by craft move in moves.md, and pulls in the existing skills on writing, exemplars and inspiring excellence, starting from a minimal core insight.\n\n👤 **Wants:** A stronger text than any one assistant's habits would produce, gained by borrowing moves from writers who mastered them, from a skill that says its core wisdom and little else.\n"
+      "payload": "👤 **Asked**\n\n- A writing sprint: the design sprint's sibling, for text.\n- Its work is a punch-up: take a text and make it stronger.\n- Break free of any one assistant's habits.\n- Channel writers through exemplars, widened to famous writers and compelling passages.\n- Find passages by craft move, in home's `projects/skill-lab/moves.md`.\n- Pull together the existing writing skills instead of restating them.\n\n👤 **Wants**\n\n- A draft and a prompt are the same input: an idea to build from.\n- The skill starts extremely minimal, from the core insight.\n"
     },
     {
       "stage": "intent",
-      "by": "proxy",
-      "note": "Review: critic 1, proxy 3.",
-      "payload": "👤 **Asked:** A `writing-sprint` skill, sibling to design-sprint, that punches up a text, draft or prompt alike, by channeling writers through their compelling passages, filed by craft move in moves.md, and pulls in the existing skills on writing, exemplars and inspiring excellence, starting from a minimal core insight.\n\n👤 **Wants:** A stronger text than any one assistant's habits would produce, gained by borrowing moves from writers who mastered them, from a skill that says its core wisdom and little else.\n",
+      "by": "critic",
+      "note": "Review: critic 2, proxy accepted.",
+      "payload": "👤 **Asked**\n\n- A writing sprint: the design sprint's sibling, for text.\n- Its work is a punch-up: take a text and make it stronger.\n- Break free of any one assistant's habits.\n- Channel writers through exemplars, widened to famous writers and compelling passages.\n- Find passages by craft move, in home's `projects/skill-lab/moves.md`.\n- Pull together the existing writing skills instead of restating them.\n\n👤 **Wants**\n\n- A draft and a prompt are the same input: an idea to build from.\n- The skill starts extremely minimal, from the core insight.\n",
       "comments": [
         {
           "on": "payload",
-          "quoted": "A `writing-sprint` skill, sibling to design-sprint, that punches up a text, draft or prompt alike, by channeling writers through their compelling passages, filed by craft move in moves.md, and pulls in the existing skills on writing, exemplars and inspiring excellence, starting from a minimal core insight.",
+          "quoted": "Its work is a punch-up: take a text and make it stronger.",
           "by": "critic",
-          "peeve": "P74",
-          "payload": "The Asked line is one sentence carrying five ideas (the skill, the punch-up method, the filing, the pulled-in skills, the minimal start), joined by commas and a trailing 'starting from'. The request was to be very succinct. Split it into short sentences, or cut it to the skill, what it does, and its minimal start.",
+          "peeve": "P06",
+          "payload": "\"Its\" refers to the writing sprint in the previous bullet, and each bullet must stand alone. Write \"The writing sprint's work is a punch-up: take a text and make it stronger.\"",
           "answer": "changed",
-          "rationale": "split into three short sentences, one idea each"
+          "rationale": "Named the writing sprint so the bullet stands alone."
         },
         {
           "on": "payload",
-          "quoted": "pulls in the existing skills on writing, exemplars and inspiring excellence, starting from a minimal core insight",
-          "by": "proxy",
-          "payload": "This reads as two requirements that pull against each other. The owner first asked to look for the relevant skills and see what could be put together. They then said to start from something extremely minimal, the core insight. They would want the existing skills treated as source material to distill the core from, not as things the new skill pulls in or links wholesale.",
+          "quoted": "The skill starts extremely minimal, from the core insight.",
+          "by": "critic",
+          "peeve": "P06",
+          "payload": "No bullet says a skill is being built, so \"the skill\" has no antecedent. Name it: \"The writing sprint skill starts extremely minimal, from the core insight.\"",
           "answer": "changed",
-          "rationale": "existing skills are now the source the core insight is distilled from"
-        },
-        {
-          "on": "payload",
-          "quoted": "channeling writers through their compelling passages, filed by craft move in moves.md",
-          "by": "proxy",
-          "payload": "The request said to expand beyond writers to other kinds of exemplars (the recent exemplar work is the base), and the reading drops that. Also, 'filed by craft move' is stated as settled. The owner was leery of moves and agreed only to try it, so it should read as a trial.",
-          "answer": "changed",
-          "rationale": "widened to more kinds of exemplars and marked moves as a trial"
-        },
-        {
-          "on": "payload",
-          "quoted": "from a skill that says its core wisdom and little else",
-          "by": "proxy",
-          "payload": "This is right in spirit. It should stay clear that the core insight is the starting point and not a fixed endpoint, since the owner said to start from the minimal core and then see what gets built. 'And little else' could be read as ruling out the passage and exemplar machinery the owner also wants.",
-          "answer": "changed",
-          "rationale": "the core is now the starting point the skill grows from"
+          "rationale": "Named the writing sprint skill so the bullet has its own antecedent."
         }
       ]
     },
@@ -66,51 +51,61 @@
       "stage": "intent",
       "by": "session",
       "note": "Revised in answer to the review.",
-      "payload": "👤 **Asked**\n\n- A `writing-sprint` skill, sibling to design-sprint.\n- It punches up a text, draft or prompt alike.\n- It borrows from exemplars of more kinds than the current set, famous writers and compelling passages among them.\n- Passages are filed by craft move in moves.md, as a trial.\n- It starts from one core insight, distilled from the existing skills on writing, exemplars and inspiring excellence.\n\n👤 **Wants**\n\n- A text stronger than any one assistant's habits would make it.\n- The strength comes from borrowing what writers who mastered a move did.\n- The skill grows from its core insight only as far as use shows it should.\n"
+      "payload": "👤 **Asked**\n\n- A writing sprint: the design sprint's sibling, for text.\n- The writing sprint's work is a punch-up: take a text and make it stronger.\n- Break free of any one assistant's habits.\n- Channel writers through exemplars, widened to famous writers and compelling passages.\n- Find passages by craft move, in home's `projects/skill-lab/moves.md`.\n- Pull together the existing writing skills instead of restating them.\n\n👤 **Wants**\n\n- A draft and a prompt are the same input: an idea to build from.\n- The writing sprint skill starts extremely minimal, from the core insight.\n"
     },
     {
       "stage": "outline",
       "by": "session",
       "note": "A premise and four points, before any prose.",
-      "payload": "**Premise:** A text gets stronger when the writer borrows a named move from a passage that does it well, instead of revising by habit.\n\n1. Take any text as the start; a draft and a prompt are the same input.\n2. Name what the text must do for its reader, then the move that does it.\n3. Read passages that show the move, from moves.md or a writer to channel, before rewriting.\n4. Rewrite with the move, leave the writer's mannerisms behind, and compare with the original.\n"
+      "payload": "**Premise:** A text escapes an assistant's habits by borrowing a move from a writer who made it work, applied to the text's core insight.\n\n1. State the text's core insight in one sentence; a draft and a prompt both yield one.\n2. Choose a move from `moves.md`, or a writer to channel, and read the passage first.\n3. Rebuild from the core outward with the move, leaving the writer's mannerisms behind.\n4. Point to exemplars, inspire-excellence and peeves for what they already cover.\n"
     },
     {
       "stage": "outline",
       "by": "proxy",
-      "note": "Review: critic passed, proxy 4.",
-      "payload": "**Premise:** A text gets stronger when the writer borrows a named move from a passage that does it well, instead of revising by habit.\n\n1. Take any text as the start; a draft and a prompt are the same input.\n2. Name what the text must do for its reader, then the move that does it.\n3. Read passages that show the move, from moves.md or a writer to channel, before rewriting.\n4. Rewrite with the move, leave the writer's mannerisms behind, and compare with the original.\n",
+      "note": "Review: critic 2, proxy 3.",
+      "payload": "**Premise:** A text escapes an assistant's habits by borrowing a move from a writer who made it work, applied to the text's core insight.\n\n1. State the text's core insight in one sentence; a draft and a prompt both yield one.\n2. Choose a move from `moves.md`, or a writer to channel, and read the passage first.\n3. Rebuild from the core outward with the move, leaving the writer's mannerisms behind.\n4. Point to exemplars, inspire-excellence and peeves for what they already cover.\n",
       "comments": [
         {
           "on": "payload",
-          "quoted": "A text gets stronger when the writer borrows a named move from a passage that does it well, instead of revising by habit.",
-          "by": "proxy",
-          "payload": "The owner's aim is to break free of an assistant's tendencies, and 'revising by habit' is too vague to say that. They would want the premise to name the assistant's own default habits as what the borrowed move displaces. They would also want the punch-up idea in it, since they said they like it.",
+          "quoted": "Choose a move from `moves.md`, or a writer to channel, and read the passage first.",
+          "by": "critic",
+          "peeve": "P06",
+          "payload": "\"the passage\" has no referent, because no passage has been introduced. Name it, for example the passage the chosen move is filed under or the writer's passage, and give moves.md its full path, home's projects/skill-lab/moves.md.",
           "answer": "changed",
-          "rationale": "premise now names punch-up and the assistant's default habits as what is displaced"
+          "rationale": "Gave moves.md its full home path with a link, and made the passage one that shows the chosen move."
         },
         {
           "on": "payload",
-          "quoted": "Read passages that show the move, from moves.md or a writer to channel, before rewriting.",
-          "by": "proxy",
-          "payload": "The owner called moves 'valid' only as a trial and said they were 'a little leery'. This step makes moves.md the primary source. They would want it to say the filing by move is a trial, with famous writers and compelling passages equal sources and no dependence on moves.md.",
+          "quoted": "Point to exemplars, inspire-excellence and peeves for what they already cover.",
+          "by": "critic",
+          "peeve": "P24",
+          "payload": "Exemplars, inspire-excellence and peeves are named without links, and `moves.md` in point 2 has none either. Link each to its skill or file, and say in a few words what each covers so the later stages can point to it.",
           "answer": "changed",
-          "rationale": "writers, passages and moves are now equal sources, moves marked as on trial"
+          "rationale": "Critic: each skill is now linked, with a word on what it covers."
         },
         {
           "on": "payload",
-          "quoted": "Name what the text must do for its reader, then the move that does it.",
+          "quoted": "Point to exemplars, inspire-excellence and peeves for what they already cover.",
           "by": "proxy",
-          "payload": "This is the step where moves would carry the whole method, and the owner is unsure they hold up. They would want the step to allow a passage or a writer to lead, with no move named first. They would also want it to stay short enough to count as the 'extremely minimal' core insight, not a four-step procedure.",
+          "payload": "The owner asked to pull together the writing skills: 'these skills about how to write, about arriving together, and even the ones about channeling excellence'. Point 4 names exemplars, inspire-excellence and peeves. It leaves out the how-to-write and arriving-together skills, and peeves is a critique tool, not a writing skill. The owner would want point 4 to point to those skills, and to exemplars widened to famous writers and compelling passages, so the skill links to them instead of restating them.",
           "answer": "changed",
-          "rationale": "dropped the move-first step so a writer or passage can lead"
+          "rationale": "Proxy: dropped peeves, a critique tool, and added the how-to-write sources, QUALIFIED-WRITING.md and succinct-text. No skill under web-tools/skills or home's skill-lab matches 'arriving together', so none is named for it."
         },
         {
           "on": "payload",
-          "quoted": "Rewrite with the move, leave the writer's mannerisms behind, and compare with the original.",
+          "quoted": "leaving the writer's mannerisms behind",
           "by": "proxy",
-          "payload": "The owner wants to see the result be stronger than the original, and 'compare' leaves open how. Nothing here says the outcome is a stronger text than the assistant would have made unaided. They would want the check to be that.",
+          "payload": "The owner wants to 'channel' famous writers, and the goal is to escape the assistant's habits. A rule to drop the writer's mannerisms is the writer's own invention. It could also cancel the voice the owner wants borrowed. The owner would want the step to say what to take (the move and the passage's shape) and not add a ban on the writer's style.",
           "answer": "changed",
-          "rationale": "the check is now beating what the assistant would write unaided"
+          "rationale": "Point 3 now says what to take, the move and the passage's shape, and makes no rule against the writer's style."
+        },
+        {
+          "on": "payload",
+          "quoted": "A text escapes an assistant's habits by borrowing a move from a writer who made it work",
+          "by": "proxy",
+          "payload": "The owner chose 'punch-up' as the work: take a text and make it stronger. The premise and the four points never say the aim is a stronger text, and nothing in the plan shows how the run checks that the rebuilt text is stronger than the original. The owner would want the premise or point 3 to name the punch-up, so the sprint is not only a style swap.",
+          "answer": "changed",
+          "rationale": "The premise now names the punch-up and its aim, a stronger text. Point 3 keeps the rebuild only if it reads stronger than the original."
         }
       ]
     },
@@ -118,179 +113,78 @@
       "stage": "outline",
       "by": "session",
       "note": "Revised in answer to the review.",
-      "payload": "**Premise:** To punch up a text, displace the assistant's default habits with something borrowed from a writer who did it better.\n\n1. Take any text as the start; a draft and a prompt are the same input.\n2. Find what to borrow: a writer to channel, a compelling passage, or a move from moves.md, which is on trial.\n3. Rewrite with what was borrowed, leaving the writer's mannerisms behind.\n4. Keep the rewrite only if it beats what the assistant would have written unaided.\n"
+      "payload": "**Premise:** A punch-up makes a text stronger by applying a move borrowed from a writer who made it work, in place of an assistant's habits, to the text's core insight.\n\n1. State the text's core insight in one sentence; a draft and a prompt both yield one.\n2. Choose a move from home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), or a writer to channel, and first read a passage that shows it.\n3. Rebuild from the core outward, taking the move and the passage's shape; keep the rebuild only if it reads stronger than the original.\n4. Link the writing skills: [`exemplars`](https://github.com/mehrlander/web-tools/blob/main/skills/exemplars/SKILL.md) (styles), [`inspire-excellence`](https://github.com/mehrlander/web-tools/blob/main/skills/inspire-excellence/SKILL.md) (ambition), [`QUALIFIED-WRITING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md) (prose rules), [`succinct-text`](https://github.com/mehrlander/web-tools/blob/main/skills/succinct-text/SKILL.md) (cutting).\n"
     },
     {
       "stage": "draft",
       "by": "session",
       "note": "The core: the instruction the skill opens with.",
-      "payload": "Punch up the text with something borrowed from a writer who did it better, not with your own defaults. Keep the result only if it beats what you would have written unaided.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "proxy",
-      "note": "Review: critic 3, proxy 3.",
-      "payload": "Punch up the text with something borrowed from a writer who did it better, not with your own defaults. Keep the result only if it beats what you would have written unaided.\n",
-      "comments": [
-        {
-          "on": "payload",
-          "quoted": "with something borrowed from a writer who did it better",
-          "by": "critic",
-          "peeve": "P05",
-          "payload": "'something' stands where the sentence could name the noun, and 'did it better' leaves 'it' unnamed. The outline names the borrowable items (a writer to channel, a compelling passage, a move from moves.md). Name them here, and say what the writer did better.",
-          "answer": "changed",
-          "rationale": "names the three sources and drops the unnamed 'it'"
-        },
-        {
-          "on": "payload",
-          "quoted": "not with your own defaults",
-          "by": "critic",
-          "peeve": "P10",
-          "payload": "'defaults' is a private, unexplained term, and the outline's 'default habits' is cut down to it. A session cannot tell whether it means word choice, structure or tone. Say 'your habitual phrasing and structures' or similar.",
-          "answer": "changed",
-          "rationale": "now 'your habitual phrasing and structure'"
-        },
-        {
-          "on": "payload",
-          "quoted": "Keep the result only if it beats what you would have written unaided.",
-          "by": "critic",
-          "peeve": "P70",
-          "payload": "'beats' has no standard, so the sentence sends the session back to its own judgment, and an unaided draft is one it cannot compare against reliably. Name the test, such as which of the two a reader would choose and on what ground, or drop the sentence.",
-          "answer": "changed",
-          "rationale": "the test is now which version a reader would choose, against a plain version that exists"
-        },
-        {
-          "on": "payload",
-          "quoted": "something borrowed from a writer who did it better",
-          "by": "proxy",
-          "payload": "This narrows the source to a writer. The owner wanted to widen it: 'expand to other kinds of exemplars', 'compelling passages', and moves, which they are leery of but want to try. Name the source more broadly, for example a writer, a passage or a move, but keep it to one short clause. The core should not hard-code 'a writer'.",
-          "answer": "changed",
-          "rationale": "source widened to a writer, a passage or a filed move in one clause"
-        },
-        {
-          "on": "payload",
-          "quoted": "Punch up the text with",
-          "by": "proxy",
-          "payload": "The owner's premise was that a draft and a prompt are the same input, because 'all ideas start from other ideas'. 'The text' suggests only a finished draft. Say that any text, draft or prompt, is the starting point. This is a small fix, but it is part of the insight they stated.",
-          "answer": "changed",
-          "rationale": "now 'any text, draft or prompt'"
-        },
-        {
-          "on": "payload",
-          "quoted": "not with your own defaults",
-          "by": "proxy",
-          "payload": "The owner's aim was to 'break free of the tendencies of any particular assistant'. 'Your own defaults' is close to that, but it reads as a style tip. It should say the assistant's habitual moves get displaced. It should also say the borrowing takes the writer's move and leaves their mannerisms behind. As written, the instruction could produce pastiche, which is the opposite of breaking free.",
-          "answer": "changed",
-          "rationale": "habits are displaced, and the technique is taken without the mannerisms"
-        }
-      ]
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Revised in answer to the review.",
-      "payload": "Punch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Title and core-2, the instruction everything else grows from.",
-      "payload": "# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Frontmatter, so the skill loads on punch-up, channeling and writing-sprint asks.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves instead of an assistant's habits. Use when asked to punch up, strengthen or rewrite a piece of writing, to channel a writer, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Outline point 1, draft and prompt as one input, with a plain version to beat for a prompt.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves instead of an assistant's habits. Use when asked to punch up, strengthen or rewrite a piece of writing, to channel a writer, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n\n## The starting text\n\nA draft and a prompt are the same input: all ideas start from other ideas. For a prompt, first write the plain version you would write unaided. That version, or the given draft, is the one to beat.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Outline point 2, the three sources as equals, moves.md marked as on trial, and where private home is read.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves instead of an assistant's habits. Use when asked to punch up, strengthen or rewrite a piece of writing, to channel a writer, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n\n## The starting text\n\nA draft and a prompt are the same input: all ideas start from other ideas. For a prompt, first write the plain version you would write unaided. That version, or the given draft, is the one to beat.\n\n## What to borrow\n\nPick the source by what the text must do for its reader.\n\n- **A writer to channel.** Read a passage of theirs before rewriting; memory of a writer yields their mannerisms, not their technique.\n- **A passage.** Quote it verbatim, from a piece in home's [`projects/skill-lab/exemplars/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars) or from a source found for the job.\n- **A move.** [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) files passages by craft move. The filing is on trial: when no move fits, go to a writer or a passage.\n\nA named style in [`styles.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/styles.md) is read through the [`exemplars` skill](../exemplars/SKILL.md). home is private: read it from a checkout beside the project root, or through the GitHub tools.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Outline point 3, naming what to leave behind before rewriting, so borrowing does not become pastiche.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves instead of an assistant's habits. Use when asked to punch up, strengthen or rewrite a piece of writing, to channel a writer, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n\n## The starting text\n\nA draft and a prompt are the same input: all ideas start from other ideas. For a prompt, first write the plain version you would write unaided. That version, or the given draft, is the one to beat.\n\n## What to borrow\n\nPick the source by what the text must do for its reader.\n\n- **A writer to channel.** Read a passage of theirs before rewriting; memory of a writer yields their mannerisms, not their technique.\n- **A passage.** Quote it verbatim, from a piece in home's [`projects/skill-lab/exemplars/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars) or from a source found for the job.\n- **A move.** [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) files passages by craft move. The filing is on trial: when no move fits, go to a writer or a passage.\n\nA named style in [`styles.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/styles.md) is read through the [`exemplars` skill](../exemplars/SKILL.md). home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\n## Rewriting\n\nBefore rewriting, name what to leave behind: the source's period diction, genre conventions and signature phrasing, as each entry in `moves.md` does. Then rewrite in the subject's own terms.\n"
-    },
-    {
-      "stage": "draft",
-      "by": "session",
-      "note": "Outline point 4, the side-by-side check with a cited source and ground per kept change.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves instead of an assistant's habits. Use when asked to punch up, strengthen or rewrite a piece of writing, to channel a writer, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n\n## The starting text\n\nA draft and a prompt are the same input: all ideas start from other ideas. For a prompt, first write the plain version you would write unaided. That version, or the given draft, is the one to beat.\n\n## What to borrow\n\nPick the source by what the text must do for its reader.\n\n- **A writer to channel.** Read a passage of theirs before rewriting; memory of a writer yields their mannerisms, not their technique.\n- **A passage.** Quote it verbatim, from a piece in home's [`projects/skill-lab/exemplars/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars) or from a source found for the job.\n- **A move.** [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) files passages by craft move. The filing is on trial: when no move fits, go to a writer or a passage.\n\nA named style in [`styles.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/styles.md) is read through the [`exemplars` skill](../exemplars/SKILL.md). home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\n## Rewriting\n\nBefore rewriting, name what to leave behind: the source's period diction, genre conventions and signature phrasing, as each entry in `moves.md` does. Then rewrite in the subject's own terms.\n\n## The check\n\nShow the plain version and the rewrite. For each change kept, cite its source and the ground a reader would choose it on: clearer, shorter, more concrete. Where the plain version wins, keep it and say so.\n"
+      "payload": "Make a text stronger by borrowing. State its core insight in one sentence, then rebuild it around that sentence with a move taken from a writer who made the move work.\n"
     },
     {
       "stage": "draft",
       "by": "proxy",
       "note": "Review: critic 3, proxy 4.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves instead of an assistant's habits. Use when asked to punch up, strengthen or rewrite a piece of writing, to channel a writer, or for a writing sprint.\"\n---\n\n# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n\n## The starting text\n\nA draft and a prompt are the same input: all ideas start from other ideas. For a prompt, first write the plain version you would write unaided. That version, or the given draft, is the one to beat.\n\n## What to borrow\n\nPick the source by what the text must do for its reader.\n\n- **A writer to channel.** Read a passage of theirs before rewriting; memory of a writer yields their mannerisms, not their technique.\n- **A passage.** Quote it verbatim, from a piece in home's [`projects/skill-lab/exemplars/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars) or from a source found for the job.\n- **A move.** [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) files passages by craft move. The filing is on trial: when no move fits, go to a writer or a passage.\n\nA named style in [`styles.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/styles.md) is read through the [`exemplars` skill](../exemplars/SKILL.md). home is private: read it from a checkout beside the project root, or through the GitHub tools.\n\n## Rewriting\n\nBefore rewriting, name what to leave behind: the source's period diction, genre conventions and signature phrasing, as each entry in `moves.md` does. Then rewrite in the subject's own terms.\n\n## The check\n\nShow the plain version and the rewrite. For each change kept, cite its source and the ground a reader would choose it on: clearer, shorter, more concrete. Where the plain version wins, keep it and say so.\n",
+      "payload": "Make a text stronger by borrowing. State its core insight in one sentence, then rebuild it around that sentence with a move taken from a writer who made the move work.\n",
       "comments": [
         {
           "on": "payload",
-          "quoted": "all ideas start from other ideas",
+          "quoted": "with a move taken from a writer who made the move work",
+          "by": "critic",
+          "peeve": "P10",
+          "payload": "\"Move\" is a private term (home's moves.md) and the core never introduces it, so a cold reader cannot act on the instruction. Name the thing literally, for example a technique such as a sentence structure or device, with the link to moves.md carried in the opening.",
+          "answer": "changed",
+          "rationale": "Critic: 'move' is replaced by the literal 'technique'; growth introduces moves.md and its term where the file is linked."
+        },
+        {
+          "on": "payload",
+          "quoted": "Make a text stronger by borrowing.",
           "by": "critic",
           "peeve": "P04",
-          "payload": "This is a maxim, and it does not support the sentence before it. Cut the clause and keep only the instruction to write the plain version first.",
+          "payload": "\"Borrowing\" is a metaphor for imitating a technique, and a short punchy opener of this kind is the chat-voice the owner rejects. Use the literal verb: \"Strengthen a text by applying a technique from another writer.\"",
           "answer": "changed",
-          "rationale": "cut the maxim, kept the instruction"
+          "rationale": "Critic: the metaphor and the punchy opener are gone; the core opens on the first instruction."
         },
         {
           "on": "payload",
-          "quoted": "The filing is on trial",
+          "quoted": "then rebuild it around that sentence",
           "by": "critic",
-          "peeve": "P04",
-          "payload": "This is a metaphor where a literal word exists. Say that moves.md may not cover the text, then give the fallback.",
+          "peeve": "P06",
+          "payload": "\"it\" could mean the text or the one-sentence insight just stated, and the sentence-final \"that sentence\" adds a second pronoun-like referent. Write \"rebuild the text around that sentence.\"",
           "answer": "changed",
-          "rationale": "now says moves.md may not cover the text, then gives the fallback"
+          "rationale": "Now 'Rebuild the text around that sentence', one referent."
         },
         {
           "on": "payload",
-          "quoted": "Before rewriting, name what to leave behind: the source's period diction, genre conventions and signature phrasing, as each entry in `moves.md` does. Then rewrite in the subject's own terms.",
-          "by": "critic",
-          "peeve": "P08",
-          "payload": "The opening paragraph already says to take the technique and leave the mannerisms, and the writer bullet says it a third time. Keep one statement, and drop \"the subject's own terms\", which names nothing the reader can check (also P05).",
-          "answer": "changed",
-          "rationale": "section cut and the writer bullet no longer repeats mannerisms, so the core states it once"
-        },
-        {
-          "on": "payload",
-          "quoted": "A named style in [`styles.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/styles.md) is read through the [`exemplars` skill](../exemplars/SKILL.md). home is private: read it from a checkout beside the project root, or through the GitHub tools.",
+          "quoted": "Make a text stronger by borrowing.",
           "by": "proxy",
-          "payload": "The owner asked to start from something extremely minimal, the core insight. This paragraph is plumbing: styles.md, a second skill, and how to reach a private repo. It isn't the insight and isn't in the agreed outline. They would cut it, or leave it as one link, and add it later once the skill has been used.",
+          "payload": "The request was to \"break free of the tendencies of any particular assistant\", and the outline premise says \"in place of an assistant's habits\". The core leaves that out, so it reads as generic style-borrowing. Name what the borrowed move replaces, for example: replace your default habit with a move taken from a writer who made it work.",
           "answer": "changed",
-          "rationale": "cut as plumbing outside the outline"
+          "rationale": "Proxy: the core now says what the technique replaces, 'your default habits'."
         },
         {
           "on": "payload",
-          "quoted": "Show the plain version and the rewrite. For each change kept, cite its source and the ground a reader would choose it on: clearer, shorter, more concrete. Where the plain version wins, keep it and say so.",
+          "quoted": "Make a text stronger by borrowing.",
           "by": "proxy",
-          "payload": "The outline's step 4 is one line: keep the rewrite only if it beats the unaided version. This turns it into a reporting protocol with required citations and a fixed list of grounds. That is process the owner didn't ask for, and it grows the skill beyond minimal. They would want the one-line test back.",
+          "payload": "The owner chose the name \"punch-up\" and the frame of moves, exemplars and muses. 'Borrowing' is vaguer and could be read as copying. They would want the opening to say what the borrowing is of: a craft move, channeled from a writer.",
           "answer": "changed",
-          "rationale": "cut, since the core's one-line test already covers outline point 4"
+          "rationale": "Proxy: the vague 'borrowing' is replaced by a technique taken from another writer's passage. The term 'craft move' arrives with moves.md in growth, where it can be defined."
         },
         {
           "on": "payload",
-          "quoted": "Before rewriting, name what to leave behind: the source's period diction, genre conventions and signature phrasing, as each entry in `moves.md` does.",
+          "quoted": "with a move taken from a writer who made the move work",
           "by": "proxy",
-          "payload": "The outline says only to leave the writer's mannerisms behind. This adds a naming step and a list of categories, and it relies on moves.md, which the owner is only leery about trying. They would want the point stated once, which the intro line already does, without a separate procedure.",
+          "payload": "Outline point 2 says to read a passage that shows the move first. Without that, the instruction invites an assistant to name a writer and imitate from memory. The owner wanted \"compelling passages\" to anchor the channeling. Add something like: with a move from a writer, shown in a passage you have read.",
           "answer": "changed",
-          "rationale": "cut with the Rewriting section"
+          "rationale": "Proxy: the technique now comes from 'a passage you have just read', so no writer is imitated from memory."
         },
         {
           "on": "payload",
-          "quoted": "description: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves instead of an assistant's habits. Use when asked to punch up, strengthen or rewrite a piece of writing, to channel a writer, or for a writing sprint.\"",
+          "quoted": "State its core insight in one sentence, then rebuild it around that sentence",
           "by": "proxy",
-          "payload": "The description is two sentences, with a trigger list that overlaps ordinary requests like 'rewrite a piece of writing'. That would fire this skill on any rewrite. The owner wants a tighter trigger: punch-up and writing sprint, with channeling a writer as the other case.",
+          "payload": "This matches the owner's \"start from something extremely minimal... the core insight\". The owner would push back on how long the core is. It is two sentences, but the first only restates the premise and adds nothing. Open directly on the core insight step.",
           "answer": "changed",
-          "rationale": "trigger narrowed to punch-up, writing sprint and channeling a writer"
+          "rationale": "Dropped the restating first sentence; the core opens on the core insight step."
         }
       ]
     },
@@ -298,7 +192,115 @@
       "stage": "draft",
       "by": "session",
       "note": "Revised in answer to the review.",
-      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text, draft or prompt, by borrowing from exemplar writers, passages or craft moves. Use when asked to punch up writing, run a writing sprint, or channel a writer.\"\n---\n\n# Writing Sprint\n\nPunch up any text, draft or prompt, by borrowing from a writer, a passage or a filed move in place of your habitual phrasing and structure. Take the technique, leave the mannerisms, and keep a change only where a reader would choose it over the plain version.\n\n## The starting text\n\nA draft and a prompt are the same input. For a prompt, first write the plain version you would write unaided; it is the version to beat.\n\n## What to borrow\n\nPick the source by what the text must do for its reader.\n\n- **A writer to channel.** Read a passage of theirs before rewriting, not your memory of them.\n- **A passage.** Quote it verbatim, from a piece in home's [`projects/skill-lab/exemplars/`](https://github.com/mehrlander/home/tree/main/projects/skill-lab/exemplars) or from a source found for the job.\n- **A move.** [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md) files passages by craft move. It may not cover the text; then go to a writer or a passage.\n"
+      "payload": "State the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Title and the core, the minimal start the owner asked for.",
+      "payload": "# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 1, the core sentence, with a draft and a prompt as the same input.",
+      "payload": "# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n\n1. **Core.** The text is a draft or a prompt: either is an idea to build from. Write its core insight as one sentence and show it.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 2, the passage: moves.md and its term defined, wider writers added as pieces, read before drafting.",
+      "payload": "# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n\n1. **Core.** The text is a draft or a prompt: either is an idea to build from. Write its core insight as one sentence and show it.\n2. **Passage.** Choose a technique from home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), which files passages by craft move: a technique named as an instruction, with the passages that show it. To channel a writer it does not hold, find a compelling passage of theirs and add it as that file says. Read the passage before drafting; a writer recalled from memory returns your own habits.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 3, rebuild and compare, judged by the arriving-together essay's four needs so the punch-up is checked as stronger.",
+      "payload": "# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n\n1. **Core.** The text is a draft or a prompt: either is an idea to build from. Write its core insight as one sentence and show it.\n2. **Passage.** Choose a technique from home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), which files passages by craft move: a technique named as an instruction, with the passages that show it. To channel a writer it does not hold, find a compelling passage of theirs and add it as that file says. Read the passage before drafting; a writer recalled from memory returns your own habits.\n3. **Rebuild.** Rebuild the text from the core sentence outward, taking the passage's technique and shape, not its subject.\n4. **Compare.** Set the rebuild beside the original and judge which carries a cold reader better: topic named, stakes stated, structure signaled, transitions earned, as home's [The art of arriving together](https://github.com/mehrlander/home/blob/main/chron/2026/03/2026-03-10-the-art-of-arriving-together.md) sets out. Keep the rebuild only if it wins; otherwise choose another passage. Hand over the core sentence, the passage and the kept rebuild.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Outline point 4, links to the writing skills and rules instead of restating them.",
+      "payload": "# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n\n1. **Core.** The text is a draft or a prompt: either is an idea to build from. Write its core insight as one sentence and show it.\n2. **Passage.** Choose a technique from home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), which files passages by craft move: a technique named as an instruction, with the passages that show it. To channel a writer it does not hold, find a compelling passage of theirs and add it as that file says. Read the passage before drafting; a writer recalled from memory returns your own habits.\n3. **Rebuild.** Rebuild the text from the core sentence outward, taking the passage's technique and shape, not its subject.\n4. **Compare.** Set the rebuild beside the original and judge which carries a cold reader better: topic named, stakes stated, structure signaled, transitions earned, as home's [The art of arriving together](https://github.com/mehrlander/home/blob/main/chron/2026/03/2026-03-10-the-art-of-arriving-together.md) sets out. Keep the rebuild only if it wins; otherwise choose another passage. Hand over the core sentence, the passage and the kept rebuild.\n\n## Related\n\n- [`exemplars`](https://github.com/mehrlander/web-tools/blob/main/skills/exemplars/SKILL.md): writing in a named style from the owner's exemplar pieces.\n- [`inspire-excellence`](https://github.com/mehrlander/web-tools/blob/main/skills/inspire-excellence/SKILL.md): a prompt that hands over a standard and a direction.\n- [`QUALIFIED-WRITING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): the prose rules every rebuild follows.\n- [`succinct-text`](https://github.com/mehrlander/web-tools/blob/main/skills/succinct-text/SKILL.md): cutting a text without losing content.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Frontmatter, a trigger naming the situation: a writing sprint, a punch-up, channeling a writer.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing: rebuild a draft or a prompt around its core insight with a technique taken from another writer's passage, in place of an assistant's default habits. Use when asked for a writing sprint or a punch-up, to make a text stronger, or to channel a writer.\"\n---\n\n# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n\n1. **Core.** The text is a draft or a prompt: either is an idea to build from. Write its core insight as one sentence and show it.\n2. **Passage.** Choose a technique from home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), which files passages by craft move: a technique named as an instruction, with the passages that show it. To channel a writer it does not hold, find a compelling passage of theirs and add it as that file says. Read the passage before drafting; a writer recalled from memory returns your own habits.\n3. **Rebuild.** Rebuild the text from the core sentence outward, taking the passage's technique and shape, not its subject.\n4. **Compare.** Set the rebuild beside the original and judge which carries a cold reader better: topic named, stakes stated, structure signaled, transitions earned, as home's [The art of arriving together](https://github.com/mehrlander/home/blob/main/chron/2026/03/2026-03-10-the-art-of-arriving-together.md) sets out. Keep the rebuild only if it wins; otherwise choose another passage. Hand over the core sentence, the passage and the kept rebuild.\n\n## Related\n\n- [`exemplars`](https://github.com/mehrlander/web-tools/blob/main/skills/exemplars/SKILL.md): writing in a named style from the owner's exemplar pieces.\n- [`inspire-excellence`](https://github.com/mehrlander/web-tools/blob/main/skills/inspire-excellence/SKILL.md): a prompt that hands over a standard and a direction.\n- [`QUALIFIED-WRITING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): the prose rules every rebuild follows.\n- [`succinct-text`](https://github.com/mehrlander/web-tools/blob/main/skills/succinct-text/SKILL.md): cutting a text without losing content.\n"
+    },
+    {
+      "stage": "draft",
+      "by": "proxy",
+      "note": "Review: critic 2, proxy 5.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a piece of writing: rebuild a draft or a prompt around its core insight with a technique taken from another writer's passage, in place of an assistant's default habits. Use when asked for a writing sprint or a punch-up, to make a text stronger, or to channel a writer.\"\n---\n\n# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n\n1. **Core.** The text is a draft or a prompt: either is an idea to build from. Write its core insight as one sentence and show it.\n2. **Passage.** Choose a technique from home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), which files passages by craft move: a technique named as an instruction, with the passages that show it. To channel a writer it does not hold, find a compelling passage of theirs and add it as that file says. Read the passage before drafting; a writer recalled from memory returns your own habits.\n3. **Rebuild.** Rebuild the text from the core sentence outward, taking the passage's technique and shape, not its subject.\n4. **Compare.** Set the rebuild beside the original and judge which carries a cold reader better: topic named, stakes stated, structure signaled, transitions earned, as home's [The art of arriving together](https://github.com/mehrlander/home/blob/main/chron/2026/03/2026-03-10-the-art-of-arriving-together.md) sets out. Keep the rebuild only if it wins; otherwise choose another passage. Hand over the core sentence, the passage and the kept rebuild.\n\n## Related\n\n- [`exemplars`](https://github.com/mehrlander/web-tools/blob/main/skills/exemplars/SKILL.md): writing in a named style from the owner's exemplar pieces.\n- [`inspire-excellence`](https://github.com/mehrlander/web-tools/blob/main/skills/inspire-excellence/SKILL.md): a prompt that hands over a standard and a direction.\n- [`QUALIFIED-WRITING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): the prose rules every rebuild follows.\n- [`succinct-text`](https://github.com/mehrlander/web-tools/blob/main/skills/succinct-text/SKILL.md): cutting a text without losing content.\n",
+      "comments": [
+        {
+          "on": "payload",
+          "quoted": "State the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.",
+          "by": "critic",
+          "peeve": "P08",
+          "payload": "The opening paragraph says what steps 1 to 3 say again, and the owner wants this extremely succinct. Delete the paragraph, or keep it and cut the steps down to the points it leaves out.",
+          "answer": "changed",
+          "rationale": "Critic: kept the opening and cut the steps to the points it leaves out: input, where passages come from, reading first, what to take, the keep test."
+        },
+        {
+          "on": "payload",
+          "quoted": "a writer recalled from memory returns your own habits.",
+          "by": "critic",
+          "peeve": "P04",
+          "payload": "This is a maxim-style figure. State the instruction literally: read the passage before drafting, because a writer recalled from memory gets imitated badly.",
+          "answer": "changed",
+          "rationale": "Now literal: imitation from memory yields your usual phrasing, not the writer's."
+        },
+        {
+          "on": "payload",
+          "quoted": "State the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.",
+          "by": "proxy",
+          "payload": "The opening paragraph states the whole skill, and then four numbered steps state it again. The owner asked for something extremely minimal that starts from the core insight. They would keep the core sentence and the move, and cut the restatement. Either the paragraph stands alone or the list does.",
+          "answer": "changed",
+          "rationale": "Proxy: the paragraph stands as the skill; the numbered steps that restated it are gone."
+        },
+        {
+          "on": "payload",
+          "quoted": "judge which carries a cold reader better: topic named, stakes stated, structure signaled, transitions earned, as home's [The art of arriving together](https://github.com/mehrlander/home/blob/main/chron/2026/03/2026-03-10-the-art-of-arriving-together.md) sets out.",
+          "by": "proxy",
+          "payload": "This adds a four-part checklist and a new dated chron entry that appear in neither the request nor the outline. The outline's test was simply 'keep the rebuild only if it reads stronger than the original'. The owner wants the minimal version, so they would drop the checklist and the extra link. If the arriving-together idea matters, it belongs in Related, which the request asked for.",
+          "answer": "changed",
+          "rationale": "Dropped the checklist; the test is the outline's 'reads stronger than the original'. The essay moved to Related."
+        },
+        {
+          "on": "payload",
+          "quoted": "Hand over the core sentence, the passage and the kept rebuild.",
+          "by": "proxy",
+          "payload": "This is a new output spec that nobody asked for. It adds ceremony to something meant to be minimal. The owner would delete it, or leave it to the usual reply conventions.",
+          "answer": "changed",
+          "rationale": "Deleted; the reply conventions cover hand-over."
+        },
+        {
+          "on": "payload",
+          "quoted": "To channel a writer it does not hold, find a compelling passage of theirs and add it as that file says.",
+          "by": "proxy",
+          "payload": "This is a reasonable answer to the request's 'we could look for compelling passages'. But the owner said they were 'a little leery' of moves, so they would push back on making moves.md the default path. The writer-to-channel route is what they first described, and it should come first or share equal weight. The version here reads as a fallback.",
+          "answer": "changed",
+          "rationale": "The writer to channel now comes first, with moves.md as the equal alternative."
+        },
+        {
+          "on": "payload",
+          "quoted": "description: \"Punch up a piece of writing: rebuild a draft or a prompt around its core insight with a technique taken from another writer's passage, in place of an assistant's default habits. Use when asked for a writing sprint or a punch-up, to make a text stronger, or to channel a writer.\"",
+          "by": "proxy",
+          "payload": "The description is long and repeats the body. For an extremely minimal skill the owner would want one short sentence plus the triggers 'writing sprint' and 'punch-up'.",
+          "answer": "changed",
+          "rationale": "Cut to one short sentence plus the triggers writing sprint, punch-up and channeling a writer."
+        }
+      ]
+    },
+    {
+      "stage": "draft",
+      "by": "session",
+      "note": "Revised in answer to the review.",
+      "payload": "---\nname: writing-sprint\ndescription: \"Punch up a text with a technique from another writer's passage. Use when asked for a writing sprint, a punch-up, or to channel a writer.\"\n---\n\n# Writing Sprint\n\nState the text's core insight in one sentence. Rebuild the text around that sentence with a technique taken from a passage you have just read by another writer, in place of your default habits.\n\n- The text may be a draft or a prompt; either is an idea to build from.\n- Find the passage by the writer to channel, or by craft move in home's [`projects/skill-lab/moves.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/moves.md), which files passages under the technique each shows. Add a new writer's passage as that file says.\n- Read the passage before drafting, because imitation from memory yields your usual phrasing, not the writer's.\n- Take the passage's technique and shape, not its subject.\n- Keep the rebuild only if it reads stronger than the original.\n\n## Related\n\n- [`exemplars`](https://github.com/mehrlander/web-tools/blob/main/skills/exemplars/SKILL.md): writing in a named style from the owner's exemplar pieces.\n- [`inspire-excellence`](https://github.com/mehrlander/web-tools/blob/main/skills/inspire-excellence/SKILL.md): a prompt that hands over a standard and a direction.\n- [The art of arriving together](https://github.com/mehrlander/home/blob/main/chron/2026/03/2026-03-10-the-art-of-arriving-together.md): carrying a cold reader through a text.\n- [`QUALIFIED-WRITING.md`](https://github.com/mehrlander/web-tools/blob/main/docs/QUALIFIED-WRITING.md): the prose rules every rebuild follows.\n- [`succinct-text`](https://github.com/mehrlander/web-tools/blob/main/skills/succinct-text/SKILL.md): cutting a text without losing content.\n"
     }
   ]
 }
