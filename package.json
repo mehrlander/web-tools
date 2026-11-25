@@ -31,6 +31,7 @@
     "docs-readme": "node node/build/docs-readme.mjs",
     "docs-reach": "node node/build/docs-reach.mjs",
     "vendor-docs": "node node/build/vendor-docs.mjs",
+    "lists-md": "node node/build/lists-md.mjs",
     "policy-skills": "node node/build/policy-skills.mjs",
     "peeves-csv": "node node/build/peeves-csv.mjs",
     "registries-reach": "node node/build/registries-reach.mjs",

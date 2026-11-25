@@ -9,7 +9,7 @@ import importlib.util, json, os, subprocess, sys
 
 data = json.loads(os.environ.get("HOOK_PAYLOAD") or "{}")
 path = (data.get("tool_input") or {}).get("file_path") or ""
-if not path.endswith(".md"):
+if not path.endswith((".md", ".json")):
     sys.exit(0)
 try:
     root = subprocess.run(["git", "-C", os.path.dirname(path) or ".", "rev-parse",

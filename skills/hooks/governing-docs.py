@@ -17,6 +17,9 @@ documentation when it is Markdown and one of these holds:
     (skills/ or .claude/skills/file-retrieval/sources.csv), or, where the repo
     carries no such registry, one of FALLBACK.
 
+A JSON file under a lists/ folder is documentation when its top-level object
+has "edit": "propose": a list the owner signs off.
+
 It is never documentation when it is written freely by design (chron/, blog/,
 tracker/tasks/, a dump tray), is research the repo declares in .web-tools.json
 (a declared path, or the folder of a declared README.md), or has no wording to
@@ -103,16 +106,31 @@ def _declarations(root, cache, staged):
     return research, workspaces, cache["globs"], basis
 
 
+def _proposed_list(root, rel, staged):
+    """A list whose header says changes to it are proposed, not made."""
+    if not ("/" + rel).rsplit("/", 1)[0].endswith("/lists") or not root:
+        return None
+    if _edit_policy(root, rel, staged) in NO_WORDING:
+        return None
+    try:
+        doc = json.loads(_read(root, rel, staged) or "null")
+    except ValueError:
+        return None
+    return "a list the owner signs off" if isinstance(doc, dict) and doc.get("edit") == "propose" else None
+
+
 def documentation(root, rel, cache=None, staged=False):
     """The basis on which `rel`, a path inside the checkout at `root`, is
     documentation, or None. A `cache` dict, kept across calls for one root,
     saves rereading the declarations; `staged` reads the index instead of the
     working tree, for a commit gate."""
     base = os.path.basename(rel)
-    if not rel.endswith(".md"):
+    if not rel.endswith((".md", ".json")):
         return None
     if rel.startswith(FREE) or "/dump/" in rel:
         return None
+    if rel.endswith(".json"):
+        return _proposed_list(root, rel, staged)
     cache = {} if cache is None else cache
     research, workspaces, globs, basis = _declarations(root, cache, staged)
     if any(p and (rel == p or (os.path.basename(p) == "README.md" and os.path.dirname(p)

@@ -1,3 +1,4 @@
+<!-- Generated from lists/house-policies.json by node/build/lists-md.mjs; do not hand-edit. -->
 # House policies
 
 Each policy states a single preference as something to do; a thing to avoid goes in the [peeves list](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md). A policy that applies only to a private repo goes in that repo's CLAUDE.md.

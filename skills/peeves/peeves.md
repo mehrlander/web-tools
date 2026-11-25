@@ -1,3 +1,4 @@
+<!-- Generated from lists/peeves.json by node/build/lists-md.mjs; do not hand-edit. -->
 # Pet peeves
 
 Each entry names a behavior the owner has corrected an assistant for repeatedly, stated so a reviewer can check work against it. The [peeves skill](SKILL.md) says how to use the entries. The commit hook writes [`peeves.csv`](peeves.csv) from this file. Edit this file and do not hand-edit the CSV.
