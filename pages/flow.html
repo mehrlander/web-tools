@@ -153,16 +153,6 @@ document.addEventListener('alpine:init', () => {
       const repo = x.repo || this.repo, ref = x.repo && x.repo !== this.repo ? 'main' : this.ref;
       return `${repo}@${ref}:${x.path}`;
     },
-    // Seen as a change, the steps that changed, in order: a step one version
-    // lacks, a step whose sentence differs, or a step with a branch one
-    // version lacks. The card steps through them.
-    get changes() {
-      if (!this.both) return [];
-      return this.vis.map((s, i) => i).filter(i => {
-        const s = this.vis[i];
-        return this.status(s).k !== 'shared' || (s.exits || []).some(x => x.in && x.in.length < this.variants.length);
-      });
-    },
     // What kind of change a step is, and the sentence that says what it does.
     change(s) {
       const st = this.status(s);
@@ -569,34 +559,6 @@ document.addEventListener('alpine:init', () => {
         return b;
       };
 
-      // Seen as a change: where this step stands among the changes, and the
-      // arrows that step from change to change past the steps that did not.
-      const nav = () => {
-        const list = this.changes;
-        if (!list.length) return null;
-        const k = list.indexOf(i), prev = [...list].reverse().find(j => j < i), next = list.find(j => j > i);
-        const row = h('div', 'flex items-center gap-1 text-xs text-base-content/60 tabular-nums');
-        const btn = (to, ic, label) => {
-          const b = h('button', 'btn btn-ghost btn-xs btn-square');
-          b.type = 'button'; b.disabled = to == null; b.setAttribute('aria-label', label);
-          b.append(icon(ic));
-          b.addEventListener('click', () => this.go(to));
-          return b;
-        };
-        row.append(btn(prev, 'ph-caret-left', 'Previous change'),
-          h('span', 'min-w-[9ch] text-center', k >= 0 ? `change ${k + 1} of ${list.length}` : `${list.length} changes`),
-          btn(next, 'ph-caret-right', 'Next change'));
-        return row;
-      };
-      // Seen as a change, the arrows that step from change to change, above
-      // the change itself.
-      if (this.both && (ch || this.changes.includes(i))) {
-        const head = h('div', 'flex items-center gap-2 min-h-6');
-        if (!ch) head.append(h('span', 'text-xs text-base-content/60', 'Branches changed'));
-        const n = nav();
-        if (n) { n.classList.add('ml-auto'); head.append(n); }
-        root.append(head);
-      }
 
       // The step's sentence. Seen as a change, every changed step's sentence
       // sits in the change container from the diff views (mdDiff.one), as a
