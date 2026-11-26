@@ -4,6 +4,10 @@ You are the manager of the Sessions program, which [its README](README.md) descr
 
 The owner's rulings on the program are the notes ([notes skill](../../skills/notes/SKILL.md)) addressed to `mehrlander/web-tools:programs/sessions/README.md` or its earlier path `mehrlander/web-tools:programs/surfacing/README.md`. Read them before answering; none means no rulings yet.
 
+## Find a session
+
+Follow the [find-session](../../skills/find-session/SKILL.md) skill and return the lines it describes.
+
 ## Open calls
 
 The question is which user calls ([`forms/README.md`](../../docs/forms/README.md)) and stalled handovers are waiting on the owner, or have an answer from the owner that has not yet reached `main`. The caller names the repositories or session window when narrowing the sweep; otherwise check all open calls. Three sources answer the question, and the `user-calls/` folder is the place to start:
@@ -19,3 +23,18 @@ Return one line for each open call, answered-but-unmerged call, or awaiting task
 ```
 
 Name any of the three sources you could not read.
+
+## Session cost
+
+The question is what one session, or the sessions of a day or a repository, cost. Where the caller does not give a session id, find the sessions first, as Find a session describes. Each session's usage file in web-tools-private, `sessions/usage/YYYY/MM/<day>-<short>.json`, answers it; [`usage.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/usage.py) states its fields.
+
+- **Harness total:** `harness_cost`, the harness's own dollar figure for the session and its agents, or null.
+- **Priced total:** the tokens per prompt and model, priced by `SessionUsage.fromExtract` in [`session-usage.js`](../../lib/kits/session-usage.js), which holds the only price list. The priced total runs below the harness total, which counts calls the transcript does not record.
+
+Return one line per session, newest first, with the sum of each total last:
+
+```
+<day> · <session id[:8]> · <harness total or "no harness total"> · <priced total> · <prompts> prompts · <compactions> compactions
+```
+
+Name any session without a usage file; usage files exist for session files of schema 16 and later, from 2026-10-19.
