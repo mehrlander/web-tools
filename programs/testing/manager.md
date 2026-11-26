@@ -22,22 +22,24 @@ Name any of the three sources you could not read.
 
 ## Main status
 
-The question is whether main is green and, where it is not, what is failing on it, as the README's Processes table defines it. The caller names the repository, web-tools when unnamed. Two sources answer the question:
+The question is whether main is green and, where it is not, what is failing on it, as the README's Processes table defines it. The caller names the repository, web-tools when unnamed. Judge main's newest code commit: the newest commit on main other than a reach commit. A reach commit, titled `tests: retain observed reach for <sha>`, is pushed by the `publish-observations` job of [`test.yml`](../../.github/workflows/test.yml) and starts no workflow run. Main's head is often a reach commit with no runs. Three sources answer the question:
 
-- **Main's workflow runs on GitHub:** the runs on main's newest commit that is not a reach commit. A reach commit, titled `tests: retain observed reach for <sha>`, is pushed by the `publish-observations` job of [`test.yml`](../../.github/workflows/test.yml) and starts no workflow, so main's head often carries no run. In web-tools, `test.yml` runs on every push to main, and [`desktop.yml`](../../.github/workflows/desktop.yml) runs when the push touches `desktop/`.
-- **The public reach file:** [`data/tests/reach.json`](../../data/tests/reach.json) on main gives `checkout_sha`, `exit_code` and `finished_at` for the latest complete, passing full suite run on main, and the job writes it after no other kind of run. A `checkout_sha` older than the newest non-reach commit means the newer run failed, has not finished or did not publish; the workflow runs tell which. The file reports the suite step alone: a later step of the `test` job, or another job, can fail while the file records a pass.
+- **Main's commit history:** `git log main` names the newest code commit.
+- **Main's workflow runs on GitHub:** the [runs on main](https://github.com/mehrlander/web-tools/actions?query=branch%3Amain) give each workflow's result on that commit. The workflow files under `.github/workflows/` say which workflows a push to main starts.
+- **The public reach file:** [`data/tests/reach.json`](../../data/tests/reach.json) on main gives `checkout_sha`, `exit_code` and `finished_at` for the latest complete, passing full suite run on main. The `publish-observations` job writes it only after such a run. When `checkout_sha` is older than the newest code commit, the newer run failed, has not finished or did not publish; its workflow run says which. The file covers the suite step alone, so it can record a pass while a later step of the `test` job, or another job, fails.
 
-Return one line for each workflow run on that commit, in the Pull request checks format, then one line for the reach file:
+Return a verdict line, then one line for each workflow run on the newest code commit in the Pull request checks format, then the reach line:
 
 ```
-reach.json · <checkout_sha[:8]> · <finished_at> · <count of non-reach commits on main after checkout_sha>
+main · green | not green | unknown · <newest code commit[:8]>
+reach.json · <checkout_sha[:8]> · <finished_at>
 ```
 
-Name either source you could not read. For a failing run on a pull request, use Pull request checks instead.
+Name any of the three sources you could not read. For a failing run on a pull request, use Pull request checks instead.
 
 ## Coverage
 
-The question is which automated checks guard a named file, page, kit or component, and where each check runs. When the caller names a check instead of a path, read its venue from the check declarations listed under Pull request checks and return one Coverage line for it. The caller names the repository and the paths; ask for the missing inputs if the question omits them. Three sources answer the question:
+The question is which automated checks guard a named file, page, kit or component, and where each check runs. The caller names the repository and the paths; ask for the missing inputs if the question omits them. Three sources answer the question:
 
 - **Test registries:** [`tests.csv`](../../docs/tests.csv) and [`tests-authored.csv`](../../docs/tests-authored.csv) in web-tools list each test file's `runner` (`suite` in `npm test`, or a named script run on demand) and what behavior the test file protects.
 - **Surface registries:** [`components.csv`](../../docs/components.csv), [`kits.csv`](../../docs/kits.csv) and [`harness.csv`](../../docs/harness.csv) record `tested` status for web-tools files; in another repository, list that repository's test and `verify-*` scripts on disk.
@@ -51,6 +53,12 @@ unguarded · <target path> · <nearest check surface>
 ```
 
 Name any of the three sources you could not read.
+
+When the caller names a check instead of a path, read the check declarations listed under Pull request checks and return one line for the check:
+
+```
+<check> · <venue> · <workflow, daemon task or command that starts it>
+```
 
 ## Cost and selection
 
