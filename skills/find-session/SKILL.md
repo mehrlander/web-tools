@@ -4,7 +4,7 @@ description: >-
   Find earlier Claude Code sessions by topic, phrase, date, repository, file or
   pull request, and answer with a link to each. Use when the owner asks for a
   session ("the one where…", "which session did X", "link me to the session
-  about Y"), and for every request in the finder session.
+  about Y"), and when the Sessions program's standing session is asked for one.
 ---
 
 # find-session
