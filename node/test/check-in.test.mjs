@@ -70,7 +70,7 @@ const FIRST = (n, id, at, then) => [
 ].join('\n');
 const SECOND = [
   'Check-in, second of two, and the last. The owner has not written since the first. This turn is automatic. Spend at most four model calls on it.',
-  '1. Write a recap for a reader coming back cold: what the session is for, what waits on the owner as one question per decision, and where to pick up.',
+  '1. Write a recap for a reader coming back cold: how the session started, what waits on the owner as one question per decision, and where to pick up.',
   '2. Close the session out: write a pick-up point wherever one is missing, such as an open pull request\'s guide; unsubscribe from every pull request this session is subscribed to; and arm no further check-in.',
   '3. Close with the caption and one closing state, and say that this is the second and last check-in.',
 ].join('\n');

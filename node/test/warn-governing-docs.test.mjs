@@ -78,3 +78,77 @@ test('a file with no wording to approve stays silent: regenerated, write-once, o
   assert.equal(edit(gen, 'docs/old.md').status, 0);
   assert.equal(edit(gen, 'docs/made.md').status, 0);
 });
+
+test('a list under lists/ whose header says "edit": "propose" warns, and any other JSON stays silent', () => {
+  const lists = { 'lists/rules.json': JSON.stringify({ title: 'Rules', edit: 'propose', items: [] }),
+                  'lists/jot.json': JSON.stringify({ title: 'Jot', items: [] }),
+                  'data/rules.json': JSON.stringify({ title: 'Rules', edit: 'propose', items: [] }),
+                  'lists/broken.json': '{not json' };
+  const r = edit(lists, 'lists/rules.json');
+  assert.equal(r.status, 2);
+  assert.match(r.err, /a list the owner signs off/);
+  assert.equal(edit(lists, 'lists/jot.json').status, 0, 'a list made freely');
+  assert.equal(edit(lists, 'data/rules.json').status, 0, 'outside a lists/ folder');
+  assert.equal(edit(lists, 'lists/broken.json').status, 0, 'a file that does not parse');
+});
+
+// A list whose header says "critic": true: the entries a session adds or
+// changes against HEAD are named for the peeves critic, and a change to an
+// existing entry, or any edit to a list that says "edit": "propose", is
+// routed to a user call. Once per session for the same entries.
+function listRepo(header, items) {
+  const root = mkdtempSync(join(tmpdir(), 'warn-lists-'));
+  const tmp = mkdtempSync(join(tmpdir(), 'warn-lists-tmp-'));
+  const git = (...a) => spawnSync('git', ['-C', root, ...a], { env: { ...process.env, GIT_AUTHOR_NAME: 't', GIT_AUTHOR_EMAIL: 't@t',
+    GIT_COMMITTER_NAME: 't', GIT_COMMITTER_EMAIL: 't@t' } });
+  const write = (its) => writeFileSync(join(root, 'lists/l.json'), JSON.stringify({ title: 'L', ...header, items: its }, null, 2));
+  git('init', '-q');
+  mkdirSync(join(root, 'lists'));
+  write(items);
+  git('add', '.');
+  git('commit', '-qm', 'init');
+  const edit = (its, session = 's1') => {
+    write(its);
+    const r = spawnSync('bash', [HOOK], { input: JSON.stringify({ session_id: session, tool_input: { file_path: join(root, 'lists/l.json') } }),
+                                         encoding: 'utf8', env: { ...process.env, TMPDIR: tmp } });
+    return { status: r.status, err: r.stderr };
+  };
+  return { edit, done: () => { rmSync(root, { recursive: true, force: true }); rmSync(tmp, { recursive: true, force: true }); } };
+}
+const A = { id: 'a', text: 'Alpha' }, B = { id: 'b', text: 'Beta', note: 'Second.' };
+
+test('a new entry in a critic list is named for the peeves critic, with no user call', () => {
+  const r = listRepo({ critic: true }, [A]);
+  try {
+    const got = r.edit([A, B]);
+    assert.equal(got.status, 2);
+    assert.match(got.err, /portable:peeves-critic agent on the entries this edit added or changed in lists\/l\.json \(b\)/);
+    assert.doesNotMatch(got.err, /user call/);
+    assert.equal(r.edit([A, B]).status, 0, 'the same entries are named once a session');
+    assert.equal(r.edit([A, B], 's2').status, 2, 'another session hears it');
+  } finally { r.done(); }
+});
+
+test('a changed entry, or any entry in a list that says "edit": "propose", is routed to a user call', () => {
+  const r = listRepo({ critic: true }, [A, B]);
+  try {
+    const got = r.edit([A, { ...B, note: 'The second.' }]);
+    assert.equal(got.status, 2);
+    assert.match(got.err, /\(b\)/);
+    assert.match(got.err, /This edit changes an existing entry, so file a user call for it instead of committing it directly\./);
+  } finally { r.done(); }
+  const p = listRepo({ critic: true, edit: 'propose' }, [A]);
+  try {
+    const got = p.edit([A, B]);
+    assert.equal(got.status, 2);
+    assert.match(got.err, /a list the owner signs off/, 'the documentation warning still speaks');
+    assert.match(got.err, /is to a list that says "edit": "propose", so file a user call/);
+  } finally { p.done(); }
+});
+
+test('a list without "critic": true, or an edit that adds and changes no entry, hears no reminder', () => {
+  const r = listRepo({}, [A]);
+  try { assert.equal(r.edit([A, B]).status, 0); } finally { r.done(); }
+  const c = listRepo({ critic: true }, [A, B]);
+  try { assert.equal(c.edit([A]).status, 0, 'a removed entry is nothing for the critic to read'); } finally { c.done(); }
+});

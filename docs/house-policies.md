@@ -1,3 +1,4 @@
+<!-- Generated from lists/house-policies.json by node/build/lists-md.mjs; do not hand-edit. -->
 # House policies
 
 Each policy states a single preference as something to do; a thing to avoid goes in the [peeves list](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md). A policy that applies only to a private repo goes in that repo's CLAUDE.md.
@@ -103,6 +104,12 @@ Careful use of closing state markers helps involve the owner efficiently, and es
 Common cases that are found to benefit from owner attention are set up with a form to elicit the call efficiently.
 
 **Backed by:** [tend](https://github.com/mehrlander/web-tools/blob/main/skills/tend/SKILL.md#principles), especially "Prepare the calls"; [Conversation](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#every-reply), closing states; [doc-craft](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review), documentation review and approval.
+
+### Align on sight · `h:align`
+
+Misalignment of terminology or logic creates friction: obscuring what has been discovered, what exists, and what should come next. It creates redundancy and technical debt. Align early and often. Notice a conflict and propose a fix. Do not set it aside simply because the costs are hidden.
+
+**Backed by:** the peeves [P38, Unfinished work](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#unfinished-work--p38), [P65, Compatibility clutter](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#compatibility-clutter--p65) and [P12, One name per thing](https://github.com/mehrlander/web-tools/blob/main/skills/peeves/peeves.md#one-name-per-thing--p12).
 
 ## Code placement
 
