@@ -26,14 +26,14 @@ The claude.ai link is the record's `agent_session`. The Claude app shows it by t
 ## Process
 
 1. **Reach the archive.** Work in a web-tools-private checkout, the one whose `.web-tools.json` declares `sessions`. Where none is in or beside the project root, attach and clone it as the [`sessions`](../sessions/SKILL.md) skill describes. Run `git pull --ff-only origin main` in it first, since records reach `main` continuously.
-2. **Search.** Run `python3 sessions/tools/search.py` with the filters the request names; filters combine with AND.
-   - `--grep TEXT`: the opening ask, stored prompts and replies, and the closing message, case-insensitive. Search a topic or a phrase with it.
+2. **Search.** Run `python3 sessions/tools/search.py` with the filters the request names; filters combine with AND. Each run reads the whole archive and takes about half a minute, whatever the filters: start with the most distinctive phrase the request offers.
+   - `--grep TEXT`: a literal, case-insensitive substring of the opening ask, a stored prompt or reply, or the closing message. Matches are unranked, and a common word returns loose ones.
    - `--since DAY`, `--until DAY` (YYYY-MM-DD), `--repo NAME`, `--file PATTERN` (a file the session opened), `--tool NAME`.
-   - `--json` prints the matched records, each with `short`, `day`, `opening_ask`, `agent_session` and `repos` (each repository's branch). `--show <short>` prints one record in full.
+   - The default listing shows candidates without links. For the answer's fields, add `--json` and keep four of them: `| python3 -c 'import json,sys; [print(r["day"], r["short"], r.get("agent_session", "-"), " ".join(r["opening_ask"].split())[:100]) for r in json.load(sys.stdin)]'`. `--show <short>` prints one record in full, `repos` with each repository's branch among its fields.
    - `--name` matches titles from a dated export, dated in the listing's footer; a topic search uses `--grep` instead.
    - For a pull request, the session is named by the `Claude-Session` line in its head commit's message, read with the GitHub tools.
    - Where the archive has no match and the session has the `list_sessions` and `get_session` tools, those list cloud sessions with their titles, including ones that never recorded.
-3. **Answer** in the shape above.
+3. **Answer** in the shape above, the clause drawn from the opening ask or the prompt that matched.
 
 ## Key insights
 
