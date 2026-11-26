@@ -6,6 +6,22 @@ reader codes one row per unit, and every field below says what it holds and
 what test decides it. Nothing here is settled vocabulary yet. The codes become
 a registry only after a full pass shows they hold.
 
+## Terms
+
+Four words name parts of a screen in this codebook and in the codes'
+glosses, each in one sense only:
+
+- **card**: a bordered box that draws one object, such as one item of a list
+  or one area of a program.
+- **tile**: a card in a packed grid. The word names the layout, not a kind
+  of object.
+- **panel**: content that a control reveals, such as a panel-tip or the
+  region that a `panel-toggle` button shows. The manifest key `programs[].areas[].panels` in
+  `.web-tools.json` keeps an older sense for now: a block of content that an
+  area's card draws.
+- **area**: one subdivision of a program, a row of its charter's Areas table
+  and an entry of `programs[].areas` in the manifest.
+
 ## What is coded, and what is not
 
 A **unit** is one row of `units.csv`: an app view, a view's tab, a page, or an
