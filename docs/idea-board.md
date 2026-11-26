@@ -56,4 +56,4 @@ the board's address, to paste into the session that made the board. Picks and
 notes stay in the browser, keyed by the address without its ref, so a board
 republished at a new commit keeps them.
 
-On a [pick call](forms/README.md#respond-forms), opened at its `#user-call=` address, the header's Send records the stars and notes as the call's answer and comments them on its pull request. Reopened there, the board starts from the latest answer.
+On a [pick call](forms/README.md#call-forms), opened at its `#user-call=` address, the header's Send records the stars and notes as the call's answer and comments them on its pull request. Reopened there, the board starts from the latest answer.
