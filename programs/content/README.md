@@ -17,6 +17,8 @@ A process is a recurring question or duty the program answers for. A session han
 | Process | Starts when |
 | --- | --- |
 | Rule placement | a session is about to add a rule, convention or UI pattern to a living document and asks where that statement or unit already lives |
+| Topic owner | a session is about to write about a subject and asks which document already owns it |
+| Pending sign-off | a session or the owner asks which documentation wording waits on the owner's approval |
 
 ## Measures
 
