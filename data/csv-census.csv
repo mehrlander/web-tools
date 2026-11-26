@@ -69,7 +69,7 @@ programs/alignment/current/page-jobs.csv,177,4,12494,"[""page"",""standing"",""j
 programs/alignment/current/pages.csv,177,7,16135,"[""page"",""visibility"",""catalogues"",""declared_by"",""app"",""linked_from"",""names_private""]"
 skills/doc-craft/binding/runs.csv,12,9,1238,"[""date"",""target"",""units"",""words_before"",""words_after"",""floor_pct"",""achieved_pct"",""real_losses"",""caught_by""]"
 skills/file-retrieval/sources.csv,9,2,186,"[""source"",""glob""]"
-skills/manifest.csv,66,3,30712,"[""name"",""group"",""description""]"
+skills/manifest.csv,66,3,30695,"[""name"",""group"",""description""]"
 skills/peeves/peeves.csv,64,10,22636,"[""id"",""name"",""area"",""peeve"",""look_for"",""owner"",""detector"",""sessions"",""status"",""merged_into""]"
 tracker/board-tags.csv,27,3,1545,"[""task"",""tag"",""value""]"
 tracker/board.csv,108,15,26657,"[""id"",""title"",""status"",""project"",""depends-on"",""opened"",""closed"",""session"",""size"",""awaiting"",""blockedBy"",""file"",""href"",""lastActivity"",""logEntries""]"
