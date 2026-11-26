@@ -21,7 +21,7 @@ One line per matching session, newest first, at most five unless the owner asks 
 - <day> <claude.ai link> [💬](https://mehrlander.github.io/web-tools/pages/session.html#id=<short>) · <why it matched, in one clause>
 ```
 
-The claude.ai link is the record's `agent_session`. The Claude app shows it by the session's current title. Where a record has no `agent_session`, the 💬 link stands alone. When nothing matches, say in one line what was searched: the filters and the terms.
+The claude.ai link is the record's `agent_session`. The Claude app shows it by the session's current title. `<short>` is the record's `short`, the first eight characters of its session id. Where a record has no `agent_session`, the 💬 link stands alone. When nothing matches, say in one line what was searched: the filters and the terms.
 
 ## Process
 
