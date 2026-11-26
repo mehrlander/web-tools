@@ -35,14 +35,15 @@ Return one line for each place, the defining file first:
 <subject> · <repo>:<path> · defines | belongs here · <the registry or document that says so>
 ```
 
-List files that only mention the subject when the caller asks for them. For a new file, end with the folder that `code-layers.md` or the covering registry's `scope` names, and cite it.
+List files that only mention the subject when the caller asks for them. Where a given rule, convention or UI pattern is already stated is a question for the [Content program's manager](../content/manager.md). For a new file, end with the folder that `code-layers.md` or the covering registry's `scope` names, and cite it.
 
 ## Ownership
 
-The question is which registry holds a property, either for one target or wherever the property is declared. The rule, one owner per target and property, is in [`registries.md`](../../docs/registries.md#one-owner-per-assertion). Answer from:
+The question is which registry holds a property, either for one target or wherever the property is declared, or which document owns a topic. The rule, one owner per target and property, is in [`registries.md`](../../docs/registries.md#one-owner-per-assertion). Answer from:
 
 - **Declarations:** the rows of [`properties.csv`](../../docs/properties.csv) whose `property` matches give each registry that declares it, with `mode`, `exclusive` and the `deriver` for a computed one.
 - **Registries:** for each declaring registry, its row in [`registries.csv`](../../docs/registries.csv) gives `target`, `scope`, `identity` and `inherits`. Two declarations collide only where both scopes cover the target and both keys compare. [Comparing keys across registries](../../docs/registries.md#comparing-keys-across-registries) says when keys compare.
+- **A topic:** the `subject` column of [`docs.csv`](../../docs/docs.csv) gives each document's topic in one line. The owner is the document whose `subject` covers the topic and whose `status` is `living` or `measured`. A row with an empty `status` does not own a topic.
 - **The ownership test:** `node --test` [`node/test/properties-registry.test.mjs`](../../node/test/properties-registry.test.mjs) fails for any target with two nonblank values for one property.
 
 Return one line for each declaring registry, the owner for the caller's target first. `owns` marks the registry holding the caller's target; `other targets` marks one whose scope does not cover it; `inherits` names the registry it takes descriptions from:

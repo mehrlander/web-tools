@@ -24,7 +24,7 @@ A process is a recurring question or duty the program answers for. A session han
 | --- | --- |
 | Landing | the owner or a session asks whether earlier work landed, meaning that it reached `main` |
 | Location | a session asks where a file, page or kind of content lives, or where a new one belongs |
-| Ownership | a session asks which registry holds a property of a target, or two registries appear to hold the same one |
+| Ownership | a session asks which registry holds a property of a target or which document owns a topic, or two registries appear to hold the same property |
 | Drift | the owner or a session asks which copies of a file or passage no longer match |
 
 ## Measures
