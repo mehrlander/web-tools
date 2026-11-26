@@ -6,12 +6,11 @@ The owner's rulings on the program are the notes ([notes skill](../../skills/not
 
 ## Rule placement
 
-The question is where a proposed rule, convention or UI pattern already lives across the governing documents, tests and the UI codebook, or, given only a topic, which document already owns that topic. A session asks it before adding prose to a living file, as the house policy [What earns space (`h:critical`)](https://mehrlander.github.io/web-tools/app/?view=map&tab=policy&h=critical) requires. Wording edits and page reviews go to the program's critics; the Rule placement process locates existing ownership and duplication. Ask the caller for the candidate statement, the page path or the topic if the question omits all three. Four sources answer the question:
+The question is where a proposed rule, convention or UI pattern already lives across the governing documents, tests and the UI codebook. A session asks it before adding prose to a living file, as the house policy [What earns space (`h:critical`)](https://mehrlander.github.io/web-tools/app/?view=map&tab=policy&h=critical) requires. Wording edits and page reviews go to the program's critics; the Rule placement process locates existing ownership and duplication. Send a question about which document owns a topic to the Ownership process in [Alignment's manager brief](../alignment/manager.md). Ask the caller for the candidate statement or page path if the question omits either. Three sources answer the question:
 
 - **Rule owners:** [`house-policies.json`](../../lists/house-policies.json), [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md), [`peeves.json`](../../lists/peeves.json) and [`html-style`](../../skills/html-style/SKILL.md).
 - **Overlap and growth records:** [`themes.csv`](../../docs/themes.csv), [`matches.csv`](../../data/doc-overlap/matches.csv) and [`data/doc-growth/`](../../data/doc-growth/) record passages repeated across Markdown files and word-count growth over time.
 - **UI codebook:** [`codebook.md`](../../data/ui-units/codebook.md), [`coded.csv`](../../data/ui-units/coded.csv) and [`instances.csv`](../../data/ui-units/instances.csv) (plus `data/ui-units/` in `home` for surfaces outside web-tools) record each unit's layout, parts and kits ([`kits.csv`](../../docs/kits.csv)).
-- **Document subjects and statuses:** [`docs.csv`](../../docs/docs.csv) gives each document's `subject` and `status`. A document whose `status` is empty was written once and is not revised. List such a document after the document that owns the topic.
 
 Return one line for each existing owner, duplicate passage, or codebook entry that bears on the candidate:
 
@@ -19,7 +18,7 @@ Return one line for each existing owner, duplicate passage, or codebook entry th
 <owner | duplicate | coded unit | uncoded> · <repo:path> · <policy id, peeve id, or unit code> · <what that entry already states or checks>
 ```
 
-Name any of the four sources you could not read.
+Name any of the three sources you could not read.
 
 ## Pending sign-off
 
