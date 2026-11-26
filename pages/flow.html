@@ -12,8 +12,8 @@
   scripts, skills and records it touches, and where the process branches or
   loops back. A process with a current and a proposed version shows both in
   one map as a change: the first version is the text the second changes, in
-  the house's change colors, and an edited sentence reads as kits/md-diff.js's
-  inline change.
+  the house's change colors, and an edited sentence sits in kits/md-diff.js's
+  change container, swiped between before, the change, and after.
 
     flow/1  { schema, title, repo?,
               actors:   [{ id, label, icon }]           the map's columns, in order
@@ -64,7 +64,7 @@
     await gh.load('kits/gz-payload.js');   // the #gz= codec
     await gh.load('kits/swipe-deck.js');   // the track
     await gh.load('kits/dock-split.js');   // the seam between map and step
-    await gh.load('kits/md-diff.js');      // a changed sentence's inline reading
+    await gh.load('kits/md-diff.js');      // a changed sentence's change container
     await gh.load('kits/source-peek.js');  // a file's peek card, from its icon in a node or its link on a card
   } finally { window.__depsDone(); }
 </script>
@@ -520,15 +520,19 @@ document.addEventListener('alpine:init', () => {
       const gloss = vid => Array.isArray(s.gloss) ? (s.gloss.find(x => x.v === vid)?.gloss || '') : (s.gloss || '');
       const st = this.status(s);
       if (st.k === 'changed') {
+        // The change container from the diff views (mdDiff.one): it opens on
+        // the change marked in place, and swiping it shows the sentence as it
+        // stood and as it would read. Its track contains its own overscroll,
+        // so a swipe inside it does not move the strip of steps.
         const [a, b] = this.variants.map(x => gloss(x.id));
-        const slot = h('div', 'border-l-4 border-warning pl-3');
-        slot.append(inline(h('p'), b));
+        const slot = h('div', 'min-w-0');
+        slot.append(inline(h('p', 'border-l-4 border-warning pl-3'), b));
         root.append(slot);
-        window.mdDiff?.inline(a, b).then(box => {
-          if (!box) return;
-          // The reading takes the card's own size, not the guide body's.
-          [box, ...box.querySelectorAll('.guide-body, p')].forEach(e => { e.style.fontSize = 'inherit'; e.style.lineHeight = 'inherit'; e.style.margin = '0'; });
-          slot.replaceChildren(box);
+        window.mdDiff?.one(a, b).then(c => {
+          if (!c) return;
+          c.style.paddingTop = '0.5rem';   // room under the stops pill, which sits on the top edge
+          c.classList.add('mt-2');
+          slot.replaceChildren(c);
         }).catch(() => {});
       } else if (st.k === 'only') {
         root.append(inline(h('p', `${st.hue.band} ${st.hue.strike}`), gloss(st.vid)));
