@@ -109,8 +109,9 @@
     {
       "name": "sessions",
       "label": "Sessions",
-      "scope": "replies and render links, the plugin, hooks and scheduled jobs",
+      "scope": "replies and render links, session records and history, the plugin, hooks and scheduled jobs",
       "icon": "programs/sessions/icon.svg",
+      "emoji": "🎙️",
       "path": "programs/sessions",
       "formerly": ["programs/surfacing"],
       "governs": [
@@ -203,6 +204,7 @@
       "label": "Testing",
       "scope": "the suite and where each check runs",
       "icon": "programs/testing/icon.svg",
+      "emoji": "🛡️",
       "path": "programs/testing",
       "governs": [
         "docs/tests.csv",
@@ -240,8 +242,9 @@
     {
       "name": "alignment",
       "label": "Alignment",
-      "scope": "how the estate fits together: repositories, registries, maps, repeated prose, lists, session records and history",
+      "scope": "how the estate fits together: repositories, registries, maps, repeated prose and lists",
       "icon": "programs/alignment/icon.svg",
+      "emoji": "🗂️",
       "path": "programs/alignment",
       "formerly": ["programs/organization"],
       "governs": [
@@ -301,6 +304,7 @@
       "label": "Content",
       "scope": "writing rules, docs and pages",
       "icon": "programs/content/icon.svg",
+      "emoji": "🌱",
       "path": "programs/content",
       "governs": [
         "docs/QUALIFIED-WRITING.md",
@@ -347,6 +351,7 @@
       "label": "Discovery",
       "scope": "research, probes and outside sources",
       "icon": "programs/discovery/icon.svg",
+      "emoji": "🏔️",
       "path": "programs/discovery",
       "governs": [
         "research/",
