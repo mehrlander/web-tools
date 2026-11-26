@@ -20,11 +20,14 @@
               variants: [{ id, label }]?                 at most two: the versions compared
               steps:    [{ id, actor, label,
                            gloss,     what the step does, in a sentence; where the versions
-                                      differ, a list of { v, gloss }, one per variant
+                                      differ, a list of { v, gloss, rationale? }, one per variant
+                           rationale?, why the change was made: on a step one version
+                                      lacks, on the later version's gloss, or on an exit
+                                      one version lacks; drawn as a Why callout
                            in?,       the variants the step belongs to; all when omitted
                            artifacts?: [{ kind, label, path, repo? }]
                                       kind: skill | script | agent | data | doc | record | page
-                           exits?:    [{ to, label, when, in? }],
+                           exits?:    [{ to, label, when, in?, rationale? }],
                            end? }] }
 
   STEPS ARE LISTED IN MAIN-PATH ORDER, and that order is the swipe. A step
@@ -145,6 +148,23 @@ document.addEventListener('alpine:init', () => {
       if (/^https?:/.test(x.path)) return null;
       const repo = x.repo || this.repo, ref = x.repo && x.repo !== this.repo ? 'main' : this.ref;
       return `${repo}@${ref}:${x.path}`;
+    },
+    // Seen as a change, the steps that changed, in order: a step one version
+    // lacks, a step whose sentence differs, or a step with a branch one
+    // version lacks. The card steps through them.
+    get changes() {
+      if (!this.both) return [];
+      return this.vis.map((s, i) => i).filter(i => {
+        const s = this.vis[i];
+        return this.status(s).k !== 'shared' || (s.exits || []).some(x => x.in && x.in.length < this.variants.length);
+      });
+    },
+    // What a step's change is, and the author's reason for it.
+    change(s) {
+      const st = this.status(s);
+      if (st.k === 'only') return { kind: st.hue.kind, why: s.rationale || '' };
+      if (st.k === 'changed') return { kind: 'edited', why: s.gloss.find(g => g.v === this.variants[this.variants.length - 1].id)?.rationale || '' };
+      return null;
     },
     actorOf(s) { return this.F.actors.find(a => a.id === s.actor) || { label: s.actor, icon: 'ph-circle' }; },
     col(s) { return Math.max(0, this.F.actors.findIndex(a => a.id === s.actor)) + 1; },
@@ -512,6 +532,59 @@ document.addEventListener('alpine:init', () => {
       el.replaceChildren();
       const s = this.vis[i];
       const root = h('article', 'grid gap-3 text-base leading-6');
+      const ch = this.both ? this.change(s) : null;
+      const CK = { edited: { name: 'Edited', badge: 'badge-warning', hue: 'warning', icon: 'ph-pencil-simple-line' },
+                   added: { name: 'Added', badge: 'badge-success', hue: 'success', icon: 'ph-plus-circle' },
+                   removed: { name: 'Removed', badge: 'badge-error', hue: 'error', icon: 'ph-minus-circle' } };
+      const ink = hue => `color-mix(in oklab, var(--color-${hue}) 60%, var(--color-base-content))`;
+
+      // Seen as a change: where this step stands among the changes, and the
+      // arrows that step from change to change past the steps that did not.
+      const nav = () => {
+        const list = this.changes;
+        if (!list.length) return null;
+        const k = list.indexOf(i), prev = [...list].reverse().find(j => j < i), next = list.find(j => j > i);
+        const row = h('div', 'flex items-center gap-1 text-xs text-base-content/60 tabular-nums');
+        const btn = (to, ic, label) => {
+          const b = h('button', 'btn btn-ghost btn-xs btn-square');
+          b.type = 'button'; b.disabled = to == null; b.setAttribute('aria-label', label);
+          b.append(icon(ic));
+          b.addEventListener('click', () => this.go(to));
+          return b;
+        };
+        row.append(btn(prev, 'ph-caret-left', 'Previous change'),
+          h('span', 'min-w-[9ch] text-center', k >= 0 ? `change ${k + 1} of ${list.length}` : `${list.length} changes`),
+          btn(next, 'ph-caret-right', 'Next change'));
+        return row;
+      };
+      // A change's reason, as a callout hanging from the change it explains.
+      const why = (text, kind) => {
+        if (!text) return null;
+        const c = CK[kind];
+        const box = h('div', 'relative mt-1 rounded-box border px-3 py-2 text-sm');
+        box.style.background = `color-mix(in oklab, var(--color-${c.hue}) 8%, var(--color-base-100))`;
+        box.style.borderColor = `color-mix(in oklab, var(--color-${c.hue}) 45%, transparent)`;
+        const tip = h('span', 'absolute -top-[7px] left-6 size-3 rotate-45 border-l border-t');
+        tip.style.background = box.style.background; tip.style.borderColor = box.style.borderColor;
+        const lead = h('span', 'mr-2 text-xs font-semibold uppercase tracking-wide', 'Why');
+        lead.style.color = ink(c.hue);
+        box.append(tip, lead, inline(h('span'), text));
+        return box;
+      };
+      // Seen as a change, a head row: what kind of change this step is, and
+      // the arrows that step from change to change.
+      if (this.both && (ch || this.changes.includes(i))) {
+        const head = h('div', 'flex items-center gap-2 min-h-6');
+        if (ch) {
+          const c = CK[ch.kind];
+          const tag = h('span', `badge ${c.badge} badge-sm gap-1`);
+          tag.append(icon(c.icon), document.createTextNode(c.name));
+          head.append(tag);
+        } else head.append(h('span', 'text-xs text-base-content/60', 'Branches changed'));
+        const n = nav();
+        if (n) { n.classList.add('ml-auto'); head.append(n); }
+        root.append(head);
+      }
 
       // The step's sentence. Seen as a change, an edited sentence is the
       // change's inline reading (kits/md-diff.js): words removed struck,
@@ -537,6 +610,7 @@ document.addEventListener('alpine:init', () => {
       } else if (st.k === 'only') {
         root.append(inline(h('p', `${st.hue.band} ${st.hue.strike}`), gloss(st.vid)));
       } else root.append(inline(h('p'), gloss(this.v || this.variants[0]?.id)));
+      if (ch) { const w = why(ch.why, ch.kind); if (w) root.append(w); }
 
       // The branches the reader can take from here, one row each.
       const exits = (s.exits || []).filter(x => this.active().some(vid => this.inV(x, vid)) && this.vis.some(y => y.id === x.to));
@@ -551,6 +625,13 @@ document.addEventListener('alpine:init', () => {
           b.append(h('span', 'badge badge-neutral badge-sm', x.label || (back ? 'loop' : 'branch')));
           const t = inline(h('span', 'min-w-0'), x.when || '');
           t.append(h('span', 'ml-2 text-xs text-base-content/60 whitespace-nowrap', (back ? '↺ ' : '→ ') + (j + 1) + '. ' + this.vis[j].label));
+          if (hue && x.rationale) {
+            const r = h('span', 'block text-sm text-base-content/75');
+            const lead = h('span', 'mr-1.5 text-xs font-semibold uppercase tracking-wide', 'Why');
+            lead.style.color = ink(hue.kind === 'added' ? 'success' : 'error');
+            r.append(lead);
+            t.append(inline(r, x.rationale));
+          }
           b.append(t);
           b.addEventListener('click', () => this.take(x));
           ul.append(b);
