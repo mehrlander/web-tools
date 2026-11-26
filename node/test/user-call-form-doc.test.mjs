@@ -287,31 +287,31 @@ test('scrolling the document keeps the edit in view on screen in the list (owner
   list.scrollTop = 0;
 });
 
-test('a seam under the list sets its height, with the estate\'s splitter (owner, 2026-11-14)', async () => {
-  const list = root().querySelector('[data-doc-list]'), seam = root().querySelector('[data-doc-seam]');
-  assert.ok(seam, 'a seam sits under the list');
-  assert.equal(seam.previousElementSibling, list, 'right under it');
-  assert.notEqual(seam.style.display, 'none', 'shown for a call with more than one edit');
-  assert.equal(list.style.maxHeight, '160px', 'the list 160px tall until the seam is dragged');
-  assert.doesNotMatch(list.className, /border-b(?!ase)/, 'and the seam, not the list, draws the rule between them');
+test('a drag-splitter under the list sets its height (owner, 2026-11-14)', async () => {
+  const list = root().querySelector('[data-doc-list]'), splitter = root().querySelector('[data-doc-drag-splitter]');
+  assert.ok(splitter, 'a drag-splitter sits under the list');
+  assert.equal(splitter.previousElementSibling, list, 'right under it');
+  assert.notEqual(splitter.style.display, 'none', 'shown for a call with more than one edit');
+  assert.equal(list.style.maxHeight, '160px', 'the list 160px tall until the drag-splitter is dragged');
+  assert.doesNotMatch(list.className, /border-b(?!ase)/, 'and the drag-splitter, not the list, draws the rule between them');
   let opts = null;
-  window.dockSplit = { attach: (el, o) => { opts = o; return { destroy() {}, refresh() {} }; } };
-  await data().docSeamAt(seam);
-  assert.equal(opts.axis, 'row', 'a horizontal seam');
+  window.dragSplitter = { attach: (el, o) => { opts = o; return { destroy() {}, refresh() {} }; } };
+  await data().docSplitterAt(splitter);
+  assert.equal(opts.axis, 'row', 'a row drag-splitter');
   assert.equal(opts.from, 'start', 'measured from the list\'s top');
-  const was = [list.getBoundingClientRect, seam.closest('[data-doc-edits]').getBoundingClientRect];
+  const was = [list.getBoundingClientRect, splitter.closest('[data-doc-edits]').getBoundingClientRect];
   list.getBoundingClientRect = () => ({ top: 100, bottom: 260, height: 160, left: 0, right: 400, width: 400 });
-  seam.closest('[data-doc-edits]').getBoundingClientRect = () => ({ top: 0, bottom: 600, height: 600, left: 0, right: 400, width: 400 });
+  splitter.closest('[data-doc-edits]').getBoundingClientRect = () => ({ top: 0, bottom: 600, height: 600, left: 0, right: 400, width: 400 });
   opts.onChange(50);
   await tick(1);
   assert.equal(data().docListH, 250, 'a drag halfway down the 500px below the list\'s top makes the list 250px');
   assert.equal(list.style.maxHeight, '250px');
-  [list.getBoundingClientRect, seam.closest('[data-doc-edits]').getBoundingClientRect] = was;
-  seam.dispatchEvent(new window.Event('dblclick'));
+  [list.getBoundingClientRect, splitter.closest('[data-doc-edits]').getBoundingClientRect] = was;
+  splitter.dispatchEvent(new window.Event('dblclick'));
   await tick(1);
-  assert.equal(data().docListH, 160, 'a double-click on the seam goes back to 160px');
-  delete window.dockSplit;
-  data()._seam = null;
+  assert.equal(data().docListH, 160, 'a double-click on the drag-splitter goes back to 160px');
+  delete window.dragSplitter;
+  data()._splitter = null;
 });
 
 test('the list shows in Changes only, the one view that draws the edits', async () => {
@@ -478,7 +478,7 @@ test('forms mounted inside another scope keep their fields to themselves', async
   await until(() => [1, 2].every((n) => Alpine.$data(form(n)).doc.ready && form(n).querySelectorAll('[data-md-diff-change]').length === 4));
   const host = Alpine.$data(outer);
   assert.equal(host._notes, "the host's", "a form's notes are not the host's");
-  for (const k of ['_root', '_seam', '_viewsRead', '_jumpTill'])
+  for (const k of ['_root', '_splitter', '_viewsRead', '_jumpTill'])
     assert.equal(Object.prototype.hasOwnProperty.call(Alpine.closestDataStack(outer)[0], k), false, k + ' is not written on the host');
   assert.equal(Alpine.$data(form(1))._root, form(1));
   assert.equal(Alpine.$data(form(2))._root, form(2), 'each form finds its own document');

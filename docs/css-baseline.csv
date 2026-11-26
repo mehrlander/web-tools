@@ -17,7 +17,7 @@ lib/alpineComponents/stage.js,9
 lib/alpineComponents/transform-workbench.js,3
 lib/alpineComponents/viewer.js,28
 lib/kits/demos/annotate.html,4
-lib/kits/demos/dock-split.html,2
+lib/kits/demos/drag-splitter.html,2
 lib/kits/demos/io.html,2
 lib/kits/demos/panel-tip.html,6
 lib/kits/dictate.js,1

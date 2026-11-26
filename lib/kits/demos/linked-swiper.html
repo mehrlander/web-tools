@@ -10,7 +10,7 @@
   // The chain boot, so the FAB arrives and the kits are fetched at the previewed ref.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/swipe-deck.js');
-  await gh.load('kits/dock-split.js');
+  await gh.load('kits/drag-splitter.js');
   await gh.load('kits/linked-swiper.js');
 
   const BODIES = [
@@ -47,8 +47,8 @@
   const fact = (k, v) => `<div class="flex justify-between gap-3 border-b border-base-200 py-1"><span class="text-base-content/60">${k}</span><span class="tabular-nums">${v}</span></div>`;
   let deck = null;
   const swiper = linkedSwiper.attach({
-    root: document.getElementById('root'), list, card: document.getElementById('card'), key: 'item',
-    ids: () => BODIES.map(b => b.id), sel: () => sel, noun: 'planet', seam: 'linked-swiper-demo',
+    root: document.getElementById('root'), list, detail: document.getElementById('card'), key: 'item',
+    ids: () => BODIES.map(b => b.id), sel: () => sel, noun: 'planet', dragSplitter: 'linked-swiper-demo',
     name: id => ({ code: byId(id).group, title: byId(id).name }),
     body: id => {
       const b = byId(id);

@@ -107,10 +107,10 @@ test('a throwing predicate withholds rather than breaking the deck', () => {
 // size: home's budget-drs app sizes the decks it places itself, while three of
 // its views lay a deck over a column with a divider of their own on that edge.
 // Unqualified, `__deckWidth` put the kit's seam on top of that divider. The
-// stub records what the kit asked dock-split for, which is the whole decision.
+// stub records what the kit asked drag-splitter for, which is the whole decision.
 function stubDockSplit(window) {
   const calls = [];
-  window.dockSplit = { attach: (el, o) => { calls.push(o); return { destroy() {}, refresh() {} }; } };
+  window.dragSplitter = { attach: (el, o) => { calls.push(o); return { destroy() {}, refresh() {} }; } };
   return calls;
 }
 
@@ -130,7 +130,7 @@ test('the width hook takes a `when` too, and a false one draws no seam', () => {
   handle.close();
 });
 
-test('the width hook passes its stops through to dock-split', () => {
+test('the width hook passes its stops through to drag-splitter', () => {
   const window = mount();
   const calls = stubDockSplit(window);
   window.document.documentElement.dataset.deckPane = 'dock';
@@ -140,7 +140,7 @@ test('the width hook passes its stops through to dock-split', () => {
   window.__deckWidth.max = max;
   const handle = window.swipeDeck.open({ count: 2, render: () => {} });
   assert.equal(calls[0].min, 27, 'a number stop arrives as given');
-  assert.equal(calls[0].max, max, 'a function stop arrives uncalled, so dock-split reads it on every clamp');
+  assert.equal(calls[0].max, max, 'a function stop arrives uncalled, so drag-splitter reads it on every clamp');
   handle.close();
 });
 

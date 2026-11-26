@@ -112,6 +112,7 @@ const Alpine = await startAlpine(window, [
   'lib/alpineComponents/drop-zone.js',
   'lib/alpineComponents/path-picker.js',
   'lib/alpineComponents/viewer.js',
+  'lib/alpineComponents/drag-splitter.js',
   'lib/alpineComponents/stage.js',
 ]);
 

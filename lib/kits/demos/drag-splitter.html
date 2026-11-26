@@ -3,19 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>dock-split — the drag handle between two panes</title>
+<title>drag-splitter — the line a reader drags to resize two areas</title>
 <link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
 <script type="module">
   // The chain boot, so the FAB arrives and the kit is fetched at the previewed ref.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
-  await gh.load('kits/dock-split.js');
+  await gh.load('kits/drag-splitter.js');
 
   const $ = id => document.getElementById(id);
   const colPanes = $('col-panes'), colLeft = $('col-left'), colRight = $('col-right'), colHandle = $('col-handle');
   const rowPanes = $('row-panes'), rowTop = $('row-top'), rowBottom = $('row-bottom'), rowHandle = $('row-handle');
 
-  const KEY = 'dk-demo-col';
+  const KEY = 'drag-splitter-demo-col';
   const store = {
     read() { try { return localStorage.getItem(KEY); } catch { return undefined; } },
     write(v) { try { localStorage.setItem(KEY, v); return true; } catch { return false; } },
@@ -66,7 +66,7 @@
   function mountCol() {
     colSplit?.destroy();
     const stop = STOPS[state.stop];
-    colSplit = dockSplit.attach(colHandle, {
+    colSplit = dragSplitter.attach(colHandle, {
       axis: 'col',
       from: state.from,
       label: 'Resize the detail pane',
@@ -86,7 +86,7 @@
   }
 
   function mountRow() {
-    rowSplit = dockSplit.attach(rowHandle, {
+    rowSplit = dragSplitter.attach(rowHandle, {
       axis: 'row', from: 'end', step: 5, readout: 'after',
       label: 'Resize the log pane',
       bounds: () => rowPanes.getBoundingClientRect(),
@@ -134,8 +134,8 @@
 <main class="px-6 py-8 space-y-8">
 
   <header class="flex flex-wrap items-baseline gap-x-4 gap-y-1">
-    <h1 class="text-2xl font-semibold">dock-split</h1>
-    <code class="font-mono text-[13px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">dockSplit.attach(handle, opts)</code>
+    <h1 class="text-2xl font-semibold">drag-splitter</h1>
+    <code class="font-mono text-[13px] bg-base-200 border border-base-300 rounded px-1.5 py-0.5">dragSplitter.attach(handle, opts)</code>
     <span class="text-[13px] text-base-content/50">drag · focus it, then ← → · PageUp/PageDown · Home/End</span>
     <span class="ml-auto flex gap-2">
       <button id="even" class="btn btn-sm">Even</button>
@@ -145,7 +145,7 @@
 
   <section class="space-y-2">
     <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
-      <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">A vertical seam</h2>
+      <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">A column drag-splitter</h2>
       <label class="flex items-center gap-1.5 text-[11px] text-base-content/60">min/max
         <select id="stop" class="select select-xs w-36">
           <option value="pct">20 to 80</option>
@@ -179,7 +179,7 @@
       <div id="col-left" class="overflow-auto">
         <ul class="menu menu-sm w-full text-[14px]">
           <li class="menu-title text-[11px] uppercase tracking-widest">lib/kits</li>
-          <li><a class="active">dock-split.js</a></li>
+          <li><a class="active">drag-splitter.js</a></li>
           <li><a>swipe-deck.js</a></li>
           <li><a>chat-render.js</a></li>
           <li><a>note.js</a></li>
@@ -193,14 +193,14 @@
       <div id="col-right" class="overflow-auto bg-base-200/40" style="width:38%">
         <div class="px-4 py-3 space-y-3">
           <div class="flex items-baseline gap-2">
-            <span class="font-medium text-[15px]">dock-split.js</span>
+            <span class="font-medium text-[15px]">drag-splitter.js</span>
             <span class="font-mono text-[11px] text-base-content/50" id="measured">0px</span>
             <span class="font-mono text-[11px] text-base-content/40">remeasured <span id="measured-count">0</span>×</span>
           </div>
           <p class="text-[15px] leading-relaxed">The kit owns the gesture. This pane's width is the number it hands back, applied here.</p>
-          <pre class="text-[12.5px] bg-base-100 border border-base-300 rounded p-2 overflow-x-auto"><code>.dk-split.is-col::before{width:8px;height:40px}
-.dk-split.is-col::after{left:-15px;right:-15px}
-.dk-split.is-dragging::before{background:var(--color-primary)}</code></pre>
+          <pre class="text-[12.5px] bg-base-100 border border-base-300 rounded p-2 overflow-x-auto"><code>.drag-splitter.is-col::before{width:8px;height:40px}
+.drag-splitter.is-col::after{left:-15px;right:-15px}
+.drag-splitter.is-dragging::before{background:var(--color-primary)}</code></pre>
         </div>
       </div>
     </div>
@@ -212,7 +212,7 @@
 
   <section class="space-y-2">
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">A horizontal seam</h2>
+      <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">A row drag-splitter</h2>
       <code class="font-mono text-[11px] text-base-content/50">axis:'row'</code>
       <code class="font-mono text-[11px] text-base-content/50">from:'end'</code>
       <code class="font-mono text-[11px] text-base-content/50">step:5</code>
@@ -236,7 +236,7 @@
       <div id="row-handle" class="h-1.5 shrink-0 self-stretch"></div>
       <div id="row-bottom" class="overflow-auto bg-base-200/40" style="height:30%">
         <div id="log" class="px-4 py-2 font-mono text-[12.5px]">
-          <div data-placeholder class="text-base-content/40 py-1">Drag either seam, or press an arrow key on one.</div>
+          <div data-placeholder class="text-base-content/40 py-1">Drag either drag-splitter, or press an arrow key on one.</div>
         </div>
       </div>
     </div>
@@ -244,7 +244,7 @@
 
   <section class="space-y-2">
     <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">From a script</h2>
-    <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>const split = dockSplit.attach(handle, {
+    <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>const split = dragSplitter.attach(handle, {
   axis: 'col', from: 'end', step: 2,
   bounds: () =&gt; panes.getBoundingClientRect(),   // what the percentage is of
   value: () =&gt; state.col,                        // where it is now
@@ -258,7 +258,7 @@ split.destroy();   // listeners, readout and classes off</code></pre>
 
   <section class="space-y-2">
     <h2 class="text-[11px] font-semibold uppercase tracking-widest text-base-content/40">Capturing a drag</h2>
-    <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>// drag-seam.mjs: the readout and the grown grip only exist mid-drag
+    <pre class="text-[12.5px] bg-base-200 border border-base-300 rounded p-3 overflow-x-auto"><code>// drag-splitter-shot.mjs: the readout and the grown grip only exist mid-drag
 export default async (page) =&gt; {
   const box = await page.locator('#col-handle').boundingBox();
   await page.mouse.move(box.x + 3, box.y + 140);
@@ -266,7 +266,7 @@ export default async (page) =&gt; {
   await page.mouse.move(box.x - 120, box.y + 140, { steps: 12 });
 };
 
-npm run shot -- lib/kits/demos/dock-split.html --script drag-seam.mjs</code></pre>
+npm run shot -- lib/kits/demos/drag-splitter.html --script drag-splitter-shot.mjs</code></pre>
   </section>
 
 </main>

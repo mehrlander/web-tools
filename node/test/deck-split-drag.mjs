@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-// The docked deck's seam is draggable, and the list follows it.
+// The docked deck's splitter is draggable, and the list follows it.
 //
 //   node node/test/deck-split-drag.mjs
 //
-// The jsdom test (dock-split.test.mjs) pins the kit's arithmetic and its event
+// The jsdom test (drag-splitter.test.mjs) pins the kit's arithmetic and its event
 // wiring. It cannot pin the half that only a browser has: that the handle is
-// actually ON the seam and hit-testable there, that a real mouse drag moves
+// actually ON the splitter and hit-testable there, that a real mouse drag moves
 // both panes, and that `main`'s padding tracks the deck rather than lagging a
 // frame behind it. Those are the three ways this can be correct in the unit
 // test and wrong on screen.
@@ -55,8 +55,8 @@ try {
   await page.goto(`${origin}/app/index.html`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.gh?.load && document.querySelector('main'), { timeout: 30000 });
   await page.evaluate(() => window.gh.load('kits/swipe-deck.js'));
-  await page.evaluate(() => window.gh.load('kits/dock-split.js'));
-  await page.waitForFunction(() => !!window.swipeDeck && !!window.dockSplit, { timeout: 30000 });
+  await page.evaluate(() => window.gh.load('kits/drag-splitter.js'));
+  await page.waitForFunction(() => !!window.swipeDeck && !!window.dragSplitter, { timeout: 30000 });
   await page.waitForFunction(() => typeof window.__deckWidth === 'function', { timeout: 30000 });
 
   await page.evaluate(async () => {
@@ -65,25 +65,25 @@ try {
     await new Promise(r => setTimeout(r, 350));
   });
 
-  const seam = await page.$('.dk-split');
-  ok('a docked deck grows a seam', !!seam);
-  if (seam) {
+  const splitter = await page.$('.drag-splitter');
+  ok('a docked deck grows a drag-splitter', !!splitter);
+  if (splitter) {
     const placement = await page.evaluate(() => {
-      const seam = document.querySelector('.dk-split');
-      const grip = getComputedStyle(seam, '::before');
-      const readout = seam.querySelector('.dk-readout');
+      const splitter = document.querySelector('.drag-splitter');
+      const grip = getComputedStyle(splitter, '::before');
+      const readout = splitter.querySelector('.drag-splitter-readout');
       return {
-        parent: seam.parentElement?.tagName,
+        parent: splitter.parentElement?.tagName,
         gripWidth: parseFloat(grip.width),
-        seamWidth: seam.getBoundingClientRect().width,
+        splitterWidth: splitter.getBoundingClientRect().width,
         readoutCentre: readout.getBoundingClientRect().left + readout.getBoundingClientRect().width / 2,
-        seamCentre: seam.getBoundingClientRect().left + seam.getBoundingClientRect().width / 2,
+        splitterCentre: splitter.getBoundingClientRect().left + splitter.getBoundingClientRect().width / 2,
       };
     });
-    ok('the seam sits outside the clipping overlay', placement.parent === 'BODY',
+    ok('the drag-splitter sits outside the clipping overlay', placement.parent === 'BODY',
        `parent ${placement.parent}`);
-    ok('the whole grip can straddle the seam', placement.gripWidth > placement.seamWidth,
-       `grip ${placement.gripWidth}px vs seam ${placement.seamWidth}px`);
+    ok('the whole grip can straddle the drag-splitter', placement.gripWidth > placement.splitterWidth,
+       `grip ${placement.gripWidth}px vs splitter ${placement.splitterWidth}px`);
 
     // Start from the middle. The default dock is already near the 80% ceiling
     // at this viewport, so a 200px drag from there measures the clamp rather
@@ -100,19 +100,19 @@ try {
 
     // The drag itself, through the real input pipeline: if the handle is not
     // where it looks, or something above it swallows the press, this misses.
-    const box = await seam.boundingBox();
-    ok('the seam sits on the deck edge', Math.abs(box.x + box.width / 2 - before.left) < 4,
+    const box = await splitter.boundingBox();
+    ok('the drag-splitter sits on the deck edge', Math.abs(box.x + box.width / 2 - before.left) < 4,
        `handle centre ${box.x + box.width / 2} vs edge ${before.left}`);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x - 200, box.y + box.height / 2, { steps: 12 });
     const readout = await page.evaluate(() => {
-      const seam = document.querySelector('.dk-split').getBoundingClientRect();
-      const badge = document.querySelector('.dk-readout').getBoundingClientRect();
-      return { seam: seam.left + seam.width / 2, badge: badge.left + badge.width / 2 };
+      const splitter = document.querySelector('.drag-splitter').getBoundingClientRect();
+      const badge = document.querySelector('.drag-splitter-readout').getBoundingClientRect();
+      return { splitter: splitter.left + splitter.width / 2, badge: badge.left + badge.width / 2 };
     });
-    ok('the percentage readout is centred on the divider', Math.abs(readout.seam - readout.badge) < 2,
-       `seam ${readout.seam} vs badge ${readout.badge}`);
+    ok('the percentage readout is centred on the line', Math.abs(readout.splitter - readout.badge) < 2,
+       `splitter ${readout.splitter} vs badge ${readout.badge}`);
     await page.mouse.up();
     await page.waitForTimeout(250);
 
@@ -120,7 +120,7 @@ try {
       left: document.querySelector('.sd-overlay').getBoundingClientRect().left,
       pad: parseFloat(getComputedStyle(document.querySelector('main')).paddingRight) || 0,
       stored: Number(localStorage.getItem('deckDockPct')) || 0,
-      valuenow: Number(document.querySelector('.dk-split').getAttribute('aria-valuenow')) || 0,
+      valuenow: Number(document.querySelector('.drag-splitter').getAttribute('aria-valuenow')) || 0,
     }));
 
     ok('dragging left widens the deck', after.left < before.left - 150,
@@ -134,19 +134,19 @@ try {
 
     // The clamp, through the pointer rather than the arithmetic: a pane dragged
     // past the end must stop, not vanish.
-    const box2 = await (await page.$('.dk-split')).boundingBox();
+    const box2 = await (await page.$('.drag-splitter')).boundingBox();
     await page.mouse.move(box2.x + box2.width / 2, box2.y + box2.height / 2);
     await page.mouse.down();
     await page.mouse.move(20, box2.y + box2.height / 2, { steps: 12 });
     await page.mouse.up();
     await page.waitForTimeout(250);
     const clamped = await page.evaluate(() =>
-      Number(document.querySelector('.dk-split').getAttribute('aria-valuenow')) || 0);
+      Number(document.querySelector('.drag-splitter').getAttribute('aria-valuenow')) || 0);
     ok('a drag to the far edge clamps rather than swallowing the list', clamped === 80, `got ${clamped}`);
 
     // And it goes with the deck.
     await page.evaluate(async () => { window.__deck.close(); await new Promise(r => setTimeout(r, 450)); });
-    ok('closing the deck takes the seam with it', !(await page.$('.dk-split')));
+    ok('closing the deck takes the drag-splitter with it', !(await page.$('.drag-splitter')));
   }
 } finally {
   await browser.close();
