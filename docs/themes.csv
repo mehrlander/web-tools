@@ -64,6 +64,7 @@ docs/house-policies.md,skills/look-markers/SKILL.md,7,,lib kits look js https gi
 docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content;webfetch returns a small model's answer rather than the page's markdown,10,226
 docs/envelopes/README.md,docs/envelopes/workbook-extract.md,7,true,no change to lib kits data payload js lib kits data payload js;why this is a profile over data view rather than a sibling,10,226
 skills/doc-craft/SKILL.md,skills/user-calls/SKILL.md,6,,review https github com mehrlander web tools blob main docs envelopes user call md review,10,226
+programs/alignment/manager.md,skills/find-session/SKILL.md,6,,search py https github com mehrlander web tools private blob main sessions tools search py,10,226
 evals/portable/quick-answer/graders/plain-dry.md,skills/peeves/peeves.md,6,,'it does one thing' 'is the floor' 'held to' 'carries weight' 'does the work' 'deliberately',10,226
 evals/portable/choice/graders/plain-dry.md,skills/peeves/peeves.md,6,,'it does one thing' 'is the floor' 'held to' 'carries weight' 'does the work' 'deliberately',10,226
 evals/portable/catch-up/graders/plain-dry.md,skills/peeves/peeves.md,6,,'it does one thing' 'is the floor' 'held to' 'carries weight' 'does the work' 'deliberately',10,226
@@ -83,6 +84,7 @@ lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loa
 docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,226
 courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a page bookmarklets readme md which route reaches a page,10,226
 skills/tend/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,226
+skills/find-session/SKILL.md,skills/tend/SKILL.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,226
 skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com mehrlander web tools blob main docs envelopes;https mehrlander github io web tools pages toss render html,10,226
 skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,226
 skills/design-sprint/SKILL.md,skills/tend/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,226
@@ -102,6 +104,7 @@ docs/environment/capabilities.md,docs/github/README.md,3,,mcp layer does to a ca
 docs/environment/capabilities.md,docs/environment/extending.md,3,,sessionstart hooks a per hook size ceiling and where the cut lands,10,226
 docs/envelopes/approval.md,docs/envelopes/surface.md,3,,schemas profiles approval v1 schema json schemas profiles approval v1 schema json,10,226
 docs/TRACKER.md,skills/tasks/SKILL.md,3,,entry to restamp a fact add a new entry that corrects it,10,226
+docs/CONVERSATION.md,skills/find-session/SKILL.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,226
 docs/CONVERSATION.md,programs/alignment/manager.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,226
 desktop/README.md,skills/tend/SKILL.md,3,,readme md https github com mehrlander web tools private blob main;https github com mehrlander web tools private blob background state,10,226
 desktop/README.md,programs/discovery/manager.md,3,,readme md https github com mehrlander web tools private blob main;https github com mehrlander web tools private blob background state,10,226
