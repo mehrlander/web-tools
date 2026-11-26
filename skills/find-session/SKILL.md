@@ -11,7 +11,7 @@ description: >-
 
 ## Premise
 
-The session archive in web-tools-private keeps a record of every Claude Code session that had it checked out, and [`sessions/tools/search.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/search.py) searches those records. Finding a session is a lookup in those records.
+The session archive in web-tools-private keeps a record of every Claude Code session that had it checked out. [`sessions/tools/search.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/search.py) searches those records by what was said, when, in which repository and in which file.
 
 ## Goal and output
 
@@ -48,4 +48,4 @@ A long-lived cloud session whose only job is this skill. Create it once with the
 - `source_url`: web-tools-private alone, which keeps the session's fixed context small
 - `append_system_prompt`: `You are the session finder. Answer each request by following the portable find-session skill.`
 
-The owner types `/clear` when the topic changes, and `/autocompact 200k` is the backstop for a clear the owner forgets.
+The owner types `/clear` when the topic changes. Run `/autocompact 200k` once in the new session; compaction then runs at that size when a clear is missed.
