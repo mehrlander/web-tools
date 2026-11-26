@@ -23,7 +23,9 @@
                                       differ, a list of { v, gloss }, one per variant
                            change?:   { gloss }, what the change to this step does, in a
                                       sentence for a reader new to it; on a step one version
-                                      lacks or whose sentence differs, and on such an exit
+                                      lacks or whose sentence differs, and on such an exit.
+                                      It is the change's background, opened from the book
+                                      mark on its chip, as an edit's is on a documentation call
                            in?,       the variants the step belongs to; all when omitted
                            artifacts?: [{ kind, label, path, repo? }]
                                       kind: skill | script | agent | data | doc | record | page
@@ -68,7 +70,9 @@
     await gh.load('kits/swipe-deck.js');   // the track
     await gh.load('kits/dock-split.js');   // the seam between map and step
     await gh.load('kits/md-diff.js');      // a changed sentence's change container
-    await gh.load('kits/source-peek.js');  // a file's peek card, from its icon in a node or its link on a card
+    await gh.load('kits/source-peek.js');
+    await gh.load('kits/call-marks.js');   // the background mark on a change
+    await gh.load('kits/panel-tip.js');    // and the tip it opens  // a file's peek card, from its icon in a node or its link on a card
   } finally { window.__depsDone(); }
 </script>
 <script>
@@ -537,6 +541,34 @@ document.addEventListener('alpine:init', () => {
                    added: { name: 'Added', badge: 'badge-success', hue: 'success', icon: 'ph-plus-circle' },
                    removed: { name: 'Removed', badge: 'badge-error', hue: 'error', icon: 'ph-minus-circle' } };
 
+      // A change's background, as a documentation call's edit carries it: a
+      // book mark (kits/call-marks.js) on the change's chip opens the text in
+      // a tip under it, by a hover where the pointer can hover and a tap
+      // anywhere; a tap on the tip, a tap elsewhere, Escape or the next
+      // scroll closes it (kits/panel-tip.js).
+      const book = (text, host) => {
+        if (!text) return null;
+        const b = h('button', 'inline-grid place-items-center opacity-60 hover:opacity-100');
+        b.type = 'button'; b.setAttribute('aria-label', 'Background'); b.dataset.flowTip = '';
+        b.innerHTML = window.CallMarks?.svg('background', { size: 15 }) || '';
+        let panel = null, fade = 0, wired = null;
+        const close = () => { clearTimeout(fade); wired?.detach?.(); if (panel) panel.parentNode?.removeChild(panel); panel = null; };
+        const open = hover => {
+          if (panel) { clearTimeout(fade); if (!hover && !panel._hover) close(); else if (!hover) panel._hover = false; return; }
+          panel = h('div', 'absolute left-0 top-full mt-1 z-30 w-80 max-w-[calc(100vw-2rem)] cursor-default rounded-lg border border-base-300 bg-base-100 px-2.5 py-2 text-[13px] leading-snug shadow-md');
+          panel._hover = hover;
+          panel.append(inline(h('p'), text));
+          panel.addEventListener('click', ev => { ev.stopPropagation(); close(); });
+          panel.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse' && panel?._hover) fade = setTimeout(close, 220); });
+          host.append(panel);
+          if (window.PanelTip) wired = window.PanelTip.wire(panel, { onClose: close, except: ['[data-flow-tip]'], stale: 'geometry' });
+        };
+        b.addEventListener('click', ev => { ev.stopPropagation(); open(false); });
+        b.addEventListener('pointerenter', ev => { if (ev.pointerType === 'mouse') open(true); });
+        b.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse' && panel?._hover) fade = setTimeout(() => { if (!panel?.matches(':hover')) close(); }, 220); });
+        return b;
+      };
+
       // Seen as a change: where this step stands among the changes, and the
       // arrows that step from change to change past the steps that did not.
       const nav = () => {
@@ -556,21 +588,22 @@ document.addEventListener('alpine:init', () => {
           btn(next, 'ph-caret-right', 'Next change'));
         return row;
       };
-      // Seen as a change, the card opens on it: what kind of change this
-      // step is and the arrows that step from change to change, then one
-      // sentence saying what the change does.
+      // Seen as a change, the card heads with it: what kind of change this
+      // step is, its background behind the book mark, and the arrows that
+      // step from change to change.
       if (this.both && (ch || this.changes.includes(i))) {
-        const head = h('div', 'flex items-center gap-2 min-h-6');
+        const head = h('div', 'relative flex items-center gap-2 min-h-6');
         if (ch) {
           const c = CK[ch.kind];
           const tag = h('span', `badge ${c.badge} badge-sm gap-1`);
           tag.append(icon(c.icon), document.createTextNode(c.name));
+          const mark = book(ch.gloss, head);
+          if (mark) tag.append(h('span', 'mx-0.5 h-3 w-px bg-current opacity-25'), mark);
           head.append(tag);
         } else head.append(h('span', 'text-xs text-base-content/60', 'Branches changed'));
         const n = nav();
         if (n) { n.classList.add('ml-auto'); head.append(n); }
         root.append(head);
-        if (ch?.gloss) root.append(inline(h('p', 'font-medium -mt-1'), ch.gloss));
       }
 
       // The step's sentence. Seen as a change, an edited sentence is the
@@ -608,13 +641,20 @@ document.addEventListener('alpine:init', () => {
           const b = h('button', `w-full text-left grid grid-cols-[auto_auto_minmax(0,1fr)] items-baseline gap-x-2 py-1.5 hover:bg-base-200 ${hue ? hue.band.replace('pl-3', 'pl-2') : ''}`);
           b.type = 'button';
           b.append(icon(back ? 'ph-arrow-u-up-left' : 'ph-arrow-bend-down-right', 'self-start mt-1'));
-          b.append(h('span', 'badge badge-neutral badge-sm', x.label || (back ? 'loop' : 'branch')));
+          const lab = h('span', 'badge badge-neutral badge-sm gap-1', x.label || (back ? 'loop' : 'branch'));
+          b.append(lab);
           const t = inline(h('span', 'min-w-0'), x.when || '');
           t.append(h('span', 'ml-2 text-xs text-base-content/60 whitespace-nowrap', (back ? '↺ ' : '→ ') + (j + 1) + '. ' + this.vis[j].label));
-          if (hue && x.change?.gloss) t.append(inline(h('span', 'block text-sm text-base-content/70'), x.change.gloss));
           b.append(t);
+          // A changed branch's background, behind a book mark on its label.
+          let wrap = null;
+          if (hue && x.change?.gloss) {
+            wrap = h('div', 'relative');
+            lab.append(h('span', 'mx-0.5 h-3 w-px bg-current opacity-25'), book(x.change.gloss, wrap));
+            wrap.append(b);
+          }
           b.addEventListener('click', () => this.take(x));
-          ul.append(b);
+          ul.append(wrap || b);
         });
         root.append(ul);
       }
