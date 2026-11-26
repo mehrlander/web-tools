@@ -45,7 +45,7 @@ Simple pages can remain self-contained. Loading shared code is covered by the [l
 
 ## The rules
 
-**1. No stat cards.** A row of tiles, each a label over a big number, spends the page's best space on figures with no comparison, baseline, denominator, or movement. Show a count with the content or controls that give it context. Filter pills can be especially effective to associate counts with the categories and units that they speak to.
+**1. No stat cards.** A row of tiles, each a label over a big number, spends the page's best space on figures with no comparison, baseline, denominator, or movement. Show a count with the content or controls that give it context; filter pills carry counts well.
 
 **2. No explanatory prose.** GitHub doesn't explain and neither should we. Use
 structure, labels, and controls to show relationships: a range control starting
@@ -65,7 +65,7 @@ refuses these at edit time and `npm run reading-column` lists them; `modal-box`
 sizing is exempt, and an exception takes a `reading-column-ok` comment on the
 line or the line above.
 
-**4. Browsing takes the available view.** A deck, gallery, diff, or result set uses the frame below, built on a standalone page as `fixed inset-0 grid grid-rows-[auto_1fr_auto]`. For expansion over another page, use the Swipe Deck takeover. A takeover fills the window on a phone and the host's content pane on a wide screen; a host may also dock it beside a list.
+**4. Browsing takes the available view.** A deck, gallery, diff, or result set uses the frame below, built on a standalone page as `fixed inset-0 grid grid-rows-[auto_1fr_auto]`. Over another page, use the Swipe Deck takeover, which fills the window on a phone and the content pane on a wide screen.
 
 ```text
 ├── header   identity, controls, counter
@@ -73,55 +73,22 @@ line or the line above.
 └── footer   previous, progress, next
 ```
 
-The shape is a default, and a page is **content-sensitive**: a slot the content
-would leave empty, such as a footer for a single item, is left out rather than
-filled with boilerplate. Use dots for
-up to about 25 items, then a progress bar. Support arrow keys, Escape, and the
-phone back button. Give each filter a row under the header: a label, then its
-options as pills on one line that scrolls sideways rather than wrapping. Don't
-embed a deck in a page; a strip under its own list (rule 11) is the exception,
-since its takeover is one tap away.
+Leave out a slot the content would leave empty, such as a footer for a single item. Use dots for up to about 25 items, then a progress bar. Support arrow keys, Escape, and the phone back button. Give each filter a row under the header: a label, then pills on one line that scrolls sideways. Don't embed a deck in a page, except as a strip under its own list (rule 11).
 
-**5. An embedded page has no fixed root.** A page another page may embed (an
-appendix, a toss render, a stage preview) takes rule 4's shape without the fixed
-root: `min-h-dvh` and sticky chrome over document scrolling, or an `h-dvh` root
-for a list over a strip (rule 11). In an iframe on
-iOS, a fixed child measures against the outer viewport and loses its right-hand
-column, which headless Chromium does not show. Width queries measure the frame,
-not the window. With sticky chrome, save and
-restore document scroll when a detail view replaces a long list, and drop
-`viewport-fit=cover` unless the page is edge-to-edge.
+**5. An embedded page has no fixed root.** A page another page may embed takes rule 4's shape with `min-h-dvh` and sticky chrome, or an `h-dvh` root for a list over a strip (rule 11). In an iOS iframe a fixed root loses its right column. Headless Chromium does not show the loss.
 
-**6. Type is for reading, not for fitting.** If type shrank to fit, the layout is
-wrong, not the type. Decks and documents run `text-xl` or larger with
-`leading-8`; dense working surfaces run smaller, one size per tier (rule 7).
+**6. Type is for reading, not for fitting.** If type shrank to fit, fix the layout. Decks and documents run `text-xl` or larger with `leading-8`.
 
-**7. Content has one size.** The page has two tiers, content and chrome.
-Everything the reader came to read shares a size; `text-xs` and monospace belong
-to labels, counters, and timestamps.
+**7. Content has one size.** What the reader came to read shares a size; `text-xs` and monospace are for labels, counters, and timestamps.
 
 **8. Content starts at the top.** Do not vertically centre a slide because it
 looks balanced when short; across a deck it moves the first line on every card.
 
-**9. Use color to communicate.** Color carries information, not decoration.
-Assign it by semantic role, and in a comparison lock each side's treatment
-across every view. Use it selectively: where most items are ordinary, leave
-them neutral and color the ones that differ.
+**9. Use color to communicate.** Assign it by semantic role, lock each side's color across a comparison, and leave ordinary items neutral so the ones that differ stand out.
 
-**10. A tooltip worth having is worth building.** Prefer text on the page. Do
-not use a `title`: the browser draws it only on mouse hover and outside the
-page, so touch screens and screenshots omit it. One line the page implies is a
-**title-tip**
-([`kits/title-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js));
-anything tapped, scrolled, or sourced is a **panel-tip**
-([`kits/panel-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js)).
-A panel-tip about one figure opens from an icon beside that figure.
-Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
-[`references/mechanics.md`, "Title-tips and panel-tips"](references/mechanics.md#title-tips-and-panel-tips);
-`npm run stranded-titles` lists facts parked in a `title`, and
-`TitleTip.open('#id')` opens one for a shot.
+**10. A tooltip worth having is worth building.** Prefer text on the page. Do not use a `title`: touch screens and screenshots omit it. One line the page implies is a **title-tip** ([`kits/title-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/title-tip.js)); anything tapped, scrolled, or sourced is a **panel-tip** ([`kits/panel-tip.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/panel-tip.js)), opened from an icon beside its figure. Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. See [`references/mechanics.md`](references/mechanics.md#title-tips-and-panel-tips).
 
-**11. Keep the list visible while browsing details.** Pair the list with a strip of swipeable cards, one per item, that follow the list's selection. Use [Linked Swiper](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js). It sets the layout for a phone or a wide pane and moves the selection on a swipe or an arrow key. Pass Linked Swiper's `dragSplitter` option to let the reader resize the list. The page supplies the action that opens the takeover (rule 4). Closing the takeover returns to the list at the item last viewed.
+**11. Keep the list visible while browsing details.** Pair the list with swipeable cards that follow its selection, using [Linked Swiper](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js). Closing the takeover (rule 4) returns to the last item viewed.
 
 **12. Avoid modal dialogs and accordions.** Consider a panel-tip, a strip under the list (rule 11), the Swipe Deck takeover (rule 4), or another more fluid alternative.
 
@@ -133,17 +100,17 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **16. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
-**17. No boilerplate.** Shape each value to its content. Use a label only where structure and context can't make the meaning of the value clear. Use placement, proximity, icons and ingenuity to offer dense clusters of information that the reader can see as an entity and its kind at once.
+**17. No boilerplate.** Label a value only where its position and neighbors leave its meaning unclear. Group related values by placement, proximity, and icons.
 
 **18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
 **19. Themes.** Pages may use daisyUI themes, most often `winter`. Do not provide dark mode.
 
-**20. Make icon behavior consistent and predictable.** An icon on a list row, alone or paired with a count or a word, should look like what clicking it does.
+**20. Make icon behavior consistent and predictable.** An icon on a list row, alone or with a count or a word, should look like what clicking it does.
 
-- If clicking opens, navigates, or toggles something, make the icon a button or link with `cursor-pointer`, since Tailwind 4 gives plain buttons the arrow. On hover, use `hover:text-primary`, or `hover:opacity-75` for an emoji or brand mark that keeps its own colour.
-- If the icon also has a hover card, the card does the explaining and is its only popup. Name the icon with `aria-label`.
-- If the icon only labels, keep the default cursor and a steady colour so it never looks clickable. A title-tip can name it.
+- If clicking opens, navigates, or toggles something, make the icon a button or link with `cursor-pointer` and `hover:text-primary` (`hover:opacity-75` for an emoji or brand mark).
+- If the icon opens a panel-tip on hover, the panel-tip is its only popup. Name the icon with `aria-label`.
+- If the icon only labels, keep the default cursor and a steady color. A title-tip can name it.
 
 ## Handing a page over
 
