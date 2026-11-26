@@ -13,7 +13,7 @@ The folder's README links the term probes to this file and says only what is par
 
 ## Lifecycle
 
-A probe's [research declaration](manifest.md#research-declarations) may give a `lifecycle`, the inquiry's current step: `planned`, `active`, `maintained` or `revising`. A probe whose write-up must not change after it lands on main is marked `edit=write-once` in [`.gitattributes`](../.gitattributes). A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
+A probe's [research declaration](manifest.md#research-declarations) may give a `lifecycle`, the inquiry's current step: `planning`, `active`, `maintained` or `revising`. A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
 
 ## Sources
 

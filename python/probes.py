@@ -15,7 +15,7 @@ inquiry began, is not YYYY-MM-DD, or a dated id or path names another date than
 its row's; when a path names nothing in the folder; and when a dated file or
 folder beside the registry is named by no row's path. A declared folder with no
 probes.csv is counted and passes. Any research declaration whose lifecycle is
-not planned, active, maintained or revising fails.
+not planning, active, maintained or revising fails.
 
 Ported on 2026-11-10 from home's projects/budget-drs/data/design/tools/
 verify-probes.py, whose registry passes unchanged.
@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 REQUIRED = ["probe", "date", "title", "question", "summary"]
-LIFECYCLE = {"planned", "active", "maintained", "revising"}
+LIFECYCLE = {"planning", "active", "maintained", "revising"}
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
@@ -104,7 +104,7 @@ def main():
     for e in declarations(root):
         if isinstance(e, dict) and "lifecycle" in e and e["lifecycle"] not in LIFECYCLE:
             failed = True
-            print(f"probes: .web-tools.json research {e.get('path')} has lifecycle {e['lifecycle']}, not one of planned, active, maintained, revising")
+            print(f"probes: .web-tools.json research {e.get('path')} has lifecycle {e['lifecycle']}, not one of planning, active, maintained, revising")
     for f in folders(root):
         if not (root / f / "probes.csv").exists():
             without += 1

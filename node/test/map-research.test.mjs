@@ -150,7 +150,7 @@ test('a declared lifecycle rides on the account, and an unknown one invalidates 
   assert.equal(data.researchAccounts.find(r => r.label === 'Text findings').lifecycle, 'maintained');
   const entry = { path: 'research/x.md', label: 'X', kind: 'probe' };
   assert.ok(data.validResearchEntry(entry));
-  for (const lifecycle of ['planned', 'active', 'maintained', 'revising']) assert.ok(data.validResearchEntry({ ...entry, lifecycle }));
+  for (const lifecycle of ['planning', 'active', 'maintained', 'revising']) assert.ok(data.validResearchEntry({ ...entry, lifecycle }));
   assert.ok(!data.validResearchEntry({ ...entry, lifecycle: 'finished' }));
 });
 

@@ -89,7 +89,7 @@ test('--new writes the required header and refuses to overwrite', t => {
   assert.equal(run(root, '--new', 'fresh').status, 1);
 });
 
-test("a declaration's lifecycle is planned, active, maintained or revising", t => {
+test("a declaration's lifecycle is planning, active, maintained or revising", t => {
   const root = fixture(t, GOOD);
   const manifest = JSON.parse(readFileSync(path.join(root, '.web-tools.json'), 'utf8'));
   manifest.research[0].lifecycle = 'maintained';
@@ -99,5 +99,5 @@ test("a declaration's lifecycle is planned, active, maintained or revising", t =
   writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
   const r = run(root);
   assert.equal(r.status, 1);
-  assert.match(r.stdout, /research one\/README\.md has lifecycle finished, not one of planned, active, maintained, revising/);
+  assert.match(r.stdout, /research one\/README\.md has lifecycle finished, not one of planning, active, maintained, revising/);
 });
