@@ -77,6 +77,7 @@ docs/CONVERSATION.md,docs/house-policies.md,5,,https github com mehrlander web t
 README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tools app view map tab kits,10,226
 skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,4,,mcp github get file contents with owner mehrlander repo web tools path;invocable in sessions started from a branch that contains it,10,226
 skills/html-style/references/mechanics.md,skills/look-markers/SKILL.md,4,,html https github com mehrlander web tools blob main lib kits demos;js https github com mehrlander web tools blob main lib,10,226
+skills/find-session/SKILL.md,skills/tend/SKILL.md,4,,json https github com mehrlander web tools private blob main sessions tools;py https github com mehrlander web tools private blob main,10,226
 programs/testing/README.md,programs/testing/manager.md,4,,https github com mehrlander web tools private tree background data tests;the selection pilot tracker tasks test selection by reach p2xtc5 md,10,226
 programs/discovery/manager.md,skills/tend/SKILL.md,4,,json https github com mehrlander web tools private blob background state;readme md https github com mehrlander web tools private blob main,10,226
 programs/alignment/current/pages.md,programs/alignment/future/pages.md,4,,html https github com mehrlander wa bills blob main wsl api data;github com mehrlander wa bills blob main wsl api tools,10,226
@@ -84,7 +85,6 @@ lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loa
 docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,226
 courier/README.md,sites/wsldocs.sos.wa.gov/README.md,4,,which route reaches a page bookmarklets readme md which route reaches a page,10,226
 skills/tend/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,226
-skills/find-session/SKILL.md,skills/tend/SKILL.md,3,,py https github com mehrlander web tools private blob main sessions tools,10,226
 skills/doc-audit/SKILL.md,skills/passage-reading/SKILL.md,3,,md https github com mehrlander web tools blob main docs envelopes;https mehrlander github io web tools pages toss render html,10,226
 skills/design-sprint/SKILL.md,skills/tree/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,226
 skills/design-sprint/SKILL.md,skills/tend/SKILL.md,3,,md https github com mehrlander web tools blob main docs conversation md,10,226

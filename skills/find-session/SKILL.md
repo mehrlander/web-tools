@@ -11,7 +11,7 @@ description: >-
 
 ## Premise
 
-The session archive in web-tools-private keeps a record of every Claude Code session that had it checked out. [`sessions/tools/search.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/search.py) searches those records by what was said, when, in which repository and in which file.
+The session archive in [web-tools-private](https://github.com/mehrlander/web-tools-private) keeps a record of every Claude Code session that had it checked out. [`sessions/tools/search.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/search.py) searches those records by what was said, when, in which repository and in which file.
 
 ## Goal and output
 
@@ -25,7 +25,7 @@ The claude.ai link is the record's `agent_session`. The Claude app shows it by t
 
 ## Process
 
-1. **Reach the archive.** Work in a web-tools-private checkout, the one whose `.web-tools.json` declares `sessions`. Where none is in or beside the project root, attach and clone it as the [`sessions`](../sessions/SKILL.md) skill describes. Run `git pull --ff-only origin main` in it first, since records reach `main` continuously.
+1. **Reach the archive.** Work in a web-tools-private checkout, the one whose [`.web-tools.json`](https://github.com/mehrlander/web-tools-private/blob/main/.web-tools.json) declares `sessions`. Where none is in or beside the project root, attach and clone it as the [`sessions`](../sessions/SKILL.md) skill describes. Run `git pull --ff-only origin main` in it first, since records reach `main` continuously.
 2. **Search.** Run `python3 sessions/tools/search.py` with the filters the request names; filters combine with AND. Each run reads the whole archive and takes about half a minute, whatever the filters: start with the most distinctive phrase the request offers.
    - `--grep TEXT`: a literal, case-insensitive substring of the opening ask, a stored prompt or reply, or the closing message. Matches are unranked, and a common word returns loose ones.
    - `--since DAY`, `--until DAY` (YYYY-MM-DD), `--repo NAME`, `--file PATTERN` (a file the session opened), `--tool NAME`.
@@ -37,7 +37,7 @@ The claude.ai link is the record's `agent_session`. The Claude app shows it by t
 
 ## Key insights
 
-- **Treat each request as new.** Search again rather than reuse an earlier answer in the conversation; records keep arriving.
+- **Treat each request as new.** Search again rather than reuse an earlier answer in the conversation.
 - **From a working session, summon the [`session-finder`](../agents/session-finder.md) agent** rather than follow this skill inline. The search output then stays out of that session's context.
 
 ## The finder session
@@ -45,7 +45,7 @@ The claude.ai link is the record's `agent_session`. The Claude app shows it by t
 A long-lived cloud session whose only job is this skill. Create it once with the `create_session` tool:
 
 - `title`: an emoji and the role, such as `🧭 Session finder`
-- `source_url`: web-tools-private alone, which keeps the session's fixed context small
+- `source_url`: `https://github.com/mehrlander/web-tools-private` alone, which keeps the session's fixed context small
 - `append_system_prompt`: `You are the session finder. Answer each request by following the portable find-session skill.`
 
 The owner types `/clear` when the topic changes. Run `/autocompact 200k` once in the new session; compaction then runs at that size when a clear is missed.
