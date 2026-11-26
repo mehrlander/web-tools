@@ -32,7 +32,7 @@ The claude.ai link is the record's `agent_session`. The Claude app shows it by t
    - The default listing shows candidates without links. For the answer's fields, add `--json` and keep four of them: `| python3 -c 'import json,sys; [print(r["day"], r["short"], r.get("agent_session", "-"), " ".join(r["opening_ask"].split())[:100]) for r in json.load(sys.stdin)]'`. `--show <short>` prints one record in full; its `repos` field lists each repository the session worked in, with its branch.
    - `--name` matches titles from an export of the claude.ai sidebar, as of the date the listing's footer prints. Search a topic with `--grep`.
    - For a pull request, the session is named by the `Claude-Session` line in its head commit's message, read with the GitHub tools.
-   - Where the archive has no match, try the `list_sessions` and `get_session` tools, if the session has them. They list cloud sessions by title, the archive's unrecorded ones among them.
+   - Where the archive has no match, try the `list_sessions` and `get_session` tools, if the session has them. They list cloud sessions by title. Some cloud sessions never reach the archive.
 3. **Answer** in the shape above, the clause drawn from the opening ask or the prompt that matched.
 
 ## Key insights
