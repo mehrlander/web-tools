@@ -11,7 +11,7 @@ The question is where a proposed rule, convention or UI pattern already lives ac
 - **Rule owners:** [`house-policies.json`](../../lists/house-policies.json), [`QUALIFIED-WRITING.md`](../../docs/QUALIFIED-WRITING.md), [`peeves.json`](../../lists/peeves.json) and [`html-style`](../../skills/html-style/SKILL.md).
 - **Overlap and growth records:** [`themes.csv`](../../docs/themes.csv), [`matches.csv`](../../data/doc-overlap/matches.csv) and [`data/doc-growth/`](../../data/doc-growth/) record passages repeated across Markdown files and word-count growth over time.
 - **UI codebook:** [`codebook.md`](../../data/ui-units/codebook.md), [`coded.csv`](../../data/ui-units/coded.csv) and [`instances.csv`](../../data/ui-units/instances.csv) (plus `data/ui-units/` in `home` for surfaces outside web-tools) record each unit's layout, parts and kits ([`kits.csv`](../../docs/kits.csv)).
-- **Document catalog:** [`docs.csv`](../../docs/docs.csv), kept by the [Alignment](../alignment/README.md) program, gives each document's `subject` and `status`; [`registries.csv`](../../docs/registries.csv) names the registry for a property kept as data. A document whose `status` is empty is a dated record: list it, but not as the owner.
+- **Document catalog:** [`docs.csv`](../../docs/docs.csv) gives each document's `subject` and `status`. For a property kept as data, send the caller to the [Alignment](../alignment/README.md) program's Ownership process. A document whose `status` is empty is a dated record: list it, but not as the owner.
 
 Return one line for each existing owner, duplicate passage, or codebook entry that bears on the candidate:
 
