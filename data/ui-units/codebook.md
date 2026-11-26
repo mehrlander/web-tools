@@ -8,19 +8,12 @@ a registry only after a full pass shows they hold.
 
 ## Terms
 
-Four words name parts of a screen in this codebook and in the codes'
-glosses, each in one sense only:
+Four words name parts of a screen in this codebook and in the codes' glosses. Use each in the sense given here:
 
-- **card**: a bordered box that draws one object, such as one item of a list
-  or one area of a program.
-- **tile**: a card in a packed grid. The word names the layout, not a kind
-  of object.
-- **panel**: content that a control reveals, such as a panel-tip or the
-  region that a `panel-toggle` button shows. The manifest key `programs[].areas[].panels` in
-  `.web-tools.json` keeps an older sense for now: a block of content that an
-  area's card draws.
-- **area**: one subdivision of a program, a row of its charter's Areas table
-  and an entry of `programs[].areas` in the manifest.
+- **card**: a bordered box that draws one object, such as one item of a list or one area of a program.
+- **tile**: a card as placed in a packed grid.
+- **panel**: content that a control reveals, such as a panel-tip ([`lib/kits/panel-tip.js`](../../lib/kits/panel-tip.js)) or the region that the `panel-toggle` frame code's button shows. One exception remains: the manifest key `programs[].areas[].panels` in [`.web-tools.json`](../../.web-tools.json) names a block of content on an area's card.
+- **area**: one subdivision of a program, as a row of the Areas table in the program's charter (its `programs/<name>/README.md`) and as an entry of `programs[].areas` in the manifest.
 
 ## What is coded, and what is not
 
