@@ -1,21 +1,15 @@
 # Forms
 
-A **form** is the standard layout for one type of content, so that a reader
-recognizes the form before reading the content. A form is one of two kinds,
-told apart by what it writes:
+A **form** is the standard layout for one type of content, so that a reader recognizes the form before reading the content. A form is one of two kinds, told apart by whether it writes an answer:
 
-- A **display form** shows a fixed set of fields and writes nothing back. The
-  fields can come from several objects: the branch page draws a guide, pull
-  requests and a diff.
-- A **call form** opens on one request that work made for the reader and
-  writes the reader's answer where the work that asked will read it.
+- A **display form** shows a fixed set of fields for reading. The fields can come from several objects: the [branch page](../../pages/branch.html) draws a branch's guide, its pull requests and its diff.
+- A **call form** opens on one request that a session or a run made for the reader. It writes the reader's answer where that session or run will read it.
 
-A page can hold both kinds. The session page displays a session and holds a
-call form for each of its user calls. A unit coded with an `answer` in
-[coded.csv](../../data/ui-units/coded.csv) holds a call form.
+A page can hold both kinds. The [session page](../../pages/session.html) displays one session's record and holds a call form for each user call the session filed. A user call is one question for the owner, kept as a JSON file in web-tools-private.
 
-Before building a page, find the job it does here and reuse a form that
-serves it. A page that fits no form proposes one.
+A row of [coded.csv](../../data/ui-units/coded.csv) with an `answer` code marks a page or region that holds a call form.
+
+Before building a page, find the job it does here and reuse a form that serves it. When a page fits no form, propose a new form for it.
 
 ## Jobs
 
@@ -24,14 +18,13 @@ that does two jobs carries both tags, and neither is primary.
 
 | Job | The reader | Forms |
 | --- | --- | --- |
-| respond | judges something work raised | a call form per answer, below |
-| follow | keeps track of something ongoing | the [branch](../../pages/branch.html); the [session](../../pages/session.html); an inbox |
+| respond | judges a request that a session or a run made | a call form per answer, below |
+| follow | keeps track of a branch, a session or a queue as it changes | the [branch](../../pages/branch.html); the [session](../../pages/session.html); an inbox |
 | read | takes in a document or a result | none named yet |
 | explore | finds their way through a repo, a dataset or a collection | none named yet |
 | make | works on something they bring or own | none named yet |
 
-An **inbox** holds requests until each is answered, so it carries both tags:
-the Waiting, Proposals and Tending views.
+An **inbox** lists the requests that wait on the reader. It does both jobs, respond and follow. The [Waiting](../../app/?view=waiting), [Proposals](../../app/?view=proposals) and [Tending](../../app/?view=tending) views are inboxes.
 
 The test for each tag is its row in
 [data/ui-units/codes.csv](../../data/ui-units/codes.csv), and each page's tags
@@ -42,10 +35,7 @@ side by side, which is where one gets chosen.
 
 ## Call forms
 
-A call form usually opens on a payload that work made for the reader,
-carried by its link or file, under a contract: an
-[envelope](../envelopes/README.md) or the user call (`user-call/1`). It is
-known by the answer it asks for.
+Each request follows a contract: an [envelope](../envelopes/README.md) or the user call (`user-call/1`).
 
 | Answer | The reader | Form | The answer lands in |
 | --- | --- | --- | --- |
@@ -57,15 +47,7 @@ known by the answer it asks for.
 | reaction | votes or comments, closing nothing | Text Lab; the Tending view | home's `reviews.jsonl`; the notes store |
 | questionnaire | fills in named boxes | the Inquiry page (`inquiry/1`) | the payload's `reply_to` |
 
-An answer counts only once the form writes it where the session or run that
-asked will read it. Two pages fall short of that, so they count as display
-forms. The **lineup** draws one page once per option under a strip that
-switches between them, for a choice among working versions of that page; the
-header of
-[`docs/prototypes/lists-options.html`](../prototypes/lists-options.html) says
-how a lineup is built. The [Review page](../../pages/review.html), tagged
-respond, collects a judgment of a changeset. On both, what the reader decides
-reaches the session only through chat.
+The lineup and the Review page collect a decision without writing an answer, and both count as display forms. The **lineup** shows one working version of a page per option. A strip of tabs above it switches between the versions. The header of [`docs/prototypes/lists-options.html`](../prototypes/lists-options.html) says how a lineup is built. The [Review page](../../pages/review.html), tagged respond, collects a judgment of a changeset. On both pages, what the reader decides reaches the session only through chat.
 
 A diff is a way of drawing a change, not a kind of form: a diff of a proposed
 edit belongs to a change form, and a diff of two pasted texts is a make tool.
