@@ -152,7 +152,7 @@ registry's `consumer` column says which tool reads each field.
 
 `research` is an optional array of retained research accounts. Each entry has a
 repository-relative Markdown `path`, a short `label`, and `kind` set to `probe`
-or `exploration`. An optional `status` says how the account is kept. An optional `lifecycle` gives its current step. [probes.md](probes.md#status) lists the values of both. The label names the inquiry; the account holds the findings
+or `exploration`. An optional `lifecycle` gives the account's current step, from the values [probes.md](probes.md#lifecycle) lists. The label names the inquiry; the account holds the findings
 and links to its materials. A package's `README.md` represents its folder.
 An individual Markdown report represents itself. Do not declare research under
 `docs/`. Existing research elsewhere can be declared without renaming it.

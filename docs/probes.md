@@ -11,9 +11,9 @@ A probe keeps its question, what was tried, and what it found. A probe that stan
 
 The folder's README links the term probes to this file and says only what is particular to the folder. Any view of the registry, such as a page that lists the probes or a generated log, belongs to the folder and reads `probes.csv`.
 
-## Status
+## Lifecycle
 
-A probe's [research declaration](manifest.md#research-declarations) gives its `status`: `living`, `measured` or `record`, as the [docs catalog](README.md) defines them. Its optional `lifecycle` is the inquiry's current step: `planned`, `active`, `maintained` or `revising`. A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
+A probe's [research declaration](manifest.md#research-declarations) may give a `lifecycle`, the inquiry's current step: `planned`, `active`, `maintained` or `revising`. A probe that preserves a moment is marked `edit=write-once` in [`.gitattributes`](../.gitattributes). A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
 
 ## Sources
 
