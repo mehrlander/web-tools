@@ -121,7 +121,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 `npm run stranded-titles` lists facts parked in a `title`, and
 `TitleTip.open('#id')` opens one for a shot.
 
-**11. Keep the list visible while browsing details.** Pair the list with a strip of swipeable cards, one per item, that follow the list's selection. Use [Linked Swiper](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js). It sets the layout for a phone or a wide pane and moves the selection on a swipe or an arrow key. To let the reader resize the list, pass its `dragSplitter` option: the list and the cards then meet at the drag-splitter's line, with no borders, side by side or stacked. The page supplies the action that opens the takeover (rule 4). Closing the takeover returns to the list at the item last viewed.
+**11. Keep the list visible while browsing details.** Pair the list with a strip of swipeable cards, one per item, that follow the list's selection. Use [Linked Swiper](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js). It sets the layout for a phone or a wide pane and moves the selection on a swipe or an arrow key. Pass Linked Swiper's `dragSplitter` option to let the reader resize the list. The list and the cards then meet at the drag-splitter's line, without borders, in both the side-by-side and the stacked layout. The page supplies the action that opens the takeover (rule 4). Closing the takeover returns to the list at the item last viewed.
 
 **12. Avoid modal dialogs and accordions.** Consider a panel-tip, a strip under the list (rule 11), the Swipe Deck takeover (rule 4), or another more fluid alternative.
 
