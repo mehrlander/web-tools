@@ -14,8 +14,8 @@ id is not lowercase letters, digits and hyphens; when a date, the day the
 inquiry began, is not YYYY-MM-DD, or a dated id or path names another date than
 its row's; when a path names nothing in the folder; and when a dated file or
 folder beside the registry is named by no row's path. A declared folder with no
-probes.csv is counted and passes. Any research declaration whose status is not
-living, measured or record fails.
+probes.csv is counted and passes. Any research declaration whose lifecycle is
+not planning, active, maintained or revising fails.
 
 Ported on 2026-11-10 from home's projects/budget-drs/data/design/tools/
 verify-probes.py, whose registry passes unchanged.
@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 REQUIRED = ["probe", "date", "title", "question", "summary"]
-STATUS = {"living", "measured", "record"}
+LIFECYCLE = {"planning", "active", "maintained", "revising"}
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
@@ -102,9 +102,9 @@ def main():
         return
     failed, without = False, 0
     for e in declarations(root):
-        if isinstance(e, dict) and "status" in e and e["status"] not in STATUS:
+        if isinstance(e, dict) and "lifecycle" in e and e["lifecycle"] not in LIFECYCLE:
             failed = True
-            print(f"probes: .web-tools.json research {e.get('path')} has status {e['status']}, not one of {', '.join(sorted(STATUS))}")
+            print(f"probes: .web-tools.json research {e.get('path')} has lifecycle {e['lifecycle']}, not one of planning, active, maintained, revising")
     for f in folders(root):
         if not (root / f / "probes.csv").exists():
             without += 1
