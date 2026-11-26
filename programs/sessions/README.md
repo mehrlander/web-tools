@@ -13,9 +13,10 @@ tab; a program is defined in
 | Reply | what a reply hands over: its closing state, caption and links, stated in [`CONVERSATION.md`](../../docs/CONVERSATION.md) |
 | Showing | the link that makes a thing openable, stated in [`showing.md`](../../docs/showing.md) |
 | Forms | the standard way to show content of a kind: the standing forms in [`docs/forms/`](../../docs/forms/), the envelopes in [`docs/envelopes/`](../../docs/envelopes/README.md), and the Waiting view |
-| Resources | what a session is given to work with: the skills, agents, instructions and settings that reach it, each source listed in [`context-sources.csv`](../../docs/context-sources.csv) |
+| Skills | the skills the portable plugin ships, listed in [`manifest.csv`](../../skills/manifest.csv), and the examples they are built from, described in home's [`projects/skill-lab/README.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/README.md) and shown on the [Skill Lab page](../../pages/skill-lab.html) |
+| Agents | the agent definitions a session can summon, listed in [`agents.csv`](../../docs/agents.csv) |
+| Context | the instructions, hook output, settings and other sources that reach a session's context besides its skills and agents, each listed in [`context-sources.csv`](../../docs/context-sources.csv) |
 | Automation | the hooks and scheduled jobs indexed in [`harness.csv`](../../docs/harness.csv) |
-| Skill Lab | the examples skills are built from, described in home's [`projects/skill-lab/README.md`](https://github.com/mehrlander/home/blob/main/projects/skill-lab/README.md) and shown on the [Skill Lab page](../../pages/skill-lab.html) |
 
 ## Processes
 
