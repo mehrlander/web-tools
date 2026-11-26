@@ -6,7 +6,7 @@ The owner's rulings on the program are the notes ([notes skill](../../skills/not
 
 ## Find a session
 
-Follow the [find-session](../../skills/find-session/SKILL.md) skill and return the lines it describes.
+Follow the [find-session](https://github.com/mehrlander/web-tools/blob/main/skills/find-session/SKILL.md) skill and return the lines it describes.
 
 ## Open calls
 
