@@ -60,21 +60,25 @@
       "id": "prompt-now",
       "actor": "session",
       "label": "Write the prompt",
+      "change": {
+        "gloss": "Drops the prompt the session writes itself, with its own account of earlier runs."
+      },
       "in": [
         "current"
       ],
-      "gloss": "Write the critic's prompt around the spans, with the session's own account of any earlier run.",
-      "rationale": "The session's own account of earlier runs can steer the critic toward the verdict it wants."
+      "gloss": "Write the critic's prompt around the spans, with the session's own account of any earlier run."
     },
     {
       "id": "prompt-new",
       "actor": "session",
       "label": "Print the prompt",
+      "change": {
+        "gloss": "Adds a prompt the tool prints: the edits' line ranges and each kept trip with its reason."
+      },
       "in": [
         "proposed"
       ],
       "gloss": "Print the whole critic prompt: the spans, and each kept trip with the session's reason.",
-      "rationale": "A prompt the tool prints frames every run the same way, with the spans and each kept trip, whoever runs it.",
       "artifacts": [
         {
           "kind": "script",
@@ -87,6 +91,9 @@
       "id": "read",
       "actor": "subagent",
       "label": "Read for peeves",
+      "change": {
+        "gloss": "The critic is told which trips were kept, and notes a doubt about one under Kept instead of raising it again."
+      },
       "gloss": [
         {
           "v": "current",
@@ -94,8 +101,7 @@
         },
         {
           "v": "proposed",
-          "gloss": "A fresh critic reads the document against the peeves list and returns trips, clear ids, candidates and a verdict. A kept trip whose reason it doubts goes under Kept, not counted as a trip.",
-          "rationale": "Told what was kept and why, a fresh critic can record a doubt once instead of raising the same trip on every run."
+          "gloss": "A fresh critic reads the document against the peeves list and returns trips, clear ids, candidates and a verdict. A kept trip whose reason it doubts goes under Kept, not counted as a trip."
         }
       ],
       "artifacts": [
@@ -115,11 +121,13 @@
       "id": "carry-now",
       "actor": "session",
       "label": "Carry the report",
+      "change": {
+        "gloss": "Drops the step where the session hands the critic's report to the tool."
+      },
       "in": [
         "current"
       ],
       "gloss": "Pass the critic's report to `review DRAFT FILE REPORT` as a file or on stdin. The tool cannot tell who wrote the text.",
-      "rationale": "The report passes through the session's hands, so the record can hold text the critic never wrote. On 11-24 the auto-mode classifier refused one such write.",
       "artifacts": [
         {
           "kind": "script",
@@ -132,11 +140,13 @@
       "id": "resolve-new",
       "actor": "session",
       "label": "Resolve the run",
+      "change": {
+        "gloss": "Adds a lookup: the tool reads the critic's run from the session's own record by its id."
+      },
       "in": [
         "proposed"
       ],
       "gloss": "Take the run's session and agent id, and read its prompt and report from the live transcript during the turn, or from the session record once archived.",
-      "rationale": "The run already sits in the session record, so the call needs a reference to it rather than a copy.",
       "artifacts": [
         {
           "kind": "script",
@@ -168,6 +178,9 @@
       "id": "answer",
       "actor": "session",
       "label": "Answer each trip",
+      "change": {
+        "gloss": "A kept answer now carries to later runs while its text is unchanged, instead of holding for one run."
+      },
       "gloss": [
         {
           "v": "current",
@@ -175,8 +188,7 @@
         },
         {
           "v": "proposed",
-          "gloss": "Answer each trip inside an edit: changed, or kept with a reason. A kept answer carries to later runs while its quoted text is unchanged.",
-          "rationale": "A kept answer that must be given again on every run turns review into a loop; carrying it forward ends the loop."
+          "gloss": "Answer each trip inside an edit: changed, or kept with a reason. A kept answer carries to later runs while its quoted text is unchanged."
         }
       ],
       "artifacts": [
@@ -194,7 +206,9 @@
           "in": [
             "current"
           ],
-          "rationale": "Ending only on PASS can never end once a trip is kept for good reason."
+          "change": {
+            "gloss": "Drops the rule that review repeats until a run passes."
+          }
         },
         {
           "to": "file",
@@ -203,7 +217,9 @@
           "in": [
             "current"
           ],
-          "rationale": "Replaced by all answered, which a kept trip can satisfy."
+          "change": {
+            "gloss": "Drops a passing verdict as the way out of review."
+          }
         },
         {
           "to": "edit",
@@ -212,7 +228,9 @@
           "in": [
             "proposed"
           ],
-          "rationale": "A run on unchanged text would only repeat the last one."
+          "change": {
+            "gloss": "Adds a re-run only when the text has changed since the last run."
+          }
         },
         {
           "to": "file",
@@ -221,7 +239,9 @@
           "in": [
             "proposed"
           ],
-          "rationale": "Review ends when every trip inside an edit has an answer, changed or kept."
+          "change": {
+            "gloss": "Adds the way out: every trip inside an edit answered, changed or kept."
+          }
         }
       ]
     },
@@ -229,6 +249,9 @@
       "id": "file",
       "actor": "session",
       "label": "File the call",
+      "change": {
+        "gloss": "The filing check reads the runs the call points at, not a stored copy of the report."
+      },
       "gloss": [
         {
           "v": "current",
@@ -236,8 +259,7 @@
         },
         {
           "v": "proposed",
-          "gloss": "`add` files the documentation call, checking the runs it references. It refuses one whose edits the last run did not read, or that leaves a trip unanswered.",
-          "rationale": "The gate checks the runs the call references, so it reads the critic's own words."
+          "gloss": "`add` files the documentation call, checking the runs it references. It refuses one whose edits the last run did not read, or that leaves a trip unanswered."
         }
       ],
       "artifacts": [
@@ -257,6 +279,9 @@
       "id": "signoff",
       "actor": "owner",
       "label": "Sign off",
+      "change": {
+        "gloss": "Kept trips and their reasons come first on the owner's page."
+      },
       "gloss": [
         {
           "v": "current",
@@ -264,8 +289,7 @@
         },
         {
           "v": "proposed",
-          "gloss": "Keep or reject each edit on the session page, with kept trips and their reasons shown first.",
-          "rationale": "A kept trip is where the session overruled the critic, so it is what the owner most needs to see."
+          "gloss": "Keep or reject each edit on the session page, with kept trips and their reasons shown first."
         }
       ],
       "artifacts": [

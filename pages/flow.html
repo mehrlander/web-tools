@@ -20,14 +20,14 @@
               variants: [{ id, label }]?                 at most two: the versions compared
               steps:    [{ id, actor, label,
                            gloss,     what the step does, in a sentence; where the versions
-                                      differ, a list of { v, gloss, rationale? }, one per variant
-                           rationale?, why the change was made: on a step one version
-                                      lacks, on the later version's gloss, or on an exit
-                                      one version lacks; drawn as a Why callout
+                                      differ, a list of { v, gloss }, one per variant
+                           change?:   { gloss }, what the change to this step does, in a
+                                      sentence for a reader new to it; on a step one version
+                                      lacks or whose sentence differs, and on such an exit
                            in?,       the variants the step belongs to; all when omitted
                            artifacts?: [{ kind, label, path, repo? }]
                                       kind: skill | script | agent | data | doc | record | page
-                           exits?:    [{ to, label, when, in?, rationale? }],
+                           exits?:    [{ to, label, when, in?, change? }],
                            end? }] }
 
   STEPS ARE LISTED IN MAIN-PATH ORDER, and that order is the swipe. A step
@@ -159,11 +159,11 @@ document.addEventListener('alpine:init', () => {
         return this.status(s).k !== 'shared' || (s.exits || []).some(x => x.in && x.in.length < this.variants.length);
       });
     },
-    // What a step's change is, and the author's reason for it.
+    // What kind of change a step is, and the sentence that says what it does.
     change(s) {
       const st = this.status(s);
-      if (st.k === 'only') return { kind: st.hue.kind, why: s.rationale || '' };
-      if (st.k === 'changed') return { kind: 'edited', why: s.gloss.find(g => g.v === this.variants[this.variants.length - 1].id)?.rationale || '' };
+      if (st.k === 'only') return { kind: st.hue.kind, gloss: s.change?.gloss || '' };
+      if (st.k === 'changed') return { kind: 'edited', gloss: s.change?.gloss || '' };
       return null;
     },
     actorOf(s) { return this.F.actors.find(a => a.id === s.actor) || { label: s.actor, icon: 'ph-circle' }; },
@@ -536,7 +536,6 @@ document.addEventListener('alpine:init', () => {
       const CK = { edited: { name: 'Edited', badge: 'badge-warning', hue: 'warning', icon: 'ph-pencil-simple-line' },
                    added: { name: 'Added', badge: 'badge-success', hue: 'success', icon: 'ph-plus-circle' },
                    removed: { name: 'Removed', badge: 'badge-error', hue: 'error', icon: 'ph-minus-circle' } };
-      const ink = hue => `color-mix(in oklab, var(--color-${hue}) 60%, var(--color-base-content))`;
 
       // Seen as a change: where this step stands among the changes, and the
       // arrows that step from change to change past the steps that did not.
@@ -557,22 +556,9 @@ document.addEventListener('alpine:init', () => {
           btn(next, 'ph-caret-right', 'Next change'));
         return row;
       };
-      // A change's reason, as a callout hanging from the change it explains.
-      const why = (text, kind) => {
-        if (!text) return null;
-        const c = CK[kind];
-        const box = h('div', 'relative mt-1 rounded-box border px-3 py-2 text-sm');
-        box.style.background = `color-mix(in oklab, var(--color-${c.hue}) 8%, var(--color-base-100))`;
-        box.style.borderColor = `color-mix(in oklab, var(--color-${c.hue}) 45%, transparent)`;
-        const tip = h('span', 'absolute -top-[7px] left-6 size-3 rotate-45 border-l border-t');
-        tip.style.background = box.style.background; tip.style.borderColor = box.style.borderColor;
-        const lead = h('span', 'mr-2 text-xs font-semibold uppercase tracking-wide', 'Why');
-        lead.style.color = ink(c.hue);
-        box.append(tip, lead, inline(h('span'), text));
-        return box;
-      };
-      // Seen as a change, a head row: what kind of change this step is, and
-      // the arrows that step from change to change.
+      // Seen as a change, the card opens on it: what kind of change this
+      // step is and the arrows that step from change to change, then one
+      // sentence saying what the change does.
       if (this.both && (ch || this.changes.includes(i))) {
         const head = h('div', 'flex items-center gap-2 min-h-6');
         if (ch) {
@@ -584,6 +570,7 @@ document.addEventListener('alpine:init', () => {
         const n = nav();
         if (n) { n.classList.add('ml-auto'); head.append(n); }
         root.append(head);
+        if (ch?.gloss) root.append(inline(h('p', 'font-medium -mt-1'), ch.gloss));
       }
 
       // The step's sentence. Seen as a change, an edited sentence is the
@@ -610,7 +597,6 @@ document.addEventListener('alpine:init', () => {
       } else if (st.k === 'only') {
         root.append(inline(h('p', `${st.hue.band} ${st.hue.strike}`), gloss(st.vid)));
       } else root.append(inline(h('p'), gloss(this.v || this.variants[0]?.id)));
-      if (ch) { const w = why(ch.why, ch.kind); if (w) root.append(w); }
 
       // The branches the reader can take from here, one row each.
       const exits = (s.exits || []).filter(x => this.active().some(vid => this.inV(x, vid)) && this.vis.some(y => y.id === x.to));
@@ -625,13 +611,7 @@ document.addEventListener('alpine:init', () => {
           b.append(h('span', 'badge badge-neutral badge-sm', x.label || (back ? 'loop' : 'branch')));
           const t = inline(h('span', 'min-w-0'), x.when || '');
           t.append(h('span', 'ml-2 text-xs text-base-content/60 whitespace-nowrap', (back ? '↺ ' : '→ ') + (j + 1) + '. ' + this.vis[j].label));
-          if (hue && x.rationale) {
-            const r = h('span', 'block text-sm text-base-content/75');
-            const lead = h('span', 'mr-1.5 text-xs font-semibold uppercase tracking-wide', 'Why');
-            lead.style.color = ink(hue.kind === 'added' ? 'success' : 'error');
-            r.append(lead);
-            t.append(inline(r, x.rationale));
-          }
+          if (hue && x.change?.gloss) t.append(inline(h('span', 'block text-sm text-base-content/70'), x.change.gloss));
           b.append(t);
           b.addEventListener('click', () => this.take(x));
           ul.append(b);
