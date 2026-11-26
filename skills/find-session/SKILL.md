@@ -39,13 +39,3 @@ The claude.ai link is the record's `agent_session`. The Claude app shows it by t
 
 - **Treat each request as new.** Search again rather than reuse an earlier answer in the conversation.
 - **From a working session, summon the [`session-finder`](../agents/session-finder.md) agent** rather than follow this skill inline. The search output then stays out of that session's context.
-
-## The finder session
-
-A long-lived cloud session whose only job is this skill. Create it once with the `create_session` tool:
-
-- `title`: an emoji and the role, such as `🧭 Session finder`
-- `source_url`: `https://github.com/mehrlander/web-tools-private` alone, which keeps the session's fixed context small
-- `append_system_prompt`: `You are the session finder. Answer each request by following the portable find-session skill.`
-
-The owner types `/clear` when the topic changes. Run `/autocompact 200k` once in the new session; compaction then runs at that size when a clear is missed.
