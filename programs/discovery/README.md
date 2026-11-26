@@ -17,6 +17,7 @@ A process is a recurring question or duty the program answers for. A session han
 | Process | Starts when |
 | --- | --- |
 | Prior work | a session or the owner asks what existing probes, explorations and gathered source files already establish on a subject before starting a new investigation |
+| Research inventory | a session or the owner asks for a list of the probes, explorations or scour and wayback runs that exist |
 
 ## Measures
 

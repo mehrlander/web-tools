@@ -20,3 +20,20 @@ none found · <repositories searched>
 ```
 
 Name any of the three sources you could not read.
+
+## Research inventory
+
+The question is which probes, explorations and gathering runs exist, listed by repository, kind (`probe` or `exploration`), status (`living`, `measured` or `record`) or date. A gathering run is a [scour](../../skills/scour/SKILL.md) or [wayback](../../skills/wayback/SKILL.md) run that fetched outside material. The caller names the filters; with none, list everything. Three sources answer the question:
+
+- **Cached declarations:** [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) in web-tools-private copies each repository's `.web-tools.json` as of its `generatedAt` time. Its `research` arrays give each declaration's path, label, kind and status. A checkout's own manifest on `origin/main` supersedes the copy.
+- **Probe registries:** a declared probes folder's `probes.csv` gives one row per probe ([`probes.md`](../../docs/probes.md)).
+- **Undeclared work and runs:** the folders that Prior work's second source names, and the `roster.json` or capture list each gathering run keeps.
+
+Return one line for each item, newest first, or one `none found` line:
+
+```
+<probe | exploration | undeclared | run> · <repo:path> · <date or commit[:8]> · <status or none> · <label>
+none found · <repositories searched>
+```
+
+Give the `generatedAt` time of `state/configs.json`, and name any of the three sources you could not read.
