@@ -8,46 +8,45 @@ substituting the current repo in URL templates.
 
 ## Every reply
 
-* **Closing state.** Use exactly one, last, understandable without the message it closes. Write the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
-  - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
-  - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
-  - 🟡 **Pending:** Waiting on an action or dependency, not on direction.
-  - ⚖️ **Choice needed:** Save ⚖️ for competing proposals, not "should I go ahead?" or "which should I do first?" Give the question, then `Recommended: <answer>, because <reason>.`
-  - 🛵 **Needs you:** Gives a task the assistant cannot itself do.
-  - 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment.
-  - ⌨️ **Take this:** Gives text, code, or other content intended for use outside the chat.
-  - ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes.
-  - 🟠 **Attention:** A concrete problem must be settled before proceeding.
-  - ⚪ **Standing by:** No work has been requested or implied yet.
-  - 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
-  - 🔴 **Closed:** This branch closed unmerged. State why in one line.
-  - ⚫ **Clean exit:** The session's work is complete, and every workstream is merged or closed.
-  - 🔵 **Short answer:** The reply answers a question, and the next move is the reader's. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
+Close every reply with three parts, in this order:
 
-  Use 🟢 for a closing state that needs only confirmation to proceed.
+1. the session detail caption;
+2. each link [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints, with a few words on what it opens;
+3. the closing state.
 
-  **When more than one state applies,** choose by what must happen first. If the session can do its next piece of work without the reader, it does that work and closes on 🟢. If that work cannot start until the reader answers, close on the state that asks for the answer, even when that work is a merge.
+**Closing state.** The closing state sets up what happens next. When work waits on the reader, it names the reader's action, even ahead of a merge. Otherwise it names the session's next step. Write it as one line, last, understandable without the message it closes. Put the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
 
-  **The `Unblocks:` line.** ⚖️, ✍️, 🛵 and 🟠 each ask the reader to act. When work waits on that action, the closing state ends with `Unblocks: <the work the session starts once the reader acts>.` On ⚖️ it follows the `Recommended:` sentence.
+- 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
+- ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
+- 🟡 **Pending:** Waiting on an action or dependency, not on direction.
+- ⚖️ **Choice needed:** Save ⚖️ for competing proposals, not "should I go ahead?" or "which should I do first?" Give the question, then `Recommended: <answer>, because <reason>.`
+- 🛵 **Needs you:** Gives a task the assistant cannot itself do.
+- 👁️‍🗨️ **Have a look:** The session shows a page, a draft or a change for the reader's judgment.
+- ⌨️ **Take this:** Gives text, code, or other content intended for use outside the chat.
+- ✍️ **Sign-off needed:** Documentation wording waits on the reader's approval, as [doc-craft's Review](https://github.com/mehrlander/web-tools/blob/main/skills/doc-craft/SKILL.md#review) describes.
+- 🟠 **Attention:** A concrete problem must be settled before proceeding.
+- ⚪ **Standing by:** No work has been requested or implied yet.
+- 🟣 **Merged:** GitHub reports this branch merged. State what shipped in one line. Further edits go in a new PR.
+- 🔴 **Closed:** This branch closed unmerged. State why in one line.
+- ⚫ **Clean exit:** The session's work is complete, and every workstream is merged or closed.
+- 🔵 **Short answer:** The reply answers a question, and the next move is the reader's. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-  **Resource-supported states.** Make the whole lead of each of these closing states its link, as `[✍️ **Sign-off needed:**](<url>)`:
-  - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
-  - ⌨️ a link that opens the code or text given, with a Copy button;
-  - ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
-  - ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
+Use 🟢 for a closing state that needs only confirmation to proceed. When work waits on the reader's action, the closing state ends with `Unblocks: <that work>.` On ⚖️ that line follows `Recommended:`.
 
-  Each of 👁️‍🗨️, ⌨️, ✍️ and ⚖️ may also prefix a link of the kind its bullet above names, anywhere else in a reply.
+**Resource-supported states.** Make the whole lead of each of these closing states its link, as `[✍️ **Sign-off needed:**](<url>)`:
 
-* **Close every reply** with three parts:
-  - the session detail caption;
-  - each link [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints, with a few words on what it opens;
-  - the closing state.
+- 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
+- ⌨️ a link that opens the code or text given, with a Copy button;
+- ✍️ the session page, opened at the first user call the reply files, `…/pages/session.html#id=<short>&user-call=<slug>`;
+- ⚖️ the user call's page, `…/pages/user-call.html#src=…`, when the choice is filed as a user call.
 
-* **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
+Each of 👁️‍🗨️, ⌨️, ✍️ and ⚖️ may also prefix a link of the kind its bullet above names, anywhere else in a reply.
 
-* **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
-  `` `11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) [`‹⋯›`](…/app/?view=program&program=sessions) ``
-  The stamp is when the hook printed the line, in the owner's time zone. `22` counts the owner's messages. `<short>` is the session id's first eight characters. `816k` is the context in tokens. `1d 2h` is the time since the owner's first message. `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page. `‹⋯›` links the Sessions program page. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
+**Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
+
+**Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
+`` `11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) [`‹⋯›`](…/app/?view=program&program=sessions) ``
+The stamp is when the hook printed the line, in the owner's time zone. `22` counts the owner's messages. `<short>` is the session id's first eight characters. `816k` is the context in tokens. `1d 2h` is the time since the owner's first message. `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page. `‹⋯›` links the Sessions program page. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
 
 ## A reply that changed files
 
