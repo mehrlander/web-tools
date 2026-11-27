@@ -1,6 +1,6 @@
 ---
 name: orienting-note-critic
-description: Reviews an orienting note, the one line a reader meets before the thing it introduces (a look link's say= or intro= card, a reply's closing-state line, a PR guide's thread title), against the orienting-notes skill before it goes out. Summon with each note, its surface, why the reader is being shown the target, and what the target shows. Returns a verdict per note and, on REVISE, one suggested line.
+description: Reviews an orienting note against the orienting-notes skill before it goes out. An orienting note is the one line a reader meets before the thing it introduces, such as a look link's say= or intro= card, a reply's closing-state line, or a PR guide's thread title. Summon with each note, its surface, why the reader is being shown the target, and what the target shows. Returns a verdict per note and, on REVISE, one suggested line.
 tools: Read, Grep, Glob
 model: sonnet
 skills:
@@ -36,6 +36,6 @@ For each note, in the order given:
 
 `N<n> · <surface> · <words>/<aim> · PASS` or `REVISE`, then one line per failed check, as `<check> · "<quote>" · <one clause>`, and on REVISE one line `Suggested: "<note>"`.
 
-A suggestion keeps every fact of the note that the reader needs, and draws only on the note and the caller's context. Where a fact is missing, name it in the check's clause instead of inventing it. Stay within the surface's aim where you can.
+A suggestion keeps every fact of the note that the reader needs, and draws only on the note and the caller's context. Where a fact is missing, name it in the check's clause instead of inventing it.
 
 End with `Verdict: PASS` when every note passes, else `Verdict: FAIL`.

@@ -7,7 +7,7 @@ description: "Write an orienting note: the one line a reader meets before the th
 
 ## Premise
 
-An orienting note is the one line a reader meets before the thing it introduces. Three surfaces carry one:
+An orienting note is the one line a reader meets before the thing it introduces. It appears on three surfaces:
 
 - the card on a [look link](../look-markers/SKILL.md), shown over the element the link points at;
 - the [closing-state line](../../docs/CONVERSATION.md#every-reply) that ends a reply, after its glyph and bold lead;
@@ -17,7 +17,7 @@ The reader is the owner, arriving from other work and about to judge or act. The
 
 A note can fail in two directions. A long note restates what the page shows or narrates how the session got there. At forty words the owner called one such card a near "wall of text". An over-compressed note drops articles, verbs and qualifiers until the reader has to reconstruct it. [Qualified writing](../../docs/QUALIFIED-WRITING.md) already argues against that register. The target is the shortest note that is still qualified writing.
 
-Family: writing support.
+Family: writing support, one of the five families in [skill-prefs](../skill-prefs/SKILL.md).
 
 ## What a note answers
 
@@ -49,7 +49,7 @@ A note answers three questions, in this order, and skips any the surface already
 | Closing-state line | the state's content, after its bold lead | up to 25 words |
 | PR guide thread title | the thread's subject, as a noun phrase | 2 to 5 words |
 
-When a note runs past its aim, read it again for something to cut. Do not cut a qualifier to reach the aim.
+When a note runs past its aim, read it again for something to cut.
 
 ## Example
 
@@ -60,4 +60,4 @@ A look link's card on the session page, which the owner had asked to see:
 
 ## Review
 
-Run the `orienting-note-critic` agent on each look link's cards, in one call per link, and on a closing-state line that runs past its aim. Give it the surface, the reason the reader is being shown the target, and what the target shows. Revise until it returns PASS.
+Run the [`orienting-note-critic`](../agents/orienting-note-critic.md) agent on each look link's cards, in one call per link, and on a closing-state line that runs past its aim. Give it the surface, the reason the reader is being shown the target, and what the target shows. Revise until it returns PASS.
