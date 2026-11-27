@@ -24,16 +24,16 @@ Inputs: the repository, web-tools when unnamed. Judge main's newest code commit:
 
 - **Main's commit history:** `git log main` names the newest code commit.
 - **Main's workflow runs on GitHub:** the [runs on main](https://github.com/mehrlander/web-tools/actions?query=branch%3Amain) give each workflow's result on that commit. The workflow files under [`.github/workflows/`](../../.github/workflows/) say which workflows a push to main starts.
-- **The public reach file:** [`data/tests/reach.json`](../../data/tests/reach.json) on main gives `checkout_sha`, `exit_code` and `finished_at` for the latest complete, passing full suite run on main. The `publish-observations` job writes it only after such a run. When `checkout_sha` is older than the newest code commit, the newer run failed, has not finished or did not publish; its workflow run says which. The file covers the suite step alone. A later step of the `test` job, or another job, can fail while the file records a pass.
+- **The public reach file:** [`data/tests/reach.json`](../../data/tests/reach.json) on main gives `checkout_sha`, `exit_code` and `finished_at` for the latest complete, passing full suite run on main. The `publish-observations` job writes it only after such a run. A `checkout_sha` older than the newest code commit means the newer run failed, has not finished or did not publish. That run's workflow page says which. The file covers the suite step alone. A later step of the `test` job, or another job, can fail while the file records a pass.
 
-Return a verdict line, then one line for each workflow run on the newest code commit in the Pull request checks format, then the reach line:
+Return a verdict line, then one line for each workflow run on the newest code commit in the [Pull request checks](#pull-request-checks) format, then the reach line:
 
 ```
 main · green | not green | unknown · <newest code commit[:8]>
 reach.json · <checkout_sha[:8]> · <finished_at>
 ```
 
-For a failing run on a pull request, use Pull request checks instead.
+For a failing run on a pull request, use [Pull request checks](#pull-request-checks) instead.
 
 ## Coverage
 
