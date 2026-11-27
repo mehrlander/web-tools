@@ -19,7 +19,7 @@ It keeps the files that describe the owner's repositories and record the work do
 
 ## Processes
 
-A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+A process is a recurring question or duty the program answers for; [`manager.md`](manager.md) says how the manager answers each one.
 
 | Process | Starts when |
 | --- | --- |
