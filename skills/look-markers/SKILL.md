@@ -1,13 +1,13 @@
 ---
 name: look-markers
-description: "Hand over a look link as a walkthrough: one link that opens with a card saying what the reader is reviewing, then steps that each scroll to one element on a page or document, tint it, say why, and can ring a control to tap. Use unprompted whenever a reply would tell the reader where to look or what to tap on a page, and when asked to point at, highlight, or walk someone through something on a page."
+description: "Hand over a look link as a walkthrough: one link that opens on a card naming what the reader is reviewing. Each step scrolls to one element on a page or document, tints it and says why; a step can ring a control to tap. Use unprompted whenever a reply would tell the reader where to look or what to tap on a page, and when asked to point at, highlight, or walk someone through something on a page."
 ---
 
 # Look markers
 
 A **look link** is a page link whose `#fragment` puts a **look marker** on one
 element: the page scrolls there, tints it, and shows a note on what to see or do there. A marker
-can also ring a control the reader must tap before going on, and a **walkthrough** is a
+can also ring a control the reader must tap before going on. A **walkthrough** is a
 sequence of markers. The grammar is in the header of
 [`lib/kits/look.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/look.js).
 
@@ -28,8 +28,8 @@ A walkthrough is an `intro` card and its steps, in one link. For several
 documents, start the link on the first document's data-view address,
 `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Name each step by its
 document's data-view address with `!text:<heading>`. Do not use the data route
-(🥏 `#data=`) for this: it draws a document in a frame with no address of its
-own, and a step on a second document does not land there.
+(🥏 `#data=`) for several documents: it draws a document in a frame with no address of its
+own. A step on a second document does not land in that frame.
 
 ## Making the link
 
@@ -67,7 +67,7 @@ Prefer `data-at` names and ids: only they are checked before sending.
 - A page that boots the web-tools loader (`lib/entry.js` or `gh-api.js`); it loads
   the kit when a fragment asks.
 - Any page through a toss link (🥏); the renderer adds the kit. A walkthrough crosses
-  pages only in a top-level toss (`?top`), which `npm run showing` prints when the
+  pages only in a top-level toss (`?top`). `npm run showing` prints one when the
   steps name other pages.
 - One document through the data route (🥏 `#data=`); name a heading with `text:`.
   Several documents: the data-view page (Walkthroughs, above).
