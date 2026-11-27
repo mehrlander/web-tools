@@ -27,7 +27,7 @@ When the subject is a change to a document or a message, the host is the documen
 3. What does the subject do, and is that the receiving section's job? When another section or file does that job, the subject is misplaced.
 4. Is the subject's level of detail in proportion with the text beside it?
 
-The standards behind these questions are "Consider the context" and "Open with the premise" in [doc-craft](../doc-craft/SKILL.md#general-principles), and steps 0 and 1 of [succinct-text](../succinct-text/SKILL.md).
+The standards behind these questions are "Consider the context" and "Open with the premise" in [doc-craft](../doc-craft/SKILL.md#general-principles), and steps 0 and 1 of [succinct-text](../succinct-text/SKILL.md#method).
 
 ## What you return
 
