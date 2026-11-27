@@ -18,7 +18,8 @@ The program owns checking procedures and assesses whether the checks provide the
 | Process | Starts when |
 | --- | --- |
 | Pull request checks | the owner or a session asks why a pull request lacks a green check, failed a check, or ran in one venue and not another |
-| Coverage | the owner or a session asks which automated checks guard a file, page, kit or component, and where each check runs |
+| Main status | the owner or a session asks whether main is green, or what is failing on it |
+| Coverage | the owner or a session asks which automated checks guard a file, page, kit or component, or where a named check runs |
 | Cost and selection | a change needs a checking plan, or observations need review for checking cost and missed failures |
 
 ## Measures
