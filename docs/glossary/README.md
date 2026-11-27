@@ -1,6 +1,6 @@
 # Glossary
 
-The glossary lists the terms of art used in the estate's prose, meaning the prose of the owner's repositories. It also lists the plain English words that one of those terms could be confused with. A writer checks it to learn whether a reader will take a word in its plain sense. There is one glossary for every repository, and each sense records its domain in a column. The [Alignment](../../programs/alignment/README.md) program owns it. The Map view's [Glossary tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=glossary) shows it.
+The glossary lists the terms of art used in the estate's prose, meaning the prose of the owner's repositories. It also lists the plain English words that one of those terms could be confused with. A writer checks it to learn whether a reader will take a word in its plain sense. There is one glossary for every repository, and each sense names its field in a `domain` column. The [Alignment](../../programs/alignment/README.md) program owns it. The Map view's [Glossary tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=glossary) shows it.
 
 ## Files
 
@@ -31,4 +31,4 @@ The score has two known limits. It does not discount a word for being common acr
 
 ## Adding terms
 
-[`glossary-stats.py`](../../python/glossary-stats.py) run with `--candidates 40` lists phrases that are bolded where a sentence defines them and that no term matches, ordered by `areas`. `--also <checkout>` adds another repository's checkout to the scan. The list goes to the terminal only. Keep the candidates that meet the entry bar and add them in one reviewed batch. The method finds only terms that a document in the scan already defines in bold. It cannot find the terms that entry bar 4 describes.
+Run [`glossary-stats.py`](../../python/glossary-stats.py) with `--candidates 40` to list candidate terms. A candidate is a phrase in bold where a sentence defines it. No existing term matches it. The list is ordered by `areas` and goes to the terminal only. `--also <checkout>` adds another repository's checkout to the scan. Keep the candidates that meet the entry bar and add them in one reviewed batch. Because a candidate must already be defined in bold, this scan cannot find the terms that entry bar 4 describes.
