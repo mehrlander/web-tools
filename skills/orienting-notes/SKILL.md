@@ -23,7 +23,7 @@ Family: writing support, one of the five families in [skill-prefs](../skill-pref
 
 A note answers three questions, in this order, and skips any the surface already answers.
 
-1. **Why is this in front of me?** Lead with the reason when the surface does not give it. For something the owner asked to see, lead with `By request:`. A closing-state line's glyph and bold lead already give the reason, so the line starts at the second question.
+1. **Why is this in front of me?** Lead with the reason when the surface does not give it. For something the owner asked to see, lead with `By request:`. A closing-state line's glyph and bold lead already give the reason. The line starts at the second question.
 2. **What is it?** Name the thing as the reader knows it, plus the one qualifier that sets it apart from its neighbors: the branch, the version, draft or merged, which of several.
 3. **What should I notice or do?** Give the single point the reader would otherwise miss: where the change is when the page looks the same, the control to tap, the decision asked.
 
@@ -49,14 +49,14 @@ A note answers three questions, in this order, and skips any the surface already
 | Closing-state line | the state's content, after its bold lead | up to 25 words |
 | PR guide thread title | the thread's subject, as a noun phrase | 2 to 5 words |
 
-When a note runs past its aim, read it again for something to cut.
+When a note runs past its aim, check it against the four cuts above.
 
 ## Example
 
 A look link's card on the session page, which the owner had asked to see:
 
 - *Before (40 words):* "The session page as it stands on the fix branch, opened at this session. It looks the same as the live page. The fix shows only when a link moves to another session, which you can try once #1484 merges."
-- *After (20 words):* "By request: the session page on the fix branch. It looks unchanged; the fix shows when a link opens another session."
+- *After (19 words):* "By request: the fix branch's session page. It looks unchanged; the fix shows when a link opens another session."
 
 ## Review
 
