@@ -20,7 +20,7 @@ Whenever a reply would locate something on a page in words, send the link and
 let the reply say what to notice. Send a walkthrough, even of one step. Its
 `intro=<one line>` card tells the reader, on the page, what they are reviewing
 and why. A step is `show`, or `tap` when the reader should press it. Where no
-route below reaches the page, say it in words.
+route in "Where it works" reaches the page, describe the place in words.
 
 ## Walkthroughs
 
@@ -64,8 +64,8 @@ Prefer `data-at` names and ids: only they are checked before sending.
 
 ## Where it works
 
-- A page that boots the web-tools loader (`lib/entry.js` or `gh-api.js`); it loads
-  the kit when a fragment asks.
+- A page that boots the web-tools loader (`lib/entry.js` or `gh-api.js`); the loader
+  loads the kit when the fragment names a look key.
 - Any page through a toss link (🥏); the renderer adds the kit. A walkthrough crosses
   pages only in a top-level toss (`?top`). `npm run showing` prints one when the
   steps name other pages.
