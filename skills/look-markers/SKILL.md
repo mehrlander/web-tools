@@ -1,6 +1,6 @@
 ---
 name: look-markers
-description: "Hand over a look link: a page link whose fragment scrolls to one element, tints it, shows a one-line reason, and can ring a control to tap or run a walkthrough of such steps. Use unprompted whenever a reply would tell the reader where to look or what to tap on a page, and when asked to point at, highlight, or walk someone through something on a page."
+description: "Hand over a look link as a walkthrough: one link that opens with a card saying what the reader is reviewing, then steps that each scroll to one element on a page or document, tint it, say why, and can ring a control to tap. Use unprompted whenever a reply would tell the reader where to look or what to tap on a page, and when asked to point at, highlight, or walk someone through something on a page."
 ---
 
 # Look markers
@@ -17,10 +17,20 @@ alone mean other things here.
 ## When
 
 Whenever a reply would locate something on a page in words, send the link and
-let the reply say what to notice. One place is `show`, or `tap` when the reader
-should press it; three or more ordered steps are a walkthrough. A link that hands over
-a change carries `intro=<one line>` naming what to look at. Where no route below
-reaches the page, say it in words.
+let the reply say what to notice. Send a walkthrough, even of one step: its
+`intro=<one line>` card says what the reader is reviewing and why, so the page
+holds that context and the reader need not look for it in the conversation. A step
+is `show`, or `tap` when the reader should press it. Where no route below reaches
+the page, say it in words.
+
+## Walkthroughs
+
+A walkthrough is an `intro` card and its steps, in one link. To step through
+several documents, open the first one's data-view address,
+`pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`, and name each step as
+that address with `!text:<heading>`. The data route (🥏 `#data=`) draws a
+document in a frame with no address of its own, so a step on a second document
+does not land there.
 
 ## Making the link
 
@@ -60,7 +70,8 @@ Prefer `data-at` names and ids: only they are checked before sending.
 - Any page through a toss link (🥏); the renderer adds the kit. A walkthrough crosses
   pages only in a top-level toss (`?top`), which `npm run showing` prints when the
   steps name other pages.
-- A document through the data route (🥏 `#data=`); name a heading with `text:`.
+- One document through the data route (🥏 `#data=`); name a heading with `text:`.
+  Several documents: the data-view page (Walkthroughs, above).
 - A page that loads `lib/kits/look.js`.
 - Not inside a frame of the budget-drs app; link the framed page itself.
 
