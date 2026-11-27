@@ -36,7 +36,7 @@ A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `ton
 
 A tag with an `icon` is drawn as that icon alone, in the tag's tone, with its label in a tooltip. A tag without one is a badge in its tone. The tone also colours the passages the tag's output rests on. Without a `tone`, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
 
-A **run** has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives. Where the payload has a shared `source`, a run's own is optional; a run with passages and none of its own rests on the shared one.
+A **run** has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives. Where the payload has a shared `source`, a run's own `source` is optional. A run without one, whose outputs have anchors, takes its blocks from the shared `source`.
 
 An **output** has an `id` unique in its run and a `text`, and may have:
 
@@ -51,7 +51,11 @@ An **output** has an `id` unique in its run and a `text`, and may have:
 | `sketch` | A picture: a complete SVG document or an HTML fragment, under the idea board's [sketch rules](../idea-board.md#sketches) |
 | `image` | A picture, in place of `sketch`: a URL or a `data:` URI |
 
-**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card is headed by its `title`, or by "Output" and its number where it has none. An output's picture fills the card's width over its `text`, which is then its commentary, and a tap on it opens every run's pictures as a deck, full size. Its verdict and note sit at its foot. A shared `source` is the list's first row and the strip's first card, and a run's own `source` stays above its outputs. [`pages/demos/inspection-versions.json`](../../pages/demos/inspection-versions.json) is a bake-off in this shape: one brief, two methods, and their diagrams.
+**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card is headed by its `title`, or by "Output" and its number where it has none. Its verdict and note sit at its foot.
+
+An output with a `sketch` or an `image` shows that picture at the card's full width, above its `text`, which then serves as commentary on the picture. Tapping the picture opens every picture in the payload, one per screen, full size, in a reader with previous and next controls.
+
+A shared `source` has its own entry: the first row of the run list and the first card of the strip, the swipeable cards that follow the list's selection. A run's own `source` stays above its outputs. [`pages/demos/inspection-versions.json`](../../pages/demos/inspection-versions.json) is a payload in this shape: one brief given to two methods, and the diagram each method drew.
 
 ## Answers
 
