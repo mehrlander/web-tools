@@ -14,7 +14,7 @@ Close every reply with three parts, in this order:
 2. each link [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints, with a few words on what it opens;
 3. the closing state.
 
-**Closing state.** The closing state sets up what happens next. When work waits on the reader, it names the reader's action, even ahead of a merge. Otherwise it names the session's next step. Write it as one line, last, understandable without the message it closes. Put the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
+**Closing state.** The closing state sets up what happens next. When work waits on the reader, it names the reader's action, even if the session could otherwise merge. Otherwise it names the session's next step. Write it as one line, last, understandable without the message it closes. Put the glyph at the start of the line, then a bold lead: the name as shown, or for 🔵 the question.
 
 - 🟢 **Ready to continue:** The session has a clear path to proceed, approved or implied by user interest. It never instructs the reader. When the next step is to merge the branch, lead **Ready to merge:** instead.
 - ❇️ **Ready to assess:** The session assesses and reports back, without implementing.
@@ -31,7 +31,7 @@ Close every reply with three parts, in this order:
 - ⚫ **Clean exit:** The session's work is complete, and every workstream is merged or closed.
 - 🔵 **Short answer:** The reply answers a question, and the next move is the reader's. Lead with the question in place of the name, then the answer: 🔵 **Did the merge land?** Yes.
 
-Use 🟢 for a closing state that needs only confirmation to proceed. When work waits on the reader's action, the closing state ends with `Unblocks: <that work>.` On ⚖️ that line follows `Recommended:`.
+Use 🟢 for a closing state that needs only confirmation to proceed. When work waits on the reader's action, the closing state ends with `Unblocks: <that work>.` On ⚖️ the `Unblocks:` line follows `Recommended:`.
 
 **Resource-supported states.** Make the whole lead of each of these closing states its link, as `[✍️ **Sign-off needed:**](<url>)`:
 
