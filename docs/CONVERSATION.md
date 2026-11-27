@@ -26,6 +26,10 @@ substituting the current repo in URL templates.
 
   Use 🟢 for a closing state that needs only confirmation to proceed.
 
+  **When more than one state applies,** choose by what must happen first. If the session can do its next piece of work without the reader, it does that work and closes on 🟢. If that work cannot start until the reader answers, close on the state that asks for the answer. Name the work in the `Unblocks:` line, not in the lead.
+
+  **The `Unblocks:` line.** ⚖️, ✍️, 🛵 and 🟠 each ask the reader to act. Each ends with `Unblocks: <the work the session starts once the reader acts>.` On ⚖️ it follows the `Recommended:` sentence. Leave the line out when no work waits on the reader's action.
+
   **Resource-supported states.** Make the whole lead of each of these closing states its link, as `[✍️ **Sign-off needed:**](<url>)`:
   - 👁️‍🗨️ a look link, described under [Displaying content](#displaying-content), with one step for each page, draft or change shown;
   - ⌨️ a link that opens the code or text given, with a Copy button;
