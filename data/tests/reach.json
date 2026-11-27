@@ -2,8 +2,8 @@
   "schema": "web-tools-test-run/1",
   "source": {
     "repo": "mehrlander/web-tools",
-    "checkout_sha": "d14fae2cd44510476d1f631917d9052437ab7c54",
-    "head_sha": "d14fae2cd44510476d1f631917d9052437ab7c54",
+    "checkout_sha": "41e06c365ae254504f758a4c4402f97d02af3c7c",
+    "head_sha": "41e06c365ae254504f758a4c4402f97d02af3c7c",
     "base_sha": null,
     "dirty": false
   },
@@ -12,12 +12,12 @@
     "platform": "linux",
     "arch": "x64",
     "concurrency": 3,
-    "dependency_fingerprint": "36216709fb70e88f34eb8315d54bd42421abc5c3acafe33dad4211e1d3aa636a"
+    "dependency_fingerprint": "131f762acea7bd44e48a16f330cc3c109ec0fa47f5ca13716099177b53cb1be0"
   },
   "mode": "full",
   "complete": true,
   "exit_code": 0,
-  "finished_at": "2026-11-26T00:52:53.618Z",
+  "finished_at": "2026-11-27T05:55:21.335Z",
   "tests": [
     {
       "path": "node/test/acronym-hint.test.mjs",
@@ -24743,6 +24743,7 @@
       "exit_code": 0,
       "elapsed_ms": null,
       "files": [
+        ".github/workflows",
         ".github/workflows/page-measures.yml",
         ".github/workflows/test.yml",
         ".web-tools.json",

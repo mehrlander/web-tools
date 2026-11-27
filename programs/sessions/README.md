@@ -19,7 +19,8 @@ tab; a program is defined in
 
 ## Processes
 
-A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+A process is a recurring question or duty the program answers for;
+[`manager.md`](manager.md) says how the manager answers each one.
 
 | Process | Starts when |
 | --- | --- |
