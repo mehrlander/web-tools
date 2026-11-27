@@ -21,7 +21,7 @@ stale task · <task id> · <the branch it names>
 
 ## Location
 
-Inputs: a file, page or kind of content, and whether it exists or is new. Read these sources in order, and stop at the first that settles where it lives or belongs:
+Inputs: a file, page or kind of content, and whether it exists or is new. Read the source that matches the input:
 
 - **A path the caller names:** run [`doc-catalog.py`](../../python/doc-catalog.py)` .. <repo>:<path>` from the web-tools checkout, with the other checkouts beside it. It prints the path's position and governing program, whether its wording needs the owner's approval, and how many files link to it.
 - **A kind of file:** the `scope` column of [`registries.csv`](../../docs/registries.csv) names the population each registry covers. The registry whose scope covers the kind says where its members are kept. For code, [`code-layers.md`](../../docs/code-layers.md) says which folder a file belongs in.
@@ -33,7 +33,7 @@ Return one line for each place, the defining file first:
 <subject> · <repo>:<path> · defines | belongs here · <the registry or document that says so>
 ```
 
-List files that only mention the subject when the caller asks for them. Where a given rule, convention or UI pattern is already stated is a question for the [Content program's manager](../content/manager.md). For a new file, end with the folder that [`code-layers.md`](../../docs/code-layers.md) or the covering registry's `scope` names, and cite it.
+List files that only mention the subject when the caller asks for them. Where a given rule, convention or UI pattern is already stated is a question for the [Content program's manager](../content/manager.md). For a new file, cite the source that names its folder.
 
 ## Ownership
 
