@@ -24,12 +24,12 @@ route below reaches the page, say it in words.
 
 ## Walkthroughs
 
-A walkthrough is an `intro` card and its steps, in one link. For several
-documents, start the link on the first document's data-view address,
-`pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Name each step by its
-document's data-view address with `!text:<heading>`. Do not use the data route
-(🥏 `#data=`) for several documents: it draws a document in a frame with no address of its
-own. A step on a second document does not land in that frame.
+To step through several documents in one link, start the link on the first
+document's data-view address, `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`.
+Name each step by its document's data-view address with `!text:<heading>`. Do
+not use the data route (🥏 `#data=`) for several documents: it draws a document
+in a frame with no address of its own. A step on a second document does not
+land in that frame.
 
 ## Making the link
 
