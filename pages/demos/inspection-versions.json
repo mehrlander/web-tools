@@ -1,0 +1,56 @@
+{
+  "kind": "inspection/1",
+  "title": "Branch drift, drawn two ways",
+  "question": "Does the diagram let a reader say whether the branch merges cleanly?",
+  "verdicts": [
+    { "verdict": "keep", "label": "Keep", "gloss": "the diagram answers the brief", "icon": "ph-check", "tone": "success" },
+    { "verdict": "drop", "label": "Drop", "gloss": "the diagram does not answer the brief", "icon": "ph-x", "tone": "error" }
+  ],
+  "source": {
+    "blocks": [
+      { "id": "brief", "label": "Brief", "text": "Draw how far a branch has drifted from main: the commits on each side since they parted, and the files both sides touched. A reader should see at a glance whether the branch still merges cleanly." }
+    ]
+  },
+  "runs": [
+    {
+      "id": "timeline",
+      "title": "Timeline method",
+      "meta": "2 diagrams",
+      "source": { "blocks": [ { "id": "method", "label": "Method", "text": "Lay both lines on one time axis and mark the fork, then count commits on each side." } ] },
+      "outputs": [
+        {
+          "id": "t1",
+          "title": "Two lines from a fork",
+          "text": "Main and the branch leave the fork together; main has moved four commits, the branch two. The overlap file is named under the gap, so the risk sits where the eye lands.",
+          "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 640 260\" font-family=\"Helvetica, Arial, sans-serif\"><rect width=\"640\" height=\"260\" fill=\"#ffffff\"/><line x1=\"40\" y1=\"90\" x2=\"600\" y2=\"90\" stroke=\"#334155\" stroke-width=\"4\"/><text x=\"40\" y=\"70\" font-size=\"18\" fill=\"#334155\">main</text><path d=\"M160 90 C220 90 220 180 280 180 L460 180\" fill=\"none\" stroke=\"#2563eb\" stroke-width=\"4\"/><text x=\"300\" y=\"212\" font-size=\"18\" fill=\"#2563eb\">claude/drift</text><circle cx=\"160\" cy=\"90\" r=\"9\" fill=\"#f59e0b\"/><text x=\"130\" y=\"124\" font-size=\"16\" fill=\"#92400e\">fork</text><g fill=\"#334155\"><circle cx=\"300\" cy=\"90\" r=\"7\"/><circle cx=\"390\" cy=\"90\" r=\"7\"/><circle cx=\"480\" cy=\"90\" r=\"7\"/><circle cx=\"570\" cy=\"90\" r=\"7\"/></g><g fill=\"#2563eb\"><circle cx=\"340\" cy=\"180\" r=\"7\"/><circle cx=\"430\" cy=\"180\" r=\"7\"/></g><text x=\"440\" y=\"50\" font-size=\"16\" fill=\"#334155\">+4 on main</text><text x=\"480\" y=\"186\" font-size=\"16\" fill=\"#2563eb\">+2</text><rect x=\"300\" y=\"118\" width=\"250\" height=\"34\" rx=\"6\" fill=\"#fee2e2\" stroke=\"#dc2626\"/><text x=\"314\" y=\"141\" font-size=\"16\" fill=\"#991b1b\">both touched: lib/loader.js</text></svg>"
+        },
+        {
+          "id": "t2",
+          "title": "Age bar",
+          "text": "One bar for the time since the fork, split by who moved. It reads faster than the lines but drops which files overlap, so it cannot answer the brief alone.",
+          "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 480 140\" font-family=\"Helvetica, Arial, sans-serif\"><rect width=\"480\" height=\"140\" fill=\"#ffffff\"/><text x=\"20\" y=\"36\" font-size=\"18\" fill=\"#334155\">9 days since the fork</text><rect x=\"20\" y=\"56\" width=\"290\" height=\"36\" fill=\"#334155\"/><rect x=\"310\" y=\"56\" width=\"150\" height=\"36\" fill=\"#2563eb\"/><text x=\"30\" y=\"80\" font-size=\"16\" fill=\"#ffffff\">main: 4 commits</text><text x=\"318\" y=\"80\" font-size=\"16\" fill=\"#ffffff\">branch: 2</text><text x=\"20\" y=\"122\" font-size=\"15\" fill=\"#64748b\">overlap not shown</text></svg>"
+        }
+      ]
+    },
+    {
+      "id": "matrix",
+      "title": "File matrix method",
+      "meta": "2 diagrams",
+      "source": { "blocks": [ { "id": "method", "label": "Method", "text": "Start from the files, not the commits: one row per file either side touched, one column per side." } ] },
+      "outputs": [
+        {
+          "id": "m1",
+          "title": "Files by side",
+          "text": "Each file is a row and each side a column; a row filled on both sides is the conflict risk, tinted red. The commit counts sit in the column heads.",
+          "sketch": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 520 250\" font-family=\"Helvetica, Arial, sans-serif\"><rect width=\"520\" height=\"250\" fill=\"#ffffff\"/><text x=\"250\" y=\"34\" font-size=\"16\" fill=\"#334155\">main (+4)</text><text x=\"390\" y=\"34\" font-size=\"16\" fill=\"#2563eb\">branch (+2)</text><rect x=\"14\" y=\"54\" width=\"492\" height=\"36\" fill=\"#fee2e2\"/><g font-size=\"16\" fill=\"#334155\"><text x=\"20\" y=\"78\">lib/loader.js</text><text x=\"20\" y=\"128\">docs/loader.md</text><text x=\"20\" y=\"178\">pages/app.html</text><text x=\"20\" y=\"228\">node/README.md</text></g><g fill=\"#334155\"><rect x=\"270\" y=\"60\" width=\"40\" height=\"24\" rx=\"4\"/><rect x=\"270\" y=\"110\" width=\"40\" height=\"24\" rx=\"4\"/><rect x=\"270\" y=\"210\" width=\"40\" height=\"24\" rx=\"4\"/></g><g fill=\"#2563eb\"><rect x=\"420\" y=\"60\" width=\"40\" height=\"24\" rx=\"4\"/><rect x=\"420\" y=\"160\" width=\"40\" height=\"24\" rx=\"4\"/></g></svg>"
+        },
+        {
+          "id": "m2",
+          "title": "Verdict line",
+          "text": "The matrix reduced to one sentence, drawn as an HTML fragment rather than an image, to show the page draws both kinds.",
+          "sketch": "<div class=\"flex flex-wrap items-center gap-2 p-2 text-base\"><span class=\"badge badge-error gap-1\"><i class=\"ph ph-warning\"></i>1 file on both sides</span><span class=\"badge badge-ghost\">3 on one side</span><span class=\"text-base-content/70\">likely a small conflict in lib/loader.js</span><script>alert('removed')</script></div>"
+        }
+      ]
+    }
+  ]
+}

@@ -27,6 +27,7 @@ The page reads `#gz=` before `?src=`:
 | `tags` | Optional: the values an output's `tag` takes, each with `tag`, `label` and optionally an `icon` and a `tone` |
 | `answers` | Optional: where the notes and verdicts are saved, as [Answers](#answers) describes |
 | `made` | Optional: `by` (the producer's address) and `from` (the addresses it read) |
+| `source` | Optional: the input every run shares, such as one brief given to every entrant, shaped as a run's `source` |
 | `runs` | In order |
 
 Without `verdicts`, each output has only a note field.
@@ -35,7 +36,7 @@ A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `ton
 
 A tag with an `icon` is drawn as that icon alone, in the tag's tone, with its label in a tooltip. A tag without one is a badge in its tone. The tone also colours the passages the tag's output rests on. Without a `tone`, `like` is `success`, `dislike` is `error`, and any other tag is neutral.
 
-A **run** has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives.
+A **run** has an `id` unique in the payload, a `title`, a `meta` line (a date and a count, say), a `source` and its `outputs`. `source` holds `blocks`, each with `id`, `label` and `text`, and optionally an `address` where the input lives. Where the payload has a shared `source`, a run's own is optional; a run with passages and none of its own rests on the shared one.
 
 An **output** has an `id` unique in its run and a `text`, and may have:
 
@@ -47,8 +48,10 @@ An **output** has an `id` unique in its run and a `text`, and may have:
 | `note` | The producer's remark, shown as the tooltip of an icon after the text |
 | `anchor` | The passage the output rests on, as `{block, start, end}`. `start` and `end` are offsets into that block's text in code points, with `end` exclusive. Where no span applies, the anchor is `{block}` alone. |
 | `anchors` | A list of anchors, in place of `anchor`, for an output that rests on several passages. The page marks each passage and scrolls to the first. |
+| `sketch` | A picture: a complete SVG document or an HTML fragment, under the idea board's [sketch rules](../idea-board.md#sketches) |
+| `image` | A picture, in place of `sketch`: a URL or a `data:` URI |
 
-**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card is headed by its `title`, or by "Output" and its number where it has none. Its verdict and note sit at its foot.
+**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card is headed by its `title`, or by "Output" and its number where it has none. An output's picture fills the card's width over its `text`, which is then its commentary, and a tap on it opens every run's pictures as a deck, full size. Its verdict and note sit at its foot. A shared `source` is the list's first row and the strip's first card, and a run's own `source` stays above its outputs. [`pages/demos/inspection-versions.json`](../../pages/demos/inspection-versions.json) is a bake-off in this shape: one brief, two methods, and their diagrams.
 
 ## Answers
 
