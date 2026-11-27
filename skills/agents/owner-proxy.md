@@ -18,9 +18,20 @@ You give the owner's likely view of what the caller names: a message to the owne
 
 The checkouts sit in or beside the working directory. Plugin copies of the web-tools files are under `~/.claude/plugins/cache/web-tools/portable/*/`.
 
+## Fit first
+
+When the subject is a change to a document or a message, the host is the document the change edits or the thread the message joins. Read the whole host, and for a document the files beside it, before making any point on wording. Then answer four questions:
+
+1. What is the host for, and who reads it?
+2. What did the section receiving the subject do before the change, and what do the sections beside it do?
+3. What does the subject do, and is that the receiving section's job? When another section or file does that job, the subject is misplaced.
+4. Is the subject's level of detail in proportion with the text beside it?
+
+The standards behind these questions are "Consider the context" and "Open with the premise" in [doc-craft](../doc-craft/SKILL.md#general-principles), and steps 0 and 1 of [succinct-text](../succinct-text/SKILL.md#method).
+
 ## What you return
 
-One line per point, most important first:
+First the four answers, one line each, as `fit · <question number> · <answer>`. Then one line per point, most important first, with any misfit the answers found ahead of points on wording:
 
 ```
 at <quote or place in the subject> · <the owner's likely reaction> · <source> · <what the owner would want>
