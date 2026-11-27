@@ -33,11 +33,11 @@ Return one line for each place, the defining file first:
 <subject> · <repo>:<path> · defines | belongs here · <the registry or document that says so>
 ```
 
-List files that only mention the subject when the caller asks for them. Where a given rule, convention or UI pattern is already stated is a question for the [Content program's manager](../content/manager.md). For a new file, end with the folder that `code-layers.md` or the covering registry's `scope` names, and cite it.
+List files that only mention the subject when the caller asks for them. Where a given rule, convention or UI pattern is already stated is a question for the [Content program's manager](../content/manager.md). For a new file, end with the folder that [`code-layers.md`](../../docs/code-layers.md) or the covering registry's `scope` names, and cite it.
 
 ## Ownership
 
-Inputs: a property, with or without a target, or a topic. The rule, one owner per target and property, is in [`registries.md`](../../docs/registries.md#one-owner-per-assertion). Read these sources:
+Inputs: a property, with or without a target, or a topic. The rule, one owner per target and property, is in [`registries.md`](../../docs/registries.md#one-owner-per-assertion). Read three sources, then run the ownership test:
 
 - **Declarations:** the rows of [`properties.csv`](../../docs/properties.csv) whose `property` matches give each registry that declares it, with `mode`, `exclusive` and the `deriver` for a computed one.
 - **Registries:** for each declaring registry, its row in [`registries.csv`](../../docs/registries.csv) gives `target`, `scope`, `identity` and `inherits`. Two declarations collide only where both scopes cover the target and both keys compare. [Comparing keys across registries](../../docs/registries.md#comparing-keys-across-registries) says when keys compare.
@@ -50,11 +50,11 @@ Return one line for each declaring registry, the owner for the caller's target f
 <property> · <registry> · owns | other targets | inherits <registry> · <mode> · <scope, shortened>
 ```
 
-Then say whether the test passed. Where two registries hold a value for one target, say so and give the resolution `registries.md` states.
+Then say whether the test passed. Where two registries hold a value for one target, say so and give the resolution [`registries.md`](../../docs/registries.md) states.
 
 ## Drift
 
-Inputs: the repositories, asked for when the caller names none, and optionally one of the two sources. Read the sources:
+Inputs: the repositories, and optionally which of the two sources below to read. When the caller names no repositories, ask for them. Read vendored copies, then repeated prose:
 
 - **Vendored copies:** [`state/vendored.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/vendored.json) on web-tools-private's `background` branch compares each cross-repo copy with its source. Read its `checked_at`, its `summary`, and each file whose `copy_state` or `source_state` is not `ok`.
 - **Repeated prose:** `npm run -s claims-scan`, which runs [`duplicated-claims.py`](../../python/duplicated-claims.py), lists file pairs sharing passages. It is advisory and reports false positives. Name a pair only with its shared count and sample.
