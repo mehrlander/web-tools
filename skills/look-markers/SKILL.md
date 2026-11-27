@@ -17,20 +17,19 @@ alone mean other things here.
 ## When
 
 Whenever a reply would locate something on a page in words, send the link and
-let the reply say what to notice. Send a walkthrough, even of one step: its
-`intro=<one line>` card says what the reader is reviewing and why, so the page
-holds that context and the reader need not look for it in the conversation. A step
-is `show`, or `tap` when the reader should press it. Where no route below reaches
-the page, say it in words.
+let the reply say what to notice. Send a walkthrough, even of one step. Its
+`intro=<one line>` card tells the reader, on the page, what they are reviewing
+and why. A step is `show`, or `tap` when the reader should press it. Where no
+route below reaches the page, say it in words.
 
 ## Walkthroughs
 
-A walkthrough is an `intro` card and its steps, in one link. To step through
-several documents, open the first one's data-view address,
-`pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`, and name each step as
-that address with `!text:<heading>`. The data route (🥏 `#data=`) draws a
-document in a frame with no address of its own, so a step on a second document
-does not land there.
+A walkthrough is an `intro` card and its steps, in one link. For several
+documents, start the link on the first document's data-view address,
+`pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Name each step by its
+document's data-view address with `!text:<heading>`. Do not use the data route
+(🥏 `#data=`) for this: it draws a document in a frame with no address of its
+own, and a step on a second document does not land there.
 
 ## Making the link
 
