@@ -38,7 +38,7 @@ docs/docs.csv,134,7,35492,"[""path"",""subject"",""status"",""reach"",""words"",
 docs/fab-signals.csv,12,10,2833,"[""key"",""facet"",""part"",""label"",""icon"",""tone"",""when"",""gloss"",""note"",""status""]"
 docs/formats.csv,40,9,7682,"[""id"",""contract"",""schema"",""validated"",""id_key"",""producer"",""envelope"",""route"",""gloss""]"
 docs/glossary/senses.csv,22,7,3058,"[""term"",""sense"",""domain"",""gloss"",""home"",""status"",""replaced_by""]"
-docs/glossary/stats.csv,18,7,610,"[""term"",""uses"",""files"",""areas"",""marked"",""importance"",""scanned""]"
+docs/glossary/stats.csv,18,7,611,"[""term"",""uses"",""files"",""areas"",""marked"",""importance"",""scanned""]"
 docs/glossary/terms.csv,18,5,579,"[""term"",""general"",""variants"",""cf"",""note""]"
 docs/harness.csv,384,9,77204,"[""path"",""role"",""layer"",""lines"",""invocation"",""callers"",""emits"",""named"",""tested""]"
 docs/hook-events.csv,33,6,2957,"[""event"",""phase"",""summary"",""version"",""released"",""basis""]"
