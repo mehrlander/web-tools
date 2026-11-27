@@ -21,6 +21,7 @@
   Address, fragment preferred and query accepted:
 
     #id=<short>&turn=<n>[&card=<i>]
+    #id=<stem>&at=<ISO instant>      the turn whose window holds the instant
 
   `turn` is 1-based and is the Turns tab's numbering: turn n is the card
   session.html opens with `card=<n-1>`, labelled "Exchange n". `card` is the
@@ -142,30 +143,32 @@
     <!-- THE NOTE, on the card in view: one line and a check, as the look kit's
          dock has it; drafts wait here until Send. -->
     <footer x-show="turn.files.length" class="shrink-0 border-t border-base-300 px-3 py-2 flex flex-col gap-1.5" data-at="composer">
+      <div x-show="cardDrafts.length || cardSent.length" class="flex max-h-24 flex-col gap-1.5 overflow-y-auto">
       <template x-for="d in cardDrafts" :key="d.id">
-        <div class="flex items-start gap-2 rounded-lg bg-warning/15 py-1 pl-2 pr-1 text-sm">
+        <div class="flex items-start gap-2 rounded-lg bg-info/10 py-1 pl-2 pr-1 text-base">
           <i class="ph ph-chat-circle-text mt-0.5 opacity-60"></i>
           <span class="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]" x-text="d.text"></span>
           <button type="button" class="btn btn-ghost btn-xs btn-square" @click="drop(d.id)" aria-label="Remove this note"><i class="ph ph-x"></i></button>
         </div>
       </template>
       <template x-for="s in cardSent" :key="s.id">
-        <div class="flex items-start gap-2 rounded-lg bg-success/10 py-1 px-2 text-sm">
+        <div class="flex items-start gap-2 rounded-lg bg-success/10 py-1 px-2 text-base">
           <i class="ph ph-check-circle mt-0.5 text-success"></i>
           <span class="min-w-0 flex-1 line-clamp-2 [overflow-wrap:anywhere]" x-text="s.text.split('\n\n')[0]"></span>
           <span class="shrink-0 font-mono text-xs text-base-content/50" x-text="s.at.slice(5, 10)"></span>
         </div>
       </template>
+      </div>
       <div class="flex items-center gap-2">
         <input x-ref="field" x-model="typing" @keydown.enter.prevent="add()" @keydown.stop
                :placeholder="'Note on ' + (current ? current.name : 'this card')" aria-label="A note on the card in view"
                class="input input-sm input-bordered min-w-0 flex-1 text-base">
         <button type="button" @click="add()" aria-label="Add the note"
                 class="btn btn-sm btn-square" :class="typing.trim() ? 'btn-success' : 'btn-ghost opacity-40'"><i class="ph ph-check"></i></button>
-        <button type="button" @click="send()" x-show="drafts.length" :disabled="sending" data-at="send"
-                class="btn btn-sm btn-primary">
+        <button type="button" @click="send()" :disabled="sending || !drafts.length" data-at="send"
+                class="btn btn-sm btn-primary min-w-20 tabular-nums">
           <span x-show="sending" class="loading loading-spinner loading-xs"></span>
-          <span x-text="'Send ' + drafts.length"></span>
+          <span x-text="drafts.length ? 'Send ' + drafts.length : 'Send'"></span>
         </button>
       </div>
       <div x-show="status" class="text-xs text-base-content/70" role="status" x-text="status"></div>
@@ -187,7 +190,7 @@
         await window.__depsReady;
         this.want = this.address();
         if (!this.want) return;
-        this.input = this.want.id + ' ' + this.want.n;
+        this.input = this.want.id + (this.want.n ? ' ' + this.want.n : '');
         await this.open();
       },
 
@@ -199,9 +202,10 @@
         const pick = k => h.get(k) || q.get(k);
         const id = (pick('id') || '').trim();
         const n = parseInt(pick('turn'), 10);
-        if (!id || !(n >= 1)) return null;
+        const at = (pick('at') || '').trim();
+        if (!id || !(n >= 1 || at)) return null;
         const card = parseInt(pick('card'), 10);
-        return { id, n, card: card >= 0 ? card : 0 };
+        return { id, n: n >= 1 ? n : 0, at, card: card >= 0 ? card : 0 };
       },
 
       go() {
@@ -220,6 +224,7 @@
           if (!this.path) throw new Error('No record for ' + this.want.id + ' in ' + STORE + '.');
           const rec = await SR.read(STORE, this.path);
           this.record = rec;
+          if (!this.want.n) this.want.n = window.TurnViews.at(rec, this.want.at);
           const t = window.TurnViews.of(rec, this.want.n);
           if (!t) throw new Error('Session ' + this.want.id + ' has ' + window.TurnViews.count(rec) + ' turns; there is no turn ' + this.want.n + '.');
           this.turn = t;
@@ -296,8 +301,10 @@
           return '<div data-view="' + esc(v.key) + '" role="option" tabindex="-1" class="flex cursor-pointer items-center gap-2 border-b border-base-200 px-3 py-1.5 last:border-0 hover:bg-base-200/60 aria-selected:bg-primary/10">'
             + '<i class="ph ' + (v.kind === 'page' ? 'ph-browser' : 'ph-file-text') + ' shrink-0 text-base text-base-content/50"></i>'
             + '<span class="min-w-0 flex-1 truncate text-sm"><span class="text-base-content/50">' + esc(dir) + '</span>' + esc(v.name) + '</span>'
-            + (n ? '<span class="badge badge-warning badge-sm shrink-0 gap-1"><i class="ph ph-chat-circle-text"></i>' + n + '</span>' : '')
-            + '<span class="shrink-0 font-mono text-xs ' + (v.pin === 'head' || v.pin === 'main' ? 'text-warning' : 'text-base-content/45') + '">' + esc(v.pin || '…') + '</span>'
+            + (n ? '<span class="badge badge-info badge-sm shrink-0 gap-1"><i class="ph ph-chat-circle-text"></i>' + n + '</span>' : '')
+            // The commit shows in the card's head; a row speaks only when its
+            // card is not the file as the turn left it.
+            + (v.pin === 'head' || v.pin === 'main' ? '<span class="shrink-0 font-mono text-xs text-warning">now</span>' : '')
             + '</div>';
         }).join('');
       },
@@ -324,7 +331,7 @@
         if (!v) return '';
         const link = (href, icon, tip) => href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="btn btn-xs btn-ghost btn-square"'
           + ' data-title-tip="' + esc(tip) + '" aria-label="' + esc(tip) + '"><i class="ph ' + icon + ' text-base"></i></a>' : '';
-        return window.linkedSwiper.head({ code: v.repo, title: v.path.split('/').slice(-2).join('/') }, i, n, 'card', { deck: true, tight })
+        return window.linkedSwiper.head({ code: v.pin === 'head' || v.pin === 'main' ? 'now' : v.pin, title: v.path.split('/').slice(-2).join('/') }, i, n, 'card', { deck: true, tight })
           + link(window.RepoAddress.github.blob(this.owner + '/' + v.repo, v.ref || v.branch || 'main', v.path), 'ph-github-logo', 'On GitHub')
           + link(v.url, 'ph-arrow-square-out', 'Open in a new tab');
       },

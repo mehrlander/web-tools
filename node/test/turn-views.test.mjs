@@ -52,6 +52,9 @@ test('turns are the Turns tab cards, numbered from 1', () => {
   assert.equal(t.ask, 'Second ask');
   assert.equal(t.closing.key, 'look');
   assert.equal(T.of(record, 3).to, '');
+  assert.equal(T.at(record, '2026-11-01T11:30:00Z'), 2);
+  assert.equal(T.at(record, '2026-11-01T11:00:00Z'), 2);
+  assert.equal(T.at(record, '2026-10-31T00:00:00Z'), 0);
 });
 
 test('a turn keeps pages and documents a file tool or a non-git command changed', () => {
