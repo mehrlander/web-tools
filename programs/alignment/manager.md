@@ -18,3 +18,53 @@ Return one line for each pull request, or for each branch that has none, newest 
 <what the work was> · merged | open | branch only | not found · <pull request or branch> · <date merged, or of the last commit> · <first eight characters of the session id>
 stale task · <task id> · <the branch it names>
 ```
+
+## Location
+
+Inputs: a file, page or kind of content, and whether it exists or is new. Read the source that matches the input:
+
+- **A path the caller names:** run [`doc-catalog.py`](../../python/doc-catalog.py)` .. <repo>:<path>` from the web-tools checkout, with the other checkouts beside it. It prints the path's position and governing program, whether its wording needs the owner's approval, and how many files link to it.
+- **A kind of file:** the `scope` column of [`registries.csv`](../../docs/registries.csv) names the population each registry covers. The registry whose scope covers the kind says where its members are kept. For code, [`code-layers.md`](../../docs/code-layers.md) says which folder a file belongs in.
+- **A subject with no path:** search the checkouts for its name with `git grep`, and report the files that define it.
+
+Return one line for each place, the defining file first:
+
+```
+<subject> · <repo>:<path> · defines | belongs here · <the registry or document that says so>
+```
+
+List files that only mention the subject when the caller asks for them. Where a given rule, convention or UI pattern is already stated is a question for the [Content program's manager](../content/manager.md). For a new file, cite the source that names its folder.
+
+## Ownership
+
+Inputs: a property, with or without a target, or a topic. The rule, one owner per target and property, is in [`registries.md`](../../docs/registries.md#one-owner-per-assertion). Read three sources, then run the ownership test:
+
+- **Declarations:** the rows of [`properties.csv`](../../docs/properties.csv) whose `property` matches give each registry that declares it, with `mode`, `exclusive` and the `deriver` for a computed one.
+- **Registries:** for each declaring registry, its row in [`registries.csv`](../../docs/registries.csv) gives `target`, `scope`, `identity` and `inherits`. Two declarations collide only where both scopes cover the target and both keys compare. [Comparing keys across registries](../../docs/registries.md#comparing-keys-across-registries) says when keys compare.
+- **A topic:** the `subject` column of [`docs.csv`](../../docs/docs.csv) gives each document's topic in one line. The owner is the document whose `subject` covers the topic and whose `status` is `living` or `measured`. A row with an empty `status` does not own a topic.
+- **The ownership test:** `node --test` [`node/test/properties-registry.test.mjs`](../../node/test/properties-registry.test.mjs) fails for any target with two nonblank values for one property.
+
+Return one line for each declaring registry, the owner for the caller's target first. `owns` marks the registry holding the caller's target; `other targets` marks one whose scope does not cover it; `inherits` names the registry it takes descriptions from:
+
+```
+<property> · <registry> · owns | other targets | inherits <registry> · <mode> · <scope, shortened>
+```
+
+Then say whether the test passed. Where two registries hold a value for one target, say so and give the resolution [`registries.md`](../../docs/registries.md) states.
+
+## Drift
+
+Inputs: the repositories, and optionally which of the two sources below to read. When the caller names no repositories, ask for them. Read vendored copies, then repeated prose:
+
+- **Vendored copies:** [`state/vendored.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/vendored.json) on web-tools-private's `background` branch compares each cross-repo copy with its source. Read its `checked_at`, its `summary`, and each file whose `copy_state` or `source_state` is not `ok`.
+- **Repeated prose:** `npm run -s claims-scan`, which runs [`duplicated-claims.py`](../../python/duplicated-claims.py), lists file pairs sharing passages. It is advisory and reports false positives. Name a pair only with its shared count and sample.
+
+The test suite reports generated files that no longer match their inputs. Stale tracker tasks are in [Landing](#landing)'s output.
+
+Return one line for each item, grouped by source:
+
+```
+vendored | prose · <file, or the pair> · <state, or the shared count and sample> · <the date the source was read>
+```
+
+Give the `checked_at` of `state/vendored.json`, which is a cache.
