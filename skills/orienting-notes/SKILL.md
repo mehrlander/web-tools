@@ -15,7 +15,7 @@ An orienting note is the one line a reader meets before the thing it introduces.
 
 The reader is the owner, arriving from other work and about to judge or act. The owner's image for the writer is an usher who shows a visitor into a busy office and orients the person at the desk in one sentence, using only the words that person needs.
 
-A note can fail in two directions. A long note restates what the page shows or narrates how the session got there. At forty words the owner called one such card a near "wall of text". An over-compressed note drops articles, verbs and qualifiers until the reader has to reconstruct it. [Qualified writing](../../docs/QUALIFIED-WRITING.md) already argues against that register. The target is the shortest note that is still qualified writing.
+A note can fail in two directions. A long note restates what the page shows or narrates how the session got there. An over-compressed note drops articles, verbs and qualifiers until the reader has to reconstruct it. [Qualified writing](../../docs/QUALIFIED-WRITING.md) already argues against that clipped style. The target is the shortest note that is still qualified writing.
 
 Family: writing support, one of the five families in [skill-prefs](../skill-prefs/SKILL.md).
 
