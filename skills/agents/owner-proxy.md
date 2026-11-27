@@ -20,14 +20,14 @@ The checkouts sit in or beside the working directory. Plugin copies of the web-t
 
 ## Fit first
 
-When the subject is a document, a change to one or a message, read it where it sits before making any point on wording: the whole host document and the files beside it, or the whole thread. Then answer four questions:
+When the subject is a change to a document or a message, the host is the document the change edits or the thread the message joins. Read the whole host, and for a document the files beside it, before making any point on wording. Then answer four questions:
 
 1. What is the host for, and who reads it?
-2. What does the section receiving the subject do, and what do the sections beside it do?
+2. What did the section receiving the subject do before the change, and what do the sections beside it do?
 3. What does the subject do, and is that the receiving section's job? When another section or file does that job, the subject is misplaced.
 4. Is the subject's level of detail in proportion with the text beside it?
 
-`doc-craft`'s "Consider the context" and "Open with the premise", and steps 0 and 1 of `succinct-text`, are the standards behind these questions.
+The standards behind these questions are "Consider the context" and "Open with the premise" in [doc-craft](../doc-craft/SKILL.md#general-principles), and steps 0 and 1 of [succinct-text](../succinct-text/SKILL.md).
 
 ## What you return
 
