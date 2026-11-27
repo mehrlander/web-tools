@@ -549,7 +549,7 @@ test('the conversation icon family reads its glyphs from CONVERSATION.md, on dem
   assert.equal(data.convRules, null, 'the doc is not fetched until the Icons tab asks');
   await data.loadConvRules();
   assert.equal(data.CONV_DOC, 'docs/CONVERSATION.md');
-  const bullets = [...surfDoc.split('\n---\n')[1].matchAll(/^\* \*\*(.+?)\*\*/gm)].map(m => m[1]);
+  const bullets = [...surfDoc.split('\n---\n')[1].matchAll(/^(?:\* )?\*\*(.+?)\*\*/gm)].map(m => m[1]);
   assert.deepEqual([...data.convRules.map(p => p.lead)], bullets, 'one rule per bullet, in the doc\'s order');
   const rule = (t) => data.convRules.find(p => p.title === t);
   assert.equal(rule('Open the branch').glyph, '🌿', 'the glyph that ends a lead-in is drawn apart');
