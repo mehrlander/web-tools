@@ -40,7 +40,7 @@ paste what it prints.
 
 `say` is one sentence the reader can act on: "Recalculate after changing an
 amount", not "Click here". Write `say` and `intro` with the
-[orienting-notes](../orienting-notes/SKILL.md) skill. `tap` is `true`, or the hand's label (`"Tap to open"`).
+[docent](../docent/SKILL.md) skill. `tap` is `true`, or the hand's label (`"Tap to open"`).
 
 ## Anchors
 

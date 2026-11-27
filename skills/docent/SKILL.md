@@ -1,19 +1,19 @@
 ---
-name: orienting-notes
-description: "Write an orienting note: the one line a reader meets before the thing it introduces, such as a look link's say= or intro= card, a reply's closing-state line, or a thread title in a PR guide. Use whenever a session writes one of these. The note names the target, the reason it is shown and the one point to notice, in as few words as those three need; the orienting-note-critic agent reviews it before it goes out."
+name: docent
+description: "Write a docent note: the one line a reader meets before the thing it introduces, such as a look link's say= or intro= card, a reply's closing-state line, or a thread title in a PR guide. Use whenever a session writes one of these. The note names the target, the reason it is shown and the one point to notice, in as few words as those three need; the docent-critic agent reviews it before it goes out."
 ---
 
-# Orienting notes
+# Docent
 
 ## Premise
 
-An orienting note is the one line a reader meets before the thing it introduces. It appears on three surfaces:
+A docent note is the one line a reader meets before the thing it introduces. It appears on three surfaces:
 
 - the card on a [look link](../look-markers/SKILL.md), shown over the element the link points at;
 - the [closing-state line](../../docs/CONVERSATION.md#every-reply) that ends a reply, after its glyph and bold lead;
 - a thread title in a [PR guide](../../docs/CONVERSATION.md#a-reply-that-changed-files).
 
-The reader is the owner, arriving from other work and about to judge or act. The owner's image for the writer is an usher who shows a visitor into a busy office and orients the person at the desk in one sentence, using only the words that person needs.
+The reader is the owner, arriving from other work and about to judge or act. The writer works as a museum docent does: a trained guide who stops at a work and says a few judged words about it to the visitor.
 
 A note can fail in two directions. A long note restates what the page shows or narrates how the session got there. An over-compressed note drops articles, verbs and qualifiers until the reader has to reconstruct it. [Qualified writing](../../docs/QUALIFIED-WRITING.md) already argues against that clipped style. The target is the shortest note that is still qualified writing.
 
@@ -60,4 +60,4 @@ A look link's card on the session page, which the owner had asked to see:
 
 ## Review
 
-Run the [`orienting-note-critic`](../agents/orienting-note-critic.md) agent on each look link's cards, in one call per link, and on a closing-state line that runs past its aim. Give it the surface, the reason the reader is being shown the target, and what the target shows. Revise until it returns PASS.
+Run the [`docent-critic`](../agents/docent-critic.md) agent on each look link's cards, in one call per link, and on a closing-state line that runs past its aim. Give it the surface, the reason the reader is being shown the target, and what the target shows. Revise until it returns PASS.

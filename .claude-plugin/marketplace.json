@@ -27,7 +27,7 @@
         "./concept-index",
         "./drop-link",
         "./look-markers",
-        "./orienting-notes",
+        "./docent",
         "./file-retrieval",
         "./scour",
         "./gold-set",
@@ -85,7 +85,7 @@
       "agents": [
         "./agents/house-style-critic.md",
         "./agents/peeves-critic.md",
-        "./agents/orienting-note-critic.md",
+        "./agents/docent-critic.md",
         "./agents/owner-proxy.md",
         "./agents/conservator.md",
         "./agents/radical-editor.md",

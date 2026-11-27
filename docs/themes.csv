@@ -59,6 +59,7 @@ pages/drop/fills-concepts/1-chain-constructor/PROMPT.md,pages/drop/fills-concept
 docs/environment/container.md,docs/environment/extending.md,8,,a cloud setup script https code claude com docs en claude code on the web environment caching,10,226
 skills/gold-set/SKILL.md,skills/wayback/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,226
 skills/gold-set/SKILL.md,skills/scour/SKILL.md,7,,docs environment capabilities md https github com mehrlander web tools blob main docs environment capabilities md,10,226
+skills/agents/docent-critic.md,skills/docent/SKILL.md,7,,stops at a work and says a few judged words about it to the visitor a,10,226
 docs/house-policies.md,skills/tend/SKILL.md,7,,md https github com mehrlander web tools blob main docs conversation md every reply;js https github com mehrlander web tools blob main lib kits,10,226
 docs/house-policies.md,skills/look-markers/SKILL.md,7,,lib kits look js https github com mehrlander web tools blob main lib kits look js,10,226
 docs/environment/capabilities.md,skills/scour/SKILL.md,7,true,the webfetch summarizer sometimes returns anthropic or anthropic's claude agent sdk as page content;webfetch returns a small model's answer rather than the page's markdown,10,226
