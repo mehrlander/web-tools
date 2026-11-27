@@ -17,6 +17,7 @@ A process is a recurring question or duty the program answers for; [`manager.md`
 | Process | Starts when |
 | --- | --- |
 | Prior work | a session or the owner asks what existing probes, explorations and gathered source files already establish on a subject before starting a new investigation |
+| Bake-off | a session or the owner asks which of several skills, tools or methods to adopt for a task, or how one holds up across varied subjects |
 
 ## Measures
 
