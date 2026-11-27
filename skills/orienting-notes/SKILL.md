@@ -7,7 +7,13 @@ description: "Write an orienting note: the one line a reader meets before the th
 
 ## Premise
 
-An orienting note is the one line a reader meets before the thing it introduces. Three surfaces carry one: the card on a [look link](../look-markers/SKILL.md), which the page shows over the element it points at; the [closing-state line](../../docs/CONVERSATION.md#every-reply) that ends a reply, after its glyph and bold lead; and a thread title in a [PR guide](../../docs/CONVERSATION.md#a-reply-that-changed-files). The reader is the owner, arriving from other work and about to judge or act. The owner's model for the writer is an usher who shows a visitor into a busy office: one sentence orients the person at the desk, and it spends no word that person could do without.
+An orienting note is the one line a reader meets before the thing it introduces. Three surfaces carry one:
+
+- the card on a [look link](../look-markers/SKILL.md), shown over the element the link points at;
+- the [closing-state line](../../docs/CONVERSATION.md#every-reply) that ends a reply, after its glyph and bold lead;
+- a thread title in a [PR guide](../../docs/CONVERSATION.md#a-reply-that-changed-files).
+
+The reader is the owner, arriving from other work and about to judge or act. The owner's image for the writer is an usher who shows a visitor into a busy office and orients the person at the desk in one sentence, using only the words that person needs.
 
 A note can fail in two directions. A long note restates what the page shows or narrates how the session got there. At forty words the owner called one such card a near "wall of text". An over-compressed note drops articles, verbs and qualifiers until the reader has to reconstruct it. [Qualified writing](../../docs/QUALIFIED-WRITING.md) already argues against that register. The target is the shortest note that is still qualified writing.
 
@@ -19,7 +25,7 @@ A note answers three questions, in this order, and skips any the surface already
 
 1. **Why is this in front of me?** Lead with the reason when the surface does not give it. For something the owner asked to see, lead with `By request:`. A closing-state line's glyph and bold lead already give the reason, so the line starts at the second question.
 2. **What is it?** Name the thing as the reader knows it, plus the one qualifier that sets it apart from its neighbors: the branch, the version, draft or merged, which of several.
-3. **What should I notice or do?** Give the single point the reader would miss alone: where the change is when the page looks the same, the control to tap, the decision asked.
+3. **What should I notice or do?** Give the single point the reader would otherwise miss: where the change is when the page looks the same, the control to tap, the decision asked.
 
 ## What to cut
 
