@@ -6,7 +6,11 @@ First read the owner's rulings, the [notes](../../skills/notes/SKILL.md) address
 
 ## Find a session
 
-Follow the [find-session](https://github.com/mehrlander/web-tools/blob/main/skills/find-session/SKILL.md) skill and return the lines it describes.
+Follow the [find-session](https://github.com/mehrlander/web-tools/blob/main/skills/find-session/SKILL.md) skill. Return one line per matching session, newest first, at most five unless the owner asks for more:
+
+```
+<day> <claude.ai link> [💬](https://mehrlander.github.io/web-tools/pages/session.html#id=<session id[:8]>) · <why it matched, in one clause>
+```
 
 ## Open calls
 
