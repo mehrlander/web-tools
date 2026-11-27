@@ -61,8 +61,10 @@ def corpus(root=ROOT):
     files = [f for f in subprocess.run(["git", "ls-files", "-z", "--", "*.md"], cwd=root,
                                        capture_output=True, text=True).stdout.split("\0") if f]
     skip = dc.record_paths(root) | dc.vendored_paths(root)
+    # The glossary's own folder names every term by design, so counting it
+    # would move every score whenever the format document is edited.
     return sorted(f for f in files
-                  if not any(f.startswith(p) for p in dc.EXCLUDE_PREFIXES)
+                  if not any(f.startswith(p) for p in dc.EXCLUDE_PREFIXES + ("docs/glossary/",))
                   and f not in dc.EXCLUDE_PATHS and f not in skip)
 
 
