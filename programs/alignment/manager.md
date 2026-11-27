@@ -1,15 +1,15 @@
 # Alignment manager
 
-You are the manager of the Alignment program, which [its README](README.md) describes. A session summons you with the Agent tool, handing you this file and one question about a process that README lists. Read and report; do not edit, commit or push.
+The session holding the Alignment manager role, taken on with `/portable:programs alignment` ([programs skill](../../skills/programs/SKILL.md)), answers the processes [the README](README.md) lists as below.
 
-The owner's rulings on the program are the notes ([notes skill](../../skills/notes/SKILL.md)) addressed to `mehrlander/web-tools:programs/alignment/README.md` or its earlier path `mehrlander/web-tools:programs/organization/README.md`. Read them before answering; none means no rulings yet.
+First read the owner's rulings, the [notes](../../skills/notes/SKILL.md) addressed to `mehrlander/web-tools:programs/alignment/README.md` or its earlier path `mehrlander/web-tools:programs/organization/README.md`. Name any source you could not read.
 
 ## Landing
 
-The question is whether work on a named subject landed, as the README's Processes table defines it. The caller names the repositories and the period; ask for them if the question does not. Three sources answer it, and the pull requests are the place to start:
+Inputs: the subject, repositories and period. Read three sources, starting with the pull requests:
 
 - **Pull requests:** a GitHub search on the subject, asking for numbers and titles only, gives each pull request and whether it merged.
-- **Branches:** [`in-flight.py`](../../skills/in-flight/in-flight.py)` <repo path> ... --fetch`, run from the web-tools checkout, lists the branches holding commits `main` lacks, and the tracker tasks still marked in progress whose branch has merged or gone (stale tasks). In a shallow checkout its counts of commits ahead are unreliable, and its pull request column does not replace the search.
+- **Branches:** [`in-flight.py`](../../skills/in-flight/in-flight.py)` <repo path> ... --fetch`, run from the web-tools checkout, lists the branches holding commits `main` lacks. It also lists stale tasks: tracker tasks still marked in progress whose branch has merged or gone. In a shallow checkout its counts of commits ahead are unreliable, and its pull request column does not replace the search.
 - **Session records:** [`search.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/search.py) in web-tools-private finds the session behind a branch. Narrow a broad subject with `--since` and `--file <path>`; `--grep` alone matches most sessions.
 
 Return one line for each pull request, or for each branch that has none, newest first, then one for each stale task:
@@ -19,11 +19,9 @@ Return one line for each pull request, or for each branch that has none, newest 
 stale task · <task id> · <the branch it names>
 ```
 
-Name any of the three sources you could not read.
-
 ## Location
 
-The question is where a named file, page or kind of content lives, or where a new one belongs. Answer from these sources, in this order, and stop at the first that settles it:
+Inputs: a file, page or kind of content, and whether it exists or is new. Read these sources in order, and stop at the first that settles where it lives or belongs:
 
 - **A path the caller names:** run [`doc-catalog.py`](../../python/doc-catalog.py)` .. <repo>:<path>` from the web-tools checkout, with the other checkouts beside it. It prints the path's position and governing program, whether its wording needs the owner's approval, and how many files link to it.
 - **A kind of file:** the `scope` column of [`registries.csv`](../../docs/registries.csv) names the population each registry covers. The registry whose scope covers the kind says where its members are kept. For code, [`code-layers.md`](../../docs/code-layers.md) says which folder a file belongs in.
@@ -39,7 +37,7 @@ List files that only mention the subject when the caller asks for them. Where a 
 
 ## Ownership
 
-The question is which registry holds a property, either for one target or wherever the property is declared, or which document owns a topic. The rule, one owner per target and property, is in [`registries.md`](../../docs/registries.md#one-owner-per-assertion). Answer from:
+Inputs: a property, with or without a target, or a topic. The rule, one owner per target and property, is in [`registries.md`](../../docs/registries.md#one-owner-per-assertion). Read these sources:
 
 - **Declarations:** the rows of [`properties.csv`](../../docs/properties.csv) whose `property` matches give each registry that declares it, with `mode`, `exclusive` and the `deriver` for a computed one.
 - **Registries:** for each declaring registry, its row in [`registries.csv`](../../docs/registries.csv) gives `target`, `scope`, `identity` and `inherits`. Two declarations collide only where both scopes cover the target and both keys compare. [Comparing keys across registries](../../docs/registries.md#comparing-keys-across-registries) says when keys compare.
@@ -56,7 +54,7 @@ Then say whether the test passed. Where two registries hold a value for one targ
 
 ## Drift
 
-The question is which copies of a file or passage no longer match each other. The caller names the repositories; ask if the question does not. Two sources answer it, and the caller may name one:
+Inputs: the repositories, asked for when the caller names none, and optionally one of the two sources. Read the sources:
 
 - **Vendored copies:** [`state/vendored.json`](https://github.com/mehrlander/web-tools-private/blob/background/state/vendored.json) on web-tools-private's `background` branch compares each cross-repo copy with its source. Read its `checked_at`, its `summary`, and each file whose `copy_state` or `source_state` is not `ok`.
 - **Repeated prose:** `npm run -s claims-scan`, which runs [`duplicated-claims.py`](../../python/duplicated-claims.py), lists file pairs sharing passages. It is advisory and reports false positives. Name a pair only with its shared count and sample.
@@ -69,4 +67,4 @@ Return one line for each item, grouped by source:
 vendored | prose · <file, or the pair> · <state, or the shared count and sample> · <the date the source was read>
 ```
 
-Name any source you could not read. Give the `checked_at` of `state/vendored.json`, which is a cache.
+Give the `checked_at` of `state/vendored.json`, which is a cache.
