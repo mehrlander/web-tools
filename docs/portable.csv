@@ -13,6 +13,7 @@ skill,/portable:content-registry,skills/content-registry/SKILL.md,content-regist
 skill,/portable:concept-index,skills/concept-index/SKILL.md,concept-index,,plugin
 skill,/portable:drop-link,skills/drop-link/SKILL.md,drop-link,,plugin
 skill,/portable:look-markers,skills/look-markers/SKILL.md,look-markers,,plugin
+skill,/portable:orienting-notes,skills/orienting-notes/SKILL.md,orienting-notes,,plugin
 skill,/portable:file-retrieval,skills/file-retrieval/SKILL.md,file-retrieval,,plugin
 skill,/portable:scour,skills/scour/SKILL.md,scour,,plugin
 skill,/portable:wayback,skills/wayback/SKILL.md,wayback,,plugin
@@ -80,6 +81,7 @@ dir,,docs/environment,Web sandbox environment,"dated facts about the Claude Code
 dir,,docs/envelopes,Content envelopes,"the envelope family: the surface contract, chat-results, and the schemas that validate them",on-demand
 agent,,skills/agents/house-style-critic.md,House-style critic,,plugin
 agent,,skills/agents/peeves-critic.md,Peeves critic,,plugin
+agent,,skills/agents/orienting-note-critic.md,Orienting-note critic,,plugin
 agent,,skills/agents/owner-proxy.md,Owner proxy,,plugin
 agent,,skills/agents/conservator.md,Conservator,,plugin
 agent,,skills/agents/radical-editor.md,Radical editor,,plugin

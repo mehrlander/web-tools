@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="orienting-note-critic agent">
+  <title>orienting-note-critic agent</title>
+  <desc>A doorway with its door ajar, for the critic that judges the line said as a reader is shown in, in the manner of an usher at a principal's door. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
+  <g fill="#0d9488">
+    <path fill-rule="evenodd" d="M6 3 L26 3 L26 29 L6 29 Z M9.5 6.5 L22.5 6.5 L22.5 29 L9.5 29 Z"/>
+    <path fill-rule="evenodd" d="M12 10 L19.5 9 L19.5 29 L12 29 Z M14.5 18 L17 18 L17 20.5 L14.5 20.5 Z"/>
+  </g>
+</svg>
