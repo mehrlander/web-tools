@@ -47,7 +47,7 @@ Phases 2 and 3 run in one reply, so the idea board explains the choice rather th
 
 Resolve structure, sequence, wording, visuals and behavior together. Make the central mechanism concrete with real content. When the concept needs material that does not exist yet, such as a run of another skill or a measurement, produce it here and label it as produced for the page.
 
-**Comparing working options.** When two or more concepts survive phase 2, or the reader would rather choose by trying than by reading, build them as a [lineup](https://github.com/mehrlander/web-tools/blob/main/docs/forms/README.md#respond-forms), one working version of the page per option. Hand it over as a [`toss-render.html#gz=`](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#displaying-content) link with a screenshot of each option.
+**Comparing working options.** When two or more concepts survive phase 2, build them as a [lineup](https://github.com/mehrlander/web-tools/blob/main/docs/forms/README.md#call-forms). Build one too when the reader would rather choose by trying than by reading. A lineup holds one working version of the page per option. Hand it over as a link that carries the page in its address ([Displaying content](https://github.com/mehrlander/web-tools/blob/main/docs/CONVERSATION.md#displaying-content), `toss-render.html#gz=`), with a screenshot of each option.
 
 Walk through the result as the intended reader: where would they stall, what connections would they miss, and could they state the intended result afterward? Fix gaps. Keep untested assumptions explicit. Return to an earlier phase when development exposes a problem in it.
 
