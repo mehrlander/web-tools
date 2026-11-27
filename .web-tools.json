@@ -361,7 +361,8 @@
         "docs/probes.md",
         "python/source-bundles.py",
         "python/probes.py",
-        "pages/text-lab.html"
+        "pages/text-lab.html",
+        "pages/news/news.html"
       ],
       "reviewers": [
         "portable:owner-proxy",
