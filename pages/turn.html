@@ -76,13 +76,10 @@
     throw e;
   }
 </script>
-<style>
-  [x-cloak]{display:none!important}
-</style>
 </head>
 <!-- An h-dvh root for a list over a strip (house style rule 5): the page may
      be framed by a toss, so nothing here is fixed. -->
-<body class="h-dvh flex flex-col bg-base-100 text-base-content [--fab-bottom:4.5rem]" x-data="turnPage()" x-cloak>
+<body class="h-dvh flex flex-col bg-base-100 text-base-content [--fab-bottom:4.5rem] [&[x-cloak]]:hidden" x-data="turnPage()" x-cloak>
 
   <div x-show="!want" class="shrink-0 border-b border-base-300 px-4 py-2 flex items-center gap-2">
     <span class="text-lg">&#129359;</span>
