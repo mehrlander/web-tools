@@ -29,7 +29,7 @@ what?", then give the compared things one place:
 
 ## Shared page patterns
 
-Start with the reader's job and reuse a [standard presentation](https://github.com/mehrlander/web-tools/blob/main/docs/forms/README.md) where one fits. A **deck** is a swipeable sequence of cards. A **takeover** opens content in an expanded reader with a header, content area, navigation, and a return path to the page beneath it (rule 4).
+Start with the reader's job and reuse a [standard presentation](https://github.com/mehrlander/web-tools/blob/main/docs/forms/README.md) where one fits. A **card** is a bordered box that shows one object. A **tile** is a card in a packed grid. A **panel** is content that a control reveals, such as a panel-tip. The manifest key `programs[].areas[].panels` in `.web-tools.json` is the exception: there a panel is a block on an area's card. A **deck** is a swipeable sequence of cards. A **takeover** opens content in an expanded reader with a header, content area, navigation, and a return path to the page beneath it (rule 4).
 
 | Page need | Pattern | Shared implementation |
 | --- | --- | --- |

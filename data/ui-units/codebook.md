@@ -6,15 +6,6 @@ reader codes one row per unit, and every field below says what it holds and
 what test decides it. Nothing here is settled vocabulary yet. The codes become
 a registry only after a full pass shows they hold.
 
-## Terms
-
-Four words name parts of a screen in this codebook and in the codes' glosses. Use each in the sense given here:
-
-- **card**: a bordered box that draws one object, such as one item of a list or one area of a program.
-- **tile**: a card as placed in a packed grid.
-- **panel**: content that a control reveals, such as a panel-tip ([`lib/kits/panel-tip.js`](../../lib/kits/panel-tip.js)) or the region that the `panel-toggle` frame code's button shows. One exception remains: the manifest key `programs[].areas[].panels` in [`.web-tools.json`](../../.web-tools.json) names a block of content on an area's card.
-- **area**: one subdivision of a program, as a row of the Areas table in the program's charter (its `programs/<name>/README.md`) and as an entry of `programs[].areas` in the manifest.
-
 ## What is coded, and what is not
 
 A **unit** is one row of `units.csv`: an app view, a view's tab, a page, or an
