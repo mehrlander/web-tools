@@ -201,3 +201,8 @@ page-jobs,basis,note,Note,the judgment read only the note a manifest or the gall
 page-jobs,basis,name,Name,the judgment read only the page's name,
 pages-map,visibility,public,Public,the repository is public,
 pages-map,visibility,private,Private,"the repository is private, so the page renders only for a reader with a GitHub token",
+glossary-terms,general,yes,Yes,"the plain sense is safe; a writer names any estate sense explicitly, as in ""the Lists view""",
+glossary-terms,general,qualify,Qualify,"the word has an estate sense; a writer qualifies it so the reader knows which sense is meant",
+glossary-terms,general,no,No,the word reads as its estate sense or is ruled out; a writer does not use it in a plain sense,
+glossary-senses,status,current,Current,the sense is in use,
+glossary-senses,status,retired,Retired,the sense was replaced; replaced_by names the word now used,

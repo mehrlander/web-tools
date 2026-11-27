@@ -12,7 +12,7 @@ must stay correct.
 
 **Reach** (derived by `node/build/docs-reach.mjs`, gated against the registry):
 2 arrive in every session's context, 17 are named by CLAUDE.md,
-24 by a skill, 42 by a page or component. The remaining 45 are
+24 by a skill, 46 by a page or component. The remaining 45 are
 marked *(orphan)* below: nothing points at them except this index.
 
 ## docs/
@@ -156,6 +156,13 @@ marked *(orphan)* below: nothing points at them except this index.
 - [`mcp-server-routing.md`](github/mcp-server-routing.md) *(record, orphan)* — two GitHub MCP servers at once: the 2026-07-15 observation, superseded
 - [`mcp.md`](github/mcp.md) *(measured, orphan)* — what the MCP layer does to a call and to the text it carries: which server answers, the 150-character write threshold, the HTML-stripping readback
 - [`post-merge-branch-mutation.md`](github/post-merge-branch-mutation.md) *(orphan)* — why a merged branch stops being a live workspace: merged means closed
+
+## docs/glossary/
+
+- [`README.md`](glossary/README.md) — the estate's one glossary: its three files, the entry bar a term must meet, how importance is measured, and how candidates are harvested
+- [`senses.csv`](glossary/senses.csv) — one row per sense of a glossary term: its domain, its gloss, the document that states it, and whether it is retired
+- [`stats.csv`](glossary/stats.csv) *(measured)* — how the hub's Markdown uses each glossary term: uses, files, spread, markedness and the importance score
+- [`terms.csv`](glossary/terms.csv) — one row per glossary term: whether its plain sense is safe to use, its variant spellings, and the terms to read beside it
 
 ## docs/prototypes/
 

@@ -38,6 +38,7 @@
     "gold-set": "node node/gold-set.mjs",
     "claims-scan": "python3 python/duplicated-claims.py",
     "themes-graph": "python3 python/duplicated-claims.py --emit docs/themes.csv",
+    "glossary-stats": "python3 python/glossary-stats.py --emit docs/glossary/stats.csv",
     "comment-blocks": "python3 python/comment-blocks.py . --skip archive/ --skip dump/ --skip research/ --emit data/comments/web-tools.json",
     "opacity-scan": "python3 python/dead-opacity.py",
     "family-scan": "python3 python/dead-family.py",

@@ -272,7 +272,8 @@ test('the two sub-tab encodings, counted', () => {
   // 53 to 58 on 2026-11-18: the Program view took its five tabs, Areas,
   // Measures, Changes, Tasks and Notes, which its page had held inside the
   // Map's Programs tab with no address of their own.
-  assert.equal(params, 58, 'sub-tabs addressed as ?view=<parent>&tab=');
+  // 58 to 59 on 2026-11-27: Docs took Glossary, the estate's terms of art.
+  assert.equal(params, 59, 'sub-tabs addressed as ?view=<parent>&tab=');
 });
 
 // The Map's row is a copy of the shell's address list, and it is a copy that
