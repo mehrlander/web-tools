@@ -19,7 +19,7 @@ tab; a program is defined in
 
 ## Processes
 
-A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+A process is a recurring question or duty the program answers for; [`manager.md`](manager.md) says how the manager answers each one.
 
 | Process | Starts when |
 | --- | --- |
@@ -35,11 +35,7 @@ A process is a recurring question or duty the program answers for. A session han
 
 ## Reviewers
 
-A proposed change to a governed file goes to
-[owner-proxy](../../skills/agents/owner-proxy.md) and
-[peeves-critic](../../skills/agents/peeves-critic.md) before the owner sees it; a
-change to a page also goes to
-[house-style-critic](../../skills/agents/house-style-critic.md).
+A proposed change to a governed file goes to [owner-proxy](../../skills/agents/owner-proxy.md) and [peeves-critic](../../skills/agents/peeves-critic.md) before the owner sees it; a change to a page also goes to [house-style-critic](../../skills/agents/house-style-critic.md).
 
 ## Not this program's
 
