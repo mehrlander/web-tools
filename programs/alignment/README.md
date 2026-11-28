@@ -14,6 +14,7 @@ It keeps the files that describe the owner's repositories and record the work do
 | Trackers | each repository's task tracker, written to the schema in [`TRACKER.md`](../../docs/TRACKER.md) |
 | Maps | current-state maps in [`current/`](current/), each checked against its data, and proposals to change them in [`future/`](future/). The first map covers [the estate's pages](current/pages.md) |
 | Repeated prose | passages that two or more files state alike, found by [`duplicated-claims.py`](../../python/duplicated-claims.py), kept in [`themes.csv`](../../docs/themes.csv) and shown in the Map view's [Themes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=themes) |
+| Glossary | the terms of art in the estate's prose and the plain words a reader could confuse them with, in [`docs/glossary/`](../../docs/glossary/README.md), shown in the Map view's [Glossary tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=glossary) |
 | Lists | the [Lists](https://mehrlander.github.io/web-tools/app/?view=lists) view and the list files it reads and writes in web-tools-private's [`lists/`](https://github.com/mehrlander/web-tools-private/tree/main/lists), through [`kits/lists.js`](../../lib/kits/lists.js). A list's items belong to the program their subject belongs to |
 
 ## Processes
