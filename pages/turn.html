@@ -143,13 +143,9 @@
       </div>
     </header>
 
-    <div x-show="!turn.files.length" class="px-4 py-8 text-base text-base-content/60" data-at="empty">
-      <span>No page or document changed in this turn</span><span x-show="otherCount" x-text="' · ' + plural(otherCount, 'other file')"></span>
-    </div>
-
     <!-- THE FILES: kits/turn-view.js in its full form, the same view the
          session page's Turns tab draws compact under each card. -->
-    <div x-show="turn.files.length" x-ref="view" class="flex min-h-0 grow flex-col"></div>
+    <div x-ref="view" class="flex min-h-0 grow flex-col"></div>
   </div>
   </template>
 
@@ -184,7 +180,7 @@
         const at = (pick('at') || '').trim();
         if (!id || !(n >= 1 || at)) return null;
         const card = parseInt(pick('card'), 10);
-        return { id, n: n >= 1 ? n : 0, at, card: card >= 0 ? card : 0 };
+        return { id, n: n >= 1 ? n : 0, at, card: card >= 0 ? card : -1 };
       },
 
       go() {
@@ -214,7 +210,8 @@
           const t = window.TurnViews.of(rec, this.want.n);
           if (!t) throw new Error('Session ' + this.want.id + ' has ' + window.TurnViews.count(rec) + ' turns; there is no turn ' + this.want.n + '.');
           this.turn = t;
-          this.card = Math.min(this.want.card, Math.max(0, t.files.length - 1));
+          // A file, by `card` (0-based); -1, the default, is the discussion.
+          this.card = this.want.card >= 0 && t.files.length ? Math.min(this.want.card, t.files.length - 1) : -1;
           document.title = 'Turn ' + t.n + ' · ' + this.short;
           this.$nextTick(() => this.mountView());
         } catch (e) {
@@ -241,7 +238,7 @@
       get sessionUrl() {
         // This turn's card on the session page, at the file in view here.
         return SITE + 'pages/session.html#id=' + this.short
-          + (this.turn ? '&turn=' + this.turn.n + (this.turn.files.length ? '&file=' + (this.card + 1) : '') : '');
+          + (this.turn ? '&turn=' + this.turn.n + (this.card >= 0 ? '&file=' + (this.card + 1) : '') : '');
       },
       // The row of ways out: the session, the reply conventions, the program.
       get quick() {
@@ -254,18 +251,29 @@
       turnUrl(n) { return '#id=' + this.short + '&turn=' + n; },
       get otherCount() { return (this.turn?.other || []).length; },
       plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); },
-      // The files, their cards and the note bar are the shared view's.
+      // The discussion, the files, their cards and the note bar are the
+      // shared view's. The discussion is drawn as the Turns tab's card draws
+      // it: lumped, with compactions and messages between sessions as rows
+      // (session-render's lump mode). Item 0 is the discussion, so a file's
+      // item is its card + 1.
       mountView() {
         if (!this.$refs.view || !window.TurnView) return;
+        const n = this.turn.n, rec = this.record, spawn = this.turn.spawn || null;
         window.TurnView.mount(this.$refs.view, {
-          record: this.record, path: this.path, n: this.turn.n, store: STORE, mode: 'full',
-          start: this.want.card, onPick: (i) => { this.card = i; this.stamp(i); },
+          record: rec, path: this.path, n, store: STORE, mode: 'full', start: this.card + 1,
+          discussion: (target) => {
+            const host = document.createElement('div');
+            host.className = 'flex flex-col gap-3';
+            target.replaceChildren(host);
+            window.sessionRender?.card?.(window.TurnViews.discussion(rec, n), host, { lump: true, spawn })?.catch?.(() => {});
+          },
+          onPick: (i) => { this.card = i - 1; this.stamp(i - 1); },
         });
       },
-      stamp(i) {
+      stamp(card) {
         if (!/^https?:$/.test(location.protocol)) return;
         const h = new URLSearchParams(location.hash.replace(/^#/, ''));
-        h.set('card', String(i));
+        if (card >= 0) h.set('card', String(card)); else h.delete('card');
         history.replaceState(history.state, '', '#' + h.toString());
       },
     }));
