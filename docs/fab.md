@@ -10,7 +10,7 @@ The check for newer commits runs when the view changes and when the tab comes ba
 
 ## The FAB sidebar
 
-A tap opens the FAB sidebar on the right, with five tabs (About, Render, Inspect, Traffic, and Text), under a one-line READOUT strip carried on all but Text (what this page load cost, how many calls browsing has added, what is left of the rate limit) which is also the way the Traffic tab is found. The sidebar opens on About, which shows what the page in view says about itself through its `about` declaration: what it is and what it reads, with its notes below.
+A tap opens the FAB sidebar on the right, with five tabs (About, Render, Inspect, Traffic, and Text), under a one-line READOUT strip carried on all but Text (what this page load cost, how many calls browsing has added, what is left of the rate limit). The strip is also the way the Traffic tab is found. The sidebar opens on About, which shows what the page in view says about itself through its `about` declaration: what it is and what it reads.
 
 ## The layer strip
 
@@ -50,11 +50,11 @@ Text reads what the page says, as against Render, Inspect and Traffic, which rep
 
 ## Notes and the annotator
 
-About lists the notes for the page or the selected item. Its Write button opens the composer in the bottom panel's Comment tab, so a note is written with the page in view at full width. Item / Page chooses the subject named above the field. Each subject keeps its own draft. Save note appends a signed, dated note to the private [notes store](../skills/notes/SKILL.md); a failed save keeps the draft. The notes in About follow that subject, including replies and notes on entries consolidated into it.
+About lists the notes for the page or the selected item. Its Write button opens the composer in the [bottom panel](#the-bottom-panel)'s Comment tab. Item / Page chooses the subject named above the field. Each subject keeps its own draft. Save note appends a signed, dated note to the private [notes store](../skills/notes/SKILL.md); a failed save keeps the draft. The notes in About follow that subject, including replies and notes on entries consolidated into it.
 
 Selecting text lights the FAB with a highlighter icon. Tapping opens the Comment tab and focuses the note field with the passage quoted above it. The passage comes from the page's document, including a tossed frame, and stays highlighted while the note is written. Leaving the tab before saving restores the page's selection and keeps the draft. A successful save keeps the quote as the note's anchor and highlights the passage for the current session.
 
-The annotator (kits/annotate.js) also collects a working set through the FAB's long-press Page, Element, Section and Region aims. Its card docks in the Comment tab in place of the composer, and the tab's Note / Set switch moves between the two. The card can copy or export the set, and Save notes files annotations that have not already been saved through the composer. A page that starts the annotator without the FAB gets a floating card.
+The annotator ([`kits/annotate.js`](../lib/kits/annotate.js)) also collects a working set through the FAB's long-press Page, Element, Section and Region aims. Its card docks in the Comment tab in place of the composer, and the tab's Note / Set switch moves between the two. The card can copy or export the set. Its Save notes files annotations that have not already been saved through the composer. A page that starts the annotator without the FAB gets a floating card.
 
 ## The FAB menu
 
@@ -64,7 +64,7 @@ A LONG PRESS or right-click on the FAB opens a short menu. Every row is one line
 - **"Latest version"** heads the menu while the arrow badge is up and does what a tap on the badge does; the branch rides in its tooltip.
 - **"Test the bridge"** appears in every token state and fires the same kind of link at Log-Repo, which commits what it is handed, so a positive answer lands in the device log. A scheme nothing is registered for fails silently, so every Shortcuts row watches for this document being backgrounded and reports the exact URL it tried when the document stays put.
 - **"Note"** carries the aims as icon buttons beside one label: the page, an element, a section (only where the page declares a kind that names one), and a region. The page aim stages a PAGE draft with the microphone off. **"Hide notes"**, shown only while the card is up, puts the card away and keeps the notes.
-- **"Panel"** opens the bottom panel on the tab it showed last, and its three buttons open one tab each: Peek, Probe and Comment. The Probe button first arms `kits/probe.js` on the view if it is off: a readout of live conditions plus the trace of every popup guard decision. The probe is armed in the WATCHED realm through the subject frame's own gh chain; a framed page with no loader of its own is told to use `?probe=` instead.
+- **"Panel"** opens the bottom panel on the tab it showed last. Its three buttons open one tab each: Peek, Probe and Comment. The Probe button first arms [`kits/probe.js`](../lib/kits/probe.js) on the view if it is off. The probe reads out live conditions and traces every popup guard decision. The probe is armed in the WATCHED realm through the subject frame's own gh chain; a framed page with no loader of its own is told to use `?probe=` instead.
 - **"Paste"** puts the clipboard on the Stage: a page showing the Stage takes it in place, and any other page parks it through `kits/stage-handoff.js` and leaves for the app's Stage, which picks it up at boot.
 - **"Home"** leaves for the deployed app at the default branch: a fixed address, so it reaches the app from a toss, from a ?use= pin, and from a page that was never part of it.
 - **"Form"** sets the FAB's shape: Basic, Hide or Pad. Pad puts arrow-key chevrons round it.
@@ -77,7 +77,7 @@ A take menu sits under the render tab in every context the FAB sidebar appears i
 
 ## The bottom panel
 
-A panel along the bottom of the window holds four tabs: the console, [Peek](../lib/kits/peek.js)'s readings, the probe's readout, and Comment (see Notes and the annotator). The Probe tab carries the probe's verbs: send the capture, hold the trace, move the panel to the window's other edge, and take the probe off. Putting the panel away ends Peek and returns the probe's readout to its corner overlay.
+A panel along the bottom of the window leaves the page above it in view. It holds four tabs: Console (the page's console output), [Peek](../lib/kits/peek.js), Probe and Comment ([Notes and the annotator](#notes-and-the-annotator)). The Probe tab carries the probe's controls: file its capture (the readout and trace as JSON) to the log repo, or hand it to the share sheet where there is no token; freeze the trace; move the panel to the window's other edge; and take the probe off. Putting the panel away ends Peek and returns the probe's readout to its corner overlay.
 
 ## Other controls
 
