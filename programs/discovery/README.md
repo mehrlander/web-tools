@@ -8,7 +8,7 @@ Discovery is the owner's research, into their own work and into what others know
 | --- | --- |
 | Probes | investigations that test the owner's tools, workflows, data or assumptions, often by building something and trying it. Each write-up is listed under `research` in its repository's `.web-tools.json` with the kind `probe`, kept in [web-tools-private `research/`](https://github.com/mehrlander/web-tools-private/tree/main/research) unless a project keeps its own, and shown in the Map's [Probes tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=research). budget-drs's [probes](https://github.com/mehrlander/budget-drs/tree/main/data/design/probes) and home's [text project](https://github.com/mehrlander/home/tree/main/projects/text) keep their own. The text project's probes are read on the [Text Lab page](../../pages/text-lab.html) |
 | Provenance | how content, data and claims tie back to their sources. It covers material taken in from outside as [source bundles](../../docs/source-bundles.md), a probe's [sources](../../docs/probes.md#sources), the [source-anchoring](../../skills/source-anchoring/SKILL.md) skills, the [content registry](../../skills/content-registry/SKILL.md) of what produced each artifact, and [gold sets](../../skills/gold-set/SKILL.md), which test correctness against an independently labeled sample. [Provenance in practice](https://github.com/mehrlander/web-tools-private/blob/main/research/2026-11-20-provenance-in-practice/README.md) surveys current practice |
-| Exploration | information gathered from outside sources, listed with the kind `exploration` and shown in the Map's [Exploration tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=exploration), and the skills that gather it, such as [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md) |
+| Exploration | information gathered from outside sources, listed with the kind `exploration` and shown in the Map's [Exploration tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=exploration). The skills that gather it include [scour](../../skills/scour/SKILL.md) and [wayback](../../skills/wayback/SKILL.md). The news pipeline is the scheduled tasks in the `news-` rows of [`scheduled-tasks.csv`](https://github.com/mehrlander/web-tools-private/blob/main/data/design/scheduled-tasks.csv). They fetch articles from the sources in home's [`news/sources.json`](https://github.com/mehrlander/home/blob/main/news/sources.json). The [News page](../../pages/news/news.html) shows the fetched articles |
 
 ## Processes
 
@@ -17,6 +17,8 @@ A process is a recurring question or duty the program answers for; [`manager.md`
 | Process | Starts when |
 | --- | --- |
 | Prior work | a session or the owner asks what existing probes, explorations and gathered source files already establish on a subject before starting a new investigation |
+| Bake-off | a session or the owner asks which of several skills, tools or methods to adopt for a task, or how one method performs across varied subjects |
+| Research inventory | a session or the owner asks for a list of the probes, explorations or scour and wayback runs that exist |
 
 ## Measures
 
