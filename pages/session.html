@@ -31,7 +31,8 @@
   and `card=<n>`, which say where in the session to land: `card` opens the deck
   on one exchange, the session's answer to branch.html's `file=`. `turn=<n>`
   (1-based) selects that exchange's card in the Turns tab without the deck,
-  which is where turn.html's ✕ returns. The tabs that
+  which is where turn.html's ✕ returns; `file=<i>` with it opens that card on
+  its i-th changed file rather than the discussion. The tabs that
   went on 2026-11-17 still land: `log`, `raw` and `schema` on the Record tab,
   `cost` on the Overview with the cost panel open. `find=<text>` opens the
   search in the header with that text.
@@ -239,13 +240,14 @@
         const pane = pick('pane');
         const card = parseInt(pick('card'), 10);
         const turn = parseInt(pick('turn'), 10);
+        const file = parseInt(pick('file'), 10);
         const find = (pick('find') || '').trim();
         // `now` names the ref the action message is read from, main by default.
         const nowRef = pick('now');
         const at = { ...(['overview', 'turns', 'cost', 'outline', 'log', 'schema', 'raw', 'record',
                           'calls', 'views', 'files'].includes(pane) ? { pane } : {}),
                      ...(Number.isInteger(card) ? { start: card } : {}),
-                     ...(turn >= 1 ? { turn } : {}),
+                     ...(turn >= 1 ? { turn, ...(file >= 1 ? { file } : {}) } : {}),
                      ...(find ? { find } : {}),
                      ...(nowRef ? { nowRef } : {}) };
         const gz = pick('gz');

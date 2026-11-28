@@ -160,7 +160,7 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('turnPage', () => ({
       input: '', want: null, busy: false, err: '', askOpen: false,
-      record: null, turn: null, pending: false, path: '',
+      record: null, turn: null, pending: false, path: '', card: 0,
 
       async init() {
         // The turn arrows and a reader's edit change the hash alone; the
@@ -214,6 +214,7 @@
           const t = window.TurnViews.of(rec, this.want.n);
           if (!t) throw new Error('Session ' + this.want.id + ' has ' + window.TurnViews.count(rec) + ' turns; there is no turn ' + this.want.n + '.');
           this.turn = t;
+          this.card = Math.min(this.want.card, Math.max(0, t.files.length - 1));
           document.title = 'Turn ' + t.n + ' · ' + this.short;
           this.$nextTick(() => this.mountView());
         } catch (e) {
@@ -238,7 +239,9 @@
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       },
       get sessionUrl() {
-        return SITE + 'pages/session.html#id=' + this.short + (this.turn ? '&turn=' + this.turn.n : '');
+        // This turn's card on the session page, at the file in view here.
+        return SITE + 'pages/session.html#id=' + this.short
+          + (this.turn ? '&turn=' + this.turn.n + (this.turn.files.length ? '&file=' + (this.card + 1) : '') : '');
       },
       // The row of ways out: the session, the reply conventions, the program.
       get quick() {
@@ -256,7 +259,7 @@
         if (!this.$refs.view || !window.TurnView) return;
         window.TurnView.mount(this.$refs.view, {
           record: this.record, path: this.path, n: this.turn.n, store: STORE, mode: 'full',
-          start: this.want.card, onPick: (i) => this.stamp(i),
+          start: this.want.card, onPick: (i) => { this.card = i; this.stamp(i); },
         });
       },
       stamp(i) {
