@@ -86,7 +86,7 @@ Set `call` to this call's id on the decision the call settles. Write that decisi
 - `radio`: an opener, the question as a host would introduce it.
 - `dialog`: a talk between the `cast`'s two speakers.
 
-Along its bottom, the call's page shows one slide at a time: one for each answer and each material, and one each for Notes and Adjust. A line's `see` names the slide to bring up with that line: an answer, a material's label, Notes or Adjust. `asides` comment on a slide while it shows.
+Along its bottom, the call's page shows one slide at a time: one for each answer and each material, and one for Notes. In the session page's deck, a call the owner has begun to answer also has an Adjust slide. A line's `see` names the slide to bring up with that line: an answer, a material's label, Notes or Adjust. `asides` comment on a slide while it shows.
 
     {"cast": {"pip": {"name": "Pip"}, "pap": {"name": "Pap"}},
      "questions": [{"q": "...", "a": "...", "see": "<a material's label>"}],
@@ -106,19 +106,21 @@ Five optional fields, each the filing session's judgment, let a list of calls be
 
 ## `documentation`
 
-The owner chooses which of a session's edits to one markdown or CSV document to keep. Review prose inside code, such as a docstring, on its PR instead.
+The owner chooses which of a session's edits to one markdown or CSV document, or to entries of a list (`lists/*.json`), to keep. Review prose inside code, such as a docstring, on its PR instead.
 
     {"session": "a4e46375", "slug": "text-tools-tighten", "kind": "documentation",
      "question": "Apply 4 edits to docs/text-tools.md?", "brief": "what the edits do",
      "file": "owner/repo@branch:path",         # the document on the branch that holds the edits
      "base": "main",                           # the ref the edits were made against
-     "edits": [{"from": "...", "to": "...",    # from: text the file holds once
+     "edits": [{"from": "...", "to": "...",    # from: text the file holds once; for a list entry, {text, note?}
                 "why": "one clause",           # optional
                 "background": "...",           # optional, with proposal
                 "proposal": "...",
                 "notes": [{"kind": "correct", "text": "one clause"}]}],   # optional
      "recommend": "Apply all four", "why": "one clause",
      "pr": "owner/repo#n", "materials": [<link>...], "review": {...}}
+
+A list call's `file` is `owner/repo@ref:lists/x.json`, with `#<id>` for one entry; each edit names its entry in `item`, with `from` and `to` as `{text, note?}`. `user-call.py add` checks that each entry is in the list at `base`. In its `review`, each span is `{item, edit}`, the entry's id in place of `lines`.
 
 - For edits not yet made, leave out `base`: the page shows them as proposed changes to `file`. The answer's patch then puts the kept ones in.
 - A document the main branch does not hold yet has `"new": true` and no edits. Its page shows the file whole. The answer approves it.
@@ -149,6 +151,8 @@ A trip is {peeve, edit, where, quote, clause, answer, why, misquoted}. The first
 
 Each answer is one JSON line, {answer, then?, note, at, by, comment?}, in `<id>.answers.jsonl` beside the call. The owner's browser appends each line; the latest line wins. An `Adjust` answer's note says what to change. Its `then` is `go` (make the change and carry on) or `return` (draft it and file a new call before acting).
 
+On the call's own page, the owner may answer with a note from the FAB sidebar instead. The note is about the call's file, `owner/repo[@ref]:user-calls/<id>.json`, and may carry a `vote`, `up` or `down`, on the recommendation. The [notes](../../skills/notes/SKILL.md) skill states the record. `user-call.py answers` prints these notes after the answer lines.
+
 A pick answer adds `picks`, [{id, href}], each id naming its source and item (`iconify game-icons:crystal-shine`, `commons File:...`, `idea 2 Build it up`). An idea board's answer also adds `notes`, [{on, note}], one per card the owner wrote on.
 
 A documentation answer adds:
@@ -157,4 +161,4 @@ A documentation answer adds:
 - `notes`, [{on, note}], the owner's notes on text no edit touches, `on` being that text's first words;
 - `call`, `file` and `base`, as the page read them;
 - `target` and `commit`, when the edits were committed from the page;
-- otherwise `patch`, the confirmed edits as a diff, with `apply: "session"`. Apply it with the [`user-calls`](../../skills/user-calls/SKILL.md) skill's `user-call.py patch` command, in a checkout of the file's repo.
+- otherwise `patch`, the confirmed edits as a diff (for a list, a diff of its JSON with each kept entry's text and note replaced), with `apply: "session"`. Apply it with the [`user-calls`](../../skills/user-calls/SKILL.md) skill's `user-call.py patch` command, in a checkout of the file's repo.

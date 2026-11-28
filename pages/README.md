@@ -57,10 +57,12 @@ the link-dense text twin of the visual index above.
 | `shortcuts` | Workflows | [view](https://mehrlander.github.io/web-tools/pages/shortcuts.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shortcuts.html) |
 | `shorter` | Shorter | [view](https://mehrlander.github.io/web-tools/pages/shorter.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/shorter.html) |
 | `skill-lab` | Skill Lab | [view](https://mehrlander.github.io/web-tools/pages/skill-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/skill-lab.html) |
+| `standing` | Standing sessions | [view](https://mehrlander.github.io/web-tools/pages/standing.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/standing.html) |
 | `swarm` | Reduction swarm | [view](https://mehrlander.github.io/web-tools/pages/swarm.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/swarm.html) |
 | `text-lab` | Text Lab | [view](https://mehrlander.github.io/web-tools/pages/text-lab.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/text-lab.html) |
 | `toss-render` | Toss Render | [view](https://mehrlander.github.io/web-tools/pages/toss-render.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/toss-render.html) |
 | `transform` | Transform | [view](https://mehrlander.github.io/web-tools/pages/transform.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/transform.html) |
+| `turn` | Turn | [view](https://mehrlander.github.io/web-tools/pages/turn.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/turn.html) |
 | `user-call` | User call | [view](https://mehrlander.github.io/web-tools/pages/user-call.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/user-call.html) |
 | `walkthrough` | Walkthrough | [view](https://mehrlander.github.io/web-tools/pages/walkthrough.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/walkthrough.html) |
 | `word-select` | Word Select | [view](https://mehrlander.github.io/web-tools/pages/word-select.html) · [code](https://github.com/mehrlander/web-tools/blob/main/pages/word-select.html) |

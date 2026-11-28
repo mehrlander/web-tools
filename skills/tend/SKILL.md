@@ -207,7 +207,7 @@ principles above:
   context: in the pull request body if there is one, complete enough for a
   fresh session to continue from.
 
-End the session's own reply with a recap for a reader coming back cold: what
-waits on the owner, one question per decision, each linked to where the owner
-answers it; then what the session is for, what it did and what it sidestepped,
-where things stand, and where to pick up.
+End the session's own reply with a recap for a reader coming back cold. Open
+with what waits on the owner, one question per decision, each linked to where
+the owner answers it. Then say how the session started, what it did and what it
+chose not to do, where things stand, and where to pick up.

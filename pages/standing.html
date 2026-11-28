@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter" class="[scrollbar-gutter:stable]">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Standing sessions</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🎙️</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  standing.html — the owner's standing program sessions, one row each.
+
+  A standing session is one long-lived session per program, started by another
+  session with create_session and tagged `program-session` and
+  `program:<name>`. A worker is a session a standing session started. Neither
+  fact is in the child's own record: the PARENT's record names each child it
+  started, and the sessions index carries that as `spawned` from ROW_V 28
+  (kits/repo-sessions-cache.js, spawnedOf). So the five are found, not listed
+  here: every `spawned` entry tagged `program-session` is a standing session.
+
+  Read through the viewer's stored token, all from web-tools-private:
+    state/sessions.json (main)          rows: state, ended, branches, spawned
+    sessions/topics/<path> (background) Gemini's companion: agenda, topic_status
+    user-calls/<short>-*.json (main)    open user calls
+  and each repo's open pull requests, matched to a row by head branch.
+
+  Live status (running, idle, needs_action) is the session API's and no page
+  can reach it. "Last activity" is the record's `ended`, its last Stop.
+
+  A tap on a row opens the five session briefs as a swipe deck at that row,
+  the component session.html mounts (alpineComponents/session-brief.js), so
+  stepping between them needs no navigation between pages.
+
+    #open=<program>   opens the deck on that program's session
+    ?use=<ref>        pins the lib chain, as session.html's does
+-->
+<script>
+  window.__depsReady = new Promise(r => { window.__depsDone = r; });
+</script>
+<script type="module">
+  const bootFailed = (e) => {
+    document.body?.removeAttribute('x-cloak');
+    const box = document.createElement('div');
+    box.setAttribute('role', 'alert');
+    box.style.cssText = 'margin:2rem auto;max-width:34rem;padding:1rem 1.25rem;border:1px solid #d9dee3;'
+      + 'border-radius:.75rem;background:#fff;font:14px/1.55 system-ui,sans-serif;color:#1f2937';
+    box.textContent = 'This page could not start: ' + (e?.message || e);
+    document.body?.replaceChildren(box);
+  };
+  try {
+    const ref = new URLSearchParams(location.search).get('use');
+    if (ref) {
+      const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+      if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+      const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+      try { await import(url); } finally { URL.revokeObjectURL(url); }
+    } else {
+      await import('../dist/web-tools.js');
+    }
+    // session.html's chain: the deck's slides are session briefs.
+    try {
+      await gh.load('kits/gz-payload.js');
+      await gh.load('kits/proof.js');
+      await gh.load('kits/swipe-deck.js');
+      await gh.load('kits/chat-render.js');
+      await gh.load('kits/session-render.js');
+      await gh.load('kits/session-export.js');
+      if (!window.ClosingState) await gh.load('kits/closing-state.js');
+    } finally { window.__depsDone(); }
+  } catch (e) {
+    bootFailed(e);
+    throw e;
+  }
+</script>
+</head>
+<body class="[&[x-cloak]]:!hidden min-h-dvh bg-base-100 text-base-content" x-data="standingPage()" x-cloak>
+
+  <header class="sticky top-0 z-10 bg-base-100 border-b border-base-300">
+    <div class="px-4 py-2 flex items-center gap-3">
+      <span class="text-lg">🎙️</span>
+      <h1 class="font-semibold">Standing sessions</h1>
+      <span class="hidden sm:inline text-xs opacity-60 tabular-nums" x-show="indexAt" x-text="'index ' + ago(indexAt)"></span>
+      <span class="grow"></span>
+      <button class="btn btn-ghost btn-sm cursor-pointer" @click="load(true)" :disabled="busy" aria-label="Read again">
+        <i class="ph ph-arrow-clockwise text-lg" :class="busy && 'animate-spin'"></i>
+      </button>
+      <a class="btn btn-ghost btn-sm cursor-pointer hover:text-primary" aria-label="Sessions program"
+         href="https://mehrlander.github.io/web-tools/app/?view=program&program=sessions"><i class="ph ph-squares-four text-lg"></i></a>
+      <a class="btn btn-ghost btn-sm cursor-pointer hover:text-primary" aria-label="The sessions index on GitHub"
+         href="https://github.com/mehrlander/web-tools-private/blob/main/state/sessions.json"><i class="ph ph-github-logo text-lg"></i></a>
+    </div>
+  </header>
+
+  <div x-show="err" class="m-4 alert alert-warning text-sm">
+    <span x-text="err"></span>
+    <a x-show="noToken" class="link" href="https://mehrlander.github.io/web-tools/app/?view=here">Save a token</a>
+  </div>
+  <div x-show="stale" class="m-4 alert text-sm">
+    <span x-text="stale"></span>
+    <a class="link" href="https://mehrlander.github.io/web-tools/app/?view=sessions">Sessions view</a>
+  </div>
+
+  <div x-show="busy && !programs.length" class="flex justify-center py-16">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+
+  <!-- One row per program. The columns line up from lg, so the five compare
+       down the page; below lg each row stacks its cells in the same order. -->
+  <div class="hidden lg:grid grid-cols-[14rem_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4 px-4 pt-3 pb-1 text-xs opacity-60" x-show="programs.length">
+    <span>Program · last activity</span><span>Now</span><span>Waits on you</span><span>Workers</span>
+  </div>
+  <ul class="divide-y divide-base-300">
+    <template x-for="(p, i) in programs" :key="p.id">
+      <li :id="'p-' + p.program"
+          class="scroll-mt-14 grid lg:grid-cols-[14rem_minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-x-4 gap-y-2 px-4 py-3 cursor-pointer hover:bg-base-200"
+          @click="openDeck(i)">
+
+        <!-- Identity: name, closing state, last activity, the page link. -->
+        <div class="flex items-start gap-2 min-w-0">
+          <span class="text-2xl leading-7" x-text="p.icon"></span>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <span class="font-semibold" x-text="p.name"></span>
+              <a class="cursor-pointer hover:text-primary opacity-70" :href="pageUrl(p.short)" @click.stop aria-label="Session page">
+                <i class="ph ph-arrow-square-out"></i></a>
+            </div>
+            <div class="text-xs opacity-70 tabular-nums flex items-center gap-1">
+              <span x-text="glyph(p.row?.state)"></span>
+              <span x-text="p.row ? ago(p.row.ended) : 'no record'"></span>
+              <span class="font-mono opacity-70" x-text="p.short"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Now: the companion's latest stretch, the topic and how it closed. -->
+        <div class="min-w-0 text-sm">
+          <template x-if="p.now">
+            <div>
+              <span class="font-medium" x-text="p.now.topic"></span>
+              <span class="opacity-80"><span x-text="p.now.glyph"></span> <b class="font-semibold" x-text="p.now.lead"></b> <span x-text="p.now.rest"></span></span>
+              <span class="text-xs opacity-50 tabular-nums whitespace-nowrap" x-text="clock(p.now.at)"></span>
+            </div>
+          </template>
+          <div x-show="!p.now" class="opacity-60" x-text="p.row?.ask || ''"></div>
+        </div>
+
+        <!-- Waits on you: open topics on the owner, then open user calls as
+             one count, then open PRs (the standing session's, then workers'). -->
+        <div class="min-w-0 text-sm flex flex-col gap-1">
+          <template x-for="w in p.waits" :key="w">
+            <div class="flex gap-2"><i class="ph ph-hand-palm opacity-50 mt-1"></i><span x-text="w"></span></div>
+          </template>
+          <a x-show="p.calls.length" class="flex gap-2 cursor-pointer hover:text-primary" @click.stop :href="pageUrl(p.short) + '&pane=calls'">
+            <span>⚖️</span><span class="tabular-nums" x-text="p.calls.length + ' open'"></span></a>
+          <template x-for="pr in p.prs.slice(0, PR_SHOWN)" :key="pr.url">
+            <a class="flex gap-2 min-w-0 cursor-pointer hover:text-primary" @click.stop :href="pr.url">
+              <i class="ph ph-git-pull-request mt-1" :class="pr.worker ? 'opacity-40' : 'opacity-70'"></i>
+              <span class="tabular-nums opacity-70" x-text="'#' + pr.number"></span>
+              <span class="truncate" x-text="pr.title"></span></a>
+          </template>
+          <span x-show="p.prs.length > PR_SHOWN" class="text-xs opacity-60 pl-6 tabular-nums" x-text="'+' + (p.prs.length - PR_SHOWN)"></span>
+          <span x-show="!p.waits.length && !p.calls.length && !p.prs.length" class="hidden lg:inline opacity-40">–</span>
+        </div>
+
+        <!-- Workers, one line each, check-ins first; only a check-in is coloured. -->
+        <div class="min-w-0 text-sm flex flex-col gap-1">
+          <template x-for="w in p.workers" :key="w.id">
+            <a class="flex gap-2 min-w-0 cursor-pointer hover:text-primary" @click.stop
+               :class="w.kind === 'checkin' ? 'text-amber-700' : w.kind === 'finished' ? 'opacity-50' : ''"
+               :href="w.short ? pageUrl(w.short) : w.agent">
+              <i class="ph mt-1" :class="KIND[w.kind].icon + (w.kind === 'checkin' ? ' text-amber-600' : ' opacity-60')"></i>
+              <span class="truncate" x-text="w.label"></span>
+              <span class="ml-auto shrink-0 text-xs opacity-70 tabular-nums mt-0.5"
+                    x-text="w.row ? glyph(w.row.state) + ' ' + ago(w.row.ended) : '◌ ' + ago(w.at)"></span>
+            </a>
+          </template>
+          <span x-show="p.workers.length" class="text-xs opacity-60 pl-6 tabular-nums" x-text="tally(p.workers)"></span>
+          <span x-show="!p.workers.length" class="hidden lg:inline opacity-40">–</span>
+        </div>
+      </li>
+    </template>
+  </ul>
+
+<script>
+  const STORE = 'mehrlander/web-tools-private';
+  const SITE = 'https://mehrlander.github.io/web-tools';
+  // Minutes of quiet before a worker counts as idle. A record is rewritten at
+  // every Stop, so quiet means no turn has ended in that time.
+  const IDLE_MIN = 30;
+  const CHECKIN_MIN = 120;
+  const FINISHED = new Set(['merged', 'closed', 'clean']);
+  // States where the worker holds the next move or names a problem: quiet on
+  // one of these past CHECKIN_MIN reads as a session that may have stalled.
+  const OWN_MOVE = new Set(['ready', 'assess', 'pending', 'attention']);
+  const KIND = {
+    checkin: { label: 'check in', icon: 'ph-bell-ringing' },
+    idle: { label: 'idle', icon: 'ph-hourglass-medium' },
+    recent: { label: 'recent', icon: 'ph-lightning' },
+    finished: { label: 'finished', icon: 'ph-check' },
+  };
+  const ORDER = Object.keys(KIND);
+  const PR_SHOWN = 3;
+
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('standingPage', () => ({
+      KIND, PR_SHOWN, programs: [], busy: false, err: '', noToken: false, stale: '', indexAt: '', now: Date.now(),
+
+      async init() {
+        await window.__depsReady;
+        setInterval(() => { this.now = Date.now(); }, 60000);
+        await this.load();
+        const open = new URLSearchParams(location.hash.replace(/^#/, '')).get('open');
+        const i = this.programs.findIndex(p => p.program === open || p.short === open);
+        if (i >= 0) this.openDeck(i);
+      },
+
+      token() { return window.TOKEN || window.ghAuth?.resolve?.() || ''; },
+      gh(ref) { return new window.GH({ token: this.token(), repo: STORE, ref: ref || 'main' }); },
+      async json(path, ref, fresh) {
+        return JSON.parse((await this.gh(ref).get(path, fresh ? window.GH.FRESH : {})).text);
+      },
+
+      async load(fresh = false) {
+        this.busy = true; this.err = ''; this.stale = ''; this.noToken = false;
+        try {
+          if (!this.token()) { this.noToken = true; throw new Error('The session store is private; this browser has no GitHub token saved.'); }
+          const index = await this.json('state/sessions.json', 'main', fresh);
+          this.indexAt = index.generatedAt || '';
+          const rows = index.rows || [];
+          const bySession = new Map(rows.map(r => [String(r.agent || '').split('/').pop(), r]));
+          // Every create_session a recorded session made, and the standing
+          // sessions among them, in the order they were started.
+          const seen = new Set();
+          const standing = rows.flatMap(r => r.spawned || [])
+            .filter(s => s[2].includes('program-session') && !seen.has(s[0]) && seen.add(s[0]))
+            .sort((a, b) => String(a[3]).localeCompare(String(b[3])));
+          if (!standing.length) {
+            const v = Math.max(0, ...rows.map(r => r.v || 0));
+            this.stale = v < 28
+              ? `Sessions index: row version ${v}, parentage needs 28.`
+              : 'No indexed session started one tagged program-session.';
+          }
+          const programs = standing.map(([id, title, tags, at]) => {
+            const row = bySession.get(id) || null;
+            const m = String(title).match(/^(\S+)\s+(.*)$/) || [];
+            const workers = (row?.spawned || []).map(([wid, wtitle, wtags, wat]) => {
+              const wrow = bySession.get(wid) || null;
+              return { id: wid, title: wtitle, at: wat, row: wrow, short: wrow?.id || '', agent: 'https://claude.ai/code/' + wid,
+                       label: String(wtitle).replace(/^.*?(worker:|·)\s*/, ''), kind: 'recent' };
+            });
+            return { id, title, at, row, short: row?.id || '', icon: m[1] || '•', name: m[2] || title,
+                     program: (tags.find(t => t.startsWith('program:')) || '').slice(8),
+                     workers, now: null, waits: [], calls: [], prs: [] };
+          });
+          // Filled through the reactive copy, so each later read redraws.
+          this.programs = programs;
+          const live = this.programs;
+          await Promise.all([this.loadTopics(live), this.loadCalls(live), this.loadPrs(live)]);
+          for (const p of live) {
+            for (const w of p.workers) w.kind = this.classOf(w, p.prs);
+            p.workers.sort((a, b) => ORDER.indexOf(a.kind) - ORDER.indexOf(b.kind) || this.mins(a.row?.ended || a.at) - this.mins(b.row?.ended || b.at));
+          }
+        } catch (e) {
+          this.err = e?.message || String(e);
+        } finally { this.busy = false; }
+      },
+
+      // The companion's last agenda stretch is what the session is on now, and
+      // its open topics waiting on the owner are what waits on the owner.
+      async loadTopics(programs) {
+        await Promise.all(programs.filter(p => p.row).map(async p => {
+          const [y, mo] = p.row.day.split('-');
+          try {
+            const c = await this.json(`sessions/topics/${y}/${mo}/${p.row.day}-${p.short}.json`, 'background');
+            const last = (c.agenda || []).filter(a => !a.minor).pop() || (c.agenda || []).pop();
+            if (last) p.now = { topic: last.topic, ...this.split(last.state?.line), at: last.state?.at || last.at };
+            p.waits = (c.topic_status || []).filter(t => t.status === 'open' && t.waits_on === 'owner' && t.waiting)
+              .map(t => t.waiting).filter((w, i, a) => a.indexOf(w) === i);
+          } catch { /* no companion yet: the row's ask stands in */ }
+        }));
+      },
+
+      async loadCalls(programs) {
+        const owner = new Map();
+        for (const p of programs) if (p.short) owner.set(p.short, p);
+        let list = [];
+        try { list = await this.gh('main').req('contents/user-calls?ref=main'); } catch { return; }
+        const mine = (list || []).filter(f => owner.has(String(f.name).slice(0, 8)) && f.name.endsWith('.json'));
+        await Promise.all(mine.map(async f => {
+          try {
+            const c = await this.json('user-calls/' + f.name, 'main');
+            if (c.status === 'open') owner.get(f.name.slice(0, 8)).calls.push({ ...c, path: 'user-calls/' + f.name });
+          } catch {}
+        }));
+      },
+
+      // Open PRs whose head branch a standing session or one of its workers
+      // pushed or worked on, read from each repo those sessions touched.
+      async loadPrs(programs) {
+        const byBranch = new Map();
+        const repos = new Set();
+        for (const p of programs) {
+          for (const [who, worker] of [[p.row, false], ...p.workers.map(w => [w.row, true])]) {
+            if (!who) continue;
+            for (const b of who.branches || []) if (!byBranch.has(b)) byBranch.set(b, { p, worker });
+            for (const r of who.repos || []) repos.add(r.name);
+          }
+        }
+        await Promise.all([...repos].map(async name => {
+          try {
+            const pulls = await this.gh('main').req(`/repos/mehrlander/${name}/pulls?state=open&per_page=100`);
+            for (const pr of pulls || []) {
+              const hit = byBranch.get(pr.head?.ref);
+              if (hit) hit.p.prs.push({ repo: name, branch: pr.head.ref, number: pr.number, title: pr.title, url: pr.html_url, worker: hit.worker });
+            }
+          } catch {}
+        }));
+        for (const p of programs) p.prs.sort((a, b) => a.worker - b.worker || b.number - a.number);
+      },
+
+      // A worker's class, from its record alone: finished on 🟣 🔴 ⚫ with no
+      // open PR; recent within IDLE_MIN of its last Stop; check in when quiet
+      // past CHECKIN_MIN on a state where it holds the move, or with no record
+      // IDLE_MIN after it was started; otherwise idle with work unresolved.
+      classOf(w, prs) {
+        const openPr = prs.some(pr => w.row?.branches?.includes(pr.branch));
+        if (!w.row) return this.mins(w.at) > IDLE_MIN ? 'checkin' : 'recent';
+        if (FINISHED.has(w.row.state) && !openPr) return 'finished';
+        const quiet = this.mins(w.row.ended);
+        if (quiet < IDLE_MIN) return 'recent';
+        if (quiet > CHECKIN_MIN && (OWN_MOVE.has(w.row.state) || !w.row.state)) return 'checkin';
+        return 'idle';
+      },
+      tally(workers) {
+        return ORDER.map(k => [k, workers.filter(w => w.kind === k).length]).filter(([, n]) => n)
+          .map(([k, n]) => n + ' ' + KIND[k].label).join(' · ');
+      },
+
+      openDeck(i) {
+        if (!window.swipeDeck) { location.href = this.pageUrl(this.programs[i].short); return; }
+        const list = this.programs.filter(p => p.short);
+        const start = Math.max(0, list.indexOf(this.programs[i]));
+        let deck = null;
+        deck = window.swipeDeck.open({
+          count: list.length, start, slideScroll: false, innerClass: 'h-full w-full min-w-0',
+          icon: 'ph-terminal-window', title: list[start].icon + ' ' + list[start].name,
+          index: k => ({ title: list[k].icon + ' ' + list[k].name, subtitle: list[k].short }),
+          onSlide: k => {
+            deck?.setTitle?.(list[k].icon + ' ' + list[k].name);
+            deck?.setLink?.({ href: 'https://claude.ai/code/' + list[k].id, title: 'Open this session in Claude Code',
+                              svg: window.claudeMark?.svg?.({ cls: 'w-3.5 h-3.5 shrink-0' }) });
+            try { history.replaceState(history.state, '', '#open=' + list[k].program); } catch {}
+          },
+          render: (k, slide, ctx) => {
+            const key = '__standingSlide' + k;
+            window[key] = { ...this.recordAt(list[k]), repo: STORE, framed: true, lent: false, chrome: ctx?.setChrome,
+                            onMeta: m => { if (m?.path) deck?.setSubtitle?.(list[k].short + ' · ' + (m.path.match(/\d{4}-\d{2}-\d{2}/) || [''])[0]); } };
+            const el = document.createElement('div');
+            el.className = 'h-full';
+            el.setAttribute('x-data', `sessionBrief(window.${key})`);
+            slide.append(el);
+            Alpine.initTree(el);
+          },
+          onClose: () => { try { history.replaceState(history.state, '', location.pathname + location.search); } catch {} },
+        });
+      },
+
+      // The record's path from the index row, so the brief reads it without
+      // resolving the id; the id is the fallback for a row with no day.
+      recordAt(p) {
+        const d = p.row?.day || '';
+        return /^\d{4}-\d{2}-\d{2}$/.test(d) ? { path: `sessions/${d.slice(0, 4)}/${d.slice(5, 7)}/${d}-${p.short}.json` } : { id: p.short };
+      },
+      pageUrl(short) { return `${SITE}/pages/session.html#id=${short}`; },
+      callUrl(c) { return `${SITE}/pages/user-call.html#src=${STORE}:${c.path}`; },
+      glyph(state) { return window.ClosingState?.GLYPH?.[state] || (state ? '•' : ''); },
+      // A closing line as written, its bold lead kept apart so it can stay bold.
+      split(line) {
+        const m = String(line || '').match(/^(\S+)\s+\*\*([^*]*)\*\*\s*(.*)$/s);
+        return m ? { glyph: m[1], lead: m[2], rest: m[3] } : { glyph: '', lead: '', rest: String(line || '') };
+      },
+      mins(iso) { const t = Date.parse(iso || ''); return Number.isFinite(t) ? (this.now - t) / 60000 : Infinity; },
+      ago(iso) {
+        const m = this.mins(iso);
+        if (!Number.isFinite(m)) return '';
+        if (m < 1) return 'now';
+        if (m < 60) return Math.round(m) + 'm ago';
+        if (m < 48 * 60) return Math.round(m / 60) + 'h ago';
+        return Math.round(m / 1440) + 'd ago';
+      },
+      clock(iso) {
+        const t = new Date(iso || '');
+        return isNaN(t) ? '' : t.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      },
+    }));
+  });
+</script>
+</body>
+</html>
