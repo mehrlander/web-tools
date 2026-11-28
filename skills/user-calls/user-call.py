@@ -4,7 +4,7 @@ docs/envelopes/user-call.md; SKILL.md beside this script says how to run it.
 
     user-call.py add < call.json [--store D]              write (validates, stamps)
     user-call.py close <id> <answer> [note] [--store D]   mark it decided
-    user-call.py answers <id> [--store D]                 what the owner answered
+    user-call.py answers <id> [--store D]                 what the owner answered, and notes on the call
     user-call.py list [session] [--store D]               open user calls, newest first
     user-call.py edits --old A --new B                    a documentation call's edits, from two copies
     user-call.py edits --base REF FILE                    the same, from FILE against its text at REF
@@ -1541,6 +1541,24 @@ class Store:
         text = self.read(f"{cid}.answers.jsonl") or ""
         return [json.loads(l) for l in text.splitlines() if l.strip()]
 
+    def notes(self):
+        """Every note on main in this checkout's notes store, the folder its
+        .web-tools.json declares as "notes" (skills/notes/note.py reads it the same way)."""
+        r = git(self.repo, "show", "origin/main:.web-tools.json", check=False)
+        try:
+            folder = json.loads(r.stdout).get("notes") if r.returncode == 0 else None
+        except ValueError:
+            folder = None
+        folder = folder.strip("/") if isinstance(folder, str) and folder.strip("/") else "notes"
+        r = git(self.repo, "show", f"origin/main:{folder}/notes.jsonl", check=False)
+        out = []
+        for l in (r.stdout.decode("utf-8") if r.returncode == 0 else "").splitlines():
+            try:
+                out.append(json.loads(l))
+            except ValueError:
+                pass
+        return out
+
     def calls(self, prefix=""):
         """Every call on main whose id starts with prefix, as {id: text}, from one archive."""
         r = git(self.repo, "archive", "--format=tar", "origin/main", f"{self.path}/", check=False)
@@ -1599,6 +1617,24 @@ def answer_lines(r, call=None):
         out.append(f'  on "{x.get("on", "")}": ' + " ".join(str(x.get("note", "")).split()))
     for x in r.get("picks") or []:
         out.append(f"  {x.get('id', '')}  {x.get('href', '')}".rstrip())
+    return out
+
+
+VOTED = {"up": "votes up", "down": "votes down", "": "withdraws a vote"}
+
+
+def note_lines(notes, cid, folder="user-calls"):
+    """The notes whose subject is call `cid`, in any repo and at any ref, oldest
+    first, as printed by `answers` after the answer lines: a FAB note on the
+    call's page (lib/alpineComponents/fab.js) is the owner's usual answer."""
+    tail = f":{folder}/{cid}.json"
+    mine = sorted((n for n in notes if isinstance(n, dict) and str(n.get("about", "")).endswith(tail)),
+                  key=lambda n: str(n.get("at", "")))
+    out = []
+    for n in mine:
+        vote = f"  {VOTED[n['vote']]}" if n.get("vote") in VOTED else ""
+        out.append(f"Note  ({n.get('author', '')} {n.get('at', '')}){vote}")
+        out += ["  " + line for line in str(n.get("text", "")).splitlines()]
     return out
 
 
@@ -1811,6 +1847,9 @@ def main(argv):
             print("\n".join(answer_lines(r, call)))
         if not rows:
             print(f"user-call: no answers for {argv[2]}")
+        noted = note_lines(store.notes(), argv[2], store.path)
+        if noted:
+            print("\n".join(noted))
     elif cmd == "patch":
         rows = Store(at_store).answers(argv[2])
         last = rows[-1] if rows else {}
