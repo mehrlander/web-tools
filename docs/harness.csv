@@ -374,7 +374,7 @@ skills/hooks/refresh-plugin.sh,"moves the portable plugin's pin to the tip of we
 skills/hooks/reply-check.py,"sends the final reply back once at Stop: a closing ⚖️ call with no Recommended: clause, or a page committed this turn with no render link",skills/hooks,151,hook:Stop,,no,yes,yes
 skills/hooks/send-later-guard.sh,refuses a scheduled check-in other than the check-in hook's: denies any other send_later under any server spelling and points at create_trigger for a reminder actually asked for,skills/hooks,72,hook:PreToolUse,,no,yes,yes
 skills/hooks/session-activity.py,,skills/hooks,255,hook:SessionEnd,,no,yes,yes
-skills/hooks/session-detail-caption.py,"prints the session detail caption a reply closes with at each prompt, and again after a Bash call that changes its count of documentation edits awaiting sign-off",skills/hooks,674,hook:UserPromptSubmit,skills/hooks/check-in.py;skills/hooks/topic-context.py,yes,yes,yes
+skills/hooks/session-detail-caption.py,"prints the session detail caption a reply closes with at each prompt, and again after a Bash call that changes its count of documentation edits awaiting sign-off",skills/hooks,690,hook:UserPromptSubmit,skills/hooks/check-in.py;skills/hooks/topic-context.py,yes,yes,yes
 skills/hooks/session-dispatch.sh,the plugin's dispatcher: runs every checkout's own session-*.sh whatever the project root is,skills/hooks,251,hook:SessionStart,,no,yes,yes
 skills/hooks/session-record.sh,writes a session receipt at Stop where a checkout declares a sessions store; inert elsewhere,skills/hooks,103,hook:Stop,,no,yes,yes
 skills/hooks/stat-cards-guard.sh,,skills/hooks,77,hook:PreToolUse,,no,yes,yes

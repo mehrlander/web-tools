@@ -3,8 +3,8 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) `816k` `1d 2h` [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
-    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) scheduled task `816k` `1d 3h` [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
+    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/turn.html#id=f701fa79&at=2026-11-14T18:14:02.118Z) `816k` `1d 2h` [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
+    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/turn.html#id=f701fa79&at=2026-11-14T18:14:02.118Z) scheduled task `816k` `1d 3h` [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
 
 THE PARTS. The line opens with when this run printed it, as a code span, in
 the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
@@ -12,8 +12,14 @@ plain am or pm. One space separates the parts, and PILL_GAP below, a space and
 a no-break space, separates two code spans. In the Claude app on an iPhone,
 each single space tried between two code spans (ordinary, no-break, en, em and
 thin) drew them touching, while a code span beside plain text kept its gap (the
-owner's screenshots, 2026-11-21). 22 counts the messages the owner has typed, and is the link to the session page, named by the session id's
-first eight characters. A turn the
+owner's screenshots, 2026-11-21). 22 counts the messages the owner has typed,
+and links the turn page (pages/turn.html) for the turn of the owner's latest
+ask: `turn.html#id=<short>&at=<the ask's instant>`, the short id being the
+session id's first eight characters. An ask being submitted is not in the
+transcript yet, so its instant is this run's clock, which the turn page allows
+a few seconds for; any other run, a turn the owner did not start included,
+takes the latest owner message's timestamp. With no owner message yet the link
+is the session page, `session.html#id=<short>`. A turn the
 owner did not start names what started it next (WHAT STARTED THE TURN, below),
 as the second line does. 816k is the
 context in thousands of tokens, read the way context-size-hint.py reads it:
@@ -327,9 +333,10 @@ def count_owner(transcript, state):
     transcript's last whole line, reading only what the state does not cover."""
     size = os.path.getsize(transcript)
     seen, count, first = state.get("seen"), state.get("owner"), state.get("first")
+    last = state.get("last")
     if (state.get("transcript") != transcript or not isinstance(seen, int)
             or not isinstance(count, int) or not 0 <= seen <= size):
-        seen, count, first = 0, 0, None
+        seen, count, first, last = 0, 0, None, None
     with open(transcript, "rb") as fh:
         fh.seek(seen)
         for raw in fh:
@@ -346,7 +353,8 @@ def count_owner(transcript, state):
                 continue
             count += 1
             first = first or entry.get("timestamp")
-    state.update(transcript=transcript, seen=seen, owner=count, first=first)
+            last = entry.get("timestamp") or last
+    state.update(transcript=transcript, seen=seen, owner=count, first=first, last=last)
 
 
 def tail_facts(transcript):
@@ -575,6 +583,12 @@ def clock(now, zone=OWNER_TZ):
     return f"{at.month}/{at.day} {(at.hour + 11) % 12 + 1}:{at.minute:02d}{marker}"
 
 
+def iso(now):
+    """An epoch time as the transcript writes one: UTC, to the millisecond."""
+    from datetime import datetime, timezone
+    return datetime.fromtimestamp(now, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{int(now * 1000) % 1000:03d}Z"
+
+
 def since(first, now):
     """Seconds from an entry's ISO timestamp to now, or None."""
     from datetime import datetime
@@ -635,7 +649,9 @@ def main():
 
     glyph, url = "💬", ""
     if store:
-        url = f"{PAGES}session.html#id={session[:8]}"
+        ask = iso(now) if submitting(event, payload, unanswered) else state.get("last")
+        url = (f"{PAGES}turn.html#id={session[:8]}&at={ask}" if isinstance(ask, str) and ask
+               else f"{PAGES}session.html#id={session[:8]}")
     else:
         url = branch_page(repos, counts, str(payload.get("cwd") or root))
         if url:
