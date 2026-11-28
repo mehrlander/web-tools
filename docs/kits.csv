@@ -1,6 +1,6 @@
 path,namespace,gloss,lines,boot,demo,users,tested
 lib/kits/activity-crawl.js,ActivityCrawl,"One repo's activity crawl: the GitHub reads that fill a single entry of state/activity.json, lifted out of the app on 2026-09-19 so the browser and a headless…",336,no,no,1,yes
-lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5264,no,yes,23,yes
+lib/kits/annotate.js,Annotate,"notes pinned to pieces of a page: select text (or pick an element, or drag a rectangle), write a note, and carry the set out as markdown for a chat model, as…",5265,no,yes,23,yes
 lib/kits/assistant-mark.js,AssistantMark,logomarks and attribution classifier for AI assistants and human contributors across the estate.,170,yes,no,3,yes
 lib/kits/branch-brief.js,BranchBrief,"a branch as a subject, not a row.",466,no,no,9,yes
 lib/kits/branch-status.js,BranchStatus,"Branch-scan math: the content-level landed/stranded signal, ported from home's tools/unmerged-branches.sh (the CLI reference instrument).",615,no,no,7,yes
@@ -78,7 +78,7 @@ lib/kits/powershell-match.js,PowerShellMatch,"Which repository file a pasted pie
 lib/kits/powershell-outpost.js,PowerShellOutpost,"PowerShell outpost state: what the repository holds for the work computer's PowerShell suite, which has no Git checkout, where each file is meant to go, what…",623,no,no,2,yes
 lib/kits/powershell-units.js,PowerShellUnits,Parser-backed review units.,297,no,no,3,yes
 lib/kits/powershell-workspace.js,PowerShellWorkspace,PowerShell code workspace data.,304,no,no,1,yes
-lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",811,no,no,3,yes
+lib/kits/probe.js,Probe,"the page shows its own conditions, so a screenshot carries them.",857,no,no,3,yes
 lib/kits/prompt-link.js,PromptLink,mint a link that starts a new session somewhere else.,281,no,no,1,yes
 lib/kits/proof.js,proof,"sandboxed proof documents: code in, self-contained srcdoc HTML out.",81,no,no,18,yes
 lib/kits/read-aloud.js,readAloud,"markdown reduced to what is worth hearing, and a player that speaks it.",425,no,yes,4,yes
