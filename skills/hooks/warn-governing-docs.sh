@@ -39,7 +39,7 @@ if basis:
     print(f"{rel} is documentation ({basis}). Edit it only with the user's specific "
           "permission for this file; adjacent work does not imply it. If this edit "
           f"was not specifically asked for, say so and offer to revert. Follow the {craft} "
-          "for the wording.", file=sys.stderr)
+          "for the wording and for its Review, which ends in a user call.", file=sys.stderr)
     said = True
 
 
