@@ -35,7 +35,7 @@
 // THE SIGNALS are counts of call sites, per file, of the shared kits a pattern
 // is built from, plus three signatures of a hand-built equivalent: a snap track
 // in a file that never calls swipeDeck, a drag divider in one that never calls
-// dockSplit, and a fixed full-window layer in one that does neither. A signature
+// dragSplitter, and a fixed full-window layer in one that does neither. A signature
 // is a reason to read the file, not a finding: a page may carry scroll-snap for
 // a reason that has nothing to do with decks.
 //
@@ -369,7 +369,7 @@ const SIG = {
   deck_entry: /swipeDeck\.entry\s*\(|ph-cards-three/g,
   record_deck: /recordDeck\.(open|fromGrid)\s*\(/g,
   file_deck: /fileDeck\.(open|jumpTo)\s*\(/g,
-  dock_split: /dockSplit\s*\(|dockSplit\.\w+\s*\(/g,
+  dock_split: /(?:dragSplitter|dockSplit)\s*\(|(?:dragSplitter|dockSplit)\.\w+\s*\(/g,
   source_peek: /\bx-blob\b|data-peek\b/g,
   land: /\bLand\.\w+\s*\(|\bland\s*\(/g,
   row_menu: /rowMenu\.\w+\s*\(|kits\/row-menu\.js/g,

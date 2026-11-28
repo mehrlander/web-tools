@@ -15,10 +15,11 @@ import { makeWindow, repoRoot } from './bootstrap.mjs';
 const kit = name => readFileSync(path.join(repoRoot, 'lib', name), 'utf8');
 const tick = (n = 1) => new Promise(r => setTimeout(r, n * 20));
 
-function page({ swipe = true } = {}) {
+function page({ swipe = true, split = false } = {}) {
   const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
   new window.Function(kit('vanilla-bundle.js'))();
   if (swipe) new window.Function(kit('kits/swipe-deck.js'))();
+  if (split) new window.Function(kit('kits/drag-splitter.js'))();
   new window.Function(kit('kits/linked-swiper.js'))();
   Object.defineProperty(window.Element.prototype, 'clientWidth', { value: 400, configurable: true });
   window.Element.prototype.scrollTo = function ({ left }) {
@@ -43,7 +44,7 @@ function mountList(window, ids, o = {}) {
   const picks = [];
   let sel = o.sel ?? ids[0];
   const handle = window.linkedSwiper.attach({
-    root, list, card: root.querySelector('[data-t="card"]'), key: 'row', noun: 'row',
+    root, list, detail: root.querySelector('[data-t="card"]'), key: 'row', noun: 'row',
     ids: () => ids, sel: () => sel,
     name: id => ({ title: 'Row ' + id }),
     body: id => `<p>body ${id}</p>`,
@@ -258,7 +259,7 @@ test('a click the host claimed first, with preventDefault, does not pick the row
   assert.deepEqual(s.picks, []);
 });
 
-test('a host\'s own columns replace the default when there is no seam', async () => {
+test('a host\'s own columns replace the default when there is no drag-splitter', async () => {
   const w = page({ swipe: false });
   const s = mountList(w, ['a'], { extra: { wide: 'grid-cols-[minmax(0,290px)_minmax(0,1fr)]' } });
   assert.ok(s.root.classList.contains('grid-cols-[minmax(0,290px)_minmax(0,1fr)]'));
@@ -493,4 +494,70 @@ test('a deck that follows slides() with card() steps through an item in place an
   assert.equal(el.textContent, 'deck az');
   d.close();
   await tick(3);
+});
+
+// THE OPEN FORM (owner, 2026-11-25): with a drag-splitter the two boxes go and
+// the drag-splitter's line is the one divider, side by side and stacked.
+
+const boxed = el => /\brounded-lg\b/.test(el.className) && /\bborder\b/.test(el.className);
+
+test('without a drag-splitter the list and the detail are two boxes with a gap', async () => {
+  const window = page({ split: true });
+  const { root, list, card } = mountList(window, ['a', 'b']);
+  await tick();
+  assert.ok(boxed(list) && boxed(card), 'both framed');
+  assert.match(root.className, /\bgap-2\.5\b/);
+  assert.equal(root.querySelector('[data-ls="drag-splitter"]'), null, 'and no drag-splitter');
+});
+
+test('with a drag-splitter the form is open: no boxes, no gap, the drag-splitter between them', async () => {
+  const window = page({ split: true });
+  const { root, list, card } = mountList(window, ['a', 'b'], { extra: { dragSplitter: 'ls-test' } });
+  await tick();
+  const el = root.querySelector('[data-ls="drag-splitter"]');
+  assert.ok(el, 'a drag-splitter');
+  assert.equal(el.previousElementSibling, list, 'after the list');
+  assert.equal(el.nextElementSibling, card, 'before the detail');
+  assert.ok(!boxed(list) && !boxed(card), 'neither framed');
+  assert.doesNotMatch(root.className, /\bgap-2\.5\b/);
+  assert.equal(el.getAttribute('aria-orientation'), 'vertical', 'a column drag-splitter side by side');
+  assert.match(root.className, /var\(--ls-list/, 'which sets the list track');
+});
+
+test('stacked, the drag-splitter turns to a row one and sets the list\'s height', async () => {
+  const window = page({ split: true });
+  window.localStorage.clear();
+  const { root, list } = mountList(window, ['a', 'b', 'c'], { width: 400, extra: { dragSplitter: 'ls-test' } });
+  await tick();
+  const el = root.querySelector('[data-ls="drag-splitter"]');
+  assert.equal(el.style.display, '', 'shown when stacked too');
+  assert.equal(el.getAttribute('aria-orientation'), 'horizontal', 'a row drag-splitter');
+  assert.match(root.className, /grid-rows-\[auto_14px_minmax\(0,1fr\)\]/, 'in a row of its own');
+  // jsdom lays out nothing: every box is 400 by 300 from the top, so the span
+  // runs 300px from the list's top, and the list can grow to 180px (the
+  // detail keeps 120px) because its rows are taller than that.
+  Object.defineProperty(list, 'scrollHeight', { value: 1000, configurable: true });
+  el.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+  assert.equal(list.style.maxHeight, '174px', 'from the 180px stop, one 2% step shorter');
+  assert.equal(window.localStorage.getItem('ls-test:h'), '174', 'kept under the key and :h');
+  el.dispatchEvent(new window.Event('dblclick'));
+  assert.equal(list.style.maxHeight, '', 'a double-click goes back to listMax');
+  assert.equal(window.localStorage.getItem('ls-test:h'), null, 'and forgets it');
+});
+
+test('a kept height is applied on mount, and seam, the former name, still opens the form', async () => {
+  const window = page({ split: true });
+  window.localStorage.setItem('ls-old:h', '150');
+  const { root, list } = mountList(window, ['a', 'b'], { width: 400, extra: { seam: 'ls-old' } });
+  await tick();
+  assert.ok(root.querySelector('[data-ls="drag-splitter"]'));
+  assert.equal(list.style.maxHeight, '150px');
+});
+
+test('without the drag-splitter kit the option is ignored and the boxes stay', async () => {
+  const window = page();
+  const { root, list } = mountList(window, ['a'], { extra: { dragSplitter: 'ls-test' } });
+  await tick();
+  assert.equal(root.querySelector('[data-ls="drag-splitter"]'), null);
+  assert.ok(boxed(list));
 });

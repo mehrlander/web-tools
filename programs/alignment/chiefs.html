@@ -29,7 +29,7 @@
 <script type="module">
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
   await gh.load('kits/swipe-deck.js');
-  await gh.load('kits/dock-split.js');
+  await gh.load('kits/drag-splitter.js');
   await gh.load('kits/title-tip.js');
   await gh.load('kits/linked-swiper.js');
 
@@ -246,7 +246,7 @@
   let deck = null;
   drawList();
   const swiper = linkedSwiper.attach({
-    root: document.getElementById('root'), list, card: document.getElementById('card'), key: 'seat',
+    root: document.getElementById('root'), list, detail: document.getElementById('card'), key: 'seat',
     ids, sel: () => sel, noun: 'seat', listMax: 'max-h-[46dvh]', innerClass: 'w-full @container',
     name: id => { const s = byId(id); return { code: s.program || '', title: nameOf(s) }; },
     body,

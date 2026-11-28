@@ -616,7 +616,7 @@
     };
 
     swiper = linkedSwiper.attach({
-      root: $('panes'), list, card: $('card'), key: 'run', noun: 'output', subNoun: 'output',
+      root: $('panes'), list, detail: $('card'), key: 'run', noun: 'output', subNoun: 'output',
       ids: () => runs().map(r => r.id), sel: () => sel,
       // Versions show every output on the run's card: no tabs, no places.
       ...(P.versions ? {} : { subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut, places: true }),

@@ -87,13 +87,13 @@ try {
                           slidePad: slideMain() ? parseFloat(getComputedStyle(slideMain()).paddingRight) || 0 : null,
                           slideWidth: slideMain() ? slideMain().firstElementChild.offsetWidth : null,
                           decks: window.swipeDeck.stack.length,
-                          // The seam, on the APP'S OWN BOOT. Nothing here loads
-                          // kits/dock-split.js, and that is the entire point of
+                          // The splitter, on the APP'S OWN BOOT. Nothing here loads
+                          // kits/drag-splitter.js, and that is the entire point of
                           // measuring it from this file rather than from
                           // deck-split-drag.mjs, which loads the kit itself
                           // before it drives anything.
-                          kit: typeof window.dockSplit,
-                          seams: document.querySelectorAll('.dk-split').length });
+                          kit: typeof window.dragSplitter,
+                          splitters: document.querySelectorAll('.drag-splitter').length });
     const out = {};
     out.before = snap();
     const d = window.swipeDeck.open({ count: 1, start: 0, render: (i, el) => {
@@ -121,17 +121,17 @@ try {
   ok('the dock PREFERENCE survives the close', steps.closed.pane === 'dock',
      `pane=${steps.closed.pane} (it is stored on purpose; the next file opens docked)`);
 
-  // The seam is a SEPARATE claim from the reflow, and it failed silently for as
-  // long as it existed. swipe-deck mounts the handle only when window.dockSplit
-  // is present, the shell never loaded kits/dock-split.js, and the splitter's
+  // The splitter is a SEPARATE claim from the reflow, and it failed silently for as
+  // long as it existed. swipe-deck mounts the handle only when window.dragSplitter
+  // is present, the shell never loaded kits/drag-splitter.js, and the splitter's
   // own test supplies that kit before driving the page. So the drag was covered
   // by a green check and unreachable in the app at the same time. The assertion
   // that closes that gap has to be made from a boot nobody helped.
-  ok('the shell boots with the splitter kit', steps.open.kit === 'object',
-     `typeof window.dockSplit = ${steps.open.kit} (the app must gh.load kits/dock-split.js)`);
-  ok('docking grows a draggable seam', steps.docked.seams === 1,
-     `${steps.docked.seams} seam(s) (a dock with no handle is a boundary the reader cannot move)`);
-  ok('and undocked there is none', steps.open.seams === 0, `${steps.open.seams} seam(s) while full-screen`);
+  ok('the shell boots with the drag-splitter kit', steps.open.kit === 'object',
+     `typeof window.dragSplitter = ${steps.open.kit} (the app must gh.load kits/drag-splitter.js)`);
+  ok('docking grows a drag-splitter', steps.docked.splitters === 1,
+     `${steps.docked.splitters} splitter(s) (a dock with no handle is a boundary the reader cannot move)`);
+  ok('and undocked there is none', steps.open.splitters === 0, `${steps.open.splitters} splitter(s) while full-screen`);
 } finally {
   await browser.close();
   server.close();

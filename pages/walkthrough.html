@@ -50,7 +50,7 @@
     await gh.load('kits/gz-payload.js');
     await gh.load('gh-store.js');
     await gh.load('kits/swipe-deck.js');
-    await gh.load('kits/dock-split.js');
+    await gh.load('kits/drag-splitter.js');
     await gh.load('kits/linked-swiper.js');
     await gh.load('kits/subject-channel.js');
     await gh.load('kits/file-deck.js');
@@ -332,9 +332,9 @@ document.addEventListener('alpine:init', () => {
       this.$refs.list.innerHTML = this.listHtml(rows);
       if (!this._swiper) {
         this._swiper = linkedSwiper.attach({
-          root: this.$refs.root, list: this.$refs.list, card: this.$refs.card, key: 'item',
+          root: this.$refs.root, list: this.$refs.list, detail: this.$refs.card, key: 'item',
           ids: () => this.rows().map(r => r.id), sel: () => this.sel[this.lens],
-          noun: 'item', seam: 'walkthrough-list', listMax: 'max-h-[38vh]',
+          noun: 'item', dragSplitter: 'walkthrough-list', listMax: 'max-h-[38vh]',
           name: id => this.nameOf(id),
           head: ({ i, n, tight }) => this.headHtml(i, n, tight),
           body: id => this.cardHtml(id),

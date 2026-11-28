@@ -1,4 +1,4 @@
-// kits/dock-split.js: where the handle is allowed to stop.
+// kits/drag-splitter.js: where the handle is allowed to stop.
 //
 // `min` and `max` took numbers only, which is fine for a stop expressed as a
 // share of the container and wrong for one expressed in pixels: 300px is 31% of
@@ -24,12 +24,12 @@ const RECT = { left: 0, right: 1000, width: 1000, top: 0, bottom: 500, height: 5
 // percentage means a seam further left.
 function mount(opts = {}) {
   const { window } = makeWindow();
-  loadKit('dock-split', { window });
+  loadKit('drag-splitter', { window });
   const handle = window.document.createElement('div');
   window.document.body.appendChild(handle);
 
   const state = { pct: 50, changes: [], commits: [] };
-  const split = window.dockSplit.attach(handle, {
+  const split = window.dragSplitter.attach(handle, {
     axis: 'col',
     from: 'end',
     bounds: () => RECT,
