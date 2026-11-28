@@ -502,7 +502,7 @@ test('each row arms its own aim on the kit, and turns the annotator on first', a
   window.Annotate = {
     enabled: false,
     // Every aim goes through openAnnotate now, since the card lives in the
-    // drawer and an aim taken with the drawer shut has to open it; the kit's
+    // bottom panel's Comment tab and an aim taken with it shut has to open it; the kit's
     // enable is idempotent for one document and one host, as this one is.
     enable(o) { hosts.push(o && o.host); if (!this.enabled) calls.push('enable'); this.enabled = true; },
     notePage(o) { calls.push('page:' + JSON.stringify(o)); },
@@ -514,12 +514,13 @@ test('each row arms its own aim on the kit, and turns the annotator on first', a
   const d = await mountFab();
   try {
     await d.annAim('page');
-    // A page note is written with the drawer up, in the dock at its foot.
-    assert.equal(d.open, true, 'a page note keeps the drawer open');
-    assert.ok(hosts[0] && hosts[0].hasAttribute('data-fab-note-dock'), 'the card is aimed at the drawer\'s dock');
+    // A page note is written with the panel up, in the Comment tab's dock.
+    assert.equal(d.bottom, 'comment', 'a page note opens the Comment tab');
+    assert.ok(hosts[0] && hosts[0].hasAttribute('data-fab-note-dock') && hosts[0].closest('[data-fab-bottom]'),
+      'the card is aimed at the panel\'s dock');
     await d.annAim('pick');
-    // A pick covers the page, so the drawer steps aside for it.
-    assert.equal(d.open, false, 'a pick puts the drawer away');
+    // A pick covers the page, so the panel steps aside for it.
+    assert.equal(d.bottom, '', 'a pick puts the panel away');
     await d.annAim('section');
     await d.annAim('region');
     assert.deepEqual(calls,
@@ -569,13 +570,11 @@ test('a sealed frame falls back to the shell rather than throwing', async () => 
   delete window.__tossFrame;
 });
 
-test('the probe is standing equipment: the menu arms it, and the same row takes it off', async () => {
+test('the probe is standing equipment: the menu arms it into the panel, and the panel takes it off', async () => {
   // WHY THE FAB OWNS THIS AT ALL. kits/probe.js was reachable only through
   // `?probe=` on the address, so a reader already looking at the fault had to
   // retype the URL to instrument it, on the phone where that class of fault
-  // lives. The precedent is the fab's own crash trail, which left
-  // pages/audit-render.html for the same reason: a diagnostic that lives on
-  // one page can be run on one page.
+  // lives. A diagnostic that lives on one page can be run on one page.
   clearPages();
   const d = await mountFab();
   const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
@@ -590,81 +589,95 @@ test('the probe is standing equipment: the menu arms it, and the same row takes 
 
   assert.equal(d.probeOn, false);
   await d.openProbe();
+  await tick(2);
   assert.equal(asked, 'kits/probe.js');
-  assert.equal(d.probeOn, true, 'the row has to actually arm it, not only ask for the file');
-  assert.ok(doc.getElementById('wt-probe'), 'and the overlay is what says so on screen');
+  assert.equal(d.probeOn, true, 'the button has to actually arm it, not only ask for the file');
+  assert.equal(d.bottom, 'probe', 'and opens the panel on its tab');
+  const box = doc.getElementById('wt-probe');
+  assert.ok(box && box.closest('[data-fab-probe-host]'), 'the reading is drawn inside the panel');
+  assert.equal(box.hasAttribute('data-corner'), false, 'not in a corner over the page');
 
-  // THE ROW HAS TO SAY IT WILL. `probeOn` reads across into another realm's
-  // window.Probe, which Alpine cannot track, so a label bound to it renders
-  // once and then lies: measured in a browser, the row still closed the probe
-  // and still read "Probe". A reader with no keyboard has only this row, and no
-  // reason to press it. The mirror is refreshed where annOn is, at menu-open.
+  // THE MIRROR. `probeOn` reads across into another realm's window.Probe,
+  // which Alpine cannot track, so the menu's pressed state reads a mirror
+  // refreshed at menu-open, as annOn is.
   d.openFabMenu();
-  assert.equal(d.probeArmed, true, 'the label reads the mirror, not the live cross-realm value');
+  assert.equal(d.probeArmed, true);
   d.fabMenu = false;
 
-  // One control with two meanings, because a menu read in the half-second
-  // before a finger lifts has no room for a pair of rows.
+  // A second tap shows the reading again rather than taking the probe off.
   await d.openProbe();
+  assert.equal(d.probeOn, true);
+
+  // Put away, the panel hands the reading back to the corner, so an armed
+  // probe is never out of sight.
+  d.closeBottom(); await tick(2);
+  const corner = doc.getElementById('wt-probe');
+  assert.ok(corner && !corner.closest('[data-fab-probe-host]') && corner.hasAttribute('data-corner'),
+    'the reading is back in its corner overlay');
+  await d.openProbe(); await tick(2);
+  assert.ok(doc.getElementById('wt-probe').closest('[data-fab-probe-host]'), 'and back in the panel on the next open');
+
+  d.probeOff(); await tick(2);
   assert.equal(d.probeOn, false);
   assert.equal(doc.getElementById('wt-probe'), null);
+  assert.equal(d.bottom, '', 'the tab goes with it');
   d.openFabMenu();
   assert.equal(d.probeArmed, false);
   d.fabMenu = false;
 });
 
-test('the launcher menu carries the probe row, wired to the method that arms it', () => {
-  // The row and the method are two files apart in review and one tap apart in
-  // use: a renamed method leaves a row that looks right and does nothing.
+test('the launcher menu carries one Panel row, its three buttons wired to the methods that open each tab', () => {
+  // The row and the methods are two files apart in review and one tap apart in
+  // use: a renamed method leaves a button that looks right and does nothing.
   const src = readFileSync(path.join(repoRoot, 'lib/alpineComponents/fab.js'), 'utf8');
-  assert.match(src, /fabMenu = false; openProbe\(\)/,
-    'the menu row must call openProbe');
-  assert.match(src, /probeArmed \? 'Probe off' : 'Probe'/,
-    'and its label carries the state rather than a second row');
-  assert.doesNotMatch(src, /x-text="probeOn/,
-    'bound to the live cross-realm read, the label renders once and then lies');
+  assert.match(src, /fabMenu = false; openPeek\(\)/, 'Peek opens its tab');
+  assert.match(src, /fabMenu = false; openProbe\(\)/, 'Probe opens its tab');
+  assert.match(src, /fabMenu = false; openComment\(\)/, 'Comment opens its tab');
+  assert.match(src, /fabMenu = false; openPanel\(\)/, 'and the label opens the panel');
+  assert.doesNotMatch(src, /x-text="probeOn|:class="probeOn/,
+    'bound to the live cross-realm read, the pressed state renders once and then lies');
 });
 
-test('the probe row carries the verbs a phone cannot press, and only while one is on', async () => {
+test('the probe\'s verbs sit in the panel beside its reading, and only while one is on', async () => {
   // Every one of the probe's verbs was a keyboard chord, which is no verb at
-  // all on the device this instrument is aimed at: a reader who armed a probe
-  // on a phone, watched the fault happen and wanted to send it had nothing to
-  // press. Reported 2026-09-10, from a phone.
+  // all on the device this instrument is aimed at. Reported 2026-09-10, from a
+  // phone.
   clearPages();
   const d = await mountFab();
   const kit = readFileSync(path.join(repoRoot, 'lib/kits/probe.js'), 'utf8');
   window.gh = { load: async (p) => { if (p === 'kits/probe.js') new window.Function(kit)(); } };
   window.requestAnimationFrame = (fn) => { fn(); return 0; };
-  const verbs = () => [...doc.querySelectorAll('button[aria-label]')]
+  const verbs = () => [...doc.querySelectorAll('[data-fab-bottom] button[aria-label]')]
     .map((b) => b.getAttribute('aria-label'))
-    .filter((l) => /capture|trace|overlay/.test(l));
+    .filter((l) => /capture|trace|edge|probe off/i.test(l));
 
   d.openFabMenu();
   await tick(2);
   assert.deepEqual(verbs(), [], 'off, there is nothing to send and nothing to hold');
+  d.fabMenu = false;
 
   await d.openProbe();
-  d.openFabMenu();
   await tick(2);
   assert.deepEqual(verbs(),
-    ['Send the capture', 'Hold the trace', 'Move the overlay to the next corner']);
+    ['Send the capture', 'Hold the trace', 'Move the panel to the other edge', 'Take the probe off']);
 
   // Hold, whose glyph is the state: a mirror again, since the kit's flag is a
   // cross-realm read Alpine cannot track.
   await d.probeVerb('hold');
   assert.equal(window.Probe.held, true);
-  assert.equal(d.probeHeld, true, 'the pause glyph has to flip or it lies the way the label did');
+  assert.equal(d.probeHeld, true, 'the pause glyph has to flip or it lies');
   await d.probeVerb('hold');
   assert.equal(d.probeHeld, false);
 
-  // Move, because on a phone the overlay covers whatever it is parked over.
-  const corner = () => doc.getElementById('wt-probe').getAttribute('data-corner');
-  const first = corner();
+  // Move: in the panel there is no corner to hop to, so it is the panel that
+  // goes to the window's other edge, off whatever it covered.
+  assert.equal(d.bottomSide, 'bottom');
   await d.probeVerb('move');
-  assert.notEqual(corner(), first);
+  assert.equal(d.bottomSide, 'top');
+  await d.probeVerb('move');
+  assert.equal(d.bottomSide, 'bottom');
 
-  await d.openProbe();   // off, and the verbs go with it
-  d.openFabMenu();
+  d.probeOff();
   await tick(2);
   assert.deepEqual(verbs(), []);
 });
@@ -710,7 +723,7 @@ test('send files where there is a token and hands over the capture where there i
   assert.ok(window.Probe.trace().some((r) => r.tag === 'probe:send' && /clipboard/.test(r.detail)),
     'the outcome has to reach the overlay, not a panel that is shut');
 
-  await d.openProbe();
+  d.probeOff();
   window.PageReport = undefined;
 });
 
