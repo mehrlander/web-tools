@@ -123,6 +123,11 @@ practice. A check-in already armed then arrives with no instruction after it,
 and the turn ends with no text. send-later-guard.sh still lets the message
 through; restoring its refusal is a separate edit there.
 
+A PROGRAM'S STANDING SESSION is never armed: it is meant to stay open between
+the owner's visits, and the second check-in would close it out.
+session-detail-caption.py's standing() names such a session, and this hook loads
+it from beside it.
+
 A subagent's prompt or tool call is passed over. Silent and exit 0 on anything
 else: another event or tool, an unparseable payload, no session id, a transcript
 that shows no response before the wake, or any failure along the way. It never
@@ -226,6 +231,21 @@ def owner_clock(at):
     except Exception:
         utc = time.gmtime(at)
         return f"{utc.tm_hour}:{utc.tm_min:02d}Z"
+
+
+def program_session(environ):
+    """Whether this is a program's standing session, by
+    session-detail-caption.py's standing(); False where that file cannot be
+    loaded."""
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("session_detail_caption", os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), "session-detail-caption.py"))
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module.standing(environ) is not None
+    except Exception:
+        return False
 
 
 def arming(prompt, remote, pending, context, fresh):
@@ -495,7 +515,7 @@ def on_prompt(payload, path, now):
     text = None
     if cloud(os.environ) and waiting(state, now):
         text = moving(state.get("trigger"), state.get("due"), now)
-    elif cloud(os.environ):
+    elif cloud(os.environ) and not program_session(os.environ):
         transcript = payload.get("transcript_path")
         found = isinstance(transcript, str) and os.path.isfile(transcript)
         fresh = new_id(now, state.get("latest") if isinstance(state.get("latest"), str) else None)

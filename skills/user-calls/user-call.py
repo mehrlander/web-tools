@@ -4,8 +4,9 @@ docs/envelopes/user-call.md; SKILL.md beside this script says how to run it.
 
     user-call.py add < call.json [--store D]              write (validates, stamps)
     user-call.py close <id> <answer> [note] [--store D]   mark it decided
-    user-call.py answers <id> [--store D]                 what the owner answered
+    user-call.py answers <id> [--store D]                 what the owner answered, and notes on the call
     user-call.py list [session] [--store D]               open user calls, newest first
+    user-call.py held [--store D]                         open documentation calls on docs-held branches, by branch
     user-call.py edits --old A --new B                    a documentation call's edits, from two copies
     user-call.py edits --base REF FILE                    the same, from FILE against its text at REF
                                                           (of a list, FILE.json: one edit per entry whose
@@ -1541,6 +1542,24 @@ class Store:
         text = self.read(f"{cid}.answers.jsonl") or ""
         return [json.loads(l) for l in text.splitlines() if l.strip()]
 
+    def notes(self):
+        """Every note on main in this checkout's notes store, the folder its
+        .web-tools.json declares as "notes" (skills/notes/note.py reads it the same way)."""
+        r = git(self.repo, "show", "origin/main:.web-tools.json", check=False)
+        try:
+            folder = json.loads(r.stdout).get("notes") if r.returncode == 0 else None
+        except ValueError:
+            folder = None
+        folder = folder.strip("/") if isinstance(folder, str) and folder.strip("/") else "notes"
+        r = git(self.repo, "show", f"origin/main:{folder}/notes.jsonl", check=False)
+        out = []
+        for l in (r.stdout.decode("utf-8") if r.returncode == 0 else "").splitlines():
+            try:
+                out.append(json.loads(l))
+            except ValueError:
+                pass
+        return out
+
     def calls(self, prefix=""):
         """Every call on main whose id starts with prefix, as {id: text}, from one archive."""
         r = git(self.repo, "archive", "--format=tar", "origin/main", f"{self.path}/", check=False)
@@ -1602,9 +1621,27 @@ def answer_lines(r, call=None):
     return out
 
 
+VOTED = {"up": "votes up", "down": "votes down", "": "withdraws a vote"}
+
+
+def note_lines(notes, cid, folder="user-calls"):
+    """The notes whose subject is call `cid`, in any repo and at any ref, oldest
+    first, as printed by `answers` after the answer lines: a FAB note on the
+    call's page (lib/alpineComponents/fab.js) is the owner's usual answer."""
+    tail = f":{folder}/{cid}.json"
+    mine = sorted((n for n in notes if isinstance(n, dict) and str(n.get("about", "")).endswith(tail)),
+                  key=lambda n: str(n.get("at", "")))
+    out = []
+    for n in mine:
+        vote = f"  {VOTED[n['vote']]}" if n.get("vote") in VOTED else ""
+        out.append(f"Note  ({n.get('author', '')} {n.get('at', '')}){vote}")
+        out += ["  " + line for line in str(n.get("text", "")).splitlines()]
+    return out
+
+
 def main(argv):
     argv, at_store = flag(argv, "--store")
-    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "edits", "link", "patch", "review"}:
+    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "held", "edits", "link", "patch", "review"}:
         sys.exit(__doc__)
     cmd = argv[1]
     if cmd == "review":
@@ -1811,6 +1848,9 @@ def main(argv):
             print("\n".join(answer_lines(r, call)))
         if not rows:
             print(f"user-call: no answers for {argv[2]}")
+        noted = note_lines(store.notes(), argv[2], store.path)
+        if noted:
+            print("\n".join(noted))
     elif cmd == "patch":
         rows = Store(at_store).answers(argv[2])
         last = rows[-1] if rows else {}
@@ -1824,6 +1864,18 @@ def main(argv):
         for c in sorted(calls, key=lambda c: c.get("created", ""), reverse=True):
             if c.get("status") == "open":
                 print(f"{c['id']}: {c['question']}")
+    elif cmd == "held":
+        store = Store(at_store)
+        held = {}
+        for c in (json.loads(t) for t in store.calls().values()):
+            m = re.match(r"([\w.-]+/[\w.-]+)@([^:]*/docs-[^:]+):", str(c.get("file", "")))
+            if c.get("status") == "open" and c.get("kind") == "documentation" and m:
+                held.setdefault(m.group(1) + "@" + m.group(2), []).append(c)
+        for where in sorted(held):
+            print(f"{where}  https://mehrlander.github.io/web-tools/pages/branch.html#gh={where}&base=main")
+            for c in sorted(held[where], key=lambda c: c["id"]):
+                print(f"  {c['id']}: {c['question']}  https://mehrlander.github.io/web-tools/pages/user-call.html"
+                      f"#src=mehrlander/web-tools-private:{store.path}/{c['id']}.json")
 
 
 if __name__ == "__main__":

@@ -40,8 +40,9 @@ const verdicts = (rows) => {
 };
 
 const git = (cwd, ...args) => execFileSync('git', args, { cwd, env: ENV, encoding: 'utf8' });
-// A store holding `files` in user-calls/ on main, its clone on another branch.
-function store(files = {}) {
+// A store holding `files` in user-calls/ on main, its clone on another branch,
+// and `others` at their paths from the store's root (a notes/notes.jsonl).
+function store(files = {}, others = {}) {
   const tmp = mkdtempSync(path.join(tmpdir(), 'user-calls-'));
   git(tmp, 'init', '-q', '--bare', '-b', 'main', 'origin.git');
   git(tmp, 'clone', '-q', 'origin.git', 'store');
@@ -50,6 +51,10 @@ function store(files = {}) {
   mkdirSync(path.join(dir, 'user-calls'));
   writeFileSync(path.join(dir, 'user-calls', '.keep'), '');
   for (const [name, body] of Object.entries(files)) writeFileSync(path.join(dir, 'user-calls', name), body);
+  for (const [name, body] of Object.entries(others)) {
+    mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
+    writeFileSync(path.join(dir, name), body);
+  }
   git(dir, 'add', '.');
   git(dir, 'commit', '-qm', 'init');
   git(dir, 'push', '-q', 'origin', 'main');
@@ -318,6 +323,25 @@ test('add writes the call to main, whatever branch the checkout is on, and leave
   assert.equal(run(dir, ['list']).stdout, '', 'a closed call is no longer listed');
 });
 
+test('answers prints the notes on the call after its answers, at any repo or ref, and list is unchanged', () => {
+  const at = (about, extra) => JSON.stringify({ id: 'n' + about.length, at: '2026-11-28T0' + extra.h + ':00:00Z',
+    author: extra.by || 'owner', about, text: extra.text, ...(extra.vote !== undefined ? { vote: extra.vote } : {}) });
+  const notes = [
+    at(`mehrlander/web-tools-private@claude/x:user-calls/${DOC_ID}.json`, { h: 3, text: 'Second.', vote: 'down' }),
+    at(`mehrlander/web-tools-private:user-calls/${DOC_ID}.json`, { h: 1, text: 'Take it.\nBut name the file.', vote: 'up' }),
+    at('mehrlander/web-tools-private:user-calls/a710e806-other.json', { h: 2, text: 'Not this call.' }),
+    at(`mehrlander/web-tools-private:user-calls/${DOC_ID}.json`, { h: 4, by: 'gemini', text: 'No vote.' }),
+  ].join('\n') + '\n';
+  const dir = store({ [`${DOC_ID}.json`]: JSON.stringify({ ...DOC, id: DOC_ID, status: 'open' }) }, { 'notes/notes.jsonl': notes });
+  const out = run(dir, ['answers', DOC_ID]);
+  assert.equal(out.status, 0, out.stderr);
+  assert.equal(out.stdout, [`user-call: no answers for ${DOC_ID}`,
+    'Note  (owner 2026-11-28T01:00:00Z)  votes up', '  Take it.', '  But name the file.',
+    'Note  (owner 2026-11-28T03:00:00Z)  votes down', '  Second.',
+    'Note  (gemini 2026-11-28T04:00:00Z)', '  No vote.', ''].join('\n'));
+  assert.equal(run(dir, ['list']).stdout, `${DOC_ID}: Apply 2 edits to docs/x.md?\n`);
+});
+
 test('without --store, the store is the folder a checkout declares as "user-calls"', () => {
   const dir = store({ [`${DOC_ID}.json`]: JSON.stringify({ ...DOC, id: DOC_ID, status: 'open' }) });
   const r = spawnSync('python3', ['-B', SCRIPT, 'list'],
@@ -360,4 +384,22 @@ test('link, answers and patch read the call and its answers from main', () => {
   const refusal = run(committed, ['patch', DOC_ID]);
   assert.notEqual(refusal.status, 0, 'refused when the latest answer was committed');
   assert.match(refusal.stderr, /committed/);
+});
+
+test('held lists the open documentation calls on docs-held branches, grouped by branch', () => {
+  const call = (id, file, extra = {}) => [`${id}.json`, JSON.stringify({ ...DOC, id, status: 'open', file, ...extra })];
+  const dir = store(Object.fromEntries([
+    call('a1-one', 'mehrlander/web-tools@claude/docs-x:docs/x.md'),
+    call('a2-two', 'mehrlander/web-tools@claude/docs-x:docs/y.md'),
+    call('a3-elsewhere', 'mehrlander/web-tools@claude/feature:docs/x.md'),
+    call('a4-closed', 'mehrlander/web-tools@claude/docs-x:docs/z.md', { status: 'closed' }),
+    call('a5-pick', 'mehrlander/web-tools@claude/docs-x:docs/z.md', { kind: 'pick' }),
+  ]));
+  const r = run(dir, ['held']);
+  assert.equal(r.status, 0, r.stderr);
+  const page = (id) => `https://mehrlander.github.io/web-tools/pages/user-call.html#src=mehrlander/web-tools-private:user-calls/${id}.json`;
+  assert.equal(r.stdout, [
+    'mehrlander/web-tools@claude/docs-x  https://mehrlander.github.io/web-tools/pages/branch.html#gh=mehrlander/web-tools@claude/docs-x&base=main',
+    `  a1-one: ${DOC.question}  ${page('a1-one')}`,
+    `  a2-two: ${DOC.question}  ${page('a2-two')}`, ''].join('\n'));
 });
