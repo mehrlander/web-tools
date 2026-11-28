@@ -135,7 +135,7 @@ test('the launcher lights with the annotator on as well', async () => {
   window.Annotate.disable();
 });
 
-test('taking the offer opens the About panel with the passage quoted over an empty field', async () => {
+test('taking the offer opens the bottom panel\'s Comment tab with the passage quoted over an empty field', async () => {
   const p1 = doc.getElementById('p1').firstChild;
   select(p1, 4, 19);
   await settle();
@@ -146,8 +146,10 @@ test('taking the offer opens the About panel with the passage quoted over an emp
   await d.noteSelection();
   await tick(2);
   assert.equal(d.selOffer, null, 'the offer is spent');
-  assert.equal(d.open, true, 'the drawer opened');
-  assert.equal(d.activeTab, 'about', 'on the About panel');
+  assert.equal(d.bottom, 'comment', 'the Comment tab opened');
+  assert.equal(d.open, false, 'with the sidebar out of the way, so the page stays in view');
+  assert.ok(host.querySelector('[data-fab-bottom] [data-fab-note-form]'), 'the composer is in the bottom panel');
+  assert.equal(host.querySelector('[data-fab-about] [data-fab-note-form]'), null, 'and no longer in About');
   assert.equal(d.noteQuote, 'quick brown fox', 'with the passage quoted');
   const ta = host.querySelector('[data-fab-note-ta]');
   assert.ok(ta, 'the field is there');
@@ -179,7 +181,7 @@ test('taking the offer opens the About panel with the passage quoted over an emp
   A.clear();
   journal = ''; d.noteItems = []; d._noteRefresh();
   A.disable();
-  d.close(); d.activeTab = 'render';
+  d.closeBottom(); d.close(); d.activeTab = 'render';
   await tick(2);
 });
 
@@ -198,14 +200,14 @@ test('a tap on the lit launcher takes the passage, even when the press collapsed
   d.onUp(press());
   // The quote and the tab are set inside the tap; the anchoring follows the
   // kit, so this polls on time rather than on ticks.
-  assert.equal(d.activeTab, 'about');
+  assert.equal(d.bottom, 'comment');
   assert.equal(d.noteQuote, 'quick brown fox');
   for (const t0 = Date.now(); Date.now() - t0 < 3000 && !d.noteTarget; ) await tick(1);
   assert.equal(d.noteTarget.quote.exact, 'quick brown fox');
   d.noteClear();
   assert.equal(window.Annotate._state.pending, null, 'clearing drops the mark');
   window.Annotate.disable();
-  d.close(); d.activeTab = 'render';
+  d.closeBottom(); d.close(); d.activeTab = 'render';
   await tick(2);
 });
 
@@ -231,13 +233,12 @@ test('the page selection is cleared inside the tap, before any field takes the f
   assert.equal(doc.activeElement, host.querySelector('[data-fab-note-ta]'));
   d.noteClear();
   window.Annotate.disable();
-  d.close(); d.activeTab = 'render';
+  d.closeBottom(); d.close(); d.activeTab = 'render';
   await tick(2);
 });
 
 test('typing that lands on the keyboard foothold is carried into the Note field', async () => {
-  d.toggle();
-  d.setTab('about');
+  d.openComment();
   await tick(3);
   const proxy = host.querySelector('input[aria-hidden="true"]');
   const ta = host.querySelector('[data-fab-note-ta]');
@@ -250,11 +251,11 @@ test('typing that lands on the keyboard foothold is carried into the Note field'
   assert.equal(proxy.value, '', 'and left the foothold empty');
   assert.equal(doc.activeElement, ta, 'and the focus moved to the field with it');
   d.noteClear();
-  d.close(); d.activeTab = 'render';
+  d.closeBottom(); d.close(); d.activeTab = 'render';
   await tick(2);
 });
 
-test('closing the drawer before saving selects the passage again, and keeps what was written', async () => {
+test('leaving the Comment tab before saving selects the passage again, and keeps what was written', async () => {
   // jsdom has no Highlight API; a stub records what the kit paints, so the
   // mark can be seen to go when the selection comes back.
   // A Set-backed Highlight and a Map registry, which is the shape the real
@@ -270,12 +271,13 @@ test('closing the drawer before saving selects the passage again, and keeps what
   await d.noteSelection();
   await tick(2);
   const A = window.Annotate;
-  assert.ok(A._state.pending, 'the passage is marked while the drawer is open');
+  assert.ok(A._state.pending, 'the passage is marked while the tab is open');
   const mark = marks.get('annotate-notes-draft');
   assert.equal([...mark].map(String).join(), 'quick brown fox', 'painted on the page');
   d.noteText = 'half a thought';
   const p1el = doc.getElementById('p1');
-  d.close();
+  d.closeBottom();
+  await tick(1);
   // WebKit kept the orange painted when the registry merely let go of it
   // (reported from an iPhone). The old mark is cleared, which is what makes
   // an engine repaint what it covered, and the block it sat on is nudged.
@@ -299,7 +301,7 @@ test('closing the drawer before saving selects the passage again, and keeps what
   assert.equal(d.noteText, 'half a thought', 'and the text is still there');
   // Filed, there is no passage left to hand back.
   await d.saveNote();
-  d.close();
+  d.closeBottom();
   await tick(2);
   assert.equal(window.getSelection().toString(), '', 'nothing is reselected after a save');
   A.clear(); A.disable();
@@ -308,10 +310,13 @@ test('closing the drawer before saving selects the passage again, and keeps what
   } finally { window.Highlight = had.Highlight; window.CSS = had.CSS; }
 });
 
-test('the About panel opened by hand writes about the page, and Ctrl or Cmd Enter saves', async () => {
+test('About\'s Write button opens the composer on the page, and Ctrl or Cmd Enter saves', async () => {
   d.toggle();
   d.setTab('about');
   await tick(3);
+  host.querySelector('[data-fab-about-write]').click();
+  await tick(3);
+  assert.equal(d.bottom, 'comment', 'the composer is in the bottom panel');
   assert.equal(d.noteQuote, '');
   const ta = host.querySelector('[data-fab-note-ta]');
   ta.value = 'a thought about the whole page';
@@ -322,20 +327,19 @@ test('the About panel opened by hand writes about the page, and Ctrl or Cmd Ente
   assert.ok(d.notesList.some(n => n.text === 'a thought about the whole page'));
   assert.equal(d.notesList[0].about, 'mehrlander/web-tools:app/index.html');
   window.Annotate.clear(); window.Annotate.disable();
-  d.close(); d.activeTab = 'render';
+  d.closeBottom(); d.close(); d.activeTab = 'render';
   await tick(2);
 });
 
-test('an aim from the launcher menu steps off the About panel, since the dock is hidden there', async () => {
-  d.toggle();
-  d.setTab('about');
-  await tick(2);
+test('an aim from the launcher menu docks the card in the Comment tab and shows it', async () => {
   await d.openAnnotate();
   await tick(2);
-  assert.notEqual(d.activeTab, 'about');
-  assert.ok(host.querySelector('[data-fab-note-dock]').contains(window.Annotate._state.ui), 'the card is in the dock');
+  assert.equal(d.bottom, 'comment');
+  assert.equal(d.commentView, 'card');
+  const dock = host.querySelector('[data-fab-bottom] [data-fab-note-dock]');
+  assert.ok(dock && dock.contains(window.Annotate._state.ui), 'the card is in the panel\'s dock');
   window.Annotate.disable();
-  d.close();
+  d.closeBottom();
   await tick(2);
 });
 

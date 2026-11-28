@@ -159,6 +159,7 @@ node/render/scenarios/estate-skills.mjs,,node/render/scenarios,106,driver,,no,no
 node/render/scenarios/estate-snags.mjs,,node/render/scenarios,115,driver,,no,no,no
 node/render/scenarios/estate-surfaces-embed.mjs,"the Surfaces view rendering a kind:embed item, collapsed",node/render/scenarios,81,driver,,no,no,no
 node/render/scenarios/estate-unfiled.mjs,,node/render/scenarios,99,driver,,no,no,no
+node/render/scenarios/fab-bottom-tabs.mjs,,node/render/scenarios,39,driver,,no,no,no
 node/render/scenarios/fab-console-cost.mjs,,node/render/scenarios,70,driver,,no,no,no
 node/render/scenarios/fab-dom-shot.mjs,the FAB's View/Page/Region DOM screenshot controls and preview output,node/render/scenarios,93,driver,,no,no,no
 node/render/scenarios/fab-export.mjs,the FAB's Export controls,node/render/scenarios,31,driver,,no,yes,no
