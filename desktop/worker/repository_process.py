@@ -2,7 +2,9 @@
 from collections import namedtuple
 import math
 import os
+from pathlib import PureWindowsPath
 import selectors
+import shutil
 import signal
 import subprocess
 import sys
@@ -10,6 +12,29 @@ import time
 
 
 Result = namedtuple('Result', 'returncode stdout')
+
+
+def select_git(executable, *, windows, is_file):
+    """Bypass the standard Git for Windows launcher, preserving other PATH choices."""
+    if not windows:
+        return executable
+    path = PureWindowsPath(executable)
+    if path.name.casefold() != 'git.exe' or path.parent.name.casefold() not in ('cmd', 'bin'):
+        return executable
+    if path.parent.name.casefold() == 'bin' and path.parent.parent.name.casefold() in ('mingw64', 'mingw32'):
+        return executable
+    for architecture in ('mingw64', 'mingw32'):
+        candidate = str(path.parent.parent / architecture / 'bin' / 'git.exe')
+        try:
+            if is_file(candidate):
+                return candidate
+        except OSError:
+            continue
+    return executable
+
+
+# Resolve once for both repository readers, rather than inspecting PATH on every Git call.
+GIT_EXECUTABLE = select_git(shutil.which('git') or 'git', windows=os.name == 'nt', is_file=os.path.isfile)
 
 
 def run_bounded(argv, *, env=None, cwd=None, timeout=8, input=None, max_output=4194304):

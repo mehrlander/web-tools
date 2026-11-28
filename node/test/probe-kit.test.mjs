@@ -217,6 +217,41 @@ test('the overlay hops corners rather than being dragged', () => {
   assert.equal(/pointer-events:\s*(auto|all)/.test(css), false);
 });
 
+test('a caller can host the reading in an element of another document, and take it back to the corner', () => {
+  // The FAB's bottom panel lives in the toss shell's document while the probe
+  // runs in the subject frame's realm, so the host is an element of a second
+  // same-origin document, and the box and its stylesheet have to go there.
+  const w = boot({ search: '?probe=pop' });
+  const shell = makeWindow({ html: '<!doctype html><html><head></head><body><div id="panel"></div></body></html>' }).window;
+  const panel = shell.document.getElementById('panel');
+  assert.equal(w.Probe.host(panel), true);
+  assert.equal(w.Probe.hosted, true);
+  const box = panel.querySelector('#wt-probe');
+  assert.ok(box, 'the reading is drawn in the host');
+  assert.equal(box.hasAttribute('data-host'), true);
+  assert.equal(box.hasAttribute('data-corner'), false, 'a host has no corners');
+  assert.ok(shell.document.getElementById('wt-probe-css'), 'and its stylesheet went with it');
+  assert.equal(w.document.getElementById('wt-probe'), null, 'nothing is left over the watched page');
+  assert.ok(box.querySelector('.wt-p-tail'), 'the trace is one block the host clips from the top');
+  // Still never the pointer's target, hosted or not.
+  assert.equal(/pointer-events:\s*(auto|all)/.test(shell.document.getElementById('wt-probe-css').textContent), false);
+  // The watched realm is still the one listened to.
+  w.Probe.log('t:one', 'x');
+  assert.ok(box.textContent.includes('t:one'));
+  w.Probe.unhost();
+  assert.equal(w.Probe.hosted, false);
+  assert.equal(panel.querySelector('#wt-probe'), null);
+  assert.equal(w.document.getElementById('wt-probe').getAttribute('data-corner'), 'br', 'back in its corner');
+  // A host that leaves its document sends the reading back on the next draw.
+  w.Probe.host(panel); panel.remove(); w.Probe.log('t:two');
+  assert.equal(w.Probe.hosted, false);
+  assert.ok(w.document.getElementById('wt-probe'));
+  w.Probe.host(shell.document.body);
+  w.Probe.stop();
+  assert.equal(shell.document.getElementById('wt-probe-css'), null, 'off takes the host\'s stylesheet too');
+  assert.equal(shell.document.getElementById('wt-probe'), null);
+});
+
 test('the window is a page on the house stack, light, with one scroll region', () => {
   // Three defects reported from a real screenshot, now answered by the stack
   // the rest of the estate uses rather than by a private stylesheet.

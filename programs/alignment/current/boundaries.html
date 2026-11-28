@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter" class="[scrollbar-gutter:stable]">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text boundaries</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🧭</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script defer src="https://unpkg.com/alpinejs"></script>
+<!--
+  boundaries.html: the Alignment program's map of who claims what in the text
+  work. One row per item in boundaries.csv beside this file; one column per
+  home project and web-tools program. A filled mark is the project whose folder
+  holds the item or the program whose `governs` list covers it (both measured by
+  boundaries-map.mjs); a ring is an entity that names it in its charter, README
+  or index (recorded, with its basis); a dashed accent ring is a proposed move.
+  Address params: ?item=<id> selects a row; ?show=several|unowned|proposed
+  filters.
+-->
+</head>
+<body class="bg-base-100 text-base-content text-sm">
+<div x-data="boundaries()" x-init="init()" class="min-h-dvh" @keydown.window="key($event)">
+  <header class="sticky top-0 z-10 bg-base-100 border-b border-base-300">
+    <div class="px-4 pt-3 pb-2 flex items-baseline gap-3 flex-wrap">
+      <h1 class="text-lg font-semibold">Text boundaries</h1>
+      <span class="text-xs text-base-content/60 font-mono" x-text="rows.length + ' items · ' + ENT.length + ' claimants'"></span>
+      <span class="ml-auto flex items-center gap-3 text-xs text-base-content/70">
+        <span class="flex items-center gap-1"><span class="inline-block size-3 rounded-full bg-base-content"></span>holds or governs</span>
+        <span class="flex items-center gap-1"><span class="inline-block size-3 rounded-full border-2 border-base-content"></span>names</span>
+        <span x-show="count('proposed')" class="flex items-center gap-1"><span class="inline-block size-3 rounded-full border-2 border-dashed border-accent"></span>proposed</span>
+      </span>
+    </div>
+    <div class="px-4 pb-3 flex items-center gap-2 overflow-x-auto whitespace-nowrap">
+      <span class="text-xs text-base-content/60 shrink-0">Show</span>
+      <template x-for="f in FILTERS" :key="f.id">
+        <button x-show="f.id === 'all' || count(f.id)" class="btn btn-xs rounded-full" :class="show === f.id ? 'btn-primary' : 'btn-ghost border-base-300'" @click="setShow(f.id)">
+          <span x-text="f.label"></span><span class="tabular-nums opacity-70" x-text="count(f.id)"></span>
+        </button>
+      </template>
+    </div>
+  </header>
+
+  <main class="px-4 py-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,24rem)] lg:items-start">
+    <div class="min-w-0 overflow-x-auto">
+      <table class="table table-sm table-fixed w-full min-w-[48rem] text-sm">
+        <colgroup><col class="w-[26%]"><template x-for="e in ENT" :key="e.id"><col class="w-[8.5%]"></template><col class="w-[6%]"></colgroup>
+        <thead>
+          <tr class="border-b-0">
+            <th class="sticky left-0 bg-base-100 z-[1]"></th>
+            <th :colspan="HOME.length" class="text-center text-xs font-normal text-base-content/60 border-b border-base-300">home projects</th>
+            <th :colspan="HUB.length" class="text-center text-xs font-normal text-base-content/60 border-b border-base-300 border-l">web-tools programs</th>
+            <th></th>
+          </tr>
+          <tr>
+            <th class="text-xs font-normal text-base-content/60 sticky left-0 bg-base-100 z-[1]">item</th>
+            <template x-for="(e, i) in ENT" :key="e.id">
+              <th class="text-center text-xs font-medium px-1 cursor-default whitespace-normal leading-tight align-bottom" :class="[i === HOME.length ? 'border-l border-base-300' : '', col === e.id ? 'bg-base-200' : '']"
+                  @mouseenter="col = e.id" @mouseleave="col = ''" @click="col = col === e.id ? '' : e.id" x-text="e.label"></th>
+            </template>
+            <th class="text-center text-xs font-normal text-base-content/60 border-l border-base-300">stakes</th>
+          </tr>
+        </thead>
+        <template x-for="g in groups()" :key="g.id">
+          <tbody>
+            <tr class="border-b-0"><td :colspan="ENT.length + 2" class="pt-4 pb-1 text-xs text-base-content/60"><i class="ph mr-1" :class="g.icon"></i><span x-text="g.label"></span></td></tr>
+            <template x-for="r in g.rows" :key="r.item">
+              <tr class="cursor-pointer hover:bg-base-200" :class="sel === r.item ? 'bg-base-200' : ''" @click="pick(r.item)" :data-at="'row-' + r.item">
+                <td class="sticky left-0 z-[1] truncate" :class="sel === r.item ? 'bg-base-200' : 'bg-base-100'">
+                  <i x-show="!r.program && !r.project" class="ph-fill ph-warning-circle text-warning mr-1"></i><span class="font-medium" x-text="r.label"></span>
+                </td>
+                <template x-for="(e, i) in ENT" :key="e.id">
+                  <td class="text-center px-1" :class="[i === HOME.length ? 'border-l border-base-300' : '', col === e.id ? 'bg-base-200' : '']"
+                      @mouseenter="col = e.id" @mouseleave="col = ''">
+                    <span class="inline-block size-3.5 rounded-full align-middle" :class="markClass(rel(r, e.id))"></span>
+                  </td>
+                </template>
+                <td class="text-center tabular-nums border-l border-base-300" :class="claimants(r).size > 1 ? 'font-semibold' : 'text-base-content/40'" x-text="claimants(r).size"></td>
+              </tr>
+            </template>
+          </tbody>
+        </template>
+      </table>
+    </div>
+
+    <aside class="min-w-0 sticky z-20 bottom-0 lg:bottom-auto lg:top-28 max-h-[40dvh] lg:max-h-none overflow-y-auto bg-base-100 border border-base-300 rounded-box p-4 grid gap-3 shadow-sm lg:shadow-none" x-show="current()">
+      <template x-if="current()">
+        <div class="grid gap-3">
+          <div class="flex items-center gap-2">
+            <i class="ph" :class="groupOf(current()).icon"></i>
+            <span class="font-semibold" x-text="current().label"></span>
+          </div>
+          <a class="link link-hover font-mono text-xs break-all" :href="ghUrl(current().path)" target="_blank" rel="noopener" x-text="current().path"></a>
+          <ul class="grid gap-1.5">
+            <template x-for="c in claims(current())" :key="c.id + c.how">
+              <li class="flex items-center gap-2" @mouseenter="col = c.id" @mouseleave="col = ''">
+                <span class="inline-block size-3 rounded-full shrink-0" :class="markClass(c.how)"></span>
+                <span x-text="c.verb"></span><span class="font-medium" x-text="c.label"></span>
+              </li>
+            </template>
+            <li x-show="!current().program && !current().project" class="flex items-center gap-2 text-warning">
+              <i class="ph ph-warning-circle"></i><span>no program governs it</span>
+            </li>
+          </ul>
+          <p class="text-base-content/80" x-show="current().basis"><i class="ph ph-quotes mr-1"></i><span x-text="current().basis"></span></p>
+        </div>
+      </template>
+    </aside>
+  </main>
+</div>
+
+
+<script>
+function parseCsv(text) {
+  const rows = []; let row = [], cell = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n') { row.push(cell); rows.push(row); row = []; cell = ''; }
+    else if (ch !== '\r') cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const [head, ...body] = rows;
+  return body.filter(r => r.length > 1).map(r => Object.fromEntries(head.map((h, i) => [h, r[i] ?? ''])));
+}
+
+function boundaries() {
+  const HOME = [['text', 'Text'], ['skill-lab', 'Skill Lab'], ['strategic-writing', 'Strategic writing'], ['local-models', 'Local models']]
+    .map(([id, label]) => ({ id, label, side: 'home' }));
+  const HUB = [['content', 'Content'], ['discovery', 'Discovery'], ['sessions', 'Sessions'], ['alignment', 'Alignment']]
+    .map(([id, label]) => ({ id, label, side: 'hub' }));
+  const GROUPS = [
+    ['analysis', 'Analysis', 'ph-magnifying-glass'], ['models', 'Models', 'ph-cpu'], ['audit', 'Audit', 'ph-list-checks'],
+    ['anchoring', 'Anchoring', 'ph-anchor'], ['writing', 'Writing rules', 'ph-pen-nib'], ['styles', 'Styles', 'ph-books'],
+    ['repeated-prose', 'Repeated prose', 'ph-copy'],
+  ].map(([id, label, icon]) => ({ id, label, icon }));
+  const params = new URLSearchParams(location.search);
+  return {
+    HOME, HUB, ENT: [...HOME, ...HUB],
+    FILTERS: [{ id: 'all', label: 'All' }, { id: 'several', label: 'Several claimants' }, { id: 'unowned', label: 'No program' }, { id: 'proposed', label: 'Proposed' }],
+    rows: [], show: params.get('show') || 'all', sel: params.get('item') || '', col: '',
+    async init() {
+      this.rows = parseCsv(await (await fetch('boundaries.csv')).text());
+      if (!this.sel) this.sel = (this.rows.find(r => this.claimants(r).size > 1) || this.rows[0] || {}).item || '';
+      else this.$nextTick(() => this.reveal());
+    },
+    visible() { return this.groups().flatMap(g => g.rows); },
+    reveal() { document.querySelector(`[data-at="row-${this.sel}"]`)?.scrollIntoView({ block: 'nearest' }); },
+    key(ev) {
+      if (!['ArrowDown', 'ArrowUp'].includes(ev.key)) return;
+      const v = this.visible(), i = v.findIndex(r => r.item === this.sel);
+      const j = Math.max(0, Math.min(v.length - 1, i + (ev.key === 'ArrowDown' ? 1 : -1)));
+      if (!v[j]) return;
+      ev.preventDefault(); this.pick(v[j].item); this.$nextTick(() => this.reveal());
+    },
+    rel(r, id) {
+      if (r.proposed === id) return 'proposed';
+      if (r.project === id || r.program === id) return 'holds';
+      if ((r.named_by || '').split(';').includes(id)) return 'names';
+      return '';
+    },
+    claimants(r) { return new Set(this.ENT.map(e => e.id).filter(id => this.rel(r, id))); },
+    keep(r, f) {
+      if (f === 'several') return this.claimants(r).size > 1;
+      if (f === 'unowned') return !r.program && !r.project;
+      if (f === 'proposed') return !!r.proposed;
+      return true;
+    },
+    count(f) { return this.rows.filter(r => this.keep(r, f)).length; },
+    setShow(f) { this.show = f; this.syncUrl(); },
+    groups() {
+      return GROUPS.map(g => ({ ...g, rows: this.rows.filter(r => r.group === g.id && this.keep(r, this.show)) })).filter(g => g.rows.length);
+    },
+    groupOf(r) { return GROUPS.find(g => g.id === r.group) || GROUPS[0]; },
+    current() { return this.rows.find(r => r.item === this.sel); },
+    pick(id) { this.sel = id; this.syncUrl(); },
+    claims(r) {
+      const out = [];
+      if (r.project) out.push({ id: r.project, how: 'holds', verb: 'held by' });
+      if (r.program) out.push({ id: r.program, how: 'holds', verb: 'governed by' });
+      for (const id of (r.named_by || '').split(';').filter(Boolean)) out.push({ id, how: 'names', verb: 'named by' });
+      if (r.proposed) out.push({ id: r.proposed, how: 'proposed', verb: 'proposed for' });
+      return out.map(c => ({ ...c, label: (this.ENT.find(e => e.id === c.id) || { label: c.id }).label }));
+    },
+    markClass(how) {
+      return {
+        holds: 'bg-base-content',
+        names: 'border-2 border-base-content',
+        proposed: 'border-2 border-dashed border-accent',
+      }[how] || '';
+    },
+    ghUrl(loc) {
+      const [repo, p] = loc.split(/:(.*)/s);
+      return `https://github.com/${repo}/${p.endsWith('/') ? 'tree' : 'blob'}/main/${p.replace(/\/$/, '')}`;
+    },
+    syncUrl() {
+      const q = new URLSearchParams(location.search);
+      this.show === 'all' ? q.delete('show') : q.set('show', this.show);
+      this.sel ? q.set('item', this.sel) : q.delete('item');
+      try { history.replaceState(null, '', location.pathname + (q.toString() ? '?' + q : '') + location.hash); } catch (e) {}
+    },
+  };
+}
+</script>
+</body>
+</html>
