@@ -259,6 +259,7 @@
         "docs/properties.csv",
         "docs/TRACKER.md",
         "docs/themes.csv",
+        "docs/glossary/README.md",
         "docs/glossary/terms.csv",
         "docs/glossary/senses.csv",
         "lib/kits/lists.js"
