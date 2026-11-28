@@ -5,7 +5,7 @@ description: "The owner's pet peeves: a numbered list (peeves.csv beside this fi
 
 # Pet peeves
 
-[`peeves.md`](peeves.md) is the list, one entry per peeve, and [`peeves.csv`](peeves.csv) holds the same entries as rows, with these columns:
+[`lists/peeves.json`](../../lists/peeves.json) is the list, one item per peeve; [`peeves.md`](peeves.md) and [`peeves.csv`](peeves.csv) are written from it, the CSV with these columns:
 
 | Column | Holds |
 | --- | --- |

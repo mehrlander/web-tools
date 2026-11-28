@@ -3,8 +3,8 @@
 the line a reply closes with (docs/CONVERSATION.md, "Session detail caption"),
 so that no session works it out by hand.
 
-    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) `816k` `1d 2h` [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
-    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) scheduled task `816k` `1d 3h` [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
+    `11/14 10:14am` 💬[22](https://mehrlander.github.io/web-tools/pages/turn.html#id=f701fa79&at=2026-11-14T18:14:02.118Z) `816k` `1d 2h` [✍️1](https://mehrlander.github.io/web-tools/pages/session.html#id=f701fa79) [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
+    `11/14 11:12am` 💬[22](https://mehrlander.github.io/web-tools/pages/turn.html#id=f701fa79&at=2026-11-14T18:14:02.118Z) scheduled task `816k` `1d 3h` [`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)
 
 THE PARTS. The line opens with when this run printed it, as a code span, in
 the owner's time zone (OWNER_TZ below): month/day, then 12-hour time with a
@@ -12,8 +12,14 @@ plain am or pm. One space separates the parts, and PILL_GAP below, a space and
 a no-break space, separates two code spans. In the Claude app on an iPhone,
 each single space tried between two code spans (ordinary, no-break, en, em and
 thin) drew them touching, while a code span beside plain text kept its gap (the
-owner's screenshots, 2026-11-21). 22 counts the messages the owner has typed, and is the link to the session page, named by the session id's
-first eight characters. A turn the
+owner's screenshots, 2026-11-21). 22 counts the messages the owner has typed,
+and links the turn page (pages/turn.html) for the turn of the owner's latest
+ask: `turn.html#id=<short>&at=<the ask's instant>`, the short id being the
+session id's first eight characters. An ask being submitted is not in the
+transcript yet, so its instant is this run's clock, which the turn page allows
+a few seconds for; any other run, a turn the owner did not start included,
+takes the latest owner message's timestamp. With no owner message yet the link
+is the session page, `session.html#id=<short>`. A turn the
 owner did not start names what started it next (WHAT STARTED THE TURN, below),
 as the second line does. 816k is the
 context in thousands of tokens, read the way context-size-hint.py reads it:
@@ -33,6 +39,18 @@ zero count is left off, and so is a part the transcript cannot supply: the time
 before any owner message, the context before any response. The line closes
 with ‹⋯› as a code span linking PROGRAM below, after ✍️, so that every line
 ends on the same mark.
+
+THE PROGRAM SESSION. A program's standing session, the one whose cloud id a
+program declaration in web-tools' .web-tools.json names as its `session`, gets
+the program's emoji and label after the time, as `🎙️ Sessions`, and its closing
+‹⋯› links that program's page rather than the Sessions program's. The cloud id is
+CLAUDE_CODE_REMOTE_SESSION_ID, as `cse_<id>`, matched against a declared
+`session_<id>` by the part after the first underscore; it is the id a claude.ai
+link carries, which a /clear does not change. The declarations are read from
+the plugin marketplace's clone of web-tools, which tracks main, so a declaration
+reaches every session without a pull; WEB_TOOLS_PROGRAMS names another file, for
+the tests. standing() below is the lookup, and check-in.py loads it to arm no
+check-in in such a session.
 
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
 `user-calls/<short>-<slug>.json` (the user-calls skill, skills/user-calls/SKILL.md,
@@ -118,6 +136,7 @@ import time
 OWNER_TZ = os.environ.get("OWNER_TZ") or "America/Los_Angeles"
 PAGES = "https://mehrlander.github.io/web-tools/pages/"
 PROGRAM = "https://mehrlander.github.io/web-tools/app/?view=program&program=sessions"
+PROGRAMS = os.path.join("~", ".claude", "plugins", "marketplaces", "web-tools", ".web-tools.json")
 PILL_GAP = " \u00a0"
 TAIL = 400_000
 USAGE = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
@@ -152,6 +171,27 @@ def save(path, state):
     with open(scratch, "w", encoding="utf-8") as fh:
         json.dump(state, fh)
     os.replace(scratch, path)
+
+
+# ── The program session ─────────────────────────────────────────────────────
+
+def standing(environ):
+    """The program whose declared `session` is this cloud session, or None."""
+    remote = str(environ.get("CLAUDE_CODE_REMOTE_SESSION_ID") or "")
+    key = remote.split("_", 1)[1] if "_" in remote else ""
+    if not key:
+        return None
+    path = os.path.expanduser(environ.get("WEB_TOOLS_PROGRAMS") or PROGRAMS)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            programs = json.load(fh).get("programs") or []
+    except (OSError, ValueError, AttributeError):
+        return None
+    for program in programs:
+        declared = str(program.get("session") or "") if isinstance(program, dict) else ""
+        if "_" in declared and declared.split("_", 1)[1] == key and program.get("name"):
+            return program
+    return None
 
 
 # ── The checkouts, and what moved in them ───────────────────────────────────
@@ -293,9 +333,10 @@ def count_owner(transcript, state):
     transcript's last whole line, reading only what the state does not cover."""
     size = os.path.getsize(transcript)
     seen, count, first = state.get("seen"), state.get("owner"), state.get("first")
+    last = state.get("last")
     if (state.get("transcript") != transcript or not isinstance(seen, int)
             or not isinstance(count, int) or not 0 <= seen <= size):
-        seen, count, first = 0, 0, None
+        seen, count, first, last = 0, 0, None, None
     with open(transcript, "rb") as fh:
         fh.seek(seen)
         for raw in fh:
@@ -312,7 +353,8 @@ def count_owner(transcript, state):
                 continue
             count += 1
             first = first or entry.get("timestamp")
-    state.update(transcript=transcript, seen=seen, owner=count, first=first)
+            last = entry.get("timestamp") or last
+    state.update(transcript=transcript, seen=seen, owner=count, first=first, last=last)
 
 
 def tail_facts(transcript):
@@ -477,7 +519,7 @@ def awaiting(repos, names, store, short):
     uncalled = set()
     test = None
     for repo, found in zip(repos, names):
-        found = [rel for rel in found if rel.endswith(".md")]
+        found = [rel for rel in found if rel.endswith((".md", ".json"))]
         if not found:
             continue
         test = test or engine()
@@ -541,6 +583,12 @@ def clock(now, zone=OWNER_TZ):
     return f"{at.month}/{at.day} {(at.hour + 11) % 12 + 1}:{at.minute:02d}{marker}"
 
 
+def iso(now):
+    """An epoch time as the transcript writes one: UTC, to the millisecond."""
+    from datetime import datetime, timezone
+    return datetime.fromtimestamp(now, timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.") + f"{int(now * 1000) % 1000:03d}Z"
+
+
 def since(first, now):
     """Seconds from an entry's ISO timestamp to now, or None."""
     from datetime import datetime
@@ -601,7 +649,9 @@ def main():
 
     glyph, url = "💬", ""
     if store:
-        url = f"{PAGES}session.html#id={session[:8]}"
+        ask = iso(now) if submitting(event, payload, unanswered) else state.get("last")
+        url = (f"{PAGES}turn.html#id={session[:8]}&at={ask}" if isinstance(ask, str) and ask
+               else f"{PAGES}session.html#id={session[:8]}")
     else:
         url = branch_page(repos, counts, str(payload.get("cwd") or root))
         if url:
@@ -617,7 +667,10 @@ def main():
     if waiting:
         deck = f"{PAGES}session.html#id={session[:8]}" + (f"&user-call={call}" if call else "")
         parts.append(f"[✍️{waiting}]({deck})")
-    parts.append(f"[`‹⋯›`]({PROGRAM})")
+    program = standing(os.environ)
+    if program:
+        parts.insert(0, " ".join(filter(None, [program.get("emoji"), program.get("label") or program["name"]])))
+    parts.append(f"[`‹⋯›`]({PROGRAM.rsplit('=', 1)[0]}={program['name'] if program else 'sessions'})")
 
     state["waiting"] = waiting
     save(path, state)
