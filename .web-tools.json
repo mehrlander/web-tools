@@ -181,11 +181,16 @@
           { "kind": "gallery", "registry": "data/ui-units/codes.csv", "where": { "axis": "^answer$" }, "label": "name", "icon": "icon" },
           { "kind": "gallery", "registry": "docs/docs.csv", "where": { "path": "^docs/envelopes/(?!README)[^/]+\\.md$" }, "label": "path" }
         ] },
-        { "name": "Resources", "icon": "ph-toolbox", "panels": [
+        { "name": "Skills", "icon": "ph-sparkle", "panels": [
           { "kind": "groups", "registry": "skills/manifest.csv", "by": "group", "label": "name", "text": "description", "file": "skills/{name}/SKILL.md",
             "icons": { "session": "ph-terminal-window", "prose": "ph-pen-nib", "web": "ph-browser", "documents": "ph-files", "device": "ph-device-mobile", "windows": "ph-windows-logo" } },
+          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "label": "^skill-lab$" }, "label": "title", "href": "href" }
+        ] },
+        { "name": "Agents", "icon": "ph-robot", "panels": [
           { "kind": "groups", "registry": "docs/agents.csv", "by": "kind", "only": ["definition"], "label": "id", "text": "role", "file": "{path}", "icon": "icon",
-            "labels": { "definition": "agents" }, "icons": { "definition": "ph-robot" } },
+            "labels": { "definition": "agents" }, "icons": { "definition": "ph-robot" } }
+        ] },
+        { "name": "Context", "icon": "ph-stack", "panels": [
           { "kind": "breakdown", "registry": "docs/context-sources.csv", "by": "arrives", "fold": true,
             "labels": { "instructions": "instructions", "skill-listing": "skill listing", "skill": "skill", "hook": "hook output", "settings": "settings",
               "install": "install", "tool": "tool results", "message": "message", "continuity": "carried forward", "none": "configures only" },
