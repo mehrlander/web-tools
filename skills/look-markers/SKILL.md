@@ -17,16 +17,17 @@ alone mean other things here.
 ## When
 
 Whenever a reply would locate something on a page in words, send the link and
-let the reply say what to notice. Send a walkthrough, even of one step, with an
-`intro=<one line>` card naming what the reader is reviewing. A step is `show`,
+let the reply say what to notice. Send a walkthrough, even of one step, with
+`intro=<one line>`: the card the page opens on, naming what the reader is
+reviewing. A step is `show`,
 or `tap` when the reader should press it. Where no route below reaches the
 page, say it in words.
 
-To step through several documents in one link, start on the first document's
-data-view address, `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Name
-each step by its document's data-view address with `!text:<heading>`. Do
-not use the data route (🥏 `#data=`) for this: a step on a second document does
-not land in its frame.
+To step through several documents in one link, open the first document on the
+data-view page, `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Name
+each step by its document's data-view page address with `!text:<heading>`.
+The data route (🥏 `#data=`, under "Where it works") draws its document in a
+frame, where a step on a second document does not land.
 
 ## Making the link
 
