@@ -29,6 +29,7 @@ python3 user-call.py answers <id>                # what the owner answered, with
 python3 user-call.py patch <id> | git apply      # a documentation answer's patch, in a checkout of the file's repo
 python3 user-call.py close <id> <answer> [note]
 python3 user-call.py list [session]              # open calls, newest first
+python3 user-call.py held                        # open documentation calls on docs-held branches, by branch
 python3 user-call.py edits --base REF FILE       # a documentation call's edits, FILE against its text at REF
 python3 user-call.py edits --old A --new B       # the same, from two copies
 python3 user-call.py review <call.json> <document> --spans   # before a critic run: the edits as line ranges E1, E2, ...
