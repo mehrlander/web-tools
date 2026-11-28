@@ -30,11 +30,12 @@ const { window } = makeWindow();
 window.marked = marked;
 window.Diff = Diff;
 global.DOMParser = window.DOMParser;
+// md-doc for the section split a heading's copy button reads, and
 // swipe-deck too, because the render-level cases below build a real container
 // and a container is a deck. The kit is framework-free and does not mind jsdom;
 // what it cannot do there is lay anything out, which is why the assertions ask
 // which readings a block offers rather than where they sit.
-for (const kit of ['guide-render.js', 'swipe-deck.js', 'md-diff.js']) {
+for (const kit of ['guide-render.js', 'md-doc.js', 'swipe-deck.js', 'md-diff.js']) {
   new Function('window', 'document', readFileSync(path.join(repoRoot, 'lib/kits', kit), 'utf8'))(window, window.document);
 }
 const mdDiff = window.mdDiff;
@@ -165,7 +166,7 @@ test('frontmatter renders as one band of fields, each key beside its value witho
   const band = bands[0];
   assert.ok(band.classList.contains('bg-base-200') && band.classList.contains('rounded-lg'), 'a gray band with rounded ends');
   assert.equal(host.querySelector(':scope > [data-md-front]'), null, 'no field stands outside it');
-  assert.equal(band.nextElementSibling.querySelector('h1').textContent, 'The pool', 'the title follows the band');
+  assert.equal(band.nextElementSibling.querySelector('h1').firstChild.textContent, 'The pool', 'the title follows the band');
   const fields = [...band.querySelectorAll(':scope > [data-md-front]:not(.hidden)')];
   assert.deepEqual(fields.map((f) => f.firstChild.firstChild.textContent), ['title', 'status'], 'the unchanged fields, labelled');
   assert.equal(fields[0].firstChild.lastChild.textContent, 'The pool', 'the value without its quotes');
@@ -193,6 +194,53 @@ test('a document without frontmatter draws no band', async () => {
   await mdDiff.render(host, '# H\n\ntitle: "T"\n\nBody.\n', '# H\n\ntitle: "U"\n\nBody.\n');
   assert.equal(host.querySelector('[data-md-front-band], [data-md-front]'), null);
   host.remove();
+});
+
+// A heading in the diff says its rank and copies its section, so a reader
+// can tell it from a paragraph that opens on a bold lead.
+test('a heading carries its rank and copies its own section; a bold lead does not', async () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  const before = '# Doc\n\n## Part\n\n**Lead.** Old words.\n\n### Sub\n\nTail.\n';
+  const after = '# Doc\n\n## Part\n\n**Lead.** New words.\n\n### Sub\n\nTail.\n';
+  await mdDiff.render(host, before, after);
+  const h2 = host.querySelector('h2');
+  assert.equal(h2.dataset.mdRank, '2');
+  assert.equal(h2.firstChild.textContent, 'Part', 'the title text is untouched');
+  const tag = h2.querySelector('.md-head-rank');
+  assert.equal(tag.textContent, 'H2');
+  assert.equal(tag.dataset.titleTip, 'Second-level heading (##)');
+  assert.ok(h2.querySelector('.md-head-copy'), 'an unchanged heading copies its section');
+  assert.ok(h2.querySelector('[data-annotate-ui]'), 'the tools stay out of annotated text');
+  assert.equal(host.querySelector('h3 .md-head-rank').textContent, 'H3');
+  assert.equal(host.querySelectorAll('strong .md-head-rank, p .md-head-rank').length, 0, 'a bold lead gets no tag');
+  host.remove();
+});
+
+test('a change copies out as a self-contained diff with its address, lines and heading', async () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  const before = '# Doc\n\n## Part\n\nThe words stand here.\n\nTail.\n';
+  const after = '# Doc\n\n## Part\n\nThe words stand here,\non two lines.\n\nAdded.\n\nTail.\n';
+  await mdDiff.render(host, before, after, { addr: { repo: 'o/r', ref: 'b', base: 'main', path: 'd.md' } });
+  const [first, second] = host.querySelectorAll('.md-diff-change');
+  const held = [window.rowMenu, window.gh, window.io];
+  let got = '';
+  window.rowMenu = undefined; window.gh = undefined;
+  window.io = { copy: async (t) => { got = t; } };
+  try {
+    first.querySelector('.md-diff-more').click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(got, [
+      'o/r@b:d.md, change 1 of 2, against main', '', '```diff',
+      '--- a/d.md\tmain', '+++ b/d.md\tb', '@@ -5 +5,2 @@ ## Part',
+      '-The words stand here.', '+The words stand here,', '+on two lines.', '```', '',
+      'To propose another version, send this block back with its + lines rewritten.',
+    ].join('\n'));
+    second.querySelector('.md-diff-more').click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.match(got, /^@@ -5,0 \+8 @@ ## Part\n\+Added\.$/m, 'an added block names the line it follows in the old text');
+  } finally { [window.rowMenu, window.gh, window.io] = held; host.remove(); }
 });
 
 // ── Alignment ───────────────────────────────────────────────────────────────

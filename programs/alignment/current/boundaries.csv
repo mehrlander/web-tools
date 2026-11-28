@@ -1,0 +1,22 @@
+item,label,group,path,project,program,named_by,proposed,basis
+instruments,Instrument index,analysis,mehrlander/home:projects/text/INSTRUMENTS.md,text,,,,
+keyness,Keyness (term salience),analysis,mehrlander/home:projects/text/instruments/keyness/,text,,,,
+termlab,Term lab,analysis,mehrlander/home:projects/text/instruments/concept-lab/,text,,,,
+text-probes,Text probes,analysis,mehrlander/home:projects/text/probes/,text,,discovery,,"Discovery charter, Probes: home's text project keeps its own probes, read on the Text Lab page"
+text-lab-page,Text Lab page,analysis,mehrlander/web-tools:pages/text-lab.html,,discovery,text,,Text README: the project's front page
+variants,Variants generator,models,mehrlander/home:projects/text/instruments/variants/,text,,local-models,,Text README: a runtime adapter an instrument needs belongs to local models
+local-models,Model selection and delivery,models,mehrlander/home:projects/local-models/,local-models,,text,,"Text README, Boundary: model selection and delivery, runtimes, inference cost, model evaluation"
+audit-instruments,Audit instruments,audit,mehrlander/home:projects/text/doc-audit/audit.py,text,,,,"Text README, Boundary: the document audit's instruments"
+audit-process,Audit process model,audit,mehrlander/home:projects/text/doc-audit/process/index.html,text,,content;discovery,,"Content charter, Documents: the steps by which a document's wording is checked; Discovery charter, Provenance: its source-anchoring recipe is a step in a model Content owns; Text README, Boundary: Text keeps the audit's instruments"
+doc-audit-skill,doc-audit skill,audit,mehrlander/web-tools:skills/doc-audit/,,,text,,Text README: the doc-audit skill runs a document audit
+succinct-text,succinct-text skill,audit,mehrlander/web-tools:skills/succinct-text/,,,text,,"a recipe in the audit process model, projects/text/doc-audit/process/data.js"
+outlining,outlining skill,audit,mehrlander/web-tools:skills/outlining/,,,text,,"a recipe in the audit process model, projects/text/doc-audit/process/data.js"
+source-anchoring,source-anchoring skill,anchoring,mehrlander/web-tools:skills/source-anchoring/,,discovery,text,,"a recipe in the audit process model, projects/text/doc-audit/process/data.js"
+source-bundles,Source bundles,anchoring,mehrlander/web-tools:docs/source-bundles.md,,discovery,,,
+qualified-writing,Qualified writing rules,writing,mehrlander/web-tools:docs/QUALIFIED-WRITING.md,,content,,,
+writing-rules,Rules about how to write,writing,mehrlander/home:projects/strategic-writing/rules.csv,strategic-writing,,text,,"Text README, Boundary: the map of rules about how to write"
+exemplars,Exemplars,styles,mehrlander/home:projects/skill-lab/exemplars/,skill-lab,,sessions,,"Sessions charter, Skill Lab area"
+skill-lab-page,Skill Lab page,styles,mehrlander/web-tools:pages/skill-lab.html,,sessions,skill-lab,,Skill Lab README: the project's front page
+duplicated-claims-hub,duplicated-claims.py (web-tools),repeated-prose,mehrlander/web-tools:python/duplicated-claims.py,,,alignment,,"Alignment charter, Repeated prose; home holds a different file of the same name"
+duplicated-claims-home,duplicated-claims.py (home),repeated-prose,mehrlander/home:tools/duplicated-claims.py,,,text,,"INSTRUMENTS.md, Repository; web-tools holds a different file of the same name"
+doc-overlap,doc-overlap.py,repeated-prose,mehrlander/web-tools:python/doc-overlap.py,,,text,,"INSTRUMENTS.md, Repository"
