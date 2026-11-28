@@ -217,6 +217,32 @@ test('a heading carries its rank and copies its own section; a bold lead does no
   host.remove();
 });
 
+test('a change copies out as a self-contained diff with its address, lines and heading', async () => {
+  const host = window.document.createElement('div');
+  window.document.body.append(host);
+  const before = '# Doc\n\n## Part\n\nThe words stand here.\n\nTail.\n';
+  const after = '# Doc\n\n## Part\n\nThe words stand here,\non two lines.\n\nAdded.\n\nTail.\n';
+  await mdDiff.render(host, before, after, { addr: { repo: 'o/r', ref: 'b', base: 'main', path: 'd.md' } });
+  const [first, second] = host.querySelectorAll('.md-diff-change');
+  const held = [window.rowMenu, window.gh, window.io];
+  let got = '';
+  window.rowMenu = undefined; window.gh = undefined;
+  window.io = { copy: async (t) => { got = t; } };
+  try {
+    first.querySelector('.md-diff-more').click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.equal(got, [
+      'o/r@b:d.md, change 1 of 2, against main', '', '```diff',
+      '--- a/d.md\tmain', '+++ b/d.md\tb', '@@ -5 +5,2 @@ ## Part',
+      '-The words stand here.', '+The words stand here,', '+on two lines.', '```', '',
+      'To propose another version, send this block back with its + lines rewritten.',
+    ].join('\n'));
+    second.querySelector('.md-diff-more').click();
+    await new Promise((r) => setTimeout(r, 0));
+    assert.match(got, /^@@ -5,0 \+8 @@ ## Part\n\+Added\.$/m, 'an added block names the line it follows in the old text');
+  } finally { [window.rowMenu, window.gh, window.io] = held; host.remove(); }
+});
+
 // ── Alignment ───────────────────────────────────────────────────────────────
 
 const DOC =['# Title', '', 'Alpha stands first.', '', 'Beta follows.', '', 'Gamma last.'].join('\n');
