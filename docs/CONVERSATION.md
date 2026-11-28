@@ -36,7 +36,7 @@ substituting the current repo in URL templates.
 
 * **Close every reply** with three parts:
   - the session detail caption;
-  - the lines [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints, unchanged and without a gloss;
+  - each link [`session-render-links`](https://github.com/mehrlander/web-tools/blob/main/python/session-render-links.py) prints, with a few words on what it opens;
   - the closing state.
 
 * **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
