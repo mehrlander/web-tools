@@ -2,10 +2,11 @@
 name: claude-errands
 description: >-
   Take and do the errands Codex or Gemini on the Lenovo left for Claude
-  (claude-errand requests in web-tools-private): list them, claim the oldest one
-  for this machine, do what its prompt asks, and close it with a report. Use when
-  the owner says "look for errands left for Claude", "do your errands", "any
-  Claude errands?", or invokes /portable:claude-errands, in any repository.
+  (claude-errand requests in web-tools-private), and the owner's tickets open to
+  Claude: list them, claim the oldest one for this machine, do what its prompt
+  asks, and close it with a report. Use when the owner says "look for errands
+  left for Claude", "do your errands", "any Claude errands?", "work the
+  tickets", or invokes /portable:claude-errands, in any repository.
 ---
 
 # Claude errands
@@ -54,3 +55,11 @@ which commits them under `errands/output/<id>/`. Use `--failed` when it could
 not be done, saying why. `release <id>` frees a claim without closing, so the
 errand can be taken afresh. Repeat `next` until it reports none open, then tell
 the owner, in the reply, each errand's title and outcome.
+
+**`next` also prints tickets.** A ticket is the owner's own request, and
+`next` prints the ticket's rules above its task. When
+the repository it is about is not in the session, attach it with `add_repo`.
+Close a finished ticket with the pull request's URL in `--message`. When you
+cannot finish one, close it with `--failed`, which hands it to the other
+assistants it is open to
+([errands/README.md, "Tickets"](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md#tickets)).
