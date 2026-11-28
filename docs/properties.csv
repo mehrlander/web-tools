@@ -411,3 +411,11 @@ glossary-stats,areas,computed,python/glossary-stats.py,value,column,yes,,,value,
 glossary-stats,marked,computed,python/glossary-stats.py,value,column,yes,,,value,"share of uses in bold, in a code span or in a heading, the term's markedness"
 glossary-stats,importance,computed,python/glossary-stats.py,value,column,yes,,,value,"areas times marked times ln(1 + uses); provisional until a gold set scores it"
 glossary-stats,scanned,computed,python/glossary-stats.py,value,column,yes,,,label,"files scanned for this emission, identical on every row"
+boundaries,label,recorded,,value,column,yes,,,value,the item's name as the map shows it
+boundaries,group,recorded,,value,column,yes,analysis;models;audit;anchoring;writing;styles;repeated-prose,,label,the strand of the text work the item belongs to
+boundaries,path,recorded,,value,column,yes,,,locator,"the item, as owner/repo:path; a folder ends in /"
+boundaries,project,recorded,,counted,column,yes,text;skill-lab;strategic-writing;local-models,,label,the home project whose folder holds the path; blank outside projects/; boundaries-map.mjs --check measures it
+boundaries,program,recorded,,counted,column,yes,content;discovery;sessions;alignment;testing,,label,the web-tools program whose governs list in .web-tools.json covers the path; blank for none; boundaries-map.mjs --check measures it
+boundaries,named_by,recorded,,counted,list,no,text;skill-lab;strategic-writing;local-models;content;discovery;sessions;alignment,,label,each project or program that names the item without holding it
+boundaries,proposed,recorded,,counted,column,yes,text;skill-lab;strategic-writing;local-models;content;discovery;sessions;alignment,,label,the project or program a pending proposal would move the item to
+boundaries,basis,recorded,,counted,column,yes,,,value,where each naming or proposal is stated
