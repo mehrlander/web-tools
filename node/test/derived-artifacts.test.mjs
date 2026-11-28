@@ -49,6 +49,11 @@ test('the default skill\'s vendored docs match docs/', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'vendor-docs --check failed');
 });
 
+test('docs/house-policies.md and skills/peeves/peeves.md match their lists', () => {
+  const r = check(['node/build/lists-md.mjs', '--check']);
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'lists-md --check failed');
+});
+
 test('the h plugin\'s skills match docs/house-policies.md', () => {
   const r = check(['node/build/policy-skills.mjs', '--check']);
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'policy-skills --check failed');

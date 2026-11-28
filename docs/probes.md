@@ -38,7 +38,6 @@ Read when present:
 | Column | Holds |
 | --- | --- |
 | `path` | The write-up, relative to the folder: a file, or a file inside a probe's folder. |
-| `standing` | What the probe has found so far: `worked`, `mixed`, `failed` or `open`. |
 | `tags` | Terms a search might use, separated by `;`. |
 | `bundle` | The source bundle holding the documents the probe cites, as a path. |
 

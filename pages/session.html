@@ -29,7 +29,10 @@
 
   Any of the four takes `pane=calls|overview|turns|outline|views|files|record`
   and `card=<n>`, which say where in the session to land: `card` opens the deck
-  on one exchange, the session's answer to branch.html's `file=`. The tabs that
+  on one exchange, the session's answer to branch.html's `file=`. `turn=<n>`
+  (1-based) selects that exchange's card in the Turns tab without the deck,
+  which is where turn.html's ✕ returns; `file=<i>` with it opens that card on
+  its i-th changed file rather than the discussion. The tabs that
   went on 2026-11-17 still land: `log`, `raw` and `schema` on the Record tab,
   `cost` on the Overview with the cost panel open. `find=<text>` opens the
   search in the header with that text.
@@ -207,7 +210,7 @@
 
   document.addEventListener('alpine:init', () => {
     Alpine.data('sessionPage', () => ({
-      input: '', target: null, busy: false, err: '',
+      input: '', target: null, busy: false, err: '', shown: '', deck: null,
       // Whether this PAGE sits in an iframe (a toss). Not handed to the brief;
       // it decides only whether a named session opens in the takeover.
       framed: (() => { try { return window.self !== window.top; } catch { return true; } })(),
@@ -220,6 +223,25 @@
         if (!t) return;
         this.input = t.label || '';
         await this.open(t);
+        // A LINK THAT CHANGES ONLY THE FRAGMENT DOES NOT RELOAD THIS PAGE: a
+        // walkthrough stepping to another session's #id=, or iPhone Safari
+        // handing a tapped link to the tab already showing this page. Without
+        // this the page kept showing the last session (2026-11-27).
+        addEventListener('hashchange', () => this.follow());
+      },
+
+      // What names the session on screen, so a new address can be told apart
+      // from the page's own rewrites (find=, card=, a walkthrough's stop=).
+      keyOf(t){ return t ? t.kind + ':' + (t.id || t.branch || t.spec || t.gz || '') : ''; },
+
+      // Open the session the address now names, if it is a different one. An
+      // open takeover is dropped first, and its onClose does the opening.
+      follow(){
+        const t = this.resolve();
+        if (!t || this.keyOf(t) === this.shown) return;
+        if (this.deck) { this.deck.drop(); return; }
+        this.input = t.label || '';
+        this.open(t);
       },
 
       // The address, from wherever this page is running. Read THROUGH
@@ -236,12 +258,15 @@
         // session, so they are orthogonal to the three ways of naming one.
         const pane = pick('pane');
         const card = parseInt(pick('card'), 10);
+        const turn = parseInt(pick('turn'), 10);
+        const file = parseInt(pick('file'), 10);
         const find = (pick('find') || '').trim();
         // `now` names the ref the action message is read from, main by default.
         const nowRef = pick('now');
         const at = { ...(['overview', 'turns', 'cost', 'outline', 'log', 'schema', 'raw', 'record',
                           'calls', 'views', 'files'].includes(pane) ? { pane } : {}),
                      ...(Number.isInteger(card) ? { start: card } : {}),
+                     ...(turn >= 1 ? { turn, ...(file >= 1 ? { file } : {}) } : {}),
                      ...(find ? { find } : {}),
                      ...(nowRef ? { nowRef } : {}) };
         const gz = pick('gz');
@@ -277,6 +302,7 @@
       // component reads it, which is what lets a deck slide do the same.
       async open(t){
         this.busy = true; this.err = ''; this.target = null;
+        this.shown = this.keyOf(t);
         try {
           let opts;
           if (t.kind === 'gz') {
@@ -373,8 +399,17 @@
             slide.append(el);
             Alpine.initTree(el);
           },
-          onClose: () => location.replace(app),
+          // The fragment changing fires the popstate the deck reads as Back,
+          // before hashchange. When the address now names another session,
+          // that session opens here instead of leaving for the app.
+          onClose: () => {
+            this.deck = null;
+            const t = this.resolve();
+            if (t && this.keyOf(t) !== this.shown) { this.input = t.label || ''; this.open(t); }
+            else location.replace(app);
+          },
         });
+        this.deck = deck;
         return true;
       },
 
