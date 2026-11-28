@@ -23,11 +23,11 @@ reviewing. A step is `show`,
 or `tap` when the reader should press it. Where no route below reaches the
 page, say it in words.
 
-To step through several documents in one link, open the first document on the
-data-view page, `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Name
-each step by its document's data-view page address with `!text:<heading>`.
-The data route (🥏 `#data=`, under "Where it works") draws its document in a
-frame, where a step on a second document does not land.
+To step through several documents in one link, open the first on the
+[data-view page](https://github.com/mehrlander/web-tools/blob/main/pages/data-view.html)
+as `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Give each step its
+document's address on that page, with `!text:<heading>`. A step on a second
+document does not land through the data route (🥏 `#data=`).
 
 ## Making the link
 
