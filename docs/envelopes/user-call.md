@@ -86,7 +86,7 @@ Set `call` to this call's id on the decision the call settles. Write that decisi
 - `radio`: an opener, the question as a host would introduce it.
 - `dialog`: a talk between the `cast`'s two speakers.
 
-Along its bottom, the call's page shows one slide at a time: one for each answer and each material, and one each for Notes and Adjust. A line's `see` names the slide to bring up with that line: an answer, a material's label, Notes or Adjust. `asides` comment on a slide while it shows.
+Along its bottom, the call's page shows one slide at a time: one for each answer and each material, and one for Notes. In the session page's deck, a call the owner has begun to answer also has an Adjust slide. A line's `see` names the slide to bring up with that line: an answer, a material's label, Notes or Adjust. `asides` comment on a slide while it shows.
 
     {"cast": {"pip": {"name": "Pip"}, "pap": {"name": "Pap"}},
      "questions": [{"q": "...", "a": "...", "see": "<a material's label>"}],
@@ -150,6 +150,8 @@ A trip is {peeve, edit, where, quote, clause, answer, why, misquoted}. The first
 ## Answers
 
 Each answer is one JSON line, {answer, then?, note, at, by, comment?}, in `<id>.answers.jsonl` beside the call. The owner's browser appends each line; the latest line wins. An `Adjust` answer's note says what to change. Its `then` is `go` (make the change and carry on) or `return` (draft it and file a new call before acting).
+
+On the call's own page, the owner may answer with a note from the FAB sidebar instead. The note is about the call's file, `owner/repo[@ref]:user-calls/<id>.json`, and may carry a `vote`, `up` or `down`, on the recommendation. The [notes](../../skills/notes/SKILL.md) skill states the record. `user-call.py answers` prints these notes after the answer lines.
 
 A pick answer adds `picks`, [{id, href}], each id naming its source and item (`iconify game-icons:crystal-shine`, `commons File:...`, `idea 2 Build it up`). An idea board's answer also adds `notes`, [{on, note}], one per card the owner wrote on.
 
