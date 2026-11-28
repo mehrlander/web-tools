@@ -185,7 +185,9 @@ SECOND = "\n".join((
     "Check-in, second of two, and the last. The owner has not written since the first. This "
     "turn is automatic. Spend at most four model calls on it.",
     "1. Write a recap for a reader coming back cold: how the session started, what waits on "
-    "the owner as one question per decision, and where to pick up.",
+    "the owner as one question per decision, and where to pick up. Give each question the "
+    "link that answers it: the user call's page, a look link to what to judge (a walkthrough "
+    "where there are several steps), or the render link python/showing.py prints.",
     "2. Close the session out: write a pick-up point wherever one is missing, such as an open "
     "pull request's guide; unsubscribe from every pull request this session is subscribed to; "
     "and arm no further check-in.",
