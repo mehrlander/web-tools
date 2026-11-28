@@ -11,7 +11,7 @@ public sealed record AlertMessage(string Kind, string Subject, string Body, Date
 public sealed record AlertObservation(DateTimeOffset At, string Daemon, WorkerActivity? LastReport,
     IReadOnlyList<Errand> Errands, bool ErrandsCurrent, string MachineName = "", string? NowUrl = null)
 {
-    public static AlertObservation From(LaptopSnapshot snapshot, DateTimeOffset at, string? phoneUrl) =>
+    public static AlertObservation From(LenovoSnapshot snapshot, DateTimeOffset at, string? phoneUrl) =>
         new(at, snapshot.Daemon.State, snapshot.Daemon.Activity, snapshot.Activity.Errands,
             snapshot.Activity.Connected, snapshot.MachineName, NavigationPolicy.NowUrl(phoneUrl));
 }
