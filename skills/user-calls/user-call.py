@@ -6,6 +6,7 @@ docs/envelopes/user-call.md; SKILL.md beside this script says how to run it.
     user-call.py close <id> <answer> [note] [--store D]   mark it decided
     user-call.py answers <id> [--store D]                 what the owner answered, and notes on the call
     user-call.py list [session] [--store D]               open user calls, newest first
+    user-call.py held [--store D]                         open documentation calls on docs-held branches, by branch
     user-call.py edits --old A --new B                    a documentation call's edits, from two copies
     user-call.py edits --base REF FILE                    the same, from FILE against its text at REF
                                                           (of a list, FILE.json: one edit per entry whose
@@ -1640,7 +1641,7 @@ def note_lines(notes, cid, folder="user-calls"):
 
 def main(argv):
     argv, at_store = flag(argv, "--store")
-    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "edits", "link", "patch", "review"}:
+    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "held", "edits", "link", "patch", "review"}:
         sys.exit(__doc__)
     cmd = argv[1]
     if cmd == "review":
@@ -1863,6 +1864,18 @@ def main(argv):
         for c in sorted(calls, key=lambda c: c.get("created", ""), reverse=True):
             if c.get("status") == "open":
                 print(f"{c['id']}: {c['question']}")
+    elif cmd == "held":
+        store = Store(at_store)
+        held = {}
+        for c in (json.loads(t) for t in store.calls().values()):
+            m = re.match(r"([\w.-]+/[\w.-]+)@([^:]*/docs-[^:]+):", str(c.get("file", "")))
+            if c.get("status") == "open" and c.get("kind") == "documentation" and m:
+                held.setdefault(m.group(1) + "@" + m.group(2), []).append(c)
+        for where in sorted(held):
+            print(f"{where}  https://mehrlander.github.io/web-tools/pages/branch.html#gh={where}&base=main")
+            for c in sorted(held[where], key=lambda c: c["id"]):
+                print(f"  {c['id']}: {c['question']}  https://mehrlander.github.io/web-tools/pages/user-call.html"
+                      f"#src=mehrlander/web-tools-private:{store.path}/{c['id']}.json")
 
 
 if __name__ == "__main__":
