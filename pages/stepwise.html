@@ -1,0 +1,864 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stepwise</title>
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5,npm/@tailwindcss/typography/dist/typography.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+<script src="https://cdn.jsdelivr.net/combine/npm/marked/lib/marked.umd.js,npm/dompurify/dist/purify.min.js"></script>
+
+<!--
+  stepwise.html — a piece of writing's development, one step at a time, from
+  the owner's request to the finished text, with the critic's comments in
+  place and the revisions they caused. Two payload shapes:
+
+    stepwise/2  { schema, title, file, repo?, steps: [{
+                    stage: request | intent | outline | draft,
+                    by: owner | session | critic | proxy | panel,
+                    note,       one line on what the step adds
+                    payload,    the stage's whole text after the step (Markdown)
+                    comments?: [{ on: payload | outline, quoted,
+                                  by: critic | proxy, peeve?,
+                                  payload, answer: changed | kept | null,
+                                  rationale? }] }] }
+    stepwise/1  { schema, title, file, repo?, steps: [{ by, note, payload }] },
+                read as stepwise/2 with every step in the draft stage.
+
+  Field names are docs/text-fields.csv's: a comment's own text is its
+  `payload`, the words it is about are `quoted` (exact, from the text it is on),
+  and why a comment was not taken is its `rationale`. The outline a draft is
+  checked against is not carried on draft steps; it is the latest outline
+  step's payload, so it cannot disagree with the outline lane.
+
+  STAGES ARE LANES. A step is diffed against the previous step of its own stage
+  by kits/md-diff.js's redline, which draws the text with arrivals tinted and
+  departures struck; a step that opens a stage shows its text fresh and enters
+  with a short animation. A critique step repeats the text unchanged and adds
+  comments, so the revision after it diffs against the critiqued text and the
+  change a comment caused is the change on screen. Leading YAML frontmatter is
+  split off and shown as a small block, marked by md-diff's word runs.
+
+  From the intent stage on, the request stays one tap away, collapsed above the
+  text; on draft steps the outline does the same. Both are <details> because
+  the owner asked for exactly that container, collapsed by default, against
+  html-style rule 12's general caution. A comment's quote is marked where it
+  falls in the rendered text, and the comment sits open right after the block
+  that holds it, compact, ruled in its reviewer's hue; a mark and its comment
+  light each other on a tap. On a critique step the comments are builds, as
+  in a slide deck: the step arrives with its text alone, each forward move
+  reveals the next comment, flying in under its block as its mark lights, and
+  the move after the last goes on to the next step; a backward move takes the
+  last one away, and a step reached backward arrives fully built. The address
+  carries the build, &step=10.3. The owner's later decisions (a request step
+  that adds to the request) and an intent step's Asked and Wants bullets are
+  builds the same way, one bullet per move, none shown on arrival.
+
+  A panel step (`by: panel`, pages/demos/stepwise-run-template.md, Panels) is
+  an imagined dialog about its lane's text: a roster of `- **TW**, role: what`
+  lines, then turns opening `**TW:**`. It is drawn as a conversation, not
+  diffed: the roster as a row of initials (the role as a title-tip), each turn
+  beside its speaker in that speaker's hue, the last set off as the proposed
+  wording. Its turns are builds the same way, the first shown on arrival. The
+  next non-panel step of the lane diffs against the step before the panel.
+
+  A comment's `peeve` is an id in web-tools skills/peeves/peeves.csv, read at the
+  #gh= ref when the payload is web-tools' own and from main otherwise; its pill
+  carries the peeve's name and sentence as a title-tip (kits/title-tip.js) and
+  links to the entry in skills/peeves/peeves.md. The proxy, the owner-proxy
+  agent, reviews beside the critic and usually cites no peeve.
+
+  Addresses, as pages/idea-board.html reads them: #gh=owner/repo[@ref]:path
+  (read with the stored GitHub token), #gz=<gzipped base64url JSON>
+  (kits/gz-payload.js), and with neither, the sample at
+  pages/demos/stepwise-writing-sprint.json. &step=N opens at step N and
+  follows the reader. `file` links to GitHub through RepoAddress.github, in
+  `repo` when the payload names one, else in the #gh= address's repository at
+  its ref, else in mehrlander/web-tools on main; relative links in the text
+  resolve against it the same way.
+
+  The page is a list over a detail, kits/linked-swiper.js mounted as
+  pages/inspection.html mounts it (html-style rule 11): the steps as rows, each
+  with its stage, its maker and, where it has builds, numbered tabs for them;
+  the current step's detail below, beside the list on a wide screen. A step's
+  builds are sub-items that are places in its card (swipeDeck.core `card`), so
+  moving between them redraws the card in place. The detail's head row holds
+  the button group that steps through every place, builds and steps alike; a
+  swipe on the detail and the arrow keys do the same.
+-->
+<script>window.__depsReady = new Promise(r => { window.__depsDone = r; });</script>
+<script type="module">
+  const q = new URLSearchParams(location.search);
+  const ref = q.get('use') || (q.getAll('refs').map(v => (String(v).match(/^mehrlander\/web-tools@([^:]+)$/) || [])[1]).find(Boolean));
+  if (ref) {
+    const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+    if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+    const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+    try { await import(url); } finally { URL.revokeObjectURL(url); }
+  } else {
+    await import('../dist/web-tools.js');
+  }
+  try {
+    await gh.load('kits/gz-payload.js');    // the #gz= codec
+    await gh.load('kits/swipe-deck.js');    // the track
+    await gh.load('kits/dock-split.js');    // the seams between list and detail
+    await gh.load('kits/linked-swiper.js'); // the list over the detail
+    await gh.load('kits/guide-render.js');  // Markdown to HTML
+    await gh.load('kits/md-diff.js');       // the redline
+    await gh.load('kits/csv.js');           // skills/peeves/peeves.csv
+    await gh.load('kits/title-tip.js');     // a peeve pill's name and sentence
+  } finally { window.__depsDone(); }
+</script>
+<script>
+document.addEventListener('alpine:init', () => {
+  const tokenNow = () => window.TOKEN || window.ghAuth?.resolve() || '';
+  const param = k => new URLSearchParams(location.hash.slice(1)).get(k) || new URLSearchParams(location.search).get(k);
+  // Leading frontmatter, split from the body it heads.
+  const FRONT = /^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/;
+  const split = md => {
+    const m = String(md || '').match(FRONT);
+    return m ? { front: m[1], body: md.slice(m[0].length) } : { front: '', body: String(md || '') };
+  };
+  const h = (tag, cls, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const icon = (name, cls = '') => h('i', `ph ${name} ${cls}`);
+  // Who made a step or a comment. Each reviewer has a hue, carried by its
+  // badge, its step dots, its marks in the text and its comment cards: the
+  // critic warning, the proxy (the owner-proxy agent, the owner's likely view)
+  // secondary. The owner is info; a session stays neutral.
+  const BY = {
+    session: { badge: 'badge-ghost', icon: 'ph-terminal-window', dot: 'bg-base-content/30' },
+    critic: { badge: 'badge-warning', icon: 'ph-magnifying-glass', dot: 'bg-warning',
+              mark: 'bg-warning/20 decoration-[var(--color-warning)]', on: 'bg-warning/40', edge: 'border-warning', tint: 'bg-warning/10' },
+    proxy: { badge: 'badge-secondary', icon: 'ph-user-focus', dot: 'bg-secondary',
+             mark: 'bg-secondary/20 decoration-[var(--color-secondary)]', on: 'bg-secondary/40', edge: 'border-secondary', tint: 'bg-secondary/10' },
+    owner: { badge: 'badge-info', icon: 'ph-user', dot: 'bg-info' },
+    panel: { badge: 'badge-neutral', icon: 'ph-users-three', dot: 'bg-neutral' },
+  };
+  // A panel's speakers, each a hue of its own in roster order: theme hues the
+  // critic, the proxy and the owner do not hold.
+  const VOICES = [
+    { av: 'bg-primary text-primary-content', say: 'bg-primary/10', edge: 'border-primary' },
+    { av: 'bg-accent text-accent-content', say: 'bg-accent/10', edge: 'border-accent' },
+    { av: 'bg-success text-success-content', say: 'bg-success/10', edge: 'border-success' },
+    { av: 'bg-neutral text-neutral-content', say: 'bg-base-200', edge: 'border-neutral' },
+  ];
+  // A panel step's payload: a roster of `- **TW**, role: what they do` lines,
+  // then turns, each a paragraph opening `**TW:**`.
+  const panelOf = md => {
+    const roster = [], turns = [];
+    for (const m of String(md || '').matchAll(/^[-*] \*\*([^*]+)\*\*,\s*([^:\n]+?)(?::\s*(.*))?$/gm)) roster.push({ who: m[1].trim(), role: m[2].trim(), what: (m[3] || '').trim() });
+    for (const para of String(md || '').split(/\n\s*\n/)) {
+      const m = para.trim().match(/^\*\*([^*:]+):\*\*\s*([\s\S]*)$/);
+      if (m) turns.push({ who: m[1].trim(), text: m[2].trim() });
+      // A paragraph with no speaker continues the turn before it, such as the
+      // proposed wording a last turn reads aloud.
+      else if (turns.length && para.trim()) turns[turns.length - 1].text += '\n\n' + para.trim();
+    }
+    for (const t of turns) if (!roster.some(r => r.who === t.who)) roster.push({ who: t.who, role: '', what: '' });
+    return { roster, turns };
+  };
+  const review = c => (c?.by === 'proxy' ? BY.proxy : BY.critic);
+  // A peeve's heading anchor in skills/peeves/peeves.md, by GitHub's rule
+  // over its "### Name · `P29`" heading.
+  const peeveAnchor = (id, name) => (name + ' · ' + id).toLowerCase().replace(/[^\p{L}\p{N} _-]/gu, '').replace(/ /g, '-');
+  const by = s => BY[s?.by] || BY.session;
+  const STAGES = [
+    { k: 'request', label: 'Request', icon: 'ph-chat-circle-text' },
+    { k: 'intent', label: 'Intent', icon: 'ph-target' },
+    { k: 'outline', label: 'Outline', icon: 'ph-list-numbers' },
+    { k: 'draft', label: 'Draft', icon: 'ph-file-text' },
+  ];
+  const STAGE = Object.fromEntries(STAGES.map(s => [s.k, s]));
+  const PROSE = 'prose prose-xl !max-w-none [--rl-wash:8%] [&_h1]:text-[2em]! [&_h2]:text-[1.4em]!';
+  const ANSWER = {
+    changed: { cls: 'badge-success badge-soft', icon: 'ph-check', label: 'changed' },
+    kept: { cls: 'badge-ghost', icon: 'ph-anchor-simple', label: 'kept' },
+  };
+  const MARK = 'rounded-sm underline decoration-2 underline-offset-4 cursor-pointer';
+  const calm = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // A comment's quote in rendered text. The quote is from the source, so its
+  // inline Markdown is dropped and whitespace is compared collapsed; struck
+  // text is not part of the text a comment is on.
+  const plainQuote = q => String(q || '')
+    .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/[*`]+|__/g, '')
+    .replace(/^\s*(?:[-+]|\d+[.)]|#+)\s+/gm, '').replace(/\s+/g, ' ').trim();
+  function markQuote(root, quoted, make) {
+    const q = plainQuote(quoted);
+    if (!q) return [];
+    const walker = document.createTreeWalker(root, 4 /* SHOW_TEXT */, {
+      acceptNode: n => (n.parentElement && n.parentElement.closest('del, [data-md-redline="removed"], [data-comment-card]') ? 2 : 1),
+    });
+    let text = '';
+    const at = [];
+    for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+      for (let i = 0; i < n.data.length; i++) {
+        const c = /\s/.test(n.data[i]) ? ' ' : n.data[i];
+        if (c === ' ' && (!text || text.endsWith(' '))) continue;
+        text += c;
+        at.push([n, i]);
+      }
+    }
+    const s = text.indexOf(q);
+    if (s < 0) return [];
+    const spans = new Map();
+    for (let k = s; k < s + q.length; k++) {
+      const [n, i] = at[k];
+      const sp = spans.get(n);
+      if (sp) sp[1] = i + 1; else spans.set(n, [i, i + 1]);
+    }
+    const out = [];
+    for (const [n, [a, b]] of spans) {
+      const r = document.createRange();
+      r.setStart(n, a); r.setEnd(n, b);
+      const m = make();
+      r.surroundContents(m);
+      out.push(m);
+    }
+    return out;
+  }
+
+  Alpine.data('stepwise', () => ({
+    // `cur` is a PLACE: a step, or one build of a step. places[] maps it to
+    // { step, b }, b the builds shown.
+    B: null, err: '', cur: 0, places: [], swiper: null, peeves: new Map(), peeveRef: 'main', repo: 'mehrlander/web-tools', ref: 'main', entered: -1,
+    get n() { return this.B ? this.B.steps.length : 0; },
+    get fileUrl() { return this.B?.file ? window.RepoAddress.github.blob(this.repo, this.ref, this.B.file) : ''; },
+    get step() { return this.places[this.cur]?.step ?? 0; },
+    get b() { return this.places[this.cur]?.b ?? 0; },
+    // A step's builds (`kind`, `units`, set in init): a panel's turns, the
+    // first shown on arrival; a review's comments; the bullets the owner adds
+    // to the request, or an intent step's Asked and Wants bullets, none shown
+    // on arrival.
+    lo(st) { return st.kind === 'turns' ? Math.min(1, st.units) : 0; },
+    hi(st) { return st.kind ? st.units : 0; },
+    get buildsMore() { return this.B ? this.hi(this.B.steps[this.step]) > this.lo(this.B.steps[this.step]) : false; },
+    placeOf(k, sub) { const st = this.B.steps[k]; return this.first(k) + Math.max(0, (sub ?? this.lo(st)) - this.lo(st)); },
+    first(k) { return this.places.findIndex(p => p.step === k); },
+    get stage() { return this.B ? this.B.steps[this.step].stage : ''; },
+    // The last step before i in a stage, or -1.
+    before(i, stage) {
+      // A panel is a conversation about a lane's text, not a version of it.
+      for (let j = i - 1; j >= 0; j--) if (this.B.steps[j].stage === stage && this.B.steps[j].by !== 'panel') return j;
+      return -1;
+    },
+
+    async init() {
+      await window.__depsReady;
+      try { this.B = await this.read(); } catch (e) { this.err = e.message; return; }
+      if (this.B.repo) this.repo = this.B.repo;
+      document.title = this.B.title || 'Stepwise';
+      const bullets = md => (String(md || '').match(/^[-*+][ \t]/gm) || []).length;
+      this.B.steps.forEach((s, k) => {
+        const req = s.stage === 'request' ? this.before(k, 'request') : -1;
+        const prior = req >= 0 ? this.B.steps[req].payload : null;
+        if (s.panel) { s.kind = 'turns'; s.units = s.panel.turns.length; }
+        else if (s.comments.length) { s.kind = 'comments'; s.units = s.comments.length; }
+        else if (prior != null && s.payload.startsWith(prior)) { s.kind = 'bullets'; s.units = bullets(s.payload.slice(prior.length)); }
+        // A first request step that ends in bullets (the owner's later
+        // decisions under the request) brings them in as builds too.
+        else if (s.stage === 'request' && prior == null && bullets(s.payload)) { s.kind = 'bullets'; s.units = bullets(s.payload); }
+        else if (s.stage === 'intent') { s.kind = 'bullets'; s.units = bullets(split(s.payload).body); }
+        if (!s.units) s.kind = null;
+      });
+      this.places = this.B.steps.flatMap((s, k) => Array.from({ length: this.hi(s) - this.lo(s) + 1 }, (_, x) => ({ step: k, b: this.lo(s) + x })));
+      this.cur = this.stepOf();
+      if (this.B.steps.some(s => s.comments.some(c => c.peeve))) {
+        try { await this.loadPeeves(); } catch (e) { /* the pills keep their ids and lose their names */ }
+      }
+      this.$nextTick(() => this.mount());
+      window.addEventListener('keydown', e => {
+        if (e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
+        // The detail answers Left and Right itself while the pointer or focus
+        // is on it (swipeDeck.keys); these reach it from anywhere else.
+        if (e.defaultPrevented || !this.swiper) return;
+        const d = { ArrowLeft: -1, ArrowRight: 1 }[e.key];
+        const to = { Home: 0, End: this.places.length - 1 }[e.key];
+        if (d == null && to == null) return;
+        e.preventDefault();
+        if (d) this.swiper.step(d); else this.go(to);
+      });
+      window.addEventListener('hashchange', () => { const s = this.stepOf(); if (s !== this.cur) this.go(s); });
+    },
+
+    // THE LIST OVER THE DETAIL, kits/linked-swiper.js as pages/inspection.html
+    // mounts it: the steps as rows, each step's builds as sub-items that are
+    // places in its card, so a step's builds have numbered tabs on its row and
+    // a move between them redraws the card in place. The head row's button
+    // group steps through every place, builds and steps alike; a swipe on the
+    // card does the same.
+    mount() {
+      const list = this.$refs.list, steps = this.B.steps;
+      list.setAttribute('role', 'listbox');
+      list.setAttribute('aria-label', 'Steps');
+      list.innerHTML = steps.map((s, k) => {
+        const who = by(s), st = STAGE[s.stage];
+        return `<div role="option" tabindex="-1" data-step="${k}" aria-selected="false"
+          class="flex min-h-10 cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-1 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+          <span class="w-5 flex-none text-right font-mono text-xs tabular-nums text-base-content/50">${k + 1}</span>
+          <i class="ph ${st.icon} flex-none text-base-content/60" data-title-tip="${esc(st.label)}"></i>
+          <span class="badge badge-xs ${who.badge} flex-none px-1" data-title-tip="${esc(s.by || 'session')}"><i class="ph ${who.icon}"></i></span>
+          <span class="min-w-0 flex-1 truncate text-sm">${esc(s.note || '')}</span>
+          <span data-ls-tabs></span></div>`;
+      }).join('');
+      const range = st => Array.from({ length: this.hi(st) - this.lo(st) + 1 }, (_, x) => this.lo(st) + x);
+      const NOUN = { turns: 'turn', comments: 'comment', bullets: 'point' };
+      this.swiper = window.linkedSwiper.attach({
+        root: this.$refs.root, list, card: this.$refs.card, key: 'step', noun: 'step', subNoun: 'build',
+        ids: () => steps.map((_, k) => String(k)), sel: () => String(this.step),
+        subs: id => { const st = steps[+id]; return this.hi(st) > this.lo(st) ? range(st) : []; },
+        selSub: () => (this.buildsMore ? this.b : undefined),
+        places: true, slideScroll: true, innerClass: 'w-full', slidePad: 'pt-3 pb-24',
+        // Side by side, the kit's own seam sets the list's width; stacked, the
+        // list's cap is --sw-list, which the row seam below sets.
+        seam: 'wt-stepwise-list-w', listMax: 'max-h-[var(--sw-list,38vh)]',
+        tab: (id, sub) => ({ label: String(sub), aria: `${sub} of ${this.hi(steps[+id])} ${NOUN[steps[+id].kind]}s shown` }),
+        head: ({ i, n, id, sub }) => this.head(i, n, +id, sub, NOUN),
+        body: (id, el, sub) => { this.render(this.placeOf(+id, sub), el); },
+        onPick: (id, via, sub) => {
+          this.cur = this.placeOf(+id, sub);
+          this.mark();
+          this.enter(+id);
+        },
+      });
+      this.rowSeam();
+      requestAnimationFrame(() => requestAnimationFrame(() => this.enter(this.step)));
+    },
+    // THE SEAM BETWEEN THE STACKED LIST AND THE DETAIL, kits/dock-split.js as
+    // lib/alpineComponents/user-call-form.js places its seam under the list of
+    // edits: the kit owns the gesture and the list's height is ours. A drag
+    // runs from the list's top to the foot of the page, so the pointer's place
+    // is the list's height, from one row up to the whole list, never so tall
+    // that the detail keeps under 160px. The height is kept in this browser on
+    // release; a double-click goes back to the default cap (38% of the view).
+    // It shows only while the list is stacked (the kit's data-ls-stacked).
+    rowSeam() {
+      const root = this.$refs.root, list = this.$refs.list, el = this.$refs.seam;
+      if (!window.dockSplit || !el || this._seam) return;
+      const KEY = 'wt-stepwise-list-h', ROW = 40, KEEP = 160;
+      // Shown only while stacked. Inline, because dock-split's stylesheet is
+      // unlayered and outranks the `hidden` utility, as linked-swiper notes
+      // for its own seam.
+      const show = () => { el.style.display = root.hasAttribute('data-ls-stacked') ? '' : 'none'; };
+      new MutationObserver(show).observe(root, { attributes: true, attributeFilter: ['data-ls-stacked'] });
+      show();
+      const set = px => (px ? root.style.setProperty('--sw-list', px + 'px') : root.style.removeProperty('--sw-list'));
+      let h = 0;
+      try { h = +localStorage.getItem(KEY) || 0; } catch (e) {}
+      set(h);
+      // Measured from half the seam's height below the list's top, so the
+      // grip, which sits that far under the list's foot, does not jump when
+      // it is taken.
+      const span = () => {
+        const l = list.getBoundingClientRect(), b = root.getBoundingClientRect();
+        const top = l.top + el.getBoundingClientRect().height / 2;
+        return { top, bottom: b.bottom, height: Math.max(1, b.bottom - top), left: b.left, right: b.right, width: b.width };
+      };
+      const pct = px => px / span().height * 100;
+      this._seam = window.dockSplit.attach(el, {
+        axis: 'row', from: 'start', label: 'Height of the list of steps',
+        bounds: span,
+        value: () => pct(list.getBoundingClientRect().height),
+        min: () => pct(ROW),
+        max: () => { const r = span(); return Math.max(pct(ROW), Math.min(list.scrollHeight, r.height - KEEP) / r.height * 100); },
+        onChange: p => { h = Math.round(p * span().height / 100); set(h); },
+        onCommit: () => { try { localStorage.setItem(KEY, String(h)); } catch (e) {} },
+      });
+      el.addEventListener('dblclick', () => {
+        h = 0; set(0);
+        try { localStorage.removeItem(KEY); } catch (e) {}
+        this._seam?.refresh?.();
+      });
+    },
+    // The detail's head row: the step's stage and maker, and the button group
+    // that steps through places, its middle the builds shown or the step.
+    head(i, n, k, sub, NOUN) {
+      const s = this.B.steps[k], st = STAGE[s.stage], who = by(s);
+      const lo = this.lo(s), hi = this.hi(s), b = sub ?? lo, more = hi > lo;
+      const noun = NOUN[s.kind];
+      const kindIcon = { turns: 'ph-users-three', comments: 'ph-chat-circle-dots', bullets: 'ph-list-plus' }[s.kind];
+      const back = more && b > lo ? `Previous ${noun}` : 'Previous step';
+      const fwd = more && b < hi ? `Next ${noun}` : 'Next step';
+      const btn = (d, ic, label, off) => `<button type="button" class="btn btn-sm join-item px-2.5" data-swipe-step="${d}" aria-label="${esc(label)}" data-title-tip="${esc(label)}"${off ? ' disabled' : ''}><i class="ph ${ic} text-base"></i></button>`;
+      const mid = more
+        ? `<i class="ph ${kindIcon}"></i><span>${b}/${hi}</span>`
+        : `<span>${k + 1}/${this.n}</span>`;
+      return `<div class="flex min-w-0 flex-1 items-center gap-2">
+          <span class="inline-flex min-w-0 items-center gap-1 text-sm text-base-content/70"><i class="ph ${st.icon}"></i><span class="truncate">${esc(st.label)}</span></span>
+          <span class="badge badge-sm ${who.badge} flex-none gap-1"><i class="ph ${who.icon}"></i>${esc(s.by || 'session')}</span></div>
+        <div class="join flex-none">${btn(-1, 'ph-caret-left', back, i <= 0)}
+          <span class="join-item inline-flex min-w-[6.5ch] items-center justify-center gap-1 border border-base-300 bg-base-100 px-2 font-mono text-xs tabular-nums text-base-content/70">${mid}</span>
+          ${btn(1, 'ph-caret-right', fwd, i >= n - 1)}</div>`;
+    },
+
+    // skills/peeves/peeves.csv from web-tools: at the #gh= ref when the payload
+    // came from web-tools, else from main (beside this page on Pages).
+    async loadPeeves() {
+      const here = param('gh') && this.repo === 'mehrlander/web-tools';
+      const text = here
+        ? (await new GH({ token: tokenNow(), repo: this.repo, ref: this.ref }).get('skills/peeves/peeves.csv')).text
+        : await (await fetch('../skills/peeves/peeves.csv')).text();
+      this.peeveRef = here ? this.ref : 'main';
+      this.peeves = new Map(window.Csv.rows(text).map(r => [r.id, r]));
+    },
+
+    async read() {
+      const gz = param('gz'), spec = param('gh');
+      let B;
+      if (gz) B = await window.GzPayload.decodeJson(gz);
+      else if (spec) {
+        const a = window.RepoAddress.parse(spec);
+        if (!a) throw new Error('#gh= reads owner/repo[@ref]:path, and this is not one: ' + spec);
+        this.repo = a.repo;
+        if (a.ref) this.ref = a.ref;
+        try { B = JSON.parse((await new GH({ token: tokenNow(), repo: a.repo, ...(a.ref ? { ref: a.ref } : {}) }).get(a.path)).text); }
+        catch (e) { throw new Error(`Could not read ${spec}${tokenNow() ? '' : ' without a stored GitHub token'}: ${e.message}`); }
+      } else {
+        const r = await fetch('demos/stepwise-writing-sprint.json');
+        if (!r.ok) throw new Error('No payload. Address one with #gh=owner/repo@ref:path or #gz=…');
+        B = await r.json();
+      }
+      if (!B || !['stepwise/1', 'stepwise/2'].includes(B.schema)) throw new Error('Not a stepwise payload (schema: ' + (B?.schema ?? 'none') + ')');
+      if (!Array.isArray(B.steps) || !B.steps.length) throw new Error('The payload has no steps');
+      const v1 = B.schema === 'stepwise/1';
+      B.steps = B.steps.map((s, i) => {
+        const stage = v1 ? 'draft' : s.stage;
+        if (!STAGE[stage]) throw new Error(`Step ${i + 1} has no stage this page knows (${stage})`);
+        const out = { ...s, stage, payload: String(s.payload ?? ''), comments: v1 ? [] : (s.comments || []) };
+        if (out.by === 'panel') { out.panel = panelOf(out.payload); out.comments = []; }
+        return out;
+      });
+      return B;
+    },
+
+    // The address as a place: &step=10 is step 10 unbuilt, &step=10.3 the
+    // same step with three comments shown.
+    stepOf() {
+      const [s, b] = String(param('step') || '').split('.').map(x => parseInt(x, 10));
+      if (!Number.isFinite(s)) return 0;
+      const k = Math.max(0, Math.min(this.n - 1, s - 1));
+      const st = this.B.steps[k];
+      return this.first(k) + Math.max(0, Math.min(this.hi(st), Number.isFinite(b) ? b : this.lo(st)) - this.lo(st));
+    },
+    // Rewrites only `step`, so a #gz= or #gh= value keeps its own spelling.
+    mark() {
+      const parts = location.hash.slice(1).split('&').filter(p => p && !/^step=/.test(p));
+      parts.push('step=' + (this.step + 1) + (this.b > this.lo(this.B.steps[this.step]) ? '.' + this.b : ''));
+      try { history.replaceState(history.state, '', '#' + parts.join('&')); } catch (e) {}
+    },
+    go(i) {
+      const to = Math.max(0, Math.min(this.places.length - 1, i));
+      if (!this.swiper) return;
+      const { step, b } = this.places[to];
+      const st = this.B.steps[step];
+      this.swiper.pick(String(step), 'api', this.hi(st) > this.lo(st) ? b : undefined);
+    },
+    // A step that opens a stage enters, each time the reader arrives on it.
+    enter(i) {
+      if (i === this.entered) return;
+      this.entered = i;
+      const slide = this.$refs.card?.querySelector('.sd-track')?.children[i];
+      if (!slide || calm()) return;
+      for (const el of slide.querySelectorAll('[data-enter]')) {
+        el.animate([{ opacity: 0, transform: 'translateY(16px)' }, { opacity: 1, transform: 'none' }],
+                   { duration: 420, easing: 'cubic-bezier(.2,.7,.2,1)' });
+      }
+    },
+
+    // One block's HTML: the guide renderer, cleaned, with relative links
+    // aimed at the document's own folder on GitHub.
+    html(md) {
+      const t = document.createElement('template');
+      t.innerHTML = window.DOMPurify.sanitize(window.GuideRender.render(md, {}).html);
+      const base = window.RepoAddress.github.blob(this.repo, this.ref, this.B.file || '');
+      for (const a of t.content.querySelectorAll('a[href]')) {
+        const href = a.getAttribute('href');
+        if (/^([a-z][a-z0-9+.-]*:|#|\/\/)/i.test(href)) continue;
+        try { a.setAttribute('href', new URL(href, base).href); a.target = '_blank'; a.rel = 'noopener'; } catch (e) {}
+      }
+      return t.innerHTML;
+    },
+    // The owner adding to the request: what was there, then the new lines,
+    // untinted. Its top-level bullets are the step's builds.
+    build(host, was, added) {
+      host.innerHTML = this.html(was);
+      const more = h('div');
+      more.innerHTML = this.html(added);
+      host.append(more);
+      return [...more.querySelectorAll('li')].filter(li => !li.parentElement.closest('li'));
+    },
+    async draw(host, was, now) {
+      await window.mdDiff.redline(host, was, now, { html: md => this.html(md) });
+      // A removal reads struck and quiet rather than as a red block.
+      for (const d of host.querySelectorAll('del.md-diff-del')) {
+        d.classList.remove('bg-error/40');
+        d.classList.add('bg-error/10', 'text-base-content/60');
+      }
+    },
+
+    // The owner's words, as a quotation.
+    quotation(owner) {
+      const fig = h('figure', 'rounded-box border-l-4 border-info bg-base-200 py-3');
+      const host = h('div', 'prose !max-w-none [--rl-wash:8%] px-4 text-base-content/80');
+      const cap = h('figcaption', 'px-4 pt-1 flex items-center gap-1.5 text-sm text-base-content/70');
+      cap.append(icon('ph-user'), owner || 'owner');
+      fig.append(icon('ph-quotes text-lg text-info px-4 block'), host, cap);
+      return { el: fig, host };
+    },
+    // A container for earlier work kept in reach: collapsed, a tap to open.
+    folded(st, body) {
+      const d = h('details', 'group mx-4 sm:mx-8 mb-4 rounded-box border border-base-300');
+      const sum = h('summary', 'list-none [&::-webkit-details-marker]:hidden cursor-pointer px-4 py-2 flex items-center gap-2 text-sm text-base-content/70');
+      sum.append(icon('ph-caret-right transition-transform group-open:rotate-90'), icon(STAGE[st].icon), STAGE[st].label);
+      const inner = h('div', 'border-t border-base-300 p-2');
+      inner.append(body);
+      d.append(sum, inner);
+      return d;
+    },
+    outlineCard(label) {
+      const card = h('div', 'rounded-box border border-base-300 py-3');
+      if (label) {
+        const top = h('div', 'px-4 pb-1 flex items-center gap-2 text-sm text-base-content/70');
+        top.append(icon(STAGE.outline.icon), STAGE.outline.label);
+        card.append(top);
+      }
+      const host = h('div', PROSE + ' px-4');
+      card.append(host);
+      return { el: card, host };
+    },
+    // A peeve id as a pill: its name and sentence as a title-tip, and a link
+    // to its entry in skills/peeves/peeves.md.
+    peevePill(id) {
+      const wrap = h('span', 'inline-flex items-center gap-0.5');
+      const pill = h('span', 'badge badge-sm badge-outline font-mono', id);
+      const p = this.peeves.get(id);
+      if (p) {
+        pill.dataset.titleTipLead = p.name;
+        pill.dataset.titleTip = p.peeve;
+        pill.tabIndex = 0;
+        const a = h('a', 'btn btn-ghost btn-xs btn-square');
+        a.href = window.RepoAddress.github.blob('mehrlander/web-tools', this.peeveRef, 'skills/peeves/peeves.md') + '#' + peeveAnchor(id, p.name);
+        a.target = '_blank'; a.rel = 'noopener';
+        a.setAttribute('aria-label', `${id} ${p.name} in peeves.md`);
+        a.append(icon('ph-arrow-square-out'));
+        wrap.append(pill, a);
+      } else wrap.append(pill);
+      return wrap;
+    },
+    // A comment, compact: a thin rule in its reviewer's hue, one meta line
+    // (reviewer, peeve, answer), its words, and its rationale muted after it.
+    commentBody(c) {
+      const box = h('div', `not-prose grid gap-1 border-l-2 ${review(c).edge} pl-3 ml-1 rounded-r-sm transition-colors duration-500`);
+      const meta = h('div', 'flex flex-wrap items-center gap-1');
+      const who = h('span', `badge badge-sm ${review(c).badge} gap-1`);
+      who.append(icon(review(c).icon), c.by === 'proxy' ? 'proxy' : 'critic');
+      meta.append(who);
+      if (c.peeve) meta.append(this.peevePill(c.peeve));
+      const a = ANSWER[c.answer];
+      if (a) {
+        const b = h('span', `badge badge-sm ${a.cls} gap-1`);
+        b.append(icon(a.icon), a.label);
+        meta.append(b);
+      }
+      box.append(meta, h('p', 'm-0! text-lg leading-7', c.payload || ''));
+      if (c.rationale) {
+        // Two lines at rest; a tap reads the rest.
+        const why = h('p', 'm-0! text-lg leading-7 text-base-content/60 line-clamp-2 cursor-pointer', c.rationale);
+        why.addEventListener('click', () => why.classList.toggle('line-clamp-2'));
+        box.append(why);
+      }
+      return box;
+    },
+
+    // `i` is a place. A place on the step the slide already shows is a build:
+    // only the comments shown change.
+    render(at, el) {
+      const { step: i, b } = this.places[at];
+      el.__want = b;
+      if (el.dataset.step === String(i) && el.firstChild) { this.reveal(el, b, true); return; }
+      el.dataset.step = i;
+      el.__shown = 0;
+      el.__comments = null;
+      el.__units = null;
+      const s = this.B.steps[i], who = by(s), st = s.stage;
+      const j = this.before(i, st), fresh = j < 0;
+      const was = split(fresh ? s.payload : this.B.steps[j].payload), now = split(s.payload);
+
+      // The step's note leads its detail; the head row above carries its stage
+      // and maker.
+      el.replaceChildren(h('p', 'mx-4 sm:mx-8 mb-4 text-xl leading-8 font-semibold', s.note || ''));
+
+      // What came before, kept in reach.
+      const req = st === 'request' ? -1 : this.before(i, 'request');
+      if (req >= 0) {
+        const qn = this.quotation(this.B.steps[req].by);
+        el.append(this.folded('request', qn.el));
+        this.draw(qn.host, this.B.steps[req].payload, this.B.steps[req].payload);
+      }
+      if (s.panel) { this.renderPanel(i, el, s); return; }
+      let outlineHost = null, outlineFold = null;
+      const ol = st === 'draft' ? this.before(i, 'outline') : -1;
+      if (ol >= 0) {
+        const oc = this.outlineCard(false);
+        oc.el.classList.replace('border', 'border-0');
+        outlineFold = this.folded('outline', oc.el);
+        outlineHost = oc.host;
+        el.append(outlineFold);
+      }
+
+      // The stage's own text.
+      let main, host, front = null;
+      if (st === 'request') { const qn = this.quotation(s.by); main = h('div', 'mx-4 sm:mx-8'); main.append(qn.el); host = qn.host; }
+      else if (st === 'outline') { const oc = this.outlineCard(true); main = h('div', 'mx-4 sm:mx-8'); main.append(oc.el); host = oc.host; }
+      else {
+        main = h('div');
+        if (was.front || now.front) {
+          front = h('pre', 'mx-4 sm:mx-8 mb-4 rounded-box border border-base-300 px-3 py-2 font-mono text-xs leading-5 text-base-content/60 whitespace-pre-wrap break-words');
+          main.append(front);
+        }
+        host = h('div', PROSE + ' px-4 sm:px-8');
+        main.append(host);
+      }
+      if (fresh) main.dataset.enter = '';
+      el.append(main);
+
+      // A critique step says how many comments it holds, and from whom.
+      if (s.comments.length) {
+        const count = h('div', 'mx-4 sm:mx-8 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-base-content/70');
+        const n = s.comments.length;
+        count.append(icon('ph-chat-circle-dots'), `${n} ${n === 1 ? 'comment' : 'comments'}`);
+        for (const r of ['critic', 'proxy']) {
+          const k = s.comments.filter(c => (c.by === 'proxy' ? 'proxy' : 'critic') === r).length;
+          if (!k) continue;
+          const t = h('span', 'inline-flex items-center gap-1');
+          t.append(h('span', `h-2.5 w-2.5 rounded-full ${BY[r].dot}`), `${k} ${r}`);
+          count.append(t);
+        }
+        main.prepend(count);
+      }
+
+      (async () => {
+        await window.mdDiff.needDiff();
+        if (front) {
+          front.textContent = now.front;
+          window.mdDiff.mark(front, window.mdDiff.runs(was.front, now.front));
+        }
+        // The owner adding to the request reads as a build, not a redline:
+        // the new lines enter together, untinted, under what was there.
+        const build = st === 'request' && !fresh && now.body.startsWith(was.body);
+        const cut = st === 'request' && fresh && s.kind === 'bullets' ? now.body.search(/^[-*+][ \t]/m) : -1;
+        let units = null;
+        const jobs = [build ? (units = this.build(host, was.body, now.body.slice(was.body.length)), null)
+          : cut > 0 ? (units = this.build(host, now.body.slice(0, cut), now.body.slice(cut)), null)
+          : this.draw(host, was.body, now.body)];
+        if (outlineHost) jobs.push(this.draw(outlineHost, this.B.steps[ol].payload, this.B.steps[ol].payload));
+        await Promise.all(jobs);
+        // An intent step's bullets, Asked's then Wants's, in document order;
+        // a struck bullet is not one of them.
+        if (s.kind === 'bullets' && !units) {
+          units = [...host.querySelectorAll('li')].filter(li => !li.parentElement.closest('li') && li.dataset.mdRedline !== 'removed');
+        }
+        if (s.kind === 'bullets') {
+          el.__units = units;
+          el.__fly = 'side';
+          el.__shown = 0;
+          this.revealUnits(el, el.__want || 0, false);
+        }
+        this.comments(s, el, host, front, outlineHost, outlineFold);
+      })().catch(e => { host.textContent = 'Could not draw this step: ' + (e?.message || e); });
+    },
+
+    // Each comment's quote is marked in the text, and the comment itself sits
+    // open right after the block that holds the quote: the list item, the
+    // paragraph or the frontmatter block. Comments on one block stack there in
+    // payload order; one whose quote is not found goes after the text, saying
+    // so. A tap on a mark brings its comment into view and lights it briefly;
+    // a tap on a comment lights its mark.
+    comments(s, el, host, front, outlineHost, outlineFold) {
+      if (!s.comments.length) return;
+      const built = [];
+      const after = new Map();   // block -> the last comment placed after it
+      const flash = (els, cls) => {
+        for (const e of els) e.classList.add(...cls.split(' '));
+        setTimeout(() => { for (const e of els) e.classList.remove(...cls.split(' ')); }, 1400);
+      };
+      const lost = h('div', 'not-prose mt-6 grid gap-3');
+      s.comments.forEach((c, k) => {
+        const onOutline = c.on === 'outline' && outlineHost;
+        let root = onOutline ? outlineHost : host;
+        let node = null;
+        // A mark is plain until its comment is revealed (reveal, below).
+        const make = () => {
+          const m = h('mark', 'bg-transparent text-inherit scroll-mt-32');
+          m.dataset.comment = k;
+          m.addEventListener('click', () => {
+            if (node.classList.contains('hidden')) return;
+            node.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+            flash([node], review(c).tint);
+          });
+          return m;
+        };
+        let marks = markQuote(root, c.quoted, make);
+        if (!marks.length && front && !onOutline) { marks = markQuote(front, c.quoted, make); if (marks.length) root = front; }
+        node = this.commentBody(c);
+        node.dataset.comment = k;
+        node.dataset.commentCard = '';   // not text a later quote is looked for in
+        node.classList.add('my-3', 'hidden');
+        built.push({ c, node, marks });
+        node.addEventListener('click', e => {
+          if (e.target.closest('a, [data-title-tip]') || !marks.length) return;
+          marks[0].scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+          flash(marks, review(c).on);
+        });
+        if (!marks.length) {
+          const q = h('p', 'm-0! flex items-start gap-1.5 text-sm text-base-content/60');
+          q.append(icon('ph-quotes', 'mt-0.5'), h('span', 'line-clamp-2', 'Not found in the text: ' + (c.quoted || '')));
+          node.append(q);
+          lost.append(node);
+          return;
+        }
+        if (onOutline && outlineFold) outlineFold.open = true;
+        // The block: the list item the quote ends in, else the root's child
+        // holding it, else (the frontmatter) the block itself.
+        const end = marks[marks.length - 1];
+        let block = root === front ? front : end.closest('li');
+        if (!block || !root.contains(block)) {
+          block = end;
+          while (block.parentElement && block.parentElement !== root) block = block.parentElement;
+        }
+        if (root === front) node.classList.add('mx-4', 'sm:mx-8');
+        // Inside a list item, at its end, so the list keeps its numbering.
+        const last = after.get(block);
+        if (last) last.after(node);
+        else if (block.tagName === 'LI') block.append(node);
+        else block.after(node);
+        after.set(block, node);
+      });
+      if (lost.children.length) host.append(lost);
+      el.__comments = built;
+      this.reveal(el, el.__want || 0, false);
+    },
+    // A panel step: the text under discussion folded above, the roster as a
+    // row of initials, then the conversation, a turn per build. The last turn,
+    // the panel's proposed wording read aloud, is set off.
+    renderPanel(i, el, s) {
+      const st = s.stage, j = this.before(i, st);
+      if (j >= 0) {
+        const card = st === 'outline' ? this.outlineCard(false) : { el: h('div', 'py-3'), host: h('div', PROSE + ' px-4') };
+        if (!card.el.contains(card.host)) card.el.append(card.host);
+        card.el.classList.replace('border', 'border-0');
+        el.append(this.folded(st, card.el));
+        this.draw(card.host, this.B.steps[j].payload, this.B.steps[j].payload);
+      }
+      const { roster, turns } = s.panel;
+      const voice = who => VOICES[Math.max(0, roster.findIndex(r => r.who === who)) % VOICES.length];
+      const avatar = (r, size) => {
+        const v = voice(r.who);
+        const a = h('span', 'shrink-0');
+        const disc = h('span', `${v.av} ${size} rounded-full grid place-items-center font-mono text-xs font-semibold`, r.who);
+        if (r.role) { disc.dataset.titleTipLead = r.role; if (r.what) disc.dataset.titleTip = r.what; else disc.dataset.titleTip = r.role; disc.tabIndex = 0; }
+        a.append(disc);
+        return a;
+      };
+      const row = h('div', 'mx-4 sm:mx-8 mb-4 flex flex-wrap items-center gap-2');
+      for (const r of roster) row.append(avatar(r, 'w-9 h-9'));
+      const talk = h('div', 'mx-4 sm:mx-8 grid gap-3');
+      const nodes = turns.map((t, k) => {
+        const r = roster.find(x => x.who === t.who) || { who: t.who };
+        const v = voice(t.who), last = k === turns.length - 1 && turns.length > 1;
+        const line = h('div', 'grid grid-cols-[auto_minmax(0,1fr)] gap-2 items-start hidden');
+        const say = h('div', `${PROSE.replace('prose-xl', 'prose-lg')} ${v.say} rounded-box rounded-tl-sm px-3 py-2` + (last ? ` border-2 ${v.edge}` : ''));
+        say.innerHTML = this.html(t.text);
+        line.append(avatar(r, 'w-8 h-8'), say);
+        talk.append(line);
+        return line;
+      });
+      const main = h('div');
+      main.append(row, talk);
+      main.dataset.enter = '';
+      el.append(main);
+      el.__units = nodes;
+      el.__fly = 'up';
+      el.__shown = 0;
+      this.revealUnits(el, el.__want || 0, false);
+    },
+    // Show the first b units (a panel's turns, a step's bullets). One more
+    // than before, moving forward, enters: a turn rises, a bullet flies in
+    // from the side; under reduced motion it appears without moving.
+    revealUnits(el, b, animate) {
+      const was = el.__shown || 0;
+      el.__units.forEach((n, k) => n.classList.toggle('hidden', k >= b));
+      el.__shown = b;
+      if (!animate || b !== was + 1 || !el.__units[b - 1]) return;
+      const n = el.__units[b - 1];
+      n.scrollIntoView({ block: 'nearest', behavior: calm() ? 'auto' : 'smooth' });
+      const from = el.__fly === 'side' ? 'translateX(48px)' : 'translateY(18px)';
+      if (!calm()) n.animate([{ opacity: 0, transform: from }, { opacity: 1, transform: 'none' }],
+                             { duration: 360, easing: 'cubic-bezier(.2,.7,.2,1)' });
+    },
+    // Show the first b comments of the step on slide el. One more than before,
+    // moving forward, is a build: the comment flies in under its block, its
+    // mark lights as it lands, and the two are brought into view. Under
+    // reduced motion it appears without moving.
+    reveal(el, b, animate) {
+      el.__want = b;
+      if (el.__units) return this.revealUnits(el, b, animate);
+      const all = el.__comments;
+      if (!all) return;
+      const was = el.__shown || 0;
+      all.forEach(({ c, node, marks }, k) => {
+        const on = k < b;
+        node.classList.toggle('hidden', !on);
+        for (const m of marks) m.className = on ? `${MARK} ${review(c).mark} scroll-mt-32` : 'bg-transparent text-inherit scroll-mt-32';
+      });
+      el.__shown = b;
+      if (!animate || b !== was + 1) return;
+      const { c, node, marks } = all[b - 1];
+      const smooth = calm() ? 'auto' : 'smooth';
+      if (marks.length) marks[0].scrollIntoView({ block: 'start', behavior: smooth });
+      else node.scrollIntoView({ block: 'center', behavior: smooth });
+      if (!calm()) {
+        node.animate([{ opacity: 0, transform: 'translateX(56px)' }, { opacity: 1, transform: 'none' }],
+                     { duration: 380, easing: 'cubic-bezier(.2,.7,.2,1)' });
+      }
+      const lit = review(c).on;
+      setTimeout(() => {
+        for (const m of marks) m.classList.add(lit);
+        setTimeout(() => { for (const m of marks) m.classList.remove(lit); }, 1200);
+      }, calm() ? 0 : 300);
+    },
+  }));
+});
+</script>
+</head>
+<body class="bg-base-100 text-base-content">
+<div x-data="stepwise()" class="fixed inset-0 grid grid-cols-[minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)]">
+
+  <header class="border-b border-base-300 px-4 py-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3">
+    <i class="ph ph-stairs text-xl"></i>
+    <div class="min-w-0">
+      <h1 class="font-semibold text-lg truncate" x-text="B ? B.title : 'Stepwise'"></h1>
+      <a x-show="fileUrl" :href="fileUrl" target="_blank" rel="noopener"
+         class="block truncate font-mono text-xs text-base-content/60 hover:underline" x-text="B?.file"></a>
+    </div>
+    <span x-show="B" class="min-w-[7ch] text-right tabular-nums text-sm text-base-content/70" x-text="(step + 1) + ' / ' + n"></span>
+  </header>
+
+  <main class="min-h-0 min-w-0 grid grid-cols-[minmax(0,1fr)] p-2">
+    <div x-show="err" class="px-4 py-3 text-error" x-text="err"></div>
+    <div x-show="!B && !err" class="grid place-items-center"><span class="loading loading-dots loading-lg text-primary"></span></div>
+    <!-- Stacked (data-ls-stacked), a third row holds the seam between the list and the detail. -->
+    <div x-ref="root" x-show="B" class="min-h-0 min-w-0 data-ls-stacked:grid-rows-[auto_12px_minmax(0,1fr)] data-ls-stacked:gap-y-0">
+      <div x-ref="list"></div>
+      <div x-ref="seam" class="h-3"></div>
+      <div x-ref="card"></div>
+    </div>
+  </main>
+</div>
+</body>
+</html>

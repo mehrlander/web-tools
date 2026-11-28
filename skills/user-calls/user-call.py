@@ -1813,6 +1813,9 @@ def main(argv):
         if c.get("kind") == "merge":
             sys.exit("user-call: a merge is not a call; list the pull requests ready to merge in the "
                      "reply, each linked to its branch view")
+        if c.get("kind") == "documentation" and not (c.get("review") or {}).get("runs"):
+            sys.exit("user-call: a documentation call is filed with the peeves critic's runs on its document: "
+                     "run review DRAFT FILE --spans, the critic, then review DRAFT FILE REPORT, and add the draft")
         unread = unread_edits(c)
         if unread:
             sys.exit(f"user-call: the critic's last run did not read edit{'s' if len(unread) > 1 else ''} "
