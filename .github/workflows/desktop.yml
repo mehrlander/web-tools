@@ -53,6 +53,14 @@ jobs:
         run: python desktop/Checks/work-summary-checks.py
       - name: Check local activity evidence
         run: python desktop/Checks/local-activity-checks.py
+      - name: Check Codex session evidence
+        run: python desktop/Checks/codex-session-checks.py
+      - name: Check Gemini session evidence
+        run: python desktop/Checks/gemini-session-checks.py
+      - name: Check local session store
+        run: python desktop/Checks/local-session-store-checks.py
+      - name: Check local session collection
+        run: python desktop/Checks/local-session-collect-checks.py
       - name: Check local file evidence
         run: python desktop/Checks/local-file-checks.py
       - name: Check Lenovo inventory

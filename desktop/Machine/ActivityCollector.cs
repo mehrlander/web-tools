@@ -22,6 +22,8 @@ public sealed class ActivityCollector
     public CollectedActivity? Latest => Volatile.Read(ref latest);
     public string? Error => Volatile.Read(ref error);
     public (int Status, int RetryAfterSeconds) RequestSync() => Volatile.Read(ref reader)?.RequestRetry() ?? (503, 0);
+    // Raised after each completed scan, on the scan's own two-second cadence.
+    public event Action<CollectedActivity>? Observed;
 
     public async Task Run(CancellationToken stop)
     {
@@ -61,8 +63,11 @@ public sealed class ActivityCollector
                     var snapshot = new LenovoSnapshot(activity, daemon, applications, LenovoSignals.Places(root),
                         LenovoSignals.Downloads(), Environment.MachineName, settings.SeenThrough, current,
                         watch.Elapsed.TotalMilliseconds, cloud, events, updates, usage.Latest, sessionLinks.GeminiInstance);
-                    Volatile.Write(ref latest, new(now, snapshot, active.SyncMilliseconds));
+                    var collected = new CollectedActivity(now, snapshot, active.SyncMilliseconds);
+                    Volatile.Write(ref latest, collected);
                     Volatile.Write(ref error, null);
+                    // An observer's failure never marks the scan as failed.
+                    try { Observed?.Invoke(collected); } catch { }
                 } catch { Volatile.Write(ref error, "The latest local activity scan failed. Showing the last observation."); }
             } while (await timer.WaitForNextTickAsync(stop));
         } catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
