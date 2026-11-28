@@ -39,7 +39,8 @@ the one named; do not send a rejected link. Pass the fragment to `showing` as
 paste what it prints.
 
 `say` is one sentence the reader can act on: "Recalculate after changing an
-amount", not "Click here". `tap` is `true`, or the hand's label (`"Tap to open"`).
+amount", not "Click here". Write `say` and `intro` with the
+[docent](../docent/SKILL.md) skill. `tap` is `true`, or the hand's label (`"Tap to open"`).
 
 ## Anchors
 
