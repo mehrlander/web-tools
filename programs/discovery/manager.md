@@ -32,7 +32,6 @@ Inputs: the task, the candidates (skills, tools, prompts or processes), and two 
 5. **Grade against the subjects' source material.** One grader agent per subject builds a checklist of facts from that material. It scores each output against the checklist, then ranks the outputs. The grader sees each candidate's name.
 6. **Show everything.** The owner sees, for each candidate, its vetting report, every run's full log and output, and the grader's checklist, scores and reasoning. Use an [`inspection/1`](../../docs/envelopes/inspection.md) payload with one run per candidate and one output per subject. The owner's verdicts and notes then save back for the session to read.
 7. **Recommend.** The write-up gives the method, a results table, the findings and the caveats, such as runs per candidate and the grader's model. It ends with the session's recommendation to adopt or drop each candidate. Where that decision is the owner's, file a [user call](../../skills/user-calls/SKILL.md) carrying the recommendation.
-Name any of the three sources you could not read.
 
 ## Research inventory
 
@@ -49,4 +48,4 @@ Return one line for each item, newest first, or one `none found` line:
 none found · <repositories searched>
 ```
 
-Give the `generatedAt` time of `state/configs.json`, and name any of the three sources you could not read.
+Give the `generatedAt` time of `state/configs.json`.
