@@ -24,7 +24,7 @@ class CaptureChecks(unittest.TestCase):
         self.root.mkdir()
         self.state = self.profile / 'state'
 
-    def test_codex_history_survives_absent_rollout_and_reports_missing(self):
+    def test_codex_history_survives_absent_rollout_and_keeps_metadata_stubs(self):
         root = self.profile / '.codex'
         root.mkdir()
         with closing(sqlite3.connect(root / 'state_5.sqlite')) as db, db:
@@ -34,20 +34,21 @@ class CaptureChecks(unittest.TestCase):
         with closing(sqlite3.connect(root / 'thread_history_1.sqlite')) as db, db:
             db.execute('create table thread_items(thread_id,item_json,item_type,created_at_ms,rollout_ordinal)')
             values = [('userMessage', {'content': [{'type': 'text', 'text': 'Preserve this ask'}]}),
-                      ('agentMessage', {'text': 'Preserve this reply'}), ('reasoning', {'text': 'MUST_NOT_CAPTURE'})]
+                      ('agentMessage', {'text': 'Preserve this reply'}), ('reasoning', {'summary': [{'text': 'Exposed source summary'}]})]
             for i, (kind, value) in enumerate(values):
                 db.execute('insert into thread_items values(?,?,?,?,?)', ('thread-0001', json.dumps(value), kind, 1700000000000 + i * 1000, i))
         checkouts = [{'id': 'co', 'path': self.root / 'project', 'repo': 'fixture/project'}]
         records, coverage = sessions.codex(self.profile, checkouts)
-        self.assertEqual((coverage['captured'], coverage['unavailable']), (1, 1))
+        self.assertEqual((coverage['captured'], coverage['metadata_only']), (2, 1))
         record = records[0][1]
         self.assertEqual(record['capture']['source'], 'history-database')
         self.assertEqual(record['repos'][0]['checkout'], 'co')
         self.assertEqual(record['replies'][0]['text'], 'Preserve this reply')
-        self.assertNotIn('MUST_NOT_CAPTURE', json.dumps(record))
+        self.assertIn('Exposed source summary', json.dumps(record['source_items']))
+        self.assertEqual(record['capture']['state'], 'partial')
         self.assertNotEqual(record['short'], 'thread-0')
 
-    def test_gemini_new_root_duplicate_steps_and_no_reasoning(self):
+    def test_gemini_new_root_duplicate_steps_and_exposed_thinking(self):
         root = self.profile / '.gemini/antigravity'
         root.mkdir(parents=True)
         with closing(sqlite3.connect(root / 'conversation_summaries.db')) as db, db:
@@ -57,7 +58,7 @@ class CaptureChecks(unittest.TestCase):
         path.parent.mkdir(parents=True)
         rows = [dict(step_index=0, source='USER_EXPLICIT', type='USER_INPUT', content='Ask', created_at='2026-11-11T00:00:00Z'),
                 dict(step_index=1, source='MODEL', type='PLANNER_RESPONSE', content='Draft reply', created_at='2026-11-11T00:00:01Z'),
-                dict(step_index=1, source='MODEL', type='PLANNER_RESPONSE', content='Final reply', thinking='MUST_NOT_CAPTURE', created_at='2026-11-11T00:00:01Z',
+                dict(step_index=1, source='MODEL', type='PLANNER_RESPONSE', content='Final reply', thinking='Exposed source summary', created_at='2026-11-11T00:00:01Z',
                      tool_calls=[{'name': 'view_file', 'args': {'AbsolutePath': str(self.root / 'project/readme.txt')}}])]
         path.write_text('\n'.join(map(json.dumps, rows)))
         records, coverage = sessions.gemini(self.profile, [{'id': 'co', 'path': self.root / 'project', 'repo': 'fixture/project'}])
@@ -65,7 +66,7 @@ class CaptureChecks(unittest.TestCase):
         self.assertEqual(coverage['captured'], 1)
         self.assertEqual([r['text'] for r in record['replies']], ['Final reply'])
         self.assertEqual(record['repos'][0]['checkout'], 'co')
-        self.assertNotIn('MUST_NOT_CAPTURE', json.dumps(record))
+        self.assertEqual(record['thinking'][0]['text'], 'Exposed source summary')
 
     def git(self, repo, *args):
         value = subprocess.run(['git', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=' + str(self.profile / 'no-hooks'), '-C', str(repo), *args], capture_output=True, text=True)

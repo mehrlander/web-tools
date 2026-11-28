@@ -21,14 +21,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { repoRoot } from './bootstrap.mjs';
 
 // The reply prints go through gh-api.js's base64 codec, as every caller has it.
-const { default: GH } = await import(path.join(repoRoot, 'lib/gh-api.js'));
+const { default: GH } = await import(pathToFileURL(path.join(repoRoot, 'lib/gh-api.js')).href);
 const window = { GH };
 new Function('window', readFileSync(path.join(repoRoot, 'lib/kits/session-index.js'), 'utf8'))(window);
 const X = window.SessionIndex;
 const set = (s) => [...s].sort();
+
+test('technical child inputs do not duplicate parent conversation search results', () => {
+  const record = { format: 'local-conversation/2', kind: 'guardian_review', opening_ask: 'copiedhistory',
+    prompts: [{ text: 'copiedhistory privatepreference' }], replies: [{ text: 'Review verdict' }],
+    source_items: [{ data: { text: 'nativepayload' } }] };
+  assert.equal(X.docText(record), 'Review verdict');
+  assert.equal(X.docText({ ...record, kind: 'subagent' }), 'Review verdict');
+  assert.match(X.docText({ ...record, kind: 'unknown' }), /copiedhistory/);
+  const user = { ...record, kind: 'user', opening_ask: '', prompts: [{ origin: 'harness', text: 'machinetext' }, { text: 'Owner question' }] };
+  assert.equal(X.docText(user), 'Owner question\nReview verdict');
+});
 
 test('a compound is a term, and so is every part of it', () => {
   const t = X.tokens('Read lib/kits/estate-search.js and ROW_V today');

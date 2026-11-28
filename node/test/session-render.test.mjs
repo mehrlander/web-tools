@@ -69,6 +69,94 @@ const REC = {
 
 const shape = list => list.map(t => t.role).join(',');
 
+test('local formats report their coverage without applying Claude schema history', () => {
+  for (const format of ['local-conversation/1', 'local-conversation/2']) {
+    const r = { schema: 2, format, assistant: 'codex', capture: { state: 'partial', gaps: ['History source unavailable.'] },
+      prompts: [{ at: at(0), text: 'Question' }], replies: [{ at: at(1), text: 'Answer' }] };
+    const note = turns(r).find(t => t.capture);
+    assert.match(note.md, /History source unavailable/);
+    assert.doesNotMatch(note.md, /Assistant prose was not captured|postdate this record|histogram survives/);
+    assert.equal(turns(r).filter(t => t.role === 'assistant').length, 1);
+    if (format.endsWith('/1')) assert.match(note.md, /Conversation text only/);
+  }
+  assert.match(turns({ schema: 2 })[0].md, /Assistant prose was not captured/);
+});
+
+test('local capture coverage links the parent and names omissions without inventing usage totals', () => {
+  const r = { schema: 2, format: 'local-conversation/2', assistant: 'codex', kind: 'guardian_review',
+    parent: { session_id: 'native-parent', short: 'abc12345' },
+    capture: { state: 'partial', sources: { history: { state: 'available' }, rollout: { state: 'read-error' } },
+      gaps: ['One rollout file could not be read.', { source: 'rollout', reason: 'malformed-events', count: 2 }],
+      omissions: { media_bytes: 120, encrypted_content: 2 } },
+    usage: { state: 'unavailable' } };
+  const note = turns(r)[0];
+  assert.match(note.md, /Approval review/);
+  assert.match(note.md, /session\.html#id=abc12345/);
+  assert.match(note.md, /One rollout file could not be read/);
+  assert.match(note.md, /rollout source: read error/);
+  assert.match(note.md, /rollout: malformed events \(2\)/);
+  assert.match(note.md, /Media items with omitted bytes: 120/);
+  assert.match(note.md, /Encrypted items omitted: 2/);
+  assert.match(note.md, /No token totals or cost reported/);
+  assert.doesNotMatch(note.md, /0 tokens|\$0/);
+});
+
+test('local turns keep source identity and phase and use native order for timestamp ties', () => {
+  const r = { schema: 2, format: 'local-conversation/2', assistant: 'codex', title: 'Native title', kind: 'user',
+    capture: { state: 'complete' },
+    prompts: [{ id: 'p', turn_id: 'turn', at: at(0), ordinal: 0, text: 'Question' }],
+    replies: [{ id: 'final', turn_id: 'turn', at: at(1), ordinal: 3, phase: 'final', text: 'Same text' },
+      { id: 'comment', turn_id: 'turn', at: at(1), ordinal: 1, phase: 'commentary', text: 'Same text' }],
+    calls: [{ id: 'call', turn_id: 'turn', at: at(1), ordinal: 2, name: 'exec', arg: 'check', body: 'ok' }] };
+  const prose = turns(r).filter(t => !t.capture);
+  assert.deepEqual(prose.map(t => t.id), ['p', 'comment', 'call', 'final']);
+  assert.equal(prose[1].turn_id, 'turn');
+  assert.equal(prose[1].label, 'Codex · commentary');
+  assert.equal(prose[3].label, 'Codex · final');
+  assert.equal(describe(r).title, 'Native title');
+});
+
+test('child inputs remain readable without becoming owner searches or owner exchange counts', () => {
+  const r = { schema: 2, format: 'local-conversation/2', assistant: 'codex', kind: 'guardian_review',
+    capture: { state: 'complete' }, prompts: [], exchanges: 0,
+    injected: [{ at: at(0), ordinal: 1, origin: { kind: 'guardian_review' }, text: 'copiedparentpreference' }],
+    replies: [{ at: at(1), text: 'Approval verdict' }] };
+  assert.equal(turns(r).find(t => t.context).label, 'Review input');
+  assert.equal(turns(r).filter(t => t.role === 'user').length, 0);
+  assert.equal(find(r, 'copiedparentpreference').total, 0);
+  assert.equal(find(r, 'verdict').total, 1);
+  assert.equal(outline(r)[0].exchange, 0);
+});
+
+test('an unprojected local result is distinguished from a tool that produced no output', () => {
+  const r = { schema: 2, format: 'local-conversation/2', capture: { state: 'complete' },
+    calls: [{ name: 'dynamicToolCall', output_unprojected: true }] };
+  const call = turns(r).find(t => t.role === 'tool');
+  assert.match(call.md, /Result not shown here; see full record/);
+  assert.doesNotMatch(call.md, /No output/);
+});
+
+test('local attachment-only prompts stay visible without changing captured text or guessing a count', () => {
+  for (const [input, expected] of [
+    [{ attachments: [{ type: 'image' }] }, '*1 attachment*'],
+    [{ attachments: [{ type: 'image' }, { type: 'document' }] }, '*2 attachments*'],
+    [{ has_attachments: true }, '*Attachment input*'],
+  ]) {
+    const p = { id: 'media', text: '', ...input };
+    const r = { schema: 2, format: 'local-conversation/2', capture: { state: 'complete' }, prompts: [p] };
+    assert.equal(turns(r).find(t => t.role === 'user').md, expected);
+    assert.equal(p.text, '');
+  }
+});
+
+test('local file-change evidence is not described as Claude file-read attention', () => {
+  const r = { schema: 2, format: 'local-conversation/2', files: { 'sample.txt': { fileChange: 1 } } };
+  const summary = turns(r).find(t => t._card);
+  assert.match(summary.md, /Recorded file paths/);
+  assert.match(summary.md, /fileChange/);
+  assert.doesNotMatch(summary.md, /Files opened|Counts `Read`/);
+});
+
 test('the merge interleaves the three lists in transcript order', () => {
   const t = turns(REC);
   assert.equal(shape(t), 'user,assistant,tool,tool,assistant,tool,user',
@@ -822,6 +910,25 @@ async function renderFindDeck(record, query, start = 0) {
   opts.render(start, host);
   return { dom, host, built, opts };
 }
+
+test('technical local inputs stay collapsed and build their text only when opened', async () => {
+  const text = 'Preserved review input.\n'.repeat(1000);
+  const r = { schema: 2, format: 'local-conversation/2', assistant: 'codex', kind: 'guardian_review',
+    capture: { state: 'complete' }, injected: [{ at: at(0), text, origin: { kind: 'guardian_review' } }],
+    replies: [{ at: at(1), phase: 'final', text: 'Approval verdict' }] };
+  const { dom, host, built } = await renderFindDeck(r, '');
+  try {
+    const fold = host.querySelector('[data-session-context]');
+    assert.ok(fold);
+    assert.equal(fold.open, false);
+    assert.match(fold.textContent, /Review input/);
+    assert.doesNotMatch(fold.textContent, /Preserved review input/);
+    assert.equal(built.some(t => t.md === text), false);
+    fold.open = true;
+    fold.dispatchEvent(new dom.window.Event('toggle'));
+    assert.equal(fold.querySelector('[data-compaction-body]').textContent, text);
+  } finally { dom.window.close(); }
+});
 
 test('opening a source match reveals folded prose in order and leaves tools lazy', async () => {
   const r = findRecord([say('Please investigate.', 0)], [
