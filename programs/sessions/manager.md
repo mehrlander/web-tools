@@ -26,13 +26,13 @@ Return one line for each open call, answered-but-unmerged call, or awaiting task
 
 Inputs: a session id, or a day or a repository whose sessions to price. Without a session id, find the sessions first, as [Find a session](#find-a-session) describes. Read each session's usage file in web-tools-private, `sessions/usage/YYYY/MM/<day>-<session id[:8]>.json`, whose fields [`usage.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/usage.py) states. Report two totals from the file:
 
-- **Harness total:** `harness_cost`, the harness's own dollar figure for the session and its agents, or null.
-- **Priced total:** the tokens per prompt and model, priced by `SessionUsage.fromExtract` in [`session-usage.js`](../../lib/kits/session-usage.js). It runs below the harness total, which also counts calls the transcript does not record.
+- **Reported total:** `harness_cost`, Claude Code's own dollar figure for the session and its agents, or null.
+- **Priced total:** the tokens per prompt and model, priced by `SessionUsage.fromExtract` in [`session-usage.js`](../../lib/kits/session-usage.js). It is lower than the reported total, which also counts calls the transcript does not record.
 
 Return one line per session, newest first, with the sum of each total last:
 
 ```
-<day> · <session id[:8]> · <harness total or "no harness total"> · <priced total> · <prompts> prompts · <compactions> compactions
+<day> · <session id[:8]> · <reported total or "no reported total"> · <priced total> · <prompts> prompts · <compactions> compactions
 ```
 
 Name any session without a usage file.
