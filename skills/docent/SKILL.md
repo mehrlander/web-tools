@@ -7,7 +7,7 @@ description: "Write a docent note: the one line a reader meets before the thing 
 
 ## Premise
 
-A docent note is the one line a reader meets before the thing it introduces: the card on a [look link](../look-markers/SKILL.md), the [closing-state line](../../docs/CONVERSATION.md#every-reply) that ends a reply, or a thread title in a [PR guide](../../docs/CONVERSATION.md#a-reply-that-changed-files). The reader is the owner, arriving from other work and about to judge or act.
+A docent note is the one line a reader meets before the thing it introduces: the card on a [look link](../look-markers/SKILL.md), the [closing-state line](../../docs/CONVERSATION.md#every-reply) that ends a reply, or a thread title in a [PR guide](../../docs/CONVERSATION.md#a-reply-that-changed-files). Each of these places is a surface. The reader is the owner, arriving from other work and about to judge or act.
 
 A note fails when it runs long, or when it drops articles, verbs and qualifiers until the reader has to reconstruct it. Aim for the shortest note that is still [qualified writing](../../docs/QUALIFIED-WRITING.md).
 
