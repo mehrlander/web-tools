@@ -23,8 +23,8 @@ or `tap` when the reader should press it. Where no route below reaches the
 page, say it in words.
 
 To step through several documents in one link, start on the first document's
-data-view address, `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`, and
-name each step by its document's data-view address with `!text:<heading>`. Do
+data-view address, `pages/data-view.html?src=<owner>/<repo>@<ref>:<path>`. Name
+each step by its document's data-view address with `!text:<heading>`. Do
 not use the data route (🥏 `#data=`) for this: a step on a second document does
 not land in its frame.
 
