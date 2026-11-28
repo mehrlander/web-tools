@@ -24,7 +24,9 @@ A process is a recurring question or duty the program answers for;
 
 | Process | Starts when |
 | --- | --- |
+| Find a session | the owner or a session asks for an earlier session |
 | Open calls | the owner or a session asks which user calls and stalled handovers are waiting on the owner or hold an unmerged answer |
+| Session cost | the owner or a session asks what one session, or the sessions of a day or a repository, cost |
 
 ## Measures
 
