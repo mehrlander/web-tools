@@ -169,6 +169,29 @@ test('summarize marks a session another session launched, from its first prompt 
   assert.ok(S.ROW_V >= 26, 'a new field reaches the stored rows only through a version bump');
 });
 
+// The sessions this one started. The child's record cannot name its parent, so
+// the parent's create_session call is the edge: its input gives the title and
+// tags, its result the id the platform assigned. The Standing sessions page
+// finds the standing sessions and their workers from this field alone.
+test('summarize lists the sessions a record started, from its create_session calls', () => {
+  const call = (name, input, body) => ({ at: '2026-11-26T06:00:53Z', name, input, body });
+  const started = S.summarize(record({ calls: [
+    call('mcp__claude-code-remote__create_session', { title: '🎙️ Sessions', tags: ['program-session', 'program:sessions'] },
+      '{"ccr":{"id":"session_01Ug8CX9xPk1ZyngCSXmxb2a", "title":"🎙️ Sessions"}}'),
+    call('mcp__claude-code-remote__create_session', { title: 'worker' }, '{"ccr":{"id":"session_01ABC"}}'),
+    // Refused, or cut before the id: no edge rather than a guessed one.
+    call('mcp__claude-code-remote__create_session', { title: 'refused' }, 'Error: permission denied'),
+    call('mcp__claude-code-remote__send_message', { session_id: 'session_01XYZ' }, '{"status":"delivered"}'),
+  ] }), 'x');
+  assert.deepEqual(started.spawned, [
+    ['session_01Ug8CX9xPk1ZyngCSXmxb2a', '🎙️ Sessions', ['program-session', 'program:sessions'], '2026-11-26T06:00:53Z'],
+    ['session_01ABC', 'worker', [], '2026-11-26T06:00:53Z'],
+  ]);
+  assert.equal('spawned' in S.summarize(record(), 'x'), false, 'present only where non-empty');
+  assert.deepEqual(S.leanRow(started).spawned, started.spawned, 'and kept by the stored row');
+  assert.ok(S.ROW_V >= 28);
+});
+
 test('summarize carries each repo position against main, keeping null apart from absent', () => {
   // Record schema 13. The recorder writes null where git could not answer (a
   // shallow clone past the fork point, most often) and leaves the keys out of
