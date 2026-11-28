@@ -6,17 +6,17 @@ The subject is a document, or an edit to one. For an edit, assess the document a
 
 ## The dimensions
 
-The evidence comes from the outlining files. A claim's rung is its role on its genre's ladder, such as `purpose`, `rule` or `pointer` ([`ladders.md`](ladders.md)). A claim's depth is its level in the question tree ([`tree.md`](tree.md)).
+The evidence comes from the outlining files. A claim's rung is its role on its genre's ladder, such as `purpose`, `rule` or `pointer` ([`ladders.md`](ladders.md)). A claim's depth is its level in the question tree ([`tree.md`](tree.md)). A request may name a dimension by one of the other names in the Also called column.
 
-| Dimension | The question | Evidence |
-| --- | --- | --- |
-| Premise | What situation does the document answer, and what should its reader come away able to do? | the root question ([`tree.md`](tree.md)); `purpose` claims ([`ladders.md`](ladders.md)); the opening |
-| Scope | What is the document meant to cover, and what does it leave to other documents? | `scope` claims; the note [`tree.md`](tree.md#placing-claims) writes on a claim that fits no question |
-| Audience | Who reads it, what do they already hold, and what are they there to do? | explanation cost ([`tree.md`](tree.md#explanation-cost)): what the reader named in step 1 must already hold to understand each question |
-| Level of detail | How fine is the material, for the whole document and for each passage against the passages beside it? | depth and rung; a claim's depth against the other claims in its section |
-| Flow | Does each part build on what came before? | the order of questions in the tree; the first use of each term against its introduction |
-| Organization | What job does each section do, and does each claim serve the job of the section it sits in? | the questions and rungs of each section |
-| Placement | Where does the document sit, and how do its readers reach it? Where should each of its statements live? | links to the document, what loads or cites it, and documents that own its statements (step 4) |
+| Dimension | Also called | The question | Evidence |
+| --- | --- | --- | --- |
+| Premise | thesis, rationale | What situation does the document answer, and what should its reader come away able to do? | the root question ([`tree.md`](tree.md)); `purpose` claims ([`ladders.md`](ladders.md)); the opening |
+| Scope | charge, mandate, remit, coverage | What is the document meant to cover, and what does it leave to other documents? | `scope` claims; the note [`tree.md`](tree.md#placing-claims) writes on a claim that fits no question |
+| Audience | readership, intended reader | Who reads it, what do they already hold, and what are they there to do? | explanation cost ([`tree.md`](tree.md#explanation-cost)): what the reader named in step 1 must already hold to understand each question |
+| Level of detail | altitude, granularity | How fine is the material, for the whole document and for each passage against the passages beside it? | depth and rung; a claim's depth against the other claims in its section |
+| Flow | sequence, progression, coherence | Does each part build on what came before? | the order of questions in the tree; the first use of each term against its introduction |
+| Organization | structure, arrangement | What job does each section do, and does each claim serve the job of the section it sits in? | the questions and rungs of each section |
+| Placement | positioning, exposure, findability | Where does the document sit, and how do its readers reach it? Where should each of its statements live? | links to the document, what loads or cites it, and documents that own its statements (step 4) |
 
 ## Procedure
 
