@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Work channels: current and proposed</title>
+<style>
+:root{color-scheme:light;--ink:#203247;--muted:#596b7f;--line:#d9e2eb;--paper:#fff;--wash:#f4f7fa;--auto:#18765c;--manual:#9a5b0c;--proposal:#285ccc;--missing:#717b88;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:var(--paper);font-size:16px;line-height:1.45}
+*{box-sizing:border-box}body{margin:0}button,a{-webkit-tap-highlight-color:transparent}button{font:inherit;color:inherit;cursor:pointer}a{color:var(--proposal);text-underline-offset:3px}button:focus-visible,a:focus-visible{outline:3px solid #7aa2f5;outline-offset:4px}button:focus:not(:focus-visible){outline:none}
+.chrome{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);padding:18px 28px 14px;display:flex;align-items:center;gap:22px;flex-wrap:wrap}.identity{margin-right:auto}h1{font-size:22px;line-height:1.2;margin:0 0 3px;font-weight:650}.stamp,.eyebrow,.step-name,.state-tag,.foot,.legend{font-size:12px;color:var(--muted)}.stamp{display:flex;gap:10px;flex-wrap:wrap}.switch{display:flex;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--wash)}.switch button{border:0;background:transparent;padding:8px 18px;border-radius:7px;min-height:42px}.switch button[aria-pressed=true]{background:var(--ink);color:white}.chrome-link{font-size:14px}
+main{padding:22px 28px 30px}.map-intro{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.map-intro h2{font-size:17px;font-weight:600;margin:0}.legend{display:flex;gap:16px;flex-wrap:wrap}.legend span{display:flex;align-items:center;gap:6px}.key{width:23px;height:0;border-top:2px solid var(--auto)}.key.manual{border-color:var(--manual)}.key.proposed{border-top:2px dashed var(--proposal)}.key.missing{border-top:2px dotted var(--missing)}
+.column-head,.lane{display:grid;grid-template-columns:144px repeat(4,minmax(0,1fr));column-gap:22px}.column-head{margin-bottom:6px;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}.column-head span{padding-left:14px}.column-head span:first-child{padding-left:0}.lane{position:relative;align-items:center;min-height:98px;padding:14px 0;border-bottom:1px solid var(--line)}.lane:before{content:"";position:absolute;inset:0 -12px;z-index:-1;border-radius:8px;background:transparent}.lane.selected:before{background:var(--wash)}.agent{align-self:stretch;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:0;border:0;background:none;text-align:left;gap:4px}.agent-name{font-weight:650;display:flex;gap:8px;align-items:center}.agent-name:before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.25}.selected .agent-name:before{background:var(--proposal);opacity:1}.state-tag{white-space:normal}.state-tag.auto{color:var(--auto)}.state-tag.manual{color:var(--manual)}.state-tag.proposed{color:var(--proposal)}
+.step{position:relative;min-width:0;min-height:65px;background:var(--paper);border:1px solid var(--line);border-radius:7px;padding:10px 12px;display:flex;flex-direction:column;justify-content:center;gap:3px}.step:not(:last-child):after{content:"→";position:absolute;left:100%;width:23px;text-align:center;color:var(--muted);font-size:20px;top:50%;transform:translateY(-50%)}.step.changed{border:1px dashed var(--proposal);background:#f3f6ff}.step.manual{border-color:#d9b980;background:#fffaf1}.step.unmapped{border-style:dotted;color:var(--missing)}.step-name{display:none}.step-label{line-height:1.3}.step-sub{font-size:12px;color:var(--muted)}.step.changed:not(:last-child):after{color:var(--proposal)}
+.detail{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;padding-top:22px}.detail-head{display:flex;gap:10px;align-items:baseline;margin-bottom:12px;flex-wrap:wrap}.detail h2{font-size:19px;margin:0;font-weight:650}.detail h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 8px}.facts{padding:0;margin:0;list-style:none;display:flex;flex-wrap:wrap;gap:8px}.facts li{padding:5px 9px;border-radius:5px;background:var(--wash);font-size:14px}.detail .route-line{font-size:16px;line-height:1.55;margin:12px 0 0}.route-line.changed{color:var(--proposal)}.sources{display:flex;flex-direction:column;gap:7px;font-size:14px}.source-link{display:flex;align-items:baseline;gap:10px}.source-kind{font-size:11px;text-transform:uppercase;letter-spacing:.04em;min-width:80px;color:var(--muted)}.not-run{margin-top:14px;font-size:12px;color:var(--muted)}.bottom{margin-top:24px;border-top:1px solid var(--line);padding-top:14px;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}.foot{display:flex;gap:14px;flex-wrap:wrap}.snapshot{font-size:12px;color:var(--muted)}
+.lane[data-tone=auto] .step:not(:last-child):after{color:var(--auto)}.step.manual:not(:last-child):after{color:var(--manual)}.lane[data-tone=proposed] .step:not(:last-child):after{color:var(--proposal);content:"⇢"}
+@media(min-width:1500px){.chrome{padding-left:4vw;padding-right:4vw}main{padding-left:4vw;padding-right:4vw}.column-head,.lane{grid-template-columns:180px repeat(4,minmax(0,1fr));column-gap:34px}.step:not(:last-child):after{width:35px}}
+@media(max-width:720px){.chrome{padding:12px 16px 10px;gap:10px}.identity{width:100%}h1{font-size:21px}.stamp{font-size:11px}.switch{flex:1}.switch button{flex:1;padding:7px 12px;min-height:40px}.chrome-link{font-size:12px}main{padding:16px}.map-intro{display:block;margin-bottom:8px}.map-intro h2{font-size:16px;margin-bottom:9px}.legend{gap:12px;font-size:11px}.column-head{display:none}.lane{grid-template-columns:repeat(4,minmax(0,1fr));column-gap:10px;row-gap:9px;padding:13px 0;min-height:125px}.lane:before{inset:0 -8px}.agent{grid-column:1/-1;flex-direction:row;align-items:baseline;justify-content:space-between;gap:10px}.agent-name{font-size:16px}.state-tag{font-size:11px;text-align:right}.step{min-height:76px;padding:7px 6px;gap:4px;justify-content:flex-start;border-radius:5px}.step-name{display:block;font-size:10px;letter-spacing:.02em}.step-label{font-size:14px;overflow-wrap:normal}.step-sub{display:none}.step:not(:last-child):after{width:11px;font-size:14px}.detail{grid-template-columns:1fr;gap:20px;padding-top:18px}.detail h2{font-size:18px}.facts{gap:6px}.facts li{font-size:13px}.detail .route-line{font-size:15px}.sources{font-size:13px}.source-kind{min-width:75px}.bottom{margin-top:20px}.foot{gap:12px;font-size:11px}}
+@media(max-width:720px){.step-label{font-size:16px}.step-name{font-size:11px}}
+@media(prefers-reduced-motion:no-preference){.step,.lane:before{transition:background .18s,border-color .18s}.state-tag{transition:color .18s}}
+@media print{.chrome{position:static}.chrome-link,.switch{display:none}.detail{break-inside:avoid}.lane{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="chrome">
+  <div class="identity"><h1>How work reaches an assistant</h1><div class="stamp"><span>Estate work channels</span><span>24 November 2026</span></div></div>
+  <div class="switch" role="group" aria-label="Compare work channels" data-at="state-switch"><button type="button" data-state="current" aria-pressed="true">Current</button><button type="button" data-state="proposed" aria-pressed="false">Proposed</button></div>
+  <a class="chrome-link" href="https://mehrlander.github.io/web-tools/app/?view=map&amp;tab=set">Existing map ↗</a>
+</header>
+<main>
+  <div class="map-intro"><h2 id="view-label">Recorded setup</h2><div class="legend"><span><i class="key"></i>Automatic</span><span><i class="key manual"></i>Owner pickup</span><span><i class="key proposed"></i>Proposed</span><span><i class="key missing"></i>Not mapped</span></div></div>
+  <div class="column-head" aria-hidden="true"><span>Assistant</span><span>01 · Request</span><span>02 · Wake</span><span>03 · Run</span><span>04 · Return</span></div>
+  <div id="routes" data-at="route-map" aria-label="Assistant work routes"></div>
+  <section class="detail" aria-label="Selected route details" data-at="route-detail">
+    <div><div class="detail-head"><h2 id="detail-title"></h2><span class="state-tag" id="detail-state"></span></div><ul class="facts" id="facts"></ul><div class="route-line" id="route-note"></div></div>
+    <div><h3>Evidence and prerequisites</h3><div class="sources" id="sources"></div><div class="not-run" id="evidence-note"></div></div>
+  </section>
+  <footer class="bottom"><div class="foot"><a href="https://github.com/mehrlander/web-tools/blob/main/docs/run-methods.csv">Recorded run methods ↗</a><a href="https://github.com/mehrlander/web-tools/blob/main/docs/inbound.md">Inbound channels ↗</a><a id="source-page" href="https://github.com/mehrlander/web-tools/blob/codex/work-channels/docs/prototypes/work-channels.html">Page source ↗</a></div><span class="snapshot">Evidence snapshot · no tasks dispatched</span></footer>
+</main>
+<script type="application/json" id="route-model">
+{
+  "asOf":"2026-11-24",
+  "repositoryCommit":"8f127e6a0",
+  "stages":["Request","Wake","Run","Return"],
+  "agents":[
+    {"id":"gemini","name":"Gemini",
+      "current":{"status":"Automatic pickup","tone":"auto","steps":[["File errand","GitHub background"],["Daemon polls","Lenovo queue consumer"],["Lenovo worker","New Antigravity conversation"],["File result","Reply and output files"]],"facts":["Lenovo awake","New worker conversation","Signed-in subscription"],"note":"Queue → Lenovo daemon → Antigravity worker → shared result.","sources":[["Recorded","Errand route","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/run-methods.csv"],["Recorded","Worker environment","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/environment/antigravity-local.md"]],"evidence":"Recorded implementation; no new dispatch test in this design."},
+      "proposed":{"status":"Keep existing route","tone":"auto","steps":[["File errand","GitHub background"],["Daemon polls","Lenovo queue consumer"],["Lenovo worker","New Antigravity conversation"],["File result","Reply and output files"]],"changed":[],"facts":["No new bridge","Lenovo awake","Signed-in subscription"],"note":"Keep the established Gemini route as the baseline.","sources":[["Recorded","Existing queue consumer","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/run-methods.csv"]],"evidence":"The proposed view preserves the same Gemini path."}},
+    {"id":"codex","name":"Codex",
+      "current":{"status":"Owner pickup","tone":"manual","steps":[["File errand","GitHub background"],["You prompt","Ask Codex to pick up"],["Lenovo session","Chosen Codex conversation"],["Close errand","Report and output files"]],"manual":[1],"facts":["You start pickup","Chosen session","Account sign-in determines billing"],"note":"The errand waits until you ask Codex to do its errands.","sources":[["Recorded","Codex errand contract","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/run-methods.csv"],["Recorded","Scheduled Codex worker","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/writers.csv"]],"evidence":"Scheduled polling capability is recorded separately; automatic errand pickup is not wired here."},
+      "proposed":{"status":"Add automatic pickup","tone":"proposed","steps":[["File errand","GitHub background"],["Daemon starts","New queue adapter"],["Codex CLI","Saved ChatGPT sign-in"],["File result","Existing close contract"]],"changed":[1,2,3],"facts":["Proposed local adapter","Lenovo awake","Subscription allowance"],"note":"A lightweight queue check starts Codex only when an errand is waiting.","sources":[["Documented","Scripted runs and session resume","https://learn.chatgpt.com/docs/non-interactive-mode"],["Documented","ChatGPT sign-in","https://learn.chatgpt.com/docs/auth"],["Alternative","Scheduled follow-up in a thread","https://learn.chatgpt.com/docs/automations"]],"evidence":"CLI support is documented. The queue adapter and result handoff still need implementation and a dispatch test."}},
+    {"id":"claude","name":"Claude",
+      "current":{"status":"Owner pickup","tone":"manual","steps":[["File errand","GitHub background"],["You prompt","Ask Claude to pick up"],["Chosen session","Cloud or Lenovo"],["Close errand","Report and output files"]],"manual":[1],"facts":["You start pickup","Cloud or Lenovo venue","Account sign-in determines billing"],"note":"The errand names a venue; you ask a session on that venue to take the work.","sources":[["Recorded","Claude errand contract","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/run-methods.csv"],["Recorded","Recipient workflow","https://github.com/mehrlander/web-tools/blob/8f127e6a0/skills/claude-errands/SKILL.md"]],"evidence":"An existing Claude conversation picks up the request. The queue does not itself wake Claude."},
+      "proposed":{"status":"Connect cloud trigger","tone":"proposed","steps":[["File errand","GitHub background"],["HTTP trigger","Proposed dispatch bridge"],["Cloud task","New Claude Code run"],["File result","Proposed return bridge"]],"changed":[1,2,3],"facts":["Cloud execution","Subscription allowance","Feature in research preview"],"note":"A saved cloud task receives the errand; its completed report returns to the queue.","sources":[["Documented","Cloud task triggers and billing","https://code.claude.com/docs/en/routines"],["Local option","Official programmatic CLI","https://code.claude.com/docs/en/headless"]],"evidence":"HTTP triggers are documented. Trigger credentials, repository access and the queue return still need wiring."}},
+    {"id":"grok","name":"Grok Bot",
+      "current":{"status":"Queue route not mapped","tone":"missing","steps":[["Direct chat","Your existing Bot"],["You prompt","User-reported setup"],["Grok Bot","Repository access reported"],["Bot chat","No queue return mapped"]],"manual":[1],"unmapped":[0,2,3],"facts":["Repo access reported by you","Bot configuration not inspected","Check plan entitlement"],"note":"Grok can already reach your repositories; a connection to the estate errand queue was not found.","sources":[["Recorded","Mapped writers","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/writers.csv"],["Recorded","Mapped errand methods","https://github.com/mehrlander/web-tools/blob/8f127e6a0/docs/run-methods.csv"]],"evidence":"Not mapped means no bridge found in the inspected records, not that Grok cannot do the work."},
+      "proposed":{"status":"Verify plan; connect routine","tone":"proposed","steps":[["File errand","Add Grok recipient"],["Webhook","Proposed dispatch bridge"],["Cloud routine","Grok Bot"],["File result","Proposed return bridge"]],"changed":[0,1,2,3],"facts":["Cloud execution","Check Bot allowance","Check delegated coding charges"],"note":"Webhook acceptance starts a run. A separate return bridge files the completed result.","sources":[["Documented","Routine webhooks","https://docs.x.ai/grok-bot/skills-routines-and-automations"],["Prerequisite","Bot subscription entitlement","https://docs.x.ai/x-subscription/grok-bot"],["Billing","Included usage and extra charges","https://docs.x.ai/x-subscription/usage-limits"]],"evidence":"The product feature is documented. Your Bot entitlement and both queue bridges remain unverified."}}
+  ]
+}
+</script>
+<script>
+(() => {
+  const model = JSON.parse(document.getElementById('route-model').textContent);
+  const params = new URLSearchParams(location.search);
+  let state = params.get('state') === 'proposed' ? 'proposed' : 'current';
+  let selected = model.agents.some(a => a.id === params.get('agent')) ? params.get('agent') : 'codex';
+  const root = document.getElementById('routes');
+  const make = (tag, cls, value) => { const el = document.createElement(tag); if (cls) el.className = cls; if (value !== undefined) el.textContent = value; return el; };
+  function draw(updateAddress = false) {
+    document.querySelectorAll('[data-state]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.state === state)));
+    document.getElementById('view-label').textContent = state === 'current' ? 'Recorded setup' : 'Proposed connections';
+    root.replaceChildren();
+    for (const agent of model.agents) {
+      const route = agent[state];
+      const lane = make('div', 'lane' + (agent.id === selected ? ' selected' : ''));
+      lane.dataset.agent = agent.id; lane.dataset.tone = route.tone;
+      const button = make('button', 'agent'); button.type = 'button'; button.dataset.select = agent.id;
+      button.setAttribute('aria-pressed', String(agent.id === selected)); button.setAttribute('aria-label', 'Inspect ' + agent.name + ' route');
+      button.append(make('span', 'agent-name', agent.name), make('span', 'state-tag ' + route.tone, route.status));
+      lane.append(button);
+      route.steps.forEach((step, i) => {
+        const cls = 'step' + ((route.changed || []).includes(i) ? ' changed' : '') + ((route.manual || []).includes(i) ? ' manual' : '') + ((route.unmapped || []).includes(i) ? ' unmapped' : '');
+        const node = make('div', cls); node.dataset.stage = model.stages[i].toLowerCase();
+        node.append(make('span', 'step-name', model.stages[i]), make('span', 'step-label', step[0]), make('span', 'step-sub', step[1]));
+        lane.append(node);
+      });
+      root.append(lane);
+    }
+    const agent = model.agents.find(a => a.id === selected), route = agent[state];
+    document.getElementById('detail-title').textContent = agent.name;
+    const badge = document.getElementById('detail-state'); badge.className = 'state-tag ' + route.tone; badge.textContent = route.status;
+    const facts = document.getElementById('facts'); facts.replaceChildren(...route.facts.map(f => make('li', '', f)));
+    const note = document.getElementById('route-note'); note.textContent = route.note; note.className = 'route-line' + (state === 'proposed' && route.tone === 'proposed' ? ' changed' : '');
+    const sources = document.getElementById('sources'); sources.replaceChildren();
+    route.sources.forEach(([kind, label, url]) => { const row = make('div', 'source-link'); const a = make('a', '', label + ' ↗'); a.href = url; row.append(make('span', 'source-kind', kind), a); sources.append(row); });
+    document.getElementById('evidence-note').textContent = route.evidence;
+    if (updateAddress && location.protocol !== 'about:' && location.protocol !== 'blob:') { const url = new URL(location.href); url.searchParams.set('state', state); url.searchParams.set('agent', selected); history.replaceState(null, '', url); }
+    document.body.dataset.ready = '1';
+  }
+  document.querySelectorAll('[data-state]').forEach(button => button.addEventListener('click', () => { state = button.dataset.state; draw(true); }));
+  root.addEventListener('click', event => { const button = event.target.closest('[data-select]'); if (!button) return; selected = button.dataset.select; draw(true); root.querySelector('[data-select="' + selected + '"]').focus({preventScroll:true}); });
+  root.addEventListener('keydown', event => { if (!['ArrowDown','ArrowUp'].includes(event.key)) return; const button = event.target.closest('[data-select]'); if (!button) return; event.preventDefault(); const at = model.agents.findIndex(a => a.id === selected); selected = model.agents[(at + (event.key === 'ArrowDown' ? 1 : 3)) % 4].id; draw(true); root.querySelector('[data-select="' + selected + '"]').focus({preventScroll:true}); });
+  window.addEventListener('popstate', () => { const q = new URLSearchParams(location.search); state = q.get('state') === 'proposed' ? 'proposed' : 'current'; selected = model.agents.some(a => a.id === q.get('agent')) ? q.get('agent') : 'codex'; draw(); });
+  draw();
+})();
+</script>
+</body>
+</html>
