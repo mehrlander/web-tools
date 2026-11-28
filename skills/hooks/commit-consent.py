@@ -196,8 +196,9 @@ Ask plainly and quote whatever they answer; never tell them what words to use.""
 
 DOC_REMINDER = """Note: {what}.
 
-Offer this commit's edits to the user for approval now, as the Review section of
-the doc-craft skill describes. Name this change again whenever they ask what is
+File a documentation user call for each changed document now, as the Review
+section of the doc-craft skill describes, rather than quoting the wording in
+chat. Name this change again whenever they ask what is
 open, offer it again if they ask to merge, and merge only after they approve the
 wording."""
 
