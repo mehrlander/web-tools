@@ -23,7 +23,7 @@ An outline succeeds on fidelity (each entry says what its source says), complete
 
 ## Process
 
-1. **Survey (phase one).** Build the profile, then propose the entry criteria (unit, grain, dimension) for the user to approve or adjust: a line for a short source, a plan for a long one. A measurement compared across readers or documents fixes the criteria in advance and skips the approval. An assessment ([`assessment.md`](assessment.md)) also fixes its criteria in advance.
+1. **Survey (phase one).** Build the profile, then propose the entry criteria (unit, grain, dimension) for the user to approve or adjust: a line for a short source, a plan for a long one. For a measurement compared across readers or documents, or for an assessment ([`assessment.md`](assessment.md)), fix the criteria in advance and skip the approval.
 2. **Produce the outline and crosswalk (phase two).** Emit entries at the chosen grain, each with its source span; the spans are the crosswalk. Leave out material that matches no criterion. A long source can fan out along the splits the profile found and be merged; step 3 checks the result whatever the strategy.
 3. **Check coverage.** Emit the regions that match the criteria but reach no entry.
 4. **Check validity.** Emit the discards the intent wanted. Any such discard means the criteria were too narrow: back to phase one.
@@ -36,4 +36,4 @@ An outline succeeds on fidelity (each entry says what its source says), complete
 | [`questions.md`](questions.md) | the unit is a question: grain by paragraph or exchange, the provenance mark, answers that stand alone, the open-loop filter |
 | [`tree.md`](tree.md) | measuring depth: building the tree, placing claims, reading depth |
 | [`ladders.md`](ladders.md) | placing claims on a genre ladder and reading the rung counts |
-| [`assessment.md`](assessment.md) | assessing a document, or an edit to one, for its higher-order concerns |
+| [`assessment.md`](assessment.md) | the use is an assessment: the dimensions, the procedure, a test per dimension, the outputs |

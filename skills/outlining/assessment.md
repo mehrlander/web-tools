@@ -11,12 +11,12 @@ The evidence comes from the outlining files. A claim's rung is its role on its g
 | Dimension | The question | Evidence |
 | --- | --- | --- |
 | Premise | What situation does the document answer, and what should its reader come away able to do? | the root question ([`tree.md`](tree.md)); `purpose` claims ([`ladders.md`](ladders.md)); the opening |
-| Scope | What does the document's charge cover, and what does it leave to other documents? | `scope` claims; the note [`tree.md`](tree.md#placing-claims) writes on a claim that fits no question |
+| Scope | What is the document meant to cover, and what does it leave to other documents? | `scope` claims; the note [`tree.md`](tree.md#placing-claims) writes on a claim that fits no question |
 | Audience | Who reads it, what do they already hold, and what are they there to do? | explanation cost ([`tree.md`](tree.md#explanation-cost)): what the reader named in step 1 must already hold to understand each question |
 | Level of detail | How fine is the material, for the whole document and for each passage against the passages beside it? | depth and rung; a claim's depth against the other claims in its section |
 | Flow | Does each part build on what came before? | the order of questions in the tree; the first use of each term against its introduction |
 | Organization | What job does each section do, and does each claim serve the job of the section it sits in? | the questions and rungs of each section |
-| Placement | Where does the document sit, and how do its readers reach it? Where should each of its statements live? | links to the document, what summons it, and documents that own its statements (step 4) |
+| Placement | Where does the document sit, and how do its readers reach it? Where should each of its statements live? | links to the document, what loads or cites it, and documents that own its statements (step 4) |
 
 ## Procedure
 
@@ -35,13 +35,13 @@ The evidence comes from the outlining files. A claim's rung is its role on its g
    - **Level of detail.** A claim sits more than one level deeper or shallower than the other claims in its section. A section's claim count is more than twice, or less than half, the median count of the sections beside it.
    - **Flow.** A claim uses a term that the document introduces later.
    - **Organization.** A claim's rung is outside its section's rungs. Two sections answer the same question.
-   - **Placement.** The readers the premise names have no route to the document. A route summons the document for a task its premise does not name. A statement restates one that another document owns.
+   - **Placement.** The readers the premise names have no route to the document. A file that loads or cites the document sends readers to it for a task its premise does not name. A statement restates one that another document owns.
 
 ## Output
 
 - `claims.csv`, as [`claims.md`](claims.md) gives it, for the inventoried sections. Findings cite its claim numbers.
 - `sections.csv`: `section,question,job,claims,inventoried`, one row per section, as step 2 charts it. `inventoried` is `true` or `false`, and a `false` row gives an approximate count.
-- `assessment.csv`: `dimension,where,finding,evidence,edit`, one row per finding. `where` is a section and a quoted span. `evidence` names the claim numbers, test or file behind the finding. `edit` is `causes`, `worsens` or `exposes` for an edit's findings, and empty otherwise. Quote every field, and double a quotation mark inside one.
+- `assessment.csv`: `dimension,where,finding,evidence,edit`, one row per finding. `where` is a section and a quoted span. `evidence` names the claim numbers, test or file behind the finding. For an edit's findings, `edit` is `causes` when the edit creates the problem, `worsens` when it enlarges one, and `exposes` when the problem was there before and the edit brings it into view. It is empty otherwise. Quote every field, and double a quotation mark inside one.
 
 For a human reader, give the section chart first, then the findings by dimension, most consequential first. List the dimensions with no finding in one line.
 
