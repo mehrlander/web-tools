@@ -385,3 +385,21 @@ test('link, answers and patch read the call and its answers from main', () => {
   assert.notEqual(refusal.status, 0, 'refused when the latest answer was committed');
   assert.match(refusal.stderr, /committed/);
 });
+
+test('held lists the open documentation calls on docs-held branches, grouped by branch', () => {
+  const call = (id, file, extra = {}) => [`${id}.json`, JSON.stringify({ ...DOC, id, status: 'open', file, ...extra })];
+  const dir = store(Object.fromEntries([
+    call('a1-one', 'mehrlander/web-tools@claude/docs-x:docs/x.md'),
+    call('a2-two', 'mehrlander/web-tools@claude/docs-x:docs/y.md'),
+    call('a3-elsewhere', 'mehrlander/web-tools@claude/feature:docs/x.md'),
+    call('a4-closed', 'mehrlander/web-tools@claude/docs-x:docs/z.md', { status: 'closed' }),
+    call('a5-pick', 'mehrlander/web-tools@claude/docs-x:docs/z.md', { kind: 'pick' }),
+  ]));
+  const r = run(dir, ['held']);
+  assert.equal(r.status, 0, r.stderr);
+  const page = (id) => `https://mehrlander.github.io/web-tools/pages/user-call.html#src=mehrlander/web-tools-private:user-calls/${id}.json`;
+  assert.equal(r.stdout, [
+    'mehrlander/web-tools@claude/docs-x  https://mehrlander.github.io/web-tools/pages/branch.html#gh=mehrlander/web-tools@claude/docs-x&base=main',
+    `  a1-one: ${DOC.question}  ${page('a1-one')}`,
+    `  a2-two: ${DOC.question}  ${page('a2-two')}`, ''].join('\n'));
+});
