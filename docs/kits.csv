@@ -99,7 +99,7 @@ lib/kits/route-join.js,RouteJoin,"the app-route join: the hub's own route manife
 lib/kits/row-menu.js,rowMenu,"a tap on a row, and what you can do with it",620,no,yes,9,yes
 lib/kits/session-export.js,sessionExport,"a session as a list of exchanges, plus the pure function that turns any part of one into markdown.",1622,no,no,6,yes
 lib/kits/session-index.js,SessionIndex,"a token index over what sessions SAID, so the exhaustive pass stops costing the whole store.",418,no,no,9,yes
-lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1538,no,no,5,yes
+lib/kits/session-render.js,sessionRender,a session record as a readable conversation.,1609,no,no,5,yes
 lib/kits/session-usage.js,SessionUsage,a session record as what each prompt cost and how much context it left behind.,256,no,no,5,yes
 lib/kits/sessions-crawl.js,SessionsCrawl,"The sessions crawl as a kit: the pass that folds the per-session records under sessions/ in the private registry into state/sessions.json, its phone copy…",221,no,no,1,yes
 lib/kits/shortcut-evidence.js,ShortcutEvidence,the device's return channel read as outpost evidence.,176,no,no,2,yes
@@ -110,7 +110,7 @@ lib/kits/stage-handoff.js,StageHandoff,"one paste, two documents",116,no,no,4,no
 lib/kits/standoff.js,Standoff,"The standoff annotation: its invariants, the six edits it admits, and the one serialization both of its writers must agree on.",655,no,no,5,yes
 lib/kits/subject-channel.js,subjectChannel,telling the FAB sidebar what you are looking at.,140,no,no,9,yes
 lib/kits/surface.js,Surface,"the surface envelope, in one place.",206,no,no,1,yes
-lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1935,no,yes,48,yes
+lib/kits/swipe-deck.js,swipeDeck,"the house swipe format: a snap-scrolling track of slides, and the fullscreen takeover that frames it.",1956,no,yes,48,yes
 lib/kits/sync-status.js,SyncStatus,"how a synchronization state looks, wherever the estate shows one.",31,no,no,4,yes
 lib/kits/table-stats.js,DataProfile,"a table's profile and its pivot, computed once for the estate TableStats.parseNum(v) -> number | null TableStats.profile(rows, { columns }) -> { rowCount,…",418,no,no,5,yes
 lib/kits/tabular-explorer.js,TabularExplorer,"Exploratory Data Analysis (EDA) and immersive inspection for tabular data (CSV, TSV, JSON rows).",851,no,no,2,yes
@@ -121,8 +121,8 @@ lib/kits/title-tip.js,TitleTip,"the TITLE-TIP of the house popup rule: `data-tit
 lib/kits/traffic-log.js,TrafficLog,the app writes down what its calls did worth reading,186,no,no,5,yes
 lib/kits/traffic.js,Traffic,"the pure read of what a page has pulled over the network, and the vocabulary the FAB's Traffic tab renders.",693,yes,no,6,yes
 lib/kits/treemap.js,treemap,pure logic for mapping a file tree as a treemap.,159,no,no,2,yes
-lib/kits/turn-view.js,TurnView,"the pages and documents one turn of a session changed, each rendered as its reader would see it, with a note bar whose notes go to the estate's notes store.",408,no,no,2,no
-lib/kits/turn-views.js,TurnViews,"one turn of a session record: its window, its ask, its close, and the pages and documents it changed.",266,no,no,3,yes
+lib/kits/turn-view.js,TurnView,"the pages and documents one turn of a session changed, each rendered as its reader would see it, with a note bar whose notes go to the estate's notes store.",439,no,no,2,no
+lib/kits/turn-views.js,TurnViews,"one turn of a session record: its window, its ask, its close, and the pages and documents it changed.",277,no,no,3,yes
 lib/kits/url-params.js,UrlParams,"Reading a page's own input params, fragment first, query as fallback.",149,no,no,10,yes
 lib/kits/usage-chart.js,UsageChart,"a session's context and cost per prompt as one SVG chart, drawn from kits/session-usage.js's reading (SessionUsage.read or SessionUsage.fromExtract).",266,no,no,3,yes
 lib/kits/usage-readings.js,UsageReadings,"every session's usage extract folded into five readings of where token spending goes, for the app's Usage tab.",241,no,no,1,yes
