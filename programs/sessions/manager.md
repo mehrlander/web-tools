@@ -4,6 +4,10 @@ The session holding the Sessions manager role, taken on with `/portable:programs
 
 First read the owner's rulings, the [notes](../../skills/notes/SKILL.md) addressed to `mehrlander/web-tools:programs/sessions/README.md` or its earlier path `mehrlander/web-tools:programs/surfacing/README.md`. Name any source you could not read.
 
+## Find a session
+
+Follow the [find-session](https://github.com/mehrlander/web-tools/blob/main/skills/find-session/SKILL.md) skill.
+
 ## Open calls
 
 Check every open user call ([`forms/README.md`](../../docs/forms/README.md)) unless the question narrows the sweep to repositories or a session window. Read three sources, starting with the `user-calls/` folder:
@@ -17,3 +21,18 @@ Return one line for each open call, answered-but-unmerged call, or awaiting task
 ```
 <waiting | answered-unmerged | stale-closed> · <call id or task id> · <kind> · <pull request or branch> · <date created> · <session id[:8]>
 ```
+
+## Session cost
+
+Inputs: a session id, or a day or a repository whose sessions to price. Without a session id, find the sessions first, as [Find a session](#find-a-session) describes. Read each session's usage file in web-tools-private, `sessions/usage/YYYY/MM/<day>-<session id[:8]>.json`, whose fields [`usage.py`](https://github.com/mehrlander/web-tools-private/blob/main/sessions/tools/usage.py) states. Report two totals from the file:
+
+- **Reported total:** `harness_cost`, Claude Code's own dollar figure for the session and its agents, or null.
+- **Priced total:** the tokens per prompt and model, priced by `SessionUsage.fromExtract` in [`session-usage.js`](../../lib/kits/session-usage.js). It is lower than the reported total. The reported total also counts calls the transcript does not record.
+
+Return one line per session, newest first, with the sum of each total last:
+
+```
+<day> · <session id[:8]> · <reported total or "no reported total"> · <priced total> · <prompts> prompts · <compactions> compactions
+```
+
+Name any session without a usage file.
