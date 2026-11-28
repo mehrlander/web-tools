@@ -28,6 +28,7 @@ pages/pages.csv merge=derived-csv
 docs/registries.csv merge=derived-csv
 docs/tests.csv merge=derived-csv
 docs/themes.csv merge=derived-csv
+docs/glossary/stats.csv merge=derived-csv
 tracker/board-tags.csv merge=derived-csv
 tracker/board.csv merge=derived-csv
 
@@ -78,6 +79,7 @@ docs/README.md                        edit=regenerated
 docs/tests.csv                        edit=regenerated linguist-generated
 docs/kits.csv                         edit=regenerated linguist-generated
 docs/themes.csv                       edit=regenerated linguist-generated
+docs/glossary/stats.csv               edit=regenerated linguist-generated
 data/csv-census.csv                   edit=regenerated linguist-generated
 tracker/board.md                      edit=regenerated
 tracker/board.csv                     edit=regenerated linguist-generated

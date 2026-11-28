@@ -1,0 +1,22 @@
+term,general,variants,cf,note
+assertion,qualify,,property,
+card,qualify,,tile;panel,
+census,no,,list;registry,"Peeve P66 rules it out as a synonym for list."
+closing state,no,,,
+form,qualify,,,
+gate,qualify,,,
+list,yes,,registry;stream,"Peeve P66 rules out ledger, census and catalog as synonyms; registry and stream name other shapes."
+look link,no,look marker,,
+panel,qualify,,card,The manifest key programs[].areas[].panels keeps a second estate sense; renaming it is the owner's call.
+pre-build,no,,,
+program,qualify,,,
+projection,qualify,,registry,
+property,qualify,,assertion,
+registry,qualify,,list;stream,
+snapshot,qualify,,stream,
+stream,qualify,,registry,
+target,qualify,,registry,
+tile,qualify,,card,
+toss,no,,,
+user call,no,,,
+wake,no,,,

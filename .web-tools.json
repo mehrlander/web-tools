@@ -259,6 +259,8 @@
         "docs/properties.csv",
         "docs/TRACKER.md",
         "docs/themes.csv",
+        "docs/glossary/terms.csv",
+        "docs/glossary/senses.csv",
         "lib/kits/lists.js"
       ],
       "measures": [
@@ -283,6 +285,7 @@
         "?view=map&tab=public",
         "?view=map&tab=names",
         "?view=map&tab=themes",
+        "?view=map&tab=glossary",
         "?view=lists",
         "?view=sessions",
         "?view=branches",

@@ -109,6 +109,12 @@ test('docs/themes.csv matches the corpus the theme graph is read from', () => {
   assert.equal(r.status, 0, (r.stderr || '').trim() || 'themes-graph --check failed');
 });
 
+test('docs/glossary/stats.csv matches the glossary and the prose it counts', () => {
+  const r = spawnSync('python3', ['python/glossary-stats.py', '--emit', 'docs/glossary/stats.csv', '--check'],
+                      { cwd: repoRoot, encoding: 'utf8' });
+  assert.equal(r.status, 0, (r.stderr || '').trim() || 'glossary-stats --check failed');
+});
+
 test('data/comments/web-tools.json matches the comment blocks in the code', () => {
   const r = spawnSync('python3', ['python/comment-blocks.py', '.', '--skip', 'archive/', '--skip', 'dump/', '--skip', 'research/',
                                   '--emit', 'data/comments/web-tools.json', '--check'], { cwd: repoRoot, encoding: 'utf8' });
