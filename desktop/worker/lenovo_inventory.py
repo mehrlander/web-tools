@@ -11,6 +11,7 @@ import time
 from urllib.parse import urlsplit
 
 from local_files import linked
+from repository_process import GIT_EXECUTABLE
 
 TARGET = 'state/lenovo-files.tsv'
 INTERVAL = 15 * 60
@@ -30,7 +31,7 @@ def git(repository, *args, data=None, allowed=(0,)):
     gh = shutil.which('gh') if args and args[0] in ('fetch', 'push', 'ls-remote') else None
     authentication = ['-c', 'credential.helper=', '-c',
                       'credential.helper=!' + shlex.quote(gh.replace('\\', '/')) + ' auth git-credential'] if gh else []
-    result = subprocess.run(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.longpaths=true',
+    result = subprocess.run([GIT_EXECUTABLE, '--no-optional-locks', '-c', 'core.fsmonitor=false', '-c', 'core.longpaths=true',
                              '-c', 'maintenance.auto=false', *authentication, '-C', str(repository), *args],
                             input=data, capture_output=True, env=env, timeout=120)
     if result.returncode not in allowed:
@@ -167,7 +168,12 @@ def collect(root):
             rows.append([relative, 'collapsed', checkout.classification(path) if checkout else 'none', None, None, '', ''])
             return None, None
         if directory and ((path / '.git').is_dir() or (path / '.git').is_file()):
-            checkout = Checkout(path)
+            try:
+                checkout = Checkout(path)
+            except (InventoryError, OSError, subprocess.TimeoutExpired, UnicodeError):
+                # Without the index, descendants cannot be classified safely.
+                rows.append([relative, 'checkout', 'unavailable', None, None, '', ''])
+                return None, None
             checkouts.append(checkout)
         kind = 'checkout' if directory and checkout and checkout.path == path else 'folder' if directory else 'file'
         state = checkout.classification(path) if checkout else 'none'
