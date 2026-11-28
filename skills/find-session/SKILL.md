@@ -25,12 +25,12 @@ The claude.ai link is the record's `agent_session`; where a record has none, the
 
 ## Process
 
-1. **Reach the archive.** Work in a web-tools-private checkout, attached and cloned as the [`sessions`](../sessions/SKILL.md) skill describes where none is in or beside the project root. Run `git pull --ff-only origin main` in it first.
+1. **Reach the archive.** Work in a web-tools-private checkout. Where none is in or beside the project root, attach and clone one as the [`sessions`](../sessions/SKILL.md) skill describes. Run `git pull --ff-only origin main` in it first.
 2. **Search** with `python3 sessions/tools/search.py`, starting from the most distinctive phrase the request offers. Its `--help` lists the filters, which combine with AND. `--grep` matches a literal substring of the session's prompts and replies, unranked. `--json` gives each record's fields, and `--show <short>` one record in full.
    - For a pull request, the session is named by the `Claude-Session` line in its head commit's message.
-   - Where the archive has no match, try the `list_sessions` tool, if the session has it. A session that never had the archive checked out has no record.
+   - Where the archive has no match, try the `list_sessions` tool, if the session has it.
 3. **Answer** in the shape above, the clause drawn from the prompt that matched.
 
 ## Key insights
 
-- **From a working session, summon the [`session-finder`](../agents/session-finder.md) agent** rather than follow this skill inline, so the search output stays out of that session's context.
+- **From a working session, summon the [`session-finder`](../agents/session-finder.md) agent** rather than follow this skill inline. The search output then stays out of that session's context.
