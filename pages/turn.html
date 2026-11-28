@@ -21,7 +21,12 @@
   Address, fragment preferred and query accepted:
 
     #id=<short>&turn=<n>[&card=<i>]
-    #id=<stem>&at=<ISO instant>      the turn whose window holds the instant
+    #id=<short or stem>&at=<ISO>     the turn whose window holds the instant,
+                                     as the session-detail caption's 💬 links it
+
+  The ✕ and the Session quick link go to this turn on session.html. A record
+  whose last Stop predates `at`, or no record yet, reads as not published,
+  with a reload: the caption link is tapped in that window often.
 
   `turn` is 1-based and is the Turns tab's numbering: turn n is the card
   session.html opens with `card=<n-1>`, labelled "Exchange n". `card` is the
@@ -94,25 +99,39 @@
     <span class="loading loading-spinner loading-lg text-primary"></span>
   </div>
 
+  <div x-show="pending" class="px-4 py-8 flex flex-col items-start gap-3" data-at="pending">
+    <span class="text-base">This turn's record is not published yet</span>
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn btn-sm btn-primary gap-1" @click="location.reload()"><i class="ph ph-arrow-clockwise"></i>Reload</button>
+      <a class="btn btn-sm btn-ghost gap-1" :href="sessionUrl"><i class="ph ph-chat-circle-text"></i>Session</a>
+    </div>
+  </div>
+
   <template x-if="turn">
   <div class="flex min-h-0 grow flex-col">
 
     <!-- THE TURN: where it sits in the session, the ask, the close. -->
     <header class="shrink-0 border-b border-base-300 px-4 pt-2 pb-2.5 flex flex-col gap-1.5" data-at="turn-head">
       <div class="flex items-center gap-1 min-w-0">
-        <a :href="sessionUrl" class="flex min-w-0 items-center gap-1.5 hover:text-primary cursor-pointer" data-at="session-link"
-           data-title-tip="This turn in the session page">
-          <i class="ph ph-chat-circle-text text-lg shrink-0"></i>
-          <span class="truncate text-sm font-semibold" x-text="title"></span>
-        </a>
+        <span class="min-w-0 truncate text-sm font-semibold" x-text="title"></span>
         <div class="ml-auto flex shrink-0 items-center">
           <a class="btn btn-xs btn-ghost btn-square" :class="turn.n <= 1 && 'btn-disabled'" :href="turnUrl(turn.n - 1)"
              aria-label="Previous turn" data-title-tip="Previous turn"><i class="ph ph-caret-left"></i></a>
           <span class="px-1 font-mono text-xs tabular-nums text-base-content/60" x-text="'turn ' + turn.n + '/' + turn.total"></span>
           <a class="btn btn-xs btn-ghost btn-square" :class="turn.n >= turn.total && 'btn-disabled'" :href="turnUrl(turn.n + 1)"
              aria-label="Next turn" data-title-tip="Next turn"><i class="ph ph-caret-right"></i></a>
+          <a class="btn btn-sm btn-ghost btn-square ml-1" :href="sessionUrl" data-at="close"
+             aria-label="Close, to this turn in the session" data-title-tip="This turn in the session"><i class="ph ph-x text-lg"></i></a>
         </div>
       </div>
+      <nav class="flex items-center gap-1 -ml-2 overflow-x-auto [scrollbar-width:none]" data-at="quick" aria-label="Quick links">
+        <template x-for="q in quick" :key="q.at">
+          <a :href="q.href" :data-at="q.at" class="btn btn-xs btn-ghost gap-1 font-normal text-base-content/70 hover:text-primary">
+            <i x-show="q.icon" class="ph text-sm" :class="q.icon"></i>
+            <span :class="q.mono && 'font-mono'" x-text="q.label"></span>
+          </a>
+        </template>
+      </nav>
       <button type="button" @click="askOpen = !askOpen" data-at="ask"
               class="flex items-start gap-2 text-left cursor-pointer hover:text-primary">
         <i class="ph ph-user text-base mt-0.5 shrink-0 text-base-content/50"></i>
@@ -180,10 +199,13 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('turnPage', () => ({
       input: '', want: null, busy: false, err: '', askOpen: false,
-      record: null, turn: null, path: '', views: [], at: 0, typing: '', drafts: [], sent: [], sending: false, status: '',
+      record: null, turn: null, pending: false, path: '', views: [], at: 0, typing: '', drafts: [], sent: [], sending: false, status: '',
       _swiper: null,
 
       async init() {
+        // The turn arrows and a reader's edit change the hash alone; the
+        // page reads its address once, so a new one is a fresh load.
+        window.addEventListener('hashchange', () => location.reload());
         await window.__depsReady;
         this.want = this.address();
         if (!this.want) return;
@@ -212,15 +234,22 @@
         location.reload();
       },
 
+      // A caption link is often tapped in the seconds between the reply and
+      // the Stop that publishes its turn: no record yet, or one whose last
+      // Stop predates the ask. That reads as `pending`, with a reload.
       async open() {
-        this.busy = true; this.err = '';
+        this.busy = true; this.err = ''; this.pending = false;
         try {
           const SR = window.SessionRecords;
           if (!SR) throw new Error('session-brief did not load, so no record reader is here');
           this.path = await SR.pathOf(this.want.id, STORE);
-          if (!this.path) throw new Error('No record for ' + this.want.id + ' in ' + STORE + '.');
+          if (!this.path) {
+            if (this.want.at) { this.pending = true; return; }
+            throw new Error('No record for ' + this.want.id + ' in ' + STORE + '.');
+          }
           const rec = await SR.read(STORE, this.path);
           this.record = rec;
+          if (this.want.at && window.TurnViews.before(rec, this.want.at)) { this.pending = true; return; }
           if (!this.want.n) this.want.n = window.TurnViews.at(rec, this.want.at);
           const t = window.TurnViews.of(rec, this.want.n);
           if (!t) throw new Error('Session ' + this.want.id + ' has ' + window.TurnViews.count(rec) + ' turns; there is no turn ' + this.want.n + '.');
@@ -253,7 +282,17 @@
         return s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       },
-      get sessionUrl() { return SITE + 'pages/session.html#id=' + this.short + '&pane=turns&card=' + ((this.turn?.n || 1) - 1); },
+      get sessionUrl() {
+        return SITE + 'pages/session.html#id=' + this.short + (this.turn ? '&pane=turns&card=' + (this.turn.n - 1) : '');
+      },
+      // The row of ways out: the session, the reply conventions, the program.
+      get quick() {
+        return [
+          { href: this.sessionUrl, icon: 'ph-chat-circle-text', label: 'Session', at: 'quick-session' },
+          { href: SITE + 'pages/data-view.html?src=mehrlander/web-tools@main:docs/CONVERSATION.md', icon: 'ph-book-open-text', label: 'Conventions', at: 'quick-conversation' },
+          { href: SITE + 'app/?view=program&program=sessions', icon: '', label: '\u2039\u22ef\u203a', at: 'quick-program', mono: true },
+        ];
+      },
       turnUrl(n) { return '#id=' + this.short + '&turn=' + n; },
       get otherCount() { return (this.turn?.other || []).length; },
       plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); },

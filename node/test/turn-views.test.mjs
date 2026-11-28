@@ -59,6 +59,11 @@ test('turns are the Turns tab cards, numbered from 1', () => {
   assert.equal(T.at(record, '2026-11-01T11:30:00Z'), 2);
   assert.equal(T.at(record, '2026-11-01T11:00:00Z'), 2);
   assert.equal(T.at(record, '2026-10-31T00:00:00Z'), 0);
+  // An ask stamped by the caption hook a few seconds before the harness
+  // wrote it still lands on its own turn.
+  assert.equal(T.at(record, '2026-11-01T10:59:55Z'), 2);
+  assert.equal(T.before({ ended: '2026-11-01T12:00:00Z' }, '2026-11-01T12:00:05Z'), true);
+  assert.equal(T.before({ ended: '2026-11-01T12:05:00Z' }, '2026-11-01T12:00:05Z'), false);
 });
 
 test('a turn keeps pages and documents a file tool or a non-git command changed', () => {
