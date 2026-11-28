@@ -345,7 +345,7 @@ upstream-skills,ours,recorded,,none,column,yes,,,locator,"the folder under skill
 upstream-skills,held,recorded,,none,column,yes,,,locator,the folder under outside/ that keeps a pinned copy the plugin never ships
 upstream-skills,group,recorded,,value,column,yes,prose;documents;web;device;windows;session,,label,"what the skill is FOR, on the same subject axis the skill roster authors, so one filter reaches both sets"
 agents,kind,recorded,,value,column,yes,definition;inline,,label,"whether the agent is a Claude Code definition file the platform loads and a session invokes by name, or a role whose prompt is written inside a skill and spawned through the Agent tool"
-agents,team,recorded,,counted,column,yes,critic;panel,,label,"which group of definitions an agent belongs to: a critic reviews against a written standard; a panel seat is one way of searching, convened with the others by the review-panel skill. Blank on an inline reader, which belongs to the skill that spawns it"
+agents,team,recorded,,counted,column,yes,critic;panel;helper,,label,"which group of definitions an agent belongs to: a critic reviews against a written standard; a panel seat is one way of searching, convened with the others by the review-panel skill; a helper does a task for the session that summons it, such as a lookup. Blank on an inline reader, which belongs to the skill that spawns it"
 agents,icon,recorded,,counted,column,yes,,,locator,"the definition's SVG icon, drawn in the project-icon system (one colour, solid ink, no strokes); blank on an inline reader"
 agents,path,recorded,,value,column,yes,,,locator,"the file that defines the agent: the definition file for a definition, the skill or prompt file holding the role for an inline reader"
 agents,anchor,recorded,,counted,column,yes,,,value,"for an inline reader, a verbatim phrase from its file that introduces the role; the gate requires the file to still contain it. Blank on a definition, whose file is the agent"
@@ -396,3 +396,11 @@ pages-map,names_private,computed,programs/alignment/current/pages-map.mjs,counte
 page-jobs,standing,recorded,,value,column,yes,product;service;exhibit;experiment;record,,label,"what the page is for, judged from its source or its note"
 page-jobs,job,recorded,,counted,list,no,respond;follow;read;explore;make,,label,"the jobs the page does for a reader, as data/ui-units/codes.csv defines them; blank where data/ui-units/coded.csv codes the page, which owns its job there"
 page-jobs,basis,recorded,,value,column,yes,source;note;name,,label,"what the judgment read: the page source, the note a manifest or the gallery gives it, or its name alone"
+boundaries,label,recorded,,value,column,yes,,,value,the item's name as the map shows it
+boundaries,group,recorded,,value,column,yes,analysis;models;audit;anchoring;writing;styles;repeated-prose,,label,the strand of the text work the item belongs to
+boundaries,path,recorded,,value,column,yes,,,locator,"the item, as owner/repo:path; a folder ends in /"
+boundaries,project,recorded,,counted,column,yes,text;skill-lab;strategic-writing;local-models,,label,the home project whose folder holds the path; blank outside projects/; boundaries-map.mjs --check measures it
+boundaries,program,recorded,,counted,column,yes,content;discovery;sessions;alignment;testing,,label,the web-tools program whose governs list in .web-tools.json covers the path; blank for none; boundaries-map.mjs --check measures it
+boundaries,named_by,recorded,,counted,list,no,text;skill-lab;strategic-writing;local-models;content;discovery;sessions;alignment,,label,each project or program that names the item without holding it
+boundaries,proposed,recorded,,counted,column,yes,text;skill-lab;strategic-writing;local-models;content;discovery;sessions;alignment,,label,the project or program a pending proposal would move the item to
+boundaries,basis,recorded,,counted,column,yes,,,value,where each naming or proposal is stated

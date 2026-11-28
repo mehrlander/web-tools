@@ -19,12 +19,15 @@ const HOOKS_JSON = JSON.parse(
 const PAGES = 'https://mehrlander.github.io/web-tools/pages/';
 const SESSION = 'f701fa79-e1c0-5997-b6c3-709182f8e137';
 const SESSION_PAGE = PAGES + 'session.html#id=f701fa79';
+// The 💬 link: the turn page at an ask's instant, the session's own by default.
+const TURN = (at, id = 'f701fa79') => PAGES + 'turn.html#id=' + id + '&at=' + at;
 const MARK = '[`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=sessions)';
 const GAP = ' \u00a0';  // between two code spans; one space between any other two parts
 const CLOSE = 'Close the reply with that line, unchanged, as its session detail caption.';
 const WAKE = '<task-notification>\n<task-id>a1</task-id>';  // a prompt that is not the owner's, of no kind it names
 const MIN = 60_000, HOUR = 60 * MIN;
 const NOW = Date.parse('2026-11-14T18:14:00Z');
+const SUBMIT = new Date(NOW).toISOString();  // an ask being submitted: the hook's own clock
 const STAMP = '11/14 10:14am';  // NOW in America/Los_Angeles
 const ago = (ms) => new Date(NOW - ms).toISOString();
 // A commit made by a suite running inside a git hook must land in the scratch
@@ -66,7 +69,8 @@ function scratch({ archive = true } = {}) {
       input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', transcript_path: transcript,
         session_id: SESSION, cwd: root, ...payload }),
       env: { ...ENV, TMPDIR: dir, CLAUDE_PROJECT_DIR: root, SESSIONS_STORE: '',
-        SESSION_CAPTION_NOW: String(NOW / 1000), OWNER_TZ: 'America/Los_Angeles', ...env },
+        SESSION_CAPTION_NOW: String(NOW / 1000), OWNER_TZ: 'America/Los_Angeles',
+        WEB_TOOLS_PROGRAMS: path.join(dir, 'no-programs.json'), ...env },
       encoding: 'utf8',
     }).trim();
   };
@@ -121,16 +125,16 @@ const caption = (out, event = 'UserPromptSubmit') => {
   return line.slice(head.length, -tail.length);
 };
 
-test('the line: the count as the session link, then the context, the clock, the age and the waiting docs', () => {
+test('the line: the count as the turn link, then the context, the clock, the age and the waiting docs', () => {
   const s = scratch();
   try {
     checkout(s.root, 'app', { changed: 1 });
     const out = s.run([typed('It is a new day.', ago(26 * HOUR + 30 * MIN)), reply(120_000),
       typed('Ok go ahead.'), reply(815_600)], { prompt: 'What next?' });
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) \`816k\` \`1d 2h\``, 'changed files that are not docs show nothing');
+    assert.equal(caption(out), `💬[3](${TURN(SUBMIT)}) \`816k\` \`1d 2h\``, 'changed files that are not docs show nothing');
     doc(checkout(s.root, 'docs-app'), 'docs/guide.md');
     assert.equal(caption(s.run(null, { prompt: 'And now?' })),
-      `💬[3](${SESSION_PAGE}) \`816k\` \`1d 2h\` [✍️1](${SESSION_PAGE})`);
+      `💬[3](${TURN(SUBMIT)}) \`816k\` \`1d 2h\` [✍️1](${SESSION_PAGE})`);
   } finally { s.done(); }
 });
 
@@ -225,7 +229,7 @@ test('the time since the first owner message: minutes, then hours, then days and
     cases.forEach(([ms, want], i) => {
       const got = caption(s.run([typed('first', ago(ms)), reply(50_000), typed('later', ago(10_000))],
         { session_id: 'case-' + i }));
-      assert.equal(got, `💬[2](${PAGES}session.html#id=case-${i}) \`50k\` ${want}`, `${ms} ms ago`);
+      assert.equal(got, `💬[2](${TURN(ago(10_000), 'case-' + i)}) \`50k\` ${want}`, `${ms} ms ago`);
     });
   } finally { s.done(); }
 });
@@ -251,7 +255,7 @@ test('it counts what the owner typed, and a mid-turn message once', () => {
       typed('two'),
       reply(41_000),
     ]);
-    assert.equal(caption(out), `💬[3](${SESSION_PAGE}) \`41k\` \`5m\``);
+    assert.equal(caption(out), `💬[3](${TURN(ago(5 * MIN))}) \`41k\` \`5m\``);
   } finally { s.done(); }
 });
 
@@ -301,22 +305,22 @@ test('a turn the owner did not start names what started it, after the count', ()
       ['<system-reminder>x</system-reminder>', 'wake'],
     ];
     kinds.forEach(([prompt, kind], i) => assert.equal(caption(s.run(entries, { prompt, session_id: 'kind-' + i })),
-      `💬[1](${PAGES}session.html#id=kind-${i}) ${kind} \`50k\` \`5m\``, prompt.slice(0, 60)));
+      `💬[1](${TURN(ago(5 * MIN), 'kind-' + i)}) ${kind} \`50k\` \`5m\``, prompt.slice(0, 60)));
 
     assert.equal(caption(s.run(entries, { prompt: 'What next?', session_id: 'owner' })),
-      `💬[2](${PAGES}session.html#id=owner) \`50k\` \`5m\``, 'an owner\'s prompt keeps the line as it was');
-    assert.equal(caption(s.run(entries, { session_id: 'none' })), `💬[1](${PAGES}session.html#id=none) \`50k\` \`5m\``,
+      `💬[2](${TURN(SUBMIT, 'owner')}) \`50k\` \`5m\``, 'an owner\'s prompt keeps the line as it was');
+    assert.equal(caption(s.run(entries, { session_id: 'none' })), `💬[1](${TURN(ago(5 * MIN), 'none')}) \`50k\` \`5m\``,
       'no prompt in the payload names no kind');
     const bash = s.run(entries, { hook_event_name: 'PostToolUse', tool_name: 'Bash', session_id: 'bash',
       prompt: queued(`1 unread notification (${GITHUB}: 1)`) });
-    assert.equal(caption(bash, 'PostToolUse'), `💬[1](${PAGES}session.html#id=bash) \`50k\` \`5m\``, 'nor does a Bash call');
+    assert.equal(caption(bash, 'PostToolUse'), `💬[1](${TURN(ago(5 * MIN), 'bash')}) \`50k\` \`5m\``, 'nor does a Bash call');
   } finally { s.done(); }
 });
 
 test('a first prompt, before any transcript, is message one at zero minutes', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${SESSION_PAGE}) \`0m\``);
+    assert.equal(caption(s.run(null, { prompt: 'Hello' })), `💬[1](${TURN(SUBMIT)}) \`0m\``);
   } finally { s.done(); }
 });
 
@@ -330,7 +334,7 @@ test('the context is the last main-conversation response that used any, rounded 
       content: [{ type: 'text', text: 'You\'ve reached your limit.' }],
       usage: { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 0 } } });
     assert.equal(context([typed('one'), reply(350_400), notice], 2), '`350k`', 'not a notice written in the model\'s place');
-    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${PAGES}session.html#id=case-3) \`5m\``,
+    assert.equal(caption(s.run([typed('one')], { session_id: 'case-3' })), `💬[1](${TURN(ago(5 * MIN), 'case-3')}) \`5m\``,
       'no response yet: the part is left off');
   } finally { s.done(); }
 });
@@ -356,7 +360,7 @@ test('waiting docs are summed over the checkouts under the root, and a zero sum 
   } finally { s.done(); }
 });
 
-test('with the archive checked out the count links the session page, wherever the store sits', () => {
+test('with the archive checked out the count links the turn page, wherever the store sits', () => {
   const s = scratch({ archive: false });
   try {
     const entries = [typed('one'), reply(50_000)];
@@ -368,7 +372,7 @@ test('with the archive checked out the count links the session page, wherever th
     store(far);
     assert.match(caption(s.run(entries)), /^🌿/, 'and not found unnamed');
     assert.equal(caption(s.run(entries, {}, { SESSIONS_STORE: path.join(far, 'sessions') })),
-      `💬[1](${SESSION_PAGE}) \`50k\` \`5m\``, 'named by SESSIONS_STORE');
+      `💬[1](${TURN(ago(5 * MIN))}) \`50k\` \`5m\``, 'named by SESSIONS_STORE');
     store(path.join(s.root, 'private'));
     assert.match(caption(s.run(entries)), /^💬\[1\]\(/, 'a child of the root');
     assert.match(caption(s.run(entries, { cwd: app.repo }, { CLAUDE_PROJECT_DIR: app.repo })), /^💬\[1\]\(/, 'a sibling of the root');
@@ -402,7 +406,7 @@ test('after a Bash call it speaks only when the ✍️ count moved, and asks git
     doc(app, 'docs/a.md');
     const bash = (more = {}) => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined, ...more });
     assert.equal(caption(s.run([typed('one'), reply(50_000)], { prompt: 'two' })),
-      `💬[2](${SESSION_PAGE}) \`50k\` \`5m\` [✍️1](${SESSION_PAGE})`);
+      `💬[2](${TURN(SUBMIT)}) \`50k\` \`5m\` [✍️1](${SESSION_PAGE})`);
     appendFileSync(s.transcript, typed('two') + '\n' + reply(60_000) + '\n');
     assert.equal(bash(), '', 'nothing moved');
 
@@ -418,11 +422,11 @@ test('after a Bash call it speaks only when the ✍️ count moved, and asks git
     doc(app, 'docs/b.md');
     assert.equal(bash({ agent_id: 'a1' }), '', 'a subagent\'s Bash call is passed over');
     assert.equal(caption(bash(), 'PostToolUse'),
-      `💬[2](${SESSION_PAGE}) \`60k\` \`5m\` [✍️2](${SESSION_PAGE})`, 'a commit of a doc moved the count');
+      `💬[2](${TURN(ago(5 * MIN))}) \`60k\` \`5m\` [✍️2](${SESSION_PAGE})`, 'a commit of a doc moved the count');
     assert.equal(bash(), '', 'said once');
 
     app.git('update-ref', 'refs/remotes/origin/main', 'HEAD');
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${SESSION_PAGE}) \`60k\` \`5m\``, 'main caught up: the part goes');
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[2](${TURN(ago(5 * MIN))}) \`60k\` \`5m\``, 'main caught up: the part goes');
     app.git('checkout', '-q', '-b', 'claude/next');
     assert.equal(bash(), '', 'a new branch on the same commit');
   } finally { s.done(); }
@@ -434,7 +438,7 @@ test('a Bash call with no caption printed yet prints one', () => {
     checkout(s.root, 'app', { changed: 1 });
     writeFileSync(s.transcript, [typed('one'), reply(50_000)].join('\n') + '\n');
     const bash = () => s.run(null, { hook_event_name: 'PostToolUse', tool_name: 'Bash', prompt: undefined });
-    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${SESSION_PAGE}) \`50k\` \`5m\``);
+    assert.equal(caption(bash(), 'PostToolUse'), `💬[1](${TURN(ago(5 * MIN))}) \`50k\` \`5m\``);
     assert.equal(bash(), '');
   } finally { s.done(); }
 });
@@ -472,8 +476,8 @@ test('each session keeps its own state', () => {
   const s = scratch();
   try {
     const entries = [typed('one'), reply(9000)];
-    assert.match(caption(s.run(entries, { session_id: 'sess-a' })), /session\.html#id=sess-a\)/);
-    assert.match(caption(s.run(entries, { session_id: 'sess-b' })), /session\.html#id=sess-b\)/);
+    assert.match(caption(s.run(entries, { session_id: 'sess-a' })), /turn\.html#id=sess-a&at=/);
+    assert.match(caption(s.run(entries, { session_id: 'sess-b' })), /turn\.html#id=sess-b&at=/);
     assert.equal(JSON.parse(readFileSync(path.join(s.dir, 'session-detail-caption', 'sess-a'), 'utf8')).owner, 1);
   } finally { s.done(); }
 });
@@ -481,7 +485,7 @@ test('each session keeps its own state', () => {
 test('anything it was not aimed at passes silently, and it never fails a turn', () => {
   const s = scratch();
   try {
-    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${SESSION_PAGE}) \`5m\``,
+    assert.equal(caption(s.run(['not json', typed('one'), reply(9000).slice(0, 80)])), `💬[1](${TURN(ago(5 * MIN))}) \`5m\``,
       'lines it cannot read are skipped');
     assert.equal(caption(s.run(null, { transcript_path: path.join(s.dir, 'missing.jsonl'), session_id: 'sess-x' })),
       `💬[0](${PAGES}session.html#id=sess-x)`, 'no transcript and nobody typing: the link alone');
@@ -492,7 +496,7 @@ test('anything it was not aimed at passes silently, and it never fails a turn', 
         encoding: 'utf8' }).trim(), '', `silent on ${input.slice(0, 40)}`);
     }
     writeFileSync(path.join(s.dir, 'session-detail-caption', SESSION), 'not json');
-    assert.equal(caption(s.run(null)), `💬[1](${SESSION_PAGE}) \`5m\``, 'a state file it cannot read is started again');
+    assert.equal(caption(s.run(null)), `💬[1](${TURN(ago(5 * MIN))}) \`5m\``, 'a state file it cannot read is started again');
   } finally { s.done(); }
 });
 
@@ -521,4 +525,25 @@ test('it is registered on both events, through the plugin root', () => {
   assert.equal(prompt.matcher, '');
   assert.equal(bash.matcher, 'Bash', 'after a Bash call and no other tool');
   for (const entry of [prompt, bash]) assert.match(entry.hooks[0].command, /^python3 "\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\//);
+});
+
+test('a program\'s standing session leads with its emoji and label, and ‹⋯› links its program', () => {
+  const s = scratch();
+  try {
+    const programs = path.join(s.dir, 'programs.json');
+    writeFileSync(programs, JSON.stringify({ programs: [
+      { name: 'content', emoji: '🌱' },
+      { name: 'testing', label: 'Testing', emoji: '🛡️', session: 'session_01Abc' }] }));
+    const as = (remote) => JSON.parse(s.run([typed('Hi.'), reply(120_000)], { prompt: 'Hi.' },
+      { CLAUDE_CODE_REMOTE_SESSION_ID: remote, WEB_TOOLS_PROGRAMS: programs }))
+      .hookSpecificOutput.additionalContext.split('\n')[0];
+    const mine = as('cse_01Abc');
+    assert.ok(mine.startsWith(`\`${STAMP}\` 🛡️ Testing 💬[`), mine);
+    assert.ok(mine.endsWith('[`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=testing)'), mine);
+    const other = as('cse_01Xyz');
+    assert.ok(!other.includes('Testing'), 'another session carries no program mark');
+    assert.ok(other.endsWith(` ${MARK}`), other);
+    const unset = as('');
+    assert.ok(unset.endsWith(` ${MARK}`), 'outside a cloud session nothing matches');
+  } finally { s.done(); }
 });
