@@ -35,7 +35,7 @@ const src = readFileSync(path.join(repoRoot, 'lib/kits/session-render.js'), 'utf
 const window = withTraffic({});
 const document = { createElement: () => ({ style: {}, append() {}, setAttribute() {} }) };
 new Function('window', 'document', src)(window, document);
-const { turns, groups, blocks, outline, find, describe } = window.sessionRender;
+const { turns, groups, blocks, outline, find, describe, launchOf } = window.sessionRender;
 
 const at = s => `2026-08-07T15:00:${String(s).padStart(2, '0')}Z`;
 
@@ -874,4 +874,28 @@ test('opening without a source query retains the ordinary narration fold', async
     assert.equal(host.querySelectorAll('[data-session-prose-match]').length, 0);
     assert.deepEqual(built.map(t => t.role), ['user']);
   } finally { dom.window.close(); }
+});
+
+// A SESSION ANOTHER SESSION LAUNCHED opens on that session's message, before
+// any prompt. It heads the work before the first ask as a note, so the
+// exchanges after it keep their numbers (Gemini counts the prompts from 0).
+const LAUNCH_BODY = '<cross-session-message from-session="session_01Parent">\nThe following was sent by another Claude Code session.\nTo reply, call send_message.\n\n    First assignments.\n    \n    1. Run the report.\n</cross-session-message>';
+const LAUNCHED = { ...REC, prompts: REC.prompts.map(p => ({ ...p, at: p.at.replace('15:00:', '15:01:') })),
+  injected: [{ at: at(1), kind: 'harness', head: '<cross-session-message from-session="session_01Parent">', body: LAUNCH_BODY }] };
+
+test("a launched session's first card opens on the launch message, and the asks keep their numbers", () => {
+  const l = launchOf(LAUNCHED);
+  assert.deepEqual([l.session, l.short, l.label], ['session_01Parent', '', 'Launched by another session']);
+  assert.equal(l.md, 'First assignments.\n\n1. Run the report.', "the harness's preamble and indent are dropped");
+  const cards = groups(turns(LAUNCHED));
+  assert.equal(cards[0][0].launch, true);
+  assert.equal(cards[0][0].role, 'meta');
+  assert.deepEqual(outline(LAUNCHED).map(r => r.exchange), [0, 1, 2], 'the launch card is exchange 0');
+  assert.equal(launchOf(REC), null, 'a session nothing launched has no launch');
+});
+
+test("the record's launched_by names the sender, and a message after the first prompt is no launch", () => {
+  assert.equal(launchOf({ ...LAUNCHED, launched_by: { at: at(1), session: 'session_01Parent', short: '83101b0b' } }).label,
+    'Launched by 83101b0b');
+  assert.equal(launchOf({ ...REC, injected: [{ at: at(25), kind: 'harness', head: LAUNCHED.injected[0].head }] }), null);
 });
