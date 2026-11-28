@@ -146,12 +146,16 @@ public static class NavigationPolicy
     public static bool IsLocal(string? address) => Uri.TryCreate(address, UriKind.Absolute, out var uri)
         && uri.GetLeftPart(UriPartial.Path) == LocalUrl && uri.Query.Length == 0;
 
-    public static string? FilesUrl(string? phoneUrl) => Uri.TryCreate(phoneUrl, UriKind.Absolute, out var uri)
+    public static string? FilesUrl(string? phoneUrl) => PhoneRoot(phoneUrl) is { } root ? root + "/#view=files" : null;
+
+    public static string? NowUrl(string? phoneUrl) => PhoneRoot(phoneUrl) is { } root ? root + "/#view=now" : null;
+
+    private static string? PhoneRoot(string? phoneUrl) => Uri.TryCreate(phoneUrl, UriKind.Absolute, out var uri)
         && uri.Scheme == "https" && uri.IsDefaultPort && uri.UserInfo.Length == 0
         && Uri.CheckHostName(uri.Host) == UriHostNameType.Dns && uri.Host.Length > ".ts.net".Length
         && uri.Host.EndsWith(".ts.net", StringComparison.OrdinalIgnoreCase)
         && uri.AbsolutePath == "/" && uri.Query.Length == 0 && uri.Fragment.Length == 0
-        ? uri.GetLeftPart(UriPartial.Authority) + "/#view=files" : null;
+        ? uri.GetLeftPart(UriPartial.Authority) : null;
 
     public static string ErrandUrl(string id, bool hasResult = false) => Activity.ValidId(id)
         ? hasResult

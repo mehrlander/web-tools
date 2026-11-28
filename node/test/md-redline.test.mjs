@@ -231,3 +231,10 @@ test('without opts.html the kit renders with guide-render', async () => {
   assert.equal(handle.counts.changed, 1);
   assert.equal(host.querySelector('ins').textContent, 'longer');
 });
+
+test("words cut from a block's end are struck inside its paragraph, not below it", async () => {
+  const { host } = await draw('Neither is declared. The reader tells.\n', 'Neither is declared.\n');
+  const del = host.querySelector('del');
+  assert.equal(del.textContent.trim(), 'The reader tells.');
+  assert.equal(del.parentElement.tagName, 'P', 'marked leaves a newline after </p>, and the cut used to land in it');
+});

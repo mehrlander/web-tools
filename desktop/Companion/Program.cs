@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using WebTools.Desktop;
 
+if (await AlertCommands.Run(args) is { } alertExit) { Environment.ExitCode = alertExit; return; }
 var port = int.TryParse(Environment.GetEnvironmentVariable("WEBTOOLS_COMPANION_PORT"), out var configuredPort) ? configuredPort : CompanionAccess.Port;
 using var instance = new Mutex(true, "Local\\WebTools.Companion." + port, out var first);
 if (!first) return;
@@ -19,6 +20,11 @@ builder.Logging.ClearProviders();
 builder.WebHost.ConfigureKestrel(server => server.Listen(IPAddress.Loopback, port));
 var app = builder.Build();
 var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+// Alerts ride the collector's scans; the daemon reading inside each snapshot is refreshed every ten seconds.
+var alerts = new AlertMonitor(UserSettings.DataDirectory, new GmailAlertSender(), AlertLog.Write);
+var alertPhoneUrl = CompanionAccess.Load().PhoneUrl;
+collector.Observed += activity => _ = alerts.Observe(
+    AlertObservation.From(activity.Snapshot, activity.ObservedAt, alertPhoneUrl), app.Lifetime.ApplicationStopping);
 
 app.Use(async (context, next) => {
     var request = context.Request;

@@ -369,7 +369,7 @@ test('link, answers and patch read the call and its answers from main', () => {
   assert.ok(run(dir, ['link', '8be17d0e-surfacing-mark-picks']).stdout
     .startsWith('https://mehrlander.github.io/web-tools/pages/image-board.html#user-call='));
   assert.ok(run(dir, ['link', '8be17d0e-model-diagram-picks']).stdout
-    .startsWith('https://mehrlander.github.io/web-tools/pages/idea-board.html#user-call='));
+    .startsWith('https://mehrlander.github.io/web-tools/app/?view=program&program=content&pick='));
   const missing = run(dir, ['link', 'a710e806-no-such-call']);
   assert.notEqual(missing.status, 0);
   assert.match(missing.stderr, /no call a710e806-no-such-call on main/);

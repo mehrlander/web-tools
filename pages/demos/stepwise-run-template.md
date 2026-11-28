@@ -1,0 +1,49 @@
+# Staged writing run: the template
+
+A run writes one text from the owner's words, in stages. After each reviewed stage, two reviewers read the stage's output and the writer revises before going on. The stepwise viewer shows every file.
+
+Inputs, in the run folder: `request.md` (the owner's request, verbatim), `decisions.md` (the owner's later decisions, verbatim quotes) and `pointers.md` (where the things the owner names live, so no one supplies them mid-run). The viewer shows the request and the decisions as one step, the decisions arriving as builds.
+
+Rules for every stage: extreme succinctness; no filler; no em dashes.
+
+## Stages
+
+1. **Intent** (`intent-1.md`, reviewed, then `intent-2.md`). The writer's reading of the owner's words, in exactly this form:
+
+   ```
+   👤 **Asked**
+
+   - <one idea>
+   - <one idea>
+
+   👤 **Wants**
+
+   - <one idea>
+   ```
+
+   One idea per bullet, short. Settle what the request and decisions settle; list no open questions.
+
+2. **Outline** (`outline-1.md`, panel, reviewed, then `outline-2.md`). A `**Premise:**` line, one sentence, the core insight. Then at most four numbered points, one short line each. Plan only. The writer answers the panel and the reviews together in `outline-2.md`.
+
+3. **Core** (`core-1.md`, reviewed, then `core-2.md`). The sentence, or two short ones, the text opens with: an instruction drawn from the premise.
+
+4. **Growth** (`growth/01.md`, `02.md`, ..., `growth/notes.json`). Each step is the whole file. Step 01 is the title plus the core. Each later step adds or changes one thing: an outline point, a needed detail, or frontmatter. Stop when every outline point is covered; fewer steps is better. `notes.json` holds one short line per step: `NN: what it added and why`.
+
+5. **Final** (the last growth step, panel, reviewed, then `final.md`). The writer answers the panel and the reviews together.
+
+## Panels
+
+At the outline and the final draft, an independent subagent (not the writer) writes an imagined dialog, `panel-outline.md` or `panel-final.md`: three communications experts discuss the stage's file and how to improve it. The file opens with the roster, one bullet per expert (`- **TW**, technical writer: <what they do>`); the roles default to a technical writer, a UX writer and a plain-language specialist, and may change where the text calls for other expertise. Then ten to sixteen short turns, each its own paragraph starting `**TW:**`, grounded in the owner's words and the file's actual sentences. The last turn reads the panel's proposed wording aloud.
+
+## Reviews
+
+After stages 1, 2, 3 and 5, two independent subagents read the stage's file:
+
+- **critic** (`portable:peeves-critic`): wording, against the owner's pet peeves.
+- **proxy** (`portable:owner-proxy`): substance, whether the owner would accept it, given `request.md` and `decisions.md`.
+
+Each returns only objections that would cost the owner something, one JSON object per line: `{"quoted": "<exact substring>", "peeve": "P<id>" (critic only), "payload": "<problem and fix>"}`. The comments are saved to `<stage>-critique.jsonl` with `"by"`. The writer answers each in `<stage>-answers.json`: `{"quoted", "answer": "changed" | "kept", "rationale"}`. The writer never writes a review.
+
+## Changes to this template
+
+An owner's change to this template starts a new run from the request. A change to the viewer does not.

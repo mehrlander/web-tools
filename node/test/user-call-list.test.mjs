@@ -98,8 +98,11 @@ function project() {
   git(store, 'push', '-q', 'origin', 'main');
   return { dir, store };
 }
+// A documentation call is filed with the critic's runs on it, so each call here carries one passing run.
+const PASS = { verdict: 'pass', trips: [], clear: ['P01'], candidates: [], preexisting: [],
+  report: '**Trips** (added or changed text)\nNone.\n\n**Clear**\nP01.\n\n**Candidates**\n- None worth proposing.\n\nVerdict: PASS' };
 const add = (p, call) => spawnSync('python3', ['-B', SCRIPT, 'add', '--store', path.join(p.store, 'user-calls')],
-  { env: { ...ENV, CLAUDE_PROJECT_DIR: p.dir }, encoding: 'utf8', input: JSON.stringify(call) });
+  { env: { ...ENV, CLAUDE_PROJECT_DIR: p.dir }, encoding: 'utf8', input: JSON.stringify({ review: { runs: [PASS] }, ...call }) });
 
 test("add files a list call only when each edit's entry is in the list at the base, as its from reads", () => {
   const p = project();
