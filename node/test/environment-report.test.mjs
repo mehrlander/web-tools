@@ -22,7 +22,8 @@ function withHome(fn) {
   const home = mkdtempSync(path.join(os.tmpdir(), 'env-report-'));
   try { return fn(home); } finally { rmSync(home, { recursive: true, force: true }); }
 }
-const run = (home) => execFileSync('bash', [HOOK], { input: '{}', encoding: 'utf8', env: { ...process.env, HOME: home } }).trim();
+const homeEnv = (home, base = process.env) => ({ ...base, HOME: home, USERPROFILE: home });
+const run = (home) => execFileSync('bash', [HOOK], { input: '{}', encoding: 'utf8', env: homeEnv(home) }).trim();
 const writeRan = (home, text) => {
   mkdirSync(path.join(home, '.claude'), { recursive: true });
   writeFileSync(path.join(home, '.claude', 'environment-setup.ran'),
@@ -47,11 +48,18 @@ test('the setup script allows add_repo in user settings, merged and idempotent',
     const file = path.join(home, '.claude', 'settings.json');
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, JSON.stringify({ enabledPlugins: { 'portable@web-tools': true } }));
-    const merge = () => execFileSync('python3', ['-'], { input: block[1], env: { ...process.env, HOME: home } });
+    const retainedProfile = path.join(home, 'retained-profile');
+    const retainedSettings = path.join(retainedProfile, '.claude', 'settings.json');
+    mkdirSync(path.dirname(retainedSettings), { recursive: true });
+    const retained = JSON.stringify({ permissions: { allow: ['retained-fixture-rule'] } });
+    writeFileSync(retainedSettings, retained);
+    const env = homeEnv(home, { ...process.env, USERPROFILE: retainedProfile });
+    const merge = () => execFileSync('python3', ['-'], { input: block[1], env });
     merge(); merge();
     const s = JSON.parse(readFileSync(file, 'utf8'));
     assert.deepEqual(s.permissions.allow, ['mcp__claude-code-remote__add_repo']);
     assert.equal(s.enabledPlugins['portable@web-tools'], true, 'the install\'s own settings survive');
+    assert.equal(readFileSync(retainedSettings, 'utf8'), retained, 'the inherited profile is untouched');
   });
 });
 

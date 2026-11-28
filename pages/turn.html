@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="winter">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turn</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🥏</text></svg>">
+<link href="https://cdn.jsdelivr.net/combine/npm/daisyui@5/themes.css,npm/daisyui@5" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/combine/npm/@tailwindcss/browser@4,npm/@phosphor-icons/web"></script>
+
+<!--
+  turn.html — one turn of a recorded session: what the owner asked, how the
+  reply closed, and every page and document the turn changed, as cards to
+  swipe through and write a note on.
+
+  The per-turn counterpart of session.html, and the replacement for the list
+  of render links that closed each reply: one link here opens all of them in
+  one frame, and a note on any card goes to the estate's notes store, where
+  the session reads it (skills/notes).
+
+  Address, fragment preferred and query accepted:
+
+    #id=<short>&turn=<n>[&card=<i>]
+    #id=<short or stem>&at=<ISO>     the turn whose window holds the instant,
+                                     as the session-detail caption's 💬 links it
+
+  The ✕ and the Session quick link go to this turn's card in session.html's
+  Turns tab (`turn=<n>`), where the same view sits compact under the card. A record
+  whose last Stop predates `at`, or no record yet, reads as not published,
+  with a reload: the caption link is tapped in that window often.
+
+  `turn` is 1-based and is the Turns tab's numbering: turn n is the card
+  session.html opens with `card=<n-1>`, labelled "Exchange n". `card` is the
+  0-based card to land on, stamped as the reader swipes.
+
+  What the page reads: the record, through session-brief's SessionRecords
+  (the same memoized read and store listing session.html uses); the turn's
+  window and files, through kits/turn-views.js, from the record alone; and
+  for each file one GitHub commits read, for the commit it stood at when the
+  turn ended. turn-views.js's header states what the record cannot say.
+
+  The files, their cards and the note bar are kits/turn-view.js, which the
+  session page's Turns tab also draws, compact, under each card.
+
+  Boot is session.html's: the pre-build, then the kits by name; the ready gate
+  is the same promise for the same reason (pages/branch.html has the account).
+-->
+<script>
+  window.__depsReady = new Promise(r => { window.__depsDone = r; });
+</script>
+<script type="module">
+  const bootFailed = (e) => {
+    document.body?.removeAttribute('x-cloak');
+    const box = document.createElement('div');
+    box.setAttribute('role', 'alert');
+    box.style.cssText = 'margin:2rem 1rem;padding:1rem 1.25rem;border:1px solid #d9dee3;border-radius:.75rem;'
+      + 'background:#fff;font:14px/1.55 system-ui,sans-serif;color:#1f2937';
+    box.textContent = 'This page could not start: ' + (e?.message || String(e));
+    document.body?.replaceChildren(box);
+  };
+  try {
+    const ref = new URLSearchParams(location.search).get('use');
+    if (ref) {
+      const src = await fetch(`https://raw.githubusercontent.com/mehrlander/web-tools/${ref}/dist/web-tools.js`, { cache: 'no-store' });
+      if (!src.ok) throw new Error(`?use=${ref}: could not fetch the bundle (HTTP ${src.status})`);
+      const url = URL.createObjectURL(new Blob([await src.text()], { type: 'text/javascript' }));
+      try { await import(url); } finally { URL.revokeObjectURL(url); }
+    } else {
+      await import('../dist/web-tools.js');
+    }
+    try {
+      for (const k of ['kits/repo-address.js', 'kits/closing-state.js', 'kits/proof.js', 'kits/swipe-deck.js',
+                       'kits/chat-render.js', 'kits/session-render.js', 'kits/turn-views.js', 'kits/turn-view.js',
+                       'kits/guide-render.js', 'kits/linked-swiper.js', 'kits/title-tip.js']) {
+        await gh.load(k);
+      }
+    } finally { window.__depsDone(); }
+  } catch (e) {
+    bootFailed(e);
+    throw e;
+  }
+</script>
+</head>
+<!-- An h-dvh root for a list over a strip (house style rule 5): the page may
+     be framed by a toss, so nothing here is fixed. -->
+<body class="h-dvh flex flex-col bg-base-100 text-base-content [--fab-bottom:4.5rem] [&[x-cloak]]:hidden" x-data="turnPage()" x-cloak>
+
+  <div x-show="!want" class="shrink-0 border-b border-base-300 px-4 py-2 flex items-center gap-2">
+    <span class="text-lg">&#129359;</span>
+    <input x-model="input" @keydown.enter="go()" placeholder="short id and turn, as abc12345 3"
+           class="input input-sm input-bordered font-mono flex-1 min-w-0">
+    <button @click="go()" class="btn btn-sm btn-primary">Open</button>
+  </div>
+
+  <div x-show="err" class="px-4 pt-3"><div class="alert alert-warning" x-text="err"></div></div>
+
+  <div x-show="busy" class="flex justify-center py-16">
+    <span class="loading loading-spinner loading-lg text-primary"></span>
+  </div>
+
+  <div x-show="pending" class="px-4 py-8 flex flex-col items-start gap-3" data-at="pending">
+    <span class="text-base">This turn's record is not published yet</span>
+    <div class="flex items-center gap-2">
+      <button type="button" class="btn btn-sm btn-primary gap-1" @click="location.reload()"><i class="ph ph-arrow-clockwise"></i>Reload</button>
+      <a class="btn btn-sm btn-ghost gap-1" :href="sessionUrl"><i class="ph ph-chat-circle-text"></i>Session</a>
+    </div>
+  </div>
+
+  <template x-if="turn">
+  <div class="flex min-h-0 grow flex-col">
+
+    <!-- THE TURN: where it sits in the session, the ask, the close. -->
+    <header class="shrink-0 border-b border-base-300 px-4 pt-2 pb-2.5 flex flex-col gap-1.5" data-at="turn-head">
+      <div class="flex items-center gap-1 min-w-0">
+        <span class="min-w-0 truncate text-sm font-semibold" x-text="title"></span>
+        <div class="ml-auto flex shrink-0 items-center">
+          <a class="btn btn-xs btn-ghost btn-square" :class="turn.n <= 1 && 'btn-disabled'" :href="turnUrl(turn.n - 1)"
+             aria-label="Previous turn" data-title-tip="Previous turn"><i class="ph ph-caret-left"></i></a>
+          <span class="px-1 font-mono text-xs tabular-nums text-base-content/60" x-text="'turn ' + turn.n + '/' + turn.total"></span>
+          <a class="btn btn-xs btn-ghost btn-square" :class="turn.n >= turn.total && 'btn-disabled'" :href="turnUrl(turn.n + 1)"
+             aria-label="Next turn" data-title-tip="Next turn"><i class="ph ph-caret-right"></i></a>
+          <a class="btn btn-sm btn-ghost btn-square ml-1" :href="sessionUrl" data-at="close"
+             aria-label="Close, to this turn in the session" data-title-tip="This turn in the session"><i class="ph ph-x text-lg"></i></a>
+        </div>
+      </div>
+      <nav class="flex items-center gap-1 -ml-2 overflow-x-auto [scrollbar-width:none]" data-at="quick" aria-label="Quick links">
+        <template x-for="q in quick" :key="q.at">
+          <a :href="q.href" :data-at="q.at" class="btn btn-xs btn-ghost gap-1 font-normal text-base-content/70 hover:text-primary">
+            <i x-show="q.icon" class="ph text-sm" :class="q.icon"></i>
+            <span :class="q.mono && 'font-mono'" x-text="q.label"></span>
+          </a>
+        </template>
+      </nav>
+      <button type="button" @click="askOpen = !askOpen" data-at="ask"
+              class="flex items-start gap-2 text-left cursor-pointer hover:text-primary">
+        <i class="ph ph-user text-base mt-0.5 shrink-0 text-base-content/50"></i>
+        <span class="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere] text-base leading-6"
+              :class="askOpen ? 'max-h-[40vh] overflow-y-auto' : 'line-clamp-2'" x-text="ask"></span>
+      </button>
+      <div x-show="turn.closing" class="flex items-start gap-2 text-base leading-6" data-at="closing">
+        <span class="shrink-0" x-text="turn.closing?.glyph"></span>
+        <span class="min-w-0 flex-1 line-clamp-2 [overflow-wrap:anywhere] [&_a]:link" x-html="closingHtml"></span>
+      </div>
+    </header>
+
+    <!-- THE FILES: kits/turn-view.js in its full form, the same view the
+         session page's Turns tab draws compact under each card. -->
+    <div x-ref="view" class="flex min-h-0 grow flex-col"></div>
+  </div>
+  </template>
+
+<script>
+  const STORE = 'mehrlander/web-tools-private';
+  const SITE = 'https://mehrlander.github.io/web-tools/';
+
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('turnPage', () => ({
+      input: '', want: null, busy: false, err: '', askOpen: false,
+      record: null, turn: null, pending: false, path: '', card: 0,
+
+      async init() {
+        // The turn arrows and a reader's edit change the hash alone; the
+        // page reads its address once, so a new one is a fresh load.
+        window.addEventListener('hashchange', () => location.reload());
+        await window.__depsReady;
+        this.want = this.address();
+        if (!this.want) return;
+        this.input = this.want.id + (this.want.n ? ' ' + this.want.n : '');
+        await this.open();
+      },
+
+      // Read through URLSearchParams: inside a toss, the renderer's shim
+      // patches get() and leaves location.search empty (session.html's note).
+      address() {
+        const q = new URLSearchParams(location.search);
+        const h = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+        const pick = k => h.get(k) || q.get(k);
+        const id = (pick('id') || '').trim();
+        const n = parseInt(pick('turn'), 10);
+        const at = (pick('at') || '').trim();
+        if (!id || !(n >= 1 || at)) return null;
+        const card = parseInt(pick('card'), 10);
+        return { id, n: n >= 1 ? n : 0, at, card: card >= 0 ? card : -1 };
+      },
+
+      go() {
+        const [id, n] = String(this.input || '').trim().split(/\s+/);
+        if (!id || !(parseInt(n, 10) >= 1)) { this.err = 'Give the short id, a space, and the turn number.'; return; }
+        location.hash = 'id=' + encodeURIComponent(id) + '&turn=' + parseInt(n, 10);
+        location.reload();
+      },
+
+      // A caption link is often tapped in the seconds between the reply and
+      // the Stop that publishes its turn: no record yet, or one whose last
+      // Stop predates the ask. That reads as `pending`, with a reload.
+      async open() {
+        this.busy = true; this.err = ''; this.pending = false;
+        try {
+          const SR = window.SessionRecords;
+          if (!SR) throw new Error('session-brief did not load, so no record reader is here');
+          this.path = await SR.pathOf(this.want.id, STORE);
+          if (!this.path) {
+            if (this.want.at) { this.pending = true; return; }
+            throw new Error('No record for ' + this.want.id + ' in ' + STORE + '.');
+          }
+          const rec = await SR.read(STORE, this.path);
+          this.record = rec;
+          if (this.want.at && window.TurnViews.before(rec, this.want.at)) { this.pending = true; return; }
+          if (!this.want.n) this.want.n = window.TurnViews.at(rec, this.want.at);
+          const t = window.TurnViews.of(rec, this.want.n);
+          if (!t) throw new Error('Session ' + this.want.id + ' has ' + window.TurnViews.count(rec) + ' turns; there is no turn ' + this.want.n + '.');
+          this.turn = t;
+          // A file, by `card` (0-based); -1, the default, is the discussion.
+          this.card = this.want.card >= 0 && t.files.length ? Math.min(this.want.card, t.files.length - 1) : -1;
+          document.title = 'Turn ' + t.n + ' · ' + this.short;
+          this.$nextTick(() => this.mountView());
+        } catch (e) {
+          this.err = e?.message || String(e);
+        } finally { this.busy = false; }
+      },
+
+      get short() { return String(this.record?.short || this.want?.id || '').slice(0, 8); },
+      get owner() { return STORE.split('/')[0]; },
+      get title() {
+        const r = this.record || {};
+        return (r.repos || []).map((x) => x.name).filter(Boolean).slice(0, 2).join(', ') + ' · ' + this.short
+          + (this.turn?.from ? ' · ' + this.turn.from.slice(5, 16).replace('T', ' ') : '');
+      },
+      get ask() {
+        // A wake's prompt is the harness's envelope; its first line names it.
+        return String(this.turn?.ask || '').replace(/^\s*<[^>]+>\s*/, '').trim() || '(no prompt captured)';
+      },
+      get closingHtml() {
+        const s = window.esc(String(this.turn?.closing?.text || ''));
+        return s.replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+          .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+      },
+      get sessionUrl() {
+        // This turn's card on the session page, at the file in view here.
+        return SITE + 'pages/session.html#id=' + this.short
+          + (this.turn ? '&turn=' + this.turn.n + (this.card >= 0 ? '&file=' + (this.card + 1) : '') : '');
+      },
+      // The row of ways out: the session, the reply conventions, the program.
+      get quick() {
+        return [
+          { href: this.sessionUrl, icon: 'ph-chat-circle-text', label: 'Session', at: 'quick-session' },
+          { href: SITE + 'pages/data-view.html?src=mehrlander/web-tools@main:docs/CONVERSATION.md', icon: 'ph-book-open-text', label: 'Conventions', at: 'quick-conversation' },
+          { href: SITE + 'app/?view=program&program=sessions', icon: '', label: '\u2039\u22ef\u203a', at: 'quick-program', mono: true },
+        ];
+      },
+      turnUrl(n) { return '#id=' + this.short + '&turn=' + n; },
+      get otherCount() { return (this.turn?.other || []).length; },
+      plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); },
+      // The discussion, the files, their cards and the note bar are the
+      // shared view's. The discussion is drawn as the Turns tab's card draws
+      // it: lumped, with compactions and messages between sessions as rows
+      // (session-render's lump mode). Item 0 is the discussion, so a file's
+      // item is its card + 1.
+      mountView() {
+        if (!this.$refs.view || !window.TurnView) return;
+        const n = this.turn.n, rec = this.record, spawn = this.turn.spawn || null;
+        window.TurnView.mount(this.$refs.view, {
+          record: rec, path: this.path, n, store: STORE, mode: 'full', start: this.card + 1,
+          discussion: (target) => {
+            const host = document.createElement('div');
+            host.className = 'flex flex-col gap-3';
+            target.replaceChildren(host);
+            window.sessionRender?.card?.(window.TurnViews.discussion(rec, n), host, { lump: true, spawn })?.catch?.(() => {});
+          },
+          onPick: (i) => { this.card = i - 1; this.stamp(i - 1); },
+        });
+      },
+      stamp(card) {
+        if (!/^https?:$/.test(location.protocol)) return;
+        const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+        if (card >= 0) h.set('card', String(card)); else h.delete('card');
+        history.replaceState(history.state, '', '#' + h.toString());
+      },
+    }));
+  });
+</script>
+</body>
+</html>

@@ -121,7 +121,7 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 `npm run stranded-titles` lists facts parked in a `title`, and
 `TitleTip.open('#id')` opens one for a shot.
 
-**11. Keep the list visible while browsing details.** Pair the list with a strip of swipeable cards, one per item. On a phone, place the list above the cards and limit its height to about 40% of the available space. In a wide pane, place the list beside the cards. Each pane scrolls independently; the page stays still. Selecting a row shows its card. Swiping between cards selects the corresponding row and keeps that row visible. In the list, Up and Down move selection and keyboard focus together. A control in the card header opens the takeover (rule 4) at the card in view. Closing returns to the list at the item last viewed. Use Linked Swiper; the host supplies the action that opens the takeover.
+**11. Keep the list visible while browsing details.** Pair the list with a strip of swipeable cards, one per item, that follow the list's selection. Use [Linked Swiper](https://github.com/mehrlander/web-tools/blob/main/lib/kits/linked-swiper.js). It sets the layout for a phone or a wide pane and moves the selection on a swipe or an arrow key. The page supplies the action that opens the takeover (rule 4). Closing the takeover returns to the list at the item last viewed.
 
 **12. Avoid modal dialogs and accordions.** Consider a panel-tip, a strip under the list (rule 11), the Swipe Deck takeover (rule 4), or another more fluid alternative.
 
@@ -133,11 +133,17 @@ Do not use daisyUI's `tooltip`, `data-tip`, or `cursor-help`. Details are in
 
 **16. An item and its counterparts highlight together.** Where one item appears in two or more places on a page, hovering or tapping any of them marks the others.
 
-**17. A value takes the form its content asks for.** Do not lay out a card's or panel's fields as label-value pairs. A URL or file path is a link, short labels and dates run as one line of items, a sentence runs as text without a label, and an item the card points to leads with an icon and its name in bold. Leave out a field whose value is a placeholder, a value nearly every card shares, or a restatement of another field. A table whose rows share columns is exempt.
+**17. No boilerplate.** Shape each value to its content. Use a label only where structure and context can't make the meaning of the value clear. Use placement, proximity, icons and ingenuity to offer dense clusters of information that the reader can see as an entity and its kind at once.
 
 **18. Find graphical representations.** Reduce information to small marks that bring out its groupings. Use icons to emphasize categories, and symbols for relations, such as `~500` for about 500 and `2018 → 2024` for 2018 through 2024.
 
 **19. Themes.** Pages may use daisyUI themes, most often `winter`. Do not provide dark mode.
+
+**20. Make icon behavior consistent and predictable.** An icon on a list row, alone or paired with a count or a word, should look like what clicking it does.
+
+- If clicking opens, navigates, or toggles something, make the icon a button or link with `cursor-pointer`, since Tailwind 4 gives plain buttons the arrow. On hover, use `hover:text-primary`, or `hover:opacity-75` for an emoji or brand mark that keeps its own colour.
+- If the icon also has a hover card, the card does the explaining and is its only popup. Name the icon with `aria-label`.
+- If the icon only labels, keep the default cursor and a steady colour so it never looks clickable. A title-tip can name it.
 
 ## Handing a page over
 

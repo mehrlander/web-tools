@@ -29,7 +29,7 @@ KINDS = ("answer", "unreached", "overlap", "superseded")
 LEGACY_KINDS = ("settled",)          # the first records' word for superseded
 FIELDS = ("kind", "subjects", "why", "next", "choice", "evidence")
 CLOSED = {"settled", "resolved"}
-DONE_STATES = {"merged", "done", "clean"}
+DONE_STATES = {"merged", "clean"}  # 🟣 and ⚫; ⚪ (standby) claims no finished work
 NON_CLAUDE = ("codex/", "gemini/", "grok/", "agent/", "feat/", "copilot/", "fix/")
 
 

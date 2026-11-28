@@ -163,7 +163,7 @@ test('with no paths given, the default roots lib, pages, app and the skill demos
       out = execFileSync('python3', [script, '--check', '--repo-root', repoRoot], { cwd: dir, encoding: 'utf8' });
     } catch (e) { code = e.status; out = (e.stdout || '') + (e.stderr || ''); }
     assert.equal(code, 1, out);
-    for (const f of files) assert.ok(out.includes(f), `${f} is scanned: ${out}`);
+    for (const f of files) assert.ok(out.includes(path.normalize(f)), `${f} is scanned: ${out}`);
     assert.match(out, /4 in 4 file\(s\)/);
   } finally {
     rmSync(dir, { recursive: true, force: true });
