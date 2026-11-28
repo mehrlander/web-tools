@@ -377,6 +377,45 @@ batch, publication, errand, scheduled-job and error events. The view shows a sho
 description and its report time, without raw paths or error bodies. A report
 does not establish that the reported job is still executing.
 
+## Worker alerts
+
+The companion emails the owner about the Gemini worker from its existing scans.
+A worker process read as absent for fifteen continuous minutes sends
+`[web-tools] Gemini worker down`; the next detection sends
+`[web-tools] Gemini worker back up`. A Gemini errand open and unclaimed for
+fifteen minutes sends `[web-tools] Gemini errand waiting`. Each condition sends
+once while it lasts. An unknown process reading never counts as absent, and an
+unobserved gap of over two minutes restarts the absence count. The plain-text body
+gives the condition, its start, the last worker report, waiting errand identifiers
+with ages, and the phone's Now address when known. `alert-state.json` beside the
+settings keeps a restart from resending. The companion never starts, stops or
+restarts the worker.
+
+An `alerts-paused` file beside the settings holds every alert; owed messages
+send once it is removed, if their condition still holds. Decisions and send
+failures go to `alerts.log`; a failed send retries after five minutes.
+
+Mail goes through Gmail SMTP (`smtp.gmail.com`, port 587, STARTTLS) with a Gmail
+app password. Without `alert-mail.json`, alerts are off and the log says so once.
+Configure and test from PowerShell, piping the app password on standard input,
+never as an argument:
+
+```powershell
+$companion = "$env:LOCALAPPDATA\Programs\WebToolsDesktop\companion\WebTools.Companion.exe"
+$password = [Net.NetworkCredential]::new('', (Read-Host 'Gmail app password' -AsSecureString)).Password
+$password | & $companion --alert-mail-setup --from you@gmail.com --to you@example.com | Write-Output
+Remove-Variable password
+& $companion --alert-mail-test | Write-Output
+```
+
+The trailing pipe makes PowerShell wait for the windowless executable and show its
+one-line result; `$LASTEXITCODE` then holds its status. Both commands run beside a
+running companion.
+
+`alert-mail.json` holds the sender and recipient in plain text and the app password
+encrypted with Windows DPAPI for the current user. Exit codes are 0 (done), 1 (save or
+send failed), 2 (invalid input) and 3 (not configured).
+
 ## Desktop boundary
 
 The hosted Web Tools page has no native message bridge. Only the bundled Lenovo
