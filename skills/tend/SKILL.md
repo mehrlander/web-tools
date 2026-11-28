@@ -35,28 +35,11 @@ Tend deletes no branch and proposes no deletion. `findings.py` sits beside
 this file; [`lib/kits/findings.js`](https://github.com/mehrlander/web-tools/blob/main/lib/kits/findings.js) states the
 record.
 
-1. **Reassess.** Check out each repository an open finding names, in the
-   folder that holds the other checkouts; `check` reads a witness in any other
-   repository as unverifiable. `findings.py check` names the findings whose
-   witnesses changed. Reread each and reply with `findings.py update`: revise
-   it, confirm it with fresh witnesses, or renew attention on a settled one
-   (`status: "open"`, a new `next`). An update replaces each field it carries,
-   so send whole lists.
-2. **Select.** `findings.py candidates` lists what mechanical signals raise and
-   marks those a holding finding covers. Each subject below adds its own. A
-   signal is a reason to investigate, never a finding.
+1. **Reassess.** Reread each open finding. [`findings.py check`](findings.py) lists them, each with the subjects that changed since its last update. Pull request updates and branch pushes come from web-tools-private's [`state/activity.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/activity.json). File commits come from the checkouts beside web-tools-private. `check` names any checkout too shallow to read. Reply with `findings.py update` where a finding changed, or where a subject changed and the finding still holds (`"finding": {}` confirms it). Send `subjects` and `evidence` whole: an update replaces every field it includes.
+2. **Select.** `findings.py candidates` lists what mechanical signals raise. It marks a candidate covered when a finding names its branch or pull request. It marks a covered one for reassessment when that subject changed after the finding's last update. Give a settled finding that needs work again `status: "open"` and a new `next`. Each subject section below adds its own signals.
 3. **Investigate** each candidate not marked covered until the conclusion
    would survive the owner's first question.
-4. **Write** one finding per conclusion with `findings.py add`: its subjects,
-   why it matters, a next step concrete enough to execute, evidence, and
-   witnesses. Prepare a step that needs the owner's word, such as closing a
-   pull request, for the list in step 6. For a next step that is new work,
-   rather than landing work that exists, ask in the reply whether to file it
-   as a task or drop it; either answer settles the finding.
-   Witnesses include what lies outside the subjects, such as main's copy of a
-   file the work was compared against. Choose as a witness the narrowest file
-   that holds the claim: a file edited daily brings the finding back on every
-   pass.
+4. **Write** one finding per conclusion with `findings.py add`: its subjects, why it matters, a next step concrete enough to execute, and evidence. Prepare a step that needs the owner's word, such as closing a pull request, for the list in step 6. For a next step that is new work, rather than landing work that exists, ask in the reply whether to file it as a task or drop it; either answer settles the finding. Name as subjects the files the conclusion rests on, including those outside the work. One example is main's copy of a file the work was compared against. Name the narrowest file that holds the claim.
 5. **Act** on each subject's *Act* tier. Record a step done on the finding it
    advanced (`findings.py update`, `did`, and the step that remains); it
    settles only once no next step remains.
@@ -96,16 +79,10 @@ its class:
 | residue-free | Paths differ, but every line the branch added is in main's copy. |
 | novel | Anything else, including anything a shallow clone leaves undecided. |
 
-`branches.py`, beside this file, applies the table to every remote branch in
-the checkouts and lists the novel and orphan ones, the novel with their
-residue. `--since` takes the previous pass's date.
+[`branches.py`](branches.py), beside this file, applies the table to every remote branch in the checkouts, old ones included. Its list names the novel and orphan branches, each novel one with its residue, as **Find** below defines it. It marks a novel branch covered or for reassessment as step 2 describes. A finding covers a branch by naming it as `owner/repo@branch`.
 
 - **Act:** report the settled classes as counts, and orphan branches by name.
-- **Find:** a novel branch. Its residue is the lines it added
-  (`git diff -U0 <merge-base> origin/<b> -- <path>`) that
-  `git show origin/main:<path>` lacks. Name its origin (`Claude-Session`
-  trailer, session record, or pull request) as a subject. Branches share a
-  finding when they share its conclusion, whichever session made them.
+- **Find:** a novel branch not marked covered. Its residue is the lines it added (`git diff -U0 <merge-base> origin/<b> -- <path>`) that `git show origin/main:<path>` lacks. Name its origin (`Claude-Session` trailer, session record, or pull request) as a subject. Branches share a finding when they share its conclusion, whichever session made them.
 
 ## Trackers
 
@@ -230,7 +207,7 @@ principles above:
   context: in the pull request body if there is one, complete enough for a
   fresh session to continue from.
 
-End the session's own reply with a recap for a reader coming back cold: what
-waits on the owner, one question per decision, each linked to where the owner
-answers it; then what the session is for, what it did and what it sidestepped,
-where things stand, and where to pick up.
+End the session's own reply with a recap for a reader coming back cold. Open
+with what waits on the owner, one question per decision, each linked to where
+the owner answers it. Then say how the session started, what it did and what it
+chose not to do, where things stand, and where to pick up.

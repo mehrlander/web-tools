@@ -12,7 +12,7 @@ import { repoRoot } from './bootstrap.mjs';
 const script = path.join(repoRoot, 'python/probes.py');
 const run = (root, ...args) => spawnSync('python3', [script, '--root', root, ...args],
   { cwd: repoRoot, encoding: 'utf8' });
-const HEAD = 'probe,date,title,path,question,summary,standing,bundle';
+const HEAD = 'probe,date,title,path,question,summary,notes,bundle';
 
 function fixture(t, rows) {
   const root = mkdtempSync(path.join(os.tmpdir(), 'probes-'));
@@ -57,7 +57,6 @@ test('each broken rule is named with its row', t => {
   for (const want of [
     /probes\.csv:2: probe 2026-01-02-tie is dated 2026-01-02, not 2026-01-03/,
     /probes\.csv:2: path 2026-01-02-tie\.md is dated 2026-01-02, not 2026-01-03/,
-    /probes\.csv:2: standing won is not one of failed, mixed, open, worked/,
     /probes\.csv:3: 2026-01-02-tie is listed twice/,
     /probes\.csv:3: title is empty/,
     /probes\.csv:3: path missing\.md names nothing in the folder/,
@@ -88,4 +87,17 @@ test('--new writes the required header and refuses to overwrite', t => {
   assert.equal(run(root, '--new', 'fresh').status, 0);
   assert.equal(readFileSync(path.join(root, 'fresh/probes.csv'), 'utf8'), 'probe,date,title,question,summary\n');
   assert.equal(run(root, '--new', 'fresh').status, 1);
+});
+
+test("a declaration's status is living, measured or record", t => {
+  const root = fixture(t, GOOD);
+  const manifest = JSON.parse(readFileSync(path.join(root, '.web-tools.json'), 'utf8'));
+  manifest.research[0].status = 'measured';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  assert.equal(run(root).status, 0);
+  manifest.research[1].status = 'done';
+  writeFileSync(path.join(root, '.web-tools.json'), JSON.stringify(manifest));
+  const r = run(root);
+  assert.equal(r.status, 1);
+  assert.match(r.stdout, /research one\/README\.md has status done, not one of living, measured, record/);
 });

@@ -21,7 +21,7 @@ foreach ($desktopShortcutFolder in @([Environment]::GetFolderPath('Desktop'), (J
     $desktopShortcut.TargetPath = $desktopExe
     $desktopShortcut.IconLocation = "$desktopExe,0"
     $desktopShortcut.WorkingDirectory = $desktopDestination
-    $desktopShortcut.Description = 'Web Tools and activity on this laptop'
+    $desktopShortcut.Description = 'Web Tools and activity on the Lenovo'
     $desktopShortcut.Save()
 }
 Write-Output "Installed Web Tools Desktop: $desktopExe"

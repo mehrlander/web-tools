@@ -9,6 +9,9 @@
   "tracker": "tracker/board.md",
   "growth": "data/doc-growth/web-tools.json",
   "comments": "data/comments/web-tools.json",
+  "stores": [
+    { "path": "data/tests/reach.json", "shape": "registry", "provenance": "captured", "key": "tests[].path" }
+  ],
   "data": {
     "census": "data/csv-census.csv"
   },
@@ -106,8 +109,10 @@
     {
       "name": "sessions",
       "label": "Sessions",
-      "scope": "replies and render links, the plugin, hooks and scheduled jobs",
+      "scope": "replies and render links, session records and history, the plugin, hooks and scheduled jobs",
       "icon": "programs/sessions/icon.svg",
+      "emoji": "🎙️",
+      "session": "session_01Ug8CX9xPk1ZyngCSXmxb2a",
       "path": "programs/sessions",
       "formerly": ["programs/surfacing"],
       "governs": [
@@ -129,6 +134,7 @@
         "docs/subjects.csv",
         "pages/branch.html",
         "pages/session.html",
+        "pages/standing.html",
         "pages/approve.html",
         "pages/data-view.html",
         "pages/shorter.html",
@@ -200,13 +206,21 @@
       "label": "Testing",
       "scope": "the suite and where each check runs",
       "icon": "programs/testing/icon.svg",
+      "emoji": "🛡️",
+      "session": "session_01Ug8CX8pNWnUqVDjwo1PrRi",
       "path": "programs/testing",
       "governs": [
         "docs/tests.csv",
         "docs/tests-authored.csv",
         "docs/environment/testing.md",
         ".github/workflows/test.yml",
-        ".github/workflows/page-measures.yml"
+        ".github/workflows/page-measures.yml",
+        "node/testing/",
+        "node/test/",
+        "data/tests/reach.json"
+      ],
+      "measures": [
+        "mehrlander/web-tools-private@background:data/tests/latest.json"
       ],
       "reviewers": [
         "portable:owner-proxy",
@@ -229,18 +243,23 @@
       ]
     },
     {
-      "name": "organization",
-      "label": "Organization",
-      "scope": "repositories, registries, session records and history",
-      "icon": "programs/organization/icon.svg",
-      "path": "programs/organization",
+      "name": "alignment",
+      "label": "Alignment",
+      "scope": "how the estate fits together: repositories, registries, maps, repeated prose and lists",
+      "icon": "programs/alignment/icon.svg",
+      "emoji": "🗂️",
+      "session": "session_01Ug8CX9c2PcM1454jNwGA5H",
+      "path": "programs/alignment",
+      "formerly": ["programs/organization"],
       "governs": [
         ".web-tools.json",
         "docs/manifest-fields.csv",
         "docs/registries.csv",
         "docs/registries.md",
         "docs/properties.csv",
-        "docs/TRACKER.md"
+        "docs/TRACKER.md",
+        "docs/themes.csv",
+        "lib/kits/lists.js"
       ],
       "measures": [
         "mehrlander/web-tools-private@background:state/landings.json",
@@ -263,6 +282,8 @@
         "?view=map&tab=relations",
         "?view=map&tab=public",
         "?view=map&tab=names",
+        "?view=map&tab=themes",
+        "?view=lists",
         "?view=sessions",
         "?view=branches",
         "?view=search"
@@ -276,7 +297,10 @@
         { "name": "Trackers", "icon": "ph-kanban", "panels": [
           { "kind": "breakdown", "registry": "tracker/board.csv", "by": "status", "only": ["in-progress", "blocked", "backlog", "dormant", "done"],
             "icons": { "in-progress": "ph-circle-half", "blocked": "ph-prohibit", "backlog": "ph-circle", "dormant": "ph-moon", "done": "ph-check-circle" } }
-        ] }
+        ] },
+        { "name": "Maps", "icon": "ph-map-trifold", "panels": [{ "kind": "breakdown", "registry": "programs/alignment/current/pages.csv", "by": "app", "icons": { "view": "ph-app-window", "full-app": "ph-browsers", "framed": "ph-frame-corners", "linked": "ph-link", "standalone": "ph-file-html" } }] },
+        { "name": "Repeated prose", "icon": "ph-copy", "panels": [{ "kind": "views", "views": ["?view=map&tab=themes"] }] },
+        { "name": "Lists", "icon": "ph-list-bullets", "panels": [{ "kind": "views", "views": ["?view=lists"] }] }
       ]
     },
     {
@@ -284,12 +308,13 @@
       "label": "Content",
       "scope": "writing rules, docs and pages",
       "icon": "programs/content/icon.svg",
+      "emoji": "🌱",
+      "session": "session_01Ug8CX8EkCAFrqStmn38YoP",
       "path": "programs/content",
       "governs": [
         "docs/QUALIFIED-WRITING.md",
         "skills/doc-craft/",
         "data/doc-growth/",
-        "docs/themes.csv",
         "skills/html-style/",
         "data/ui-units/codebook.md",
         "docs/kits.csv"
@@ -303,7 +328,6 @@
         "?view=map&tab=growth",
         "?view=map&tab=peeves",
         "?view=map&tab=policy",
-        "?view=map&tab=themes",
         "?view=map&tab=model",
         "?view=map&tab=units",
         "?view=map&tab=dimensions",
@@ -323,7 +347,7 @@
           { "kind": "breakdown", "registry": "docs/docs.csv", "by": "status", "labels": { "": "record" }, "icons": { "living": "ph-pencil-simple", "measured": "ph-ruler", "": "ph-archive" } }
         ] },
         { "name": "Pages", "icon": "ph-browser", "panels": [
-          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "thumb": "thumb", "href": "href" }
+          { "kind": "gallery", "registry": "pages/pages.csv", "where": { "top": "^main$" }, "label": "label", "href": "href" }
         ] }
       ]
     },
@@ -332,6 +356,8 @@
       "label": "Discovery",
       "scope": "research, probes and outside sources",
       "icon": "programs/discovery/icon.svg",
+      "emoji": "🏔️",
+      "session": "session_01Ug8CX8xBZW2Tc9WYVN3zPH",
       "path": "programs/discovery",
       "governs": [
         "research/",

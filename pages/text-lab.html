@@ -21,15 +21,13 @@
   entitylab, concept-lab), so it names the whole without renaming a part.
 
     probes       projects/text/probes/probes.csv, the registry docs/probes.md
-                 specifies. One row per bounded question, with a recorded
-                 standing and four badges (asks, grain, method, checked), each
-                 a value from projects/text/vocabulary.csv. The pane is a list
+                 specifies. One row per bounded question, with three badges
+                 (asks, grain, method), each a value from
+                 projects/text/vocabulary.csv. The pane is a list
                  with a detail: the probes beside one probe's card, which
                  holds its question, what was found, its particulars, its run
                  and that run's other probes. The list groups by date or by
                  any badge, and a tap on a badge in a card filters by it.
-                 Failures are recorded at the same weight as successes, so the
-                 standing counts lead the header.
     variants     The shared Text collection, read from its committed files
                  in home (passages.jsonl, variants.jsonl, proposals.jsonl):
                  every variant, as passage, alternative wording, author, and
@@ -77,13 +75,8 @@
   is private, so a tokenless reader meets the auth prompt, exactly as
   links.html does over the same repo.
 
-  Standing is derived here from the first sentence of the verdict, by the same
-  rule probes/build-index.py uses to derive it for the generated README. Two
-  readings of one field, so the page and the README cannot disagree.
-
-  Colour appears on one thing: a probe's standing. Nothing else takes an
-  accent, so any colour on this page is a verdict and nothing else. The four
-  values are a scale, not four decorations.
+  The probes pane takes no colour. A probe's finding is its summary, in words;
+  the list is read by its titles and grouped by date or a badge.
 
   Address params:
     ?use=<ref>   pins this page's own lib chain to a ref.
@@ -133,14 +126,6 @@
         runs:        { label: 'Runs',        icon: 'ph-play-circle' },
       },
 
-      // The page's only coloured dimension.
-      STANDINGS: {
-        worked: { bar: 'bg-success', text: 'text-success' },
-        mixed:  { bar: 'bg-warning', text: 'text-warning' },
-        failed: { bar: 'bg-error',   text: 'text-error'   },
-        open:   { bar: 'bg-info',    text: 'text-info'    },
-      },
-
       // Dated runs, newest first. `page` is what a reader can open; a run that
       // produced results and prose but no page carries an empty one, and the
       // row says so rather than linking its folder twice.
@@ -187,7 +172,6 @@
         : (params.get('pane') || (params.get('run') ? 'runs' : 'probes')),
       probes: [],
       concept: '',
-      filterStanding: '',
       runRows: [],
       VARIANT_BATCH: 40,
       variantLimit: 40,
@@ -199,7 +183,7 @@
       probeRun: '',
       probeBy: 'date',
       runBy: 'date',
-      PROBE_BYS: [['date', 'date'], ['standing', 'standing'], ['asks', 'asks'], ['grain', 'grain'], ['how', 'method'], ['checked', 'checked']],
+      PROBE_BYS: [['date', 'date'], ['asks', 'asks'], ['grain', 'grain'], ['how', 'method']],
       RUN_BYS: [['date', 'date'], ['thread', 'thread'], ['kind', 'kind'], ['method', 'method']],
       SEG: {
         box: 'inline-flex items-center gap-0.5 rounded-lg bg-base-200/60 p-0.5',
@@ -224,7 +208,6 @@
         asks: { detect: 'detects', compare: 'compares', classify: 'classifies' },
         how: { script: 'by script', readers: 'by readers', both: 'script and readers', none: 'not run' },
         method: { script: 'by script', readers: 'by readers', both: 'script and readers' },
-        checked: { gold: 'against gold labels', agreement: 'against a second reader', none: 'no check' },
       },
       open: null,
       guideHtml: '',
@@ -289,7 +272,7 @@
         // A new search or filter starts its list from the first batch again.
         for (const key of ['variantQ', 'variantAuthor', 'variantPurpose'])
           this.$watch(key, () => { this.variantLimit = this.VARIANT_BATCH; });
-        for (const key of ['filterStanding', 'concept', 'probeBy', 'badgeFilter', 'probeRun', 'runBy'])
+        for (const key of ['concept', 'probeBy', 'badgeFilter', 'probeRun', 'runBy'])
           this.$watch(key, () => this.$nextTick(() => this.mountDetail()));
         // Whatever ?pane= asked for, not just the one that used to need it:
         // each pane's own guard makes the call a no-op when it has nothing to
@@ -299,7 +282,7 @@
 
       // probes/probes.csv, the registry web-tools docs/probes.md specifies, with
       // this project's badge columns. A ref that predates it still holds
-      // probes.json, whose records carry no title, standing or badges.
+      // probes.json, whose records carry no title or badges.
       async readProbes() {
         const list = v => (v || '').split(';').filter(Boolean);
         try {
@@ -307,28 +290,11 @@
             id: r.probe, date: r.date, title: r.title, question: r.question, concepts: list(r.tags),
             method: r.approach, corpus: r.corpus, result: r.result, verdict: r.summary, opens: r.opens,
             artifacts: list(r.artifacts), cost: r.cost, run: r.run,
-            standing: r.standing, asks: r.asks, grain: r.grain, how: r.method, checked: r.checked,
+            asks: r.asks, grain: r.grain, how: r.method,
           }));
         } catch (_) {
           return JSON.parse((await this.home.get(`${this.ROOT}/probes/probes.json`)).text).probes;
         }
-      },
-
-      // The registry's own standing where it records one. Otherwise the rule
-      // the old index used, on the verdict's first word: open wins, then
-      // worked, then failed, and anything else is mixed.
-      standingOf(p) {
-        if (this.STANDINGS[p.standing]) return p.standing;
-        const v = (p.verdict || '').split('.')[0].toLowerCase();
-        return v.startsWith('open') ? 'open'
-             : v.startsWith('work') ? 'worked'
-             : v.startsWith('fail') ? 'failed' : 'mixed';
-      },
-
-      get counts() {
-        const c = { worked: 0, mixed: 0, failed: 0, open: 0 };
-        this.probes.forEach(p => c[this.standingOf(p)]++);
-        return c;
       },
 
       // The field's own vocabulary, which is what the log is indexed by, so a
@@ -341,8 +307,7 @@
 
       get shown() {
         return this.probes.filter(p =>
-          (!this.filterStanding || this.standingOf(p) === this.filterStanding)
-          && (!this.concept || p.concepts.includes(this.concept))
+          (!this.concept || p.concepts.includes(this.concept))
           && (!this.probeRun || p.run === this.probeRun)
           && Object.entries(this.badgeFilter).every(([dim, value]) => p[dim] === value));
       },
@@ -354,7 +319,7 @@
         return (this.BADGE_WORDS[dim] || {})[value] || value;
       },
       probeBadges(p) {
-        return ['asks', 'grain', 'how', 'checked'].filter(dim => p[dim]).map(dim => ({ dim, value: p[dim] }));
+        return ['asks', 'grain', 'how'].filter(dim => p[dim]).map(dim => ({ dim, value: p[dim] }));
       },
       toggleBadge(dim, value) {
         const next = { ...this.badgeFilter };
@@ -374,7 +339,7 @@
       // A probe the current filters hide is shown by clearing them: the reader
       // asked for the probe, not for the filter.
       goProbe(id) {
-        if (!this.shown.some(p => p.id === id)) { this.filterStanding = ''; this.concept = ''; this.badgeFilter = {}; this.probeRun = ''; }
+        if (!this.shown.some(p => p.id === id)) { this.concept = ''; this.badgeFilter = {}; this.probeRun = ''; }
         this.probeSel = id;
         this.showPane('probes');
       },
@@ -394,36 +359,34 @@
           + `<span>${esc(name)}</span><span class="tabular-nums">${n}</span></div>`;
       },
       probeRowHtml(p) {
-        const st = this.standingOf(p);
-        const line = [st, ...this.probeBadges(p).filter(b => b.dim !== 'checked').map(b => this.badgeText(b.dim, b.value))].join(' · ');
+        const line = this.probeBadges(p).map(b => this.badgeText(b.dim, b.value)).join(' · ');
         return `<div data-probe="${esc(p.id)}" role="option" tabindex="-1" data-part="item" class="flex gap-2.5 px-3 py-2.5 cursor-pointer border-b border-base-200 aria-selected:bg-base-200">`
-          + `<span class="w-1 self-stretch rounded-sm shrink-0 ${this.STANDINGS[st].bar}"></span>`
           + `<span class="min-w-0 grid gap-0.5"><span class="text-base leading-6 font-medium" data-part="title">${esc(p.title || p.question)}</span>`
           + `<span class="text-sm text-base-content/70 truncate" data-part="meta">${esc(line)}</span></span></div>`;
       },
       probeListHtml() {
         return this.probeGroups().map(g => this.groupHtml(g.date, g.items.length) + g.items.map(p => this.probeRowHtml(p)).join('')).join('');
       },
-      // A probe's card: the question as its headline, what was found beside the
-      // standing's colour, the badges, then the particulars, each led by an
-      // icon in place of a label. Its run and that run's other probes close it,
+      // A probe's card: the question as its headline, what was found, the
+      // badges, then the particulars, each named by a label beside its icon. Its run and that run's other probes close it,
       // so the reader can step sideways without going back to the list.
       probeCardHtml(id) {
         const p = this.probes.find(x => x.id === id);
         if (!p) return '';
-        const st = this.standingOf(p), run = this.runOf(p);
+        const run = this.runOf(p);
         const badges = this.probeBadges(p).map(b =>
           this.chipHtml(this.badgeText(b.dim, b.value), `role="button" data-badge="${esc(b.dim)}:${esc(b.value)}"`)).join('');
         const facts = this.FACTS.filter(([key]) => p[key]).map(([key, icon, label]) =>
-          `<div class="flex gap-3"><i class="ph ${icon} text-lg mt-1 shrink-0 text-base-content/60" role="img" aria-label="${label}"></i>`
-          + `<p class="text-base leading-7">${esc(p[key])}</p></div>`).join('');
+          `<div class="flex gap-3"><i class="ph ${icon} text-lg mt-1 shrink-0 text-base-content/60" aria-hidden="true"></i>`
+          + `<div class="min-w-0"><div class="text-sm font-medium text-base-content/60">${label}</div>`
+          + `<p class="text-base leading-7">${esc(p[key])}</p></div></div>`).join('');
         const kin = run ? this.probes.filter(x => x.run === p.run && x.id !== p.id) : [];
         const runHtml = !run ? '' :
           `<div class="grid gap-1.5"><button type="button" data-go-run="${esc(run.name)}" class="flex items-center gap-2.5 rounded-lg border border-base-300 px-3 py-2 text-left cursor-pointer hover:bg-base-200">`
           + `<i class="ph ph-play-circle text-xl shrink-0"></i><span class="min-w-0 grow"><span class="block font-semibold">${esc(run.title)}</span>`
           + `<span class="block text-sm text-base-content/70">${esc([run.kind, run.thread, run.date].join(' · '))}</span></span><i class="ph ph-arrow-right shrink-0"></i></button>`
           + kin.map(x => `<button type="button" data-go-probe="${esc(x.id)}" class="flex items-center gap-2.5 rounded-md px-3 py-1.5 text-left cursor-pointer hover:bg-base-200">`
-            + `<span class="w-1 h-5 rounded-sm shrink-0 ${this.STANDINGS[this.standingOf(x)].bar}"></span><span class="min-w-0 truncate">${esc(x.title || x.id)}</span></button>`).join('')
+            + `<span class="min-w-0 truncate">${esc(x.title || x.id)}</span></button>`).join('')
           + `</div>`;
         const concepts = !p.concepts.length ? '' : `<div class="flex flex-wrap gap-1.5">` + p.concepts.map(c =>
           `<span role="button" data-concept="${esc(c)}" class="font-mono text-xs text-base-content/70 rounded-md border border-base-300 px-1.5 py-0.5 cursor-pointer hover:bg-base-200">${esc(c)}</span>`).join('') + `</div>`;
@@ -431,12 +394,12 @@
           `<a class="link link-hover text-base-content/70" href="${esc(this.artifactUrl(a))}">${esc(this.artifactName(a))}</a>`).join('')
           + `<span class="text-base-content/60">${esc(p.id)}</span></div>`;
         return `<div class="grid gap-4"><p class="text-xl leading-8">${esc(p.question)}</p>`
-          + `<div class="flex gap-3"><span class="w-1 rounded-sm shrink-0 ${this.STANDINGS[st].bar}"></span><p class="text-base leading-7 font-medium">${esc(p.verdict || '')}</p></div>`
+          + `<p class="text-base leading-7 font-medium">${esc(p.verdict || '')}</p>`
           + (badges ? `<div class="flex flex-wrap gap-1.5">${badges}</div>` : '')
           + (facts ? `<div class="grid gap-3">${facts}</div>` : '') + runHtml + concepts + arts + `</div>`;
       },
-      // A verdict's opening: its first sentence, with the second when the first
-      // is only the standing word ("Mixed.").
+      // A summary's opening: its first sentence, with the second when the first
+      // is a word or two ("Mixed.").
       gist(text) {
         const parts = (text || '').split(/(?<=\.)\s+/);
         return parts[0].length < 24 && parts[1] ? parts[0] + ' ' + parts[1] : parts[0];
@@ -466,7 +429,6 @@
         const mine = this.probes.filter(p => p.run === r.run);
         const probes = !mine.length ? '' : `<div class="grid">` + mine.map(p =>
           `<button type="button" data-go-probe="${esc(p.id)}" class="flex items-start gap-2.5 rounded-md px-3 py-2 text-left cursor-pointer hover:bg-base-200">`
-          + `<span class="w-1 self-stretch rounded-sm shrink-0 ${this.STANDINGS[this.standingOf(p)].bar}"></span>`
           + `<span class="min-w-0"><span class="block font-medium">${esc(p.title || p.id)}</span>`
           + `<span class="block text-sm text-base-content/70">${esc(this.gist(p.verdict))}</span></span></button>`).join('') + `</div>`;
         const kin = r.part_of ? this.runRows.filter(x => x.part_of === r.part_of && x.run !== r.run) : [];
@@ -580,7 +542,7 @@
         if (this.probeBy !== 'date') {
           const by = new Map();
           for (const p of this.shown) {
-            const k = this.probeBy === 'standing' ? this.standingOf(p) : (p[this.probeBy] || 'unrecorded');
+            const k = p[this.probeBy] || 'unrecorded';
             if (!by.has(k)) by.set(k, []);
             by.get(k).push(p);
           }
@@ -1288,7 +1250,7 @@
         <button role="tab" @click="showPane(key)" :aria-selected="pane === key"
                 class="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm font-medium transition-colors whitespace-nowrap shrink-0"
                 :class="pane === key ? 'bg-base-100 text-primary shadow-sm' : 'text-base-content/60 hover:text-base-content'">
-          <i class="ph text-base" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label"></span>
+          <i class="ph text-base" :class="PANE_META[key].icon"></i><span x-text="PANE_META[key].label" :class="pane === key ? '' : 'max-sm:sr-only'"></span>
         </button>
       </template>
     </div>
@@ -1333,26 +1295,14 @@
       </div>
     </template>
 
-    <!-- probes: the standings are the filter, then concepts -->
-    <!-- probes: the standing counts with the concept picker held in view
-         beside them, then the grouping on a row of its own with any filter a
-         card's badge has set. Each strip scrolls sideways inside itself, so
-         the picker never leaves the viewport. -->
+    <!-- probes: the concept picker, then the grouping on a row of its own
+         with any filter a card's badge has set. A concept is a term from the
+         field's literature that the probes are tagged with. -->
     <div x-show="pane === 'probes'" :class="FILTER.row">
-      <span :class="FILTER.label">Standing</span>
-      <div :class="FILTER.strip" role="group" aria-label="Standing" data-slot="frame:count-chips">
-        <button type="button" :class="[FILTER.chip, !filterStanding ? FILTER.on : FILTER.off]" @click="filterStanding = ''">All</button>
-        <template x-for="key in ['worked','mixed','failed','open']" :key="key">
-          <button type="button" :class="[FILTER.chip, filterStanding === key ? FILTER.on : FILTER.off]"
-                  @click="filterStanding = filterStanding === key ? '' : key">
-            <span class="w-2 h-2 rounded-full" :class="STANDINGS[key].bar"></span>
-            <span x-text="key"></span><span class="opacity-60 tabular-nums" x-text="counts[key]"></span>
-          </button>
-        </template>
-      </div>
-      <select id="probe-concept" class="select select-bordered select-sm shrink-0 w-36 sm:w-56 ml-auto" aria-label="Concept" data-slot="frame:filter-switch"
+      <label for="probe-concept" :class="FILTER.label">Concept</label>
+      <select id="probe-concept" class="select select-bordered select-sm min-w-0 w-full sm:w-72" data-slot="frame:filter-switch"
               x-model="concept">
-        <option value="">Every concept</option>
+        <option value="">Any concept</option>
         <template x-for="[name, n] in concepts" :key="name">
           <option :value="name" x-text="name + ' (' + n + ')'"></option>
         </template>

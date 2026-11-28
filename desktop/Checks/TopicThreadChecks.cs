@@ -48,7 +48,7 @@ public static class TopicThreadChecks
         } })
     });
     private static PhoneSnapshot Phone(CloudSnapshot cloud, IEnumerable<string>? ids = null) => PhoneActivity.Create(new(
-        new(Now,Now,"fixture",true,null,[]),new("unknown","",null),[],[],[],"Fixture laptop",Now,
+        new(Now,Now,"fixture",true,null,[]),new("unknown","",null),[],[],[],"Fixture Lenovo",Now,
         new([],[]),0,cloud,[],(ids ?? new[] { Parent,"00000001","00000002" }).Select(id => new ActivityChange(
             "cloud:" + id,"change-" + id,"Claude","Recorded activity","idle",Now,"","Cloud",null)).ToList()),Now);
 

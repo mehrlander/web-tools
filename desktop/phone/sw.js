@@ -1,7 +1,7 @@
 'use strict';
 // Cache the interface only. Private API responses never enter Cache Storage.
 // Last observations remain in this browser's existing local storage.
-const version = 'web-tools-now-shell-unified-v26.15-repository-scans';
+const version = 'web-tools-now-shell-unified-v26.18-lenovo-rename-2';
 const assets = ['/', '/phone.js', '/phone-ui.css', '/phone-usage.js', '/phone-usage.css', '/computer.js', '/devices.js', '/views.js', '/repositories.js', '/local-files.js', '/reading.js', '/errands-view.js', '/now-shared.js', '/usage-view.js', '/recent-usage.js', '/phone-info.js', '/icon.svg', '/apple-touch-icon.png', '/manifest.webmanifest', '/vendor/tailwind.js', '/vendor/swipe-deck.js', '/vendor/marked.js', '/vendor/purify.js', '/vendor/assistant-mark.js', '/vendor/claude-mark.js', '/vendor/title-tip.js', '/vendor/panel-tip.js'];
 self.addEventListener('install', event => event.waitUntil((async () => {
   const cache = await caches.open(version);
@@ -20,7 +20,7 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin || !assets.includes(url.pathname)) return;
   event.respondWith((async () => {
-    // Access denials are authoritative. A sleeping laptop or unavailable local
+    // Access denials are authoritative. A sleeping Lenovo or unavailable local
     // companion may produce a network error or a proxy/server error instead.
     try {
       const response = await fetch(event.request);

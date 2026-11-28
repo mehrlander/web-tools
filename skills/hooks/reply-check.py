@@ -131,7 +131,7 @@ def main():
         pages, newest = pages_changed(hook.get('cwd') or os.getcwd(), since)
         if pages and not linked_since(hook['transcript_path'], newest):
             reasons.append(f'Commits since the owner\'s last message changed {", ".join(pages)}, and the reply has '
-                           'no render link. Give the render line for them, or a "No render link:" line saying why '
+                           'no render link. Give the session-render-links output for them, or a "No render link:" line saying why '
                            'none reaches them.')
     last = lines[-1].lstrip().lstrip('[')
     if last.startswith(CALLS) and not RECOMMENDED.search(last.replace('*', '')):

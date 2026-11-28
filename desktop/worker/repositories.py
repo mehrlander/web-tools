@@ -1,15 +1,17 @@
 """Observe checkouts, fetch explicit GitHub refs, and guard default-folder updates."""
 import argparse
+import base64
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
-import shlex
 import shutil
 import subprocess
+import time
 from urllib.parse import urlsplit
 
 from repository_process import GIT_EXECUTABLE, run_bounded
@@ -28,21 +30,46 @@ def git(path, *args, timeout=20, strip=True):
     redirects = {'GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR', 'GIT_OBJECT_DIRECTORY',
                  'GIT_ALTERNATE_OBJECT_DIRECTORIES', 'GIT_CEILING_DIRECTORIES', 'GIT_NAMESPACE',
                  'GIT_PREFIX', 'GIT_SUPER_PREFIX', 'GIT_REPLACE_REF_BASE', 'GIT_EXEC_PATH'}
+    auth_name = 'WEBTOOLS_GITHUB_AUTH'
     env = {name: value for name, value in os.environ.items()
-           if name.upper() not in redirects and not name.upper().startswith('GIT_CONFIG')}
+           if name.upper() not in redirects | {auth_name, 'GIT_CURL_VERBOSE'}
+           and not name.upper().startswith(('GIT_CONFIG', 'GIT_TRACE'))}
     env.update(GIT_OPTIONAL_LOCKS='0', GIT_NO_LAZY_FETCH='1', GIT_TERMINAL_PROMPT='0',
                GCM_INTERACTIVE='Never', GH_PROMPT_DISABLED='1')
-    authentication = []
-    gh = shutil.which('gh')
-    if gh and ('ls-remote' in args or 'fetch' in args):
-        authentication = ['-c', 'credential.helper=', '-c', 'credential.helper=!' + shlex.quote(gh.replace('\\', '/')) + ' auth git-credential']
     try:
+        seconds = float(timeout)
+        if not math.isfinite(seconds) or seconds <= 0:
+            return None
+        deadline = time.monotonic() + seconds
+        authentication = []
+        network = any(command in args for command in ('ls-remote', 'fetch'))
+        github_urls = {arg for arg in args if isinstance(arg, str) and arg.startswith('https://github.com/')}
+        gh = shutil.which('gh') if network and github_urls else None
+        if gh:
+            # Avoid Git's shell + gh credential-helper chain on every HTTP
+            # challenge. The credential exists only in this call's child env.
+            credential = run_bounded([gh, 'auth', 'token', '--hostname', 'github.com'], env=env,
+                                     timeout=deadline - time.monotonic(), max_output=4096)
+            token = credential.stdout if credential is not None and credential.returncode == 0 else ''
+            if not re.fullmatch(r'[!-~]{1,1024}(?:\r?\n)?', token):
+                return None
+            token = token.rstrip('\r\n')
+            env[auth_name] = 'Authorization: Basic ' + base64.b64encode(('x-access-token:' + token).encode('ascii')).decode('ascii')
+            # Trace2 ignores command-line config. Child target overrides prevent
+            # system/global tracing from recording this environment.
+            env.update(GIT_TRACE2='0', GIT_TRACE2_EVENT='0', GIT_TRACE2_PERF='0')
+            authentication = ['-c', 'credential.helper=', '-c', 'http.followRedirects=false',
+                              *[part for url in sorted(github_urls) for part in ('-c', 'http.' + url + '.followRedirects=false')],
+                              '-c', 'http.https://github.com/.extraheader=',
+                              '--config-env=http.https://github.com/.extraheader=' + auth_name]
         result = run_bounded([GIT_EXECUTABLE, '--no-optional-locks', '-c', 'core.fsmonitor=false',
                                  '-c', 'credential.interactive=never', *authentication, '-C', str(path), *args],
-                                env=env, timeout=timeout)
+                                env=env, timeout=deadline - time.monotonic())
         return (result.stdout.strip() if strip else result.stdout) if result is not None and result.returncode == 0 else None
-    except (OSError, subprocess.TimeoutExpired):
+    except (OSError, ValueError, TypeError, subprocess.TimeoutExpired):
         return None
+    finally:
+        env.pop(auth_name, None)
 
 
 def github_name(remote):
@@ -115,6 +142,13 @@ def local_status(entry, activity=False):
         if remote == 'origin' and merge.startswith('refs/heads/'):
             row['upstream'] = 'origin/' + merge[len('refs/heads/'):]
     return row
+
+
+def status_rows(entries):
+    # These observations never authorize mutation. The updater still makes its
+    # own fresh identity, clean-tree and activity checks before merging.
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        return list(pool.map(local_status, entries))
 
 
 def tracking_branch(row, source):
@@ -292,7 +326,7 @@ def main_sync_observation(source, rows):
 
 
 def record_main_sync(entries, source, result):
-    rows = [local_status(entry) for entry in entries]
+    rows = status_rows(entries)
     current = next((row for row in rows if row['name'] == result.get('folder')), None)
     default = source.get('defaultBranch')
     source['mainSync'] = result
@@ -343,7 +377,7 @@ def snapshot(root, state):
         group['mainSync'] = main_sync_observation(sources[repo_key], group['checkouts'])
         for row in group['checkouts']:
             row.pop('head', None)
-    return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Laptop'), 'observedAt': stamp(),
+    return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Lenovo'), 'observedAt': stamp(),
             'repositories': sorted(groups.values(), key=lambda g: g['name'].lower()), 'refreshing': [],
             'notice': None if root.is_dir() else 'Repositories folder unavailable.'}
 
@@ -371,8 +405,7 @@ def fetch_repository(root, state, repo_key, folders=None, *, update_main=False):
     # become a phone-supplied command or appear in API output.
     url = 'https://github.com/' + repo + '.git'
     branches = set()
-    for entry in entries:
-        status = local_status(entry)
+    for status in status_rows(entries):
         if status['branch'] and status['branch'] != '(detached)':
             branches.add(status['branch'])
         upstream = status['upstream'] or ''
@@ -402,7 +435,11 @@ def fetch_repository(root, state, repo_key, folders=None, *, update_main=False):
         write_source(state, repo_key, source)
         return False
     tips[default] = head
-    safe = {b: sha for b, sha in tips.items() if git(entries[0]['path'], 'check-ref-format', 'refs/heads/' + b) is not None}
+    def validate_tip(item):
+        branch, _sha = item
+        return item if git(entries[0]['path'], 'check-ref-format', 'refs/heads/' + branch) is not None else None
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        safe = dict(item for item in pool.map(validate_tip, tips.items()) if item is not None)
     if default not in safe:
         source['notice'] = 'GitHub default branch could not be validated.'
         if update_main: failed_main_sync(entries, source, 'fetch-failed')
@@ -446,12 +483,12 @@ def main():
     parser.add_argument('--checkout', action='append')
     parser.add_argument('--update-main', action='store_true')
     mode.add_argument('--local-files', action='store_true')
-    mode.add_argument('--publish-laptop-files', action='store_true')
+    mode.add_argument('--publish-lenovo-files', dest='publish_lenovo_files', action='store_true')
     args = parser.parse_args()
     if args.update_main and not args.fetch_key:
         parser.error('--update-main requires --fetch')
-    if args.publish_laptop_files:
-        from laptop_inventory import InventoryError, publish
+    if args.publish_lenovo_files:
+        from lenovo_inventory import InventoryError, publish
         # Preserve Activity within the worker budget before the slower file walk.
         try:
             from local_activity import run
@@ -461,7 +498,7 @@ def main():
         try:
             value = publish(args.root)
         except (InventoryError, OSError, ValueError, subprocess.TimeoutExpired):
-            value = {'state': 'unavailable', 'path': 'state/laptop-files.tsv'}
+            value = {'state': 'unavailable', 'path': 'state/lenovo-files.tsv'}
         value['activity'] = activity
         print(json.dumps(value))
         return

@@ -28,7 +28,7 @@ const record = {
 const topics = {
   title: 'Launch', summary: 'Planned a launch.',
   agenda: [{ topic: 'Launch plan', turns: [0, 1], kind: 'new', at: at(0), state: { glyph: '🟢', name: 'ready', line: 'Ready' } },
-           { topic: 'Write-up', turns: [2, 2], kind: 'new', at: at(20), state: { glyph: '⚪', name: 'clean', line: 'Done' } }],
+           { topic: 'Write-up', turns: [2, 2], kind: 'new', at: at(20), state: { glyph: '⚫', name: 'clean', line: 'Done' } }],
   turns: [{ turn: 0, at: at(0), headline: 'Plans the launch', summary: 'Sets out the launch steps.' },
           { turn: 1, at: at(10), headline: 'Checks the budget', summary: 'Confirms the budget holds.' }],
   turn_count: 3,
@@ -77,7 +77,7 @@ test('rows are Gemini\'s headlines, else the exchange\'s own title, under topics
   assert.equal(text[1], '2 Checks the budget');
   assert.match(text[2], /^3 Write it up/, 'no headline for this turn, so its own title');
   const heads = [...el.querySelectorAll('[data-turn-list] .sticky')].map((h) => [...h.children].map((c) => c.textContent).join(' '));
-  assert.deepEqual(heads, ['🟢 Launch plan', '⚪ Write-up']);
+  assert.deepEqual(heads, ['🟢 Launch plan', '⚫ Write-up']);
   assert.deepEqual([...el.querySelectorAll('[data-at="tabs"] [role="tab"]')].map((t) => t.textContent.trim().match(/^[A-Za-z]+/)?.[0]),
     ['Calls', 'Overview', 'Turns', 'Views', 'Files', 'Record'], 'no Outline tab');
 });

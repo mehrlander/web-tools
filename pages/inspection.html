@@ -179,6 +179,9 @@
     p.tagCh = Math.max(0, ...p.runs.flatMap(r => r.outputs.map(o => (p.tagOf[o.tag]?.label || o.tag || '').length)));
     // Whether any output has flair, which then shares the note's row.
     p.flairy = p.runs.some(r => r.outputs.some(o => o.flair?.length));
+    // Versions: no output rests on a passage, so each is a whole text, such
+    // as a rewrite of its input, and the card shows them side by side.
+    p.versions = p.runs.every(r => r.outputs.every(o => !o.anchor && !o.anchors?.length));
     return p;
   }
 
@@ -258,14 +261,15 @@
   const flairHTML = o => (o.flair || []).map(f => `<span class="badge badge-sm badge-ghost shrink-0 cursor-pointer gap-1 font-normal text-base-content/75" data-title-tip="${esc(f.tip || f.label)}">`
     + `${f.icon ? `<i class="ph ${esc(f.icon)}"></i>` : ''}${esc(f.label)}</span>`).join('');
 
-  // A row: the run's title over its meta, its outputs' tabs (the kit draws
-  // them in data-ls-tabs) and, with verdicts, how many have one.
+  // A row, on one line so the list leaves the input its room: the run's
+  // title (its meta in the tip), its outputs' tabs (the kit draws them in
+  // data-ls-tabs) and, with verdicts, how many have one.
   function rowHTML(r) {
+    const tip = [r.title, r.meta].filter(Boolean).join(' · ');
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
-      class="flex cursor-pointer flex-col border-b border-base-200 px-2.5 py-1 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
-      <span class="truncate font-medium" data-title-tip="${esc(r.title)}">${esc(r.title)}</span>
-      <div class="flex min-h-7 items-center gap-2"><span class="min-w-0 flex-1 truncate text-sm text-base-content/60">${esc(r.meta || '')}</span><span data-ls-tabs></span>
-        ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div></div>`;
+      class="flex min-h-9 cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-0.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+      <span class="min-w-0 flex-1 truncate font-medium" data-title-tip="${esc(tip)}">${esc(r.title)}</span><span data-ls-tabs></span>
+      ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div>`;
   }
 
   // The tag starts the statement's first line, so a narrow panel's wrapped
@@ -299,7 +303,7 @@
       ${judged ? `<div class="join shrink-0" role="radiogroup" aria-label="Verdict">${P.verdicts.map(v => {
         const on = s.verdict === v.verdict;
         return `<button type="button" role="radio" aria-checked="${on}" data-verdict="${esc(v.verdict)}" data-title-tip="${esc(v.gloss || v.label)}"
-          class="btn btn-sm join-item gap-1 px-2.5 ${on ? tone(v.verdict).btn : 'border-base-300 bg-base-100 font-normal'}">${v.icon ? `<i class="ph ${esc(v.icon)}"></i>` : ''}${esc(v.label || v.verdict)}</button>`;
+          class="btn btn-sm join-item gap-1 ${P.versions ? 'px-1.5' : 'px-2.5'} ${on ? tone(v.verdict).btn : 'border-base-300 bg-base-100 font-normal'}">${v.icon ? `<i class="ph ${esc(v.icon)}"></i>` : ''}${esc(v.label || v.verdict)}</button>`;
       }).join('')}</div>` : ''}
       <input data-note value="${esc(s.note)}" placeholder="Note" aria-label="Note" class="input input-sm min-w-0 flex-1 basis-40 max-sm:text-base">
     </div>`;
@@ -418,8 +422,28 @@
     });
   }
 
+  // A run as versions: its input first, then each output a card, side by
+  // side where the card is wide enough, its verdict and note at its foot
+  // (rule 15). Two items the reader compares share a row (the comparison).
+  function versionsHTML(r, big) {
+    const src = r.source.blocks.map(b => `<section class="rounded-lg bg-base-300/40 px-3.5 py-2.5">
+        <p class="text-xs font-medium text-base-content/60">${esc(b.label || b.id)}</p>
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(b.text)}</p></section>`).join('');
+    const cols = r.outputs.length > 2 ? '@4xl:grid-cols-3' : r.outputs.length > 1 ? '@3xl:grid-cols-2' : '';
+    const cards = r.outputs.map((o, i) => `<article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}"
+        class="flex min-w-0 flex-col gap-2 rounded-lg border border-base-300 bg-base-100 px-3.5 py-2.5">
+        <p class="flex items-baseline gap-2"><span class="font-semibold">${esc(o.title || 'Output ' + (i + 1))}</span>
+          <span class="font-mono text-xs tabular-nums text-base-content/50">${o.text.length.toLocaleString()} characters</span></p>
+        <p class="flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(o.text)}</p>
+        ${controls(r, o, false)}</article>`).join('');
+    // The foot clears the corner button, so the last card's note is reachable.
+    return `<div data-scope="${esc(r.id)}" class="@container h-full min-h-0 overflow-y-auto overscroll-contain px-3 pt-2.5 pb-20 [scrollbar-gutter:stable] ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
+      <div class="flex flex-col gap-3">${src}<div class="grid gap-3 ${cols}">${cards}</div></div></div>`;
+  }
+
   // A card already showing the run keeps its input where it was and glides.
   function fill(el, r, o, big) {
+    if (P.versions) { el.innerHTML = versionsHTML(r, big); return; }
     const was = el.querySelector(':scope > [data-scope]');
     const y = was?.dataset.scope === r.id ? was.querySelector('[data-pane="in"]').scrollTop : null;
     el.innerHTML = cardHTML(r, o, big);
@@ -553,8 +577,9 @@
   } else {
     // The list and the card, side by side or stacked, and under both the
     // selected output, the width of the page.
+    // Versions carry their controls on their cards, so no strip under both.
     $('root').innerHTML = `<div id="panes"><div id="list" role="listbox" aria-label="Runs" class="[scrollbar-gutter:stable]"></div><div id="card"></div></div>
-      <section id="out" aria-label="Output" class="@container flex-none rounded-lg border border-base-300 bg-base-100 px-3.5 py-2"></section>`;
+      ${P.versions ? '' : `<section id="out" aria-label="Output" class="@container flex-none rounded-lg border border-base-300 bg-base-100 px-3.5 py-2"></section>`}`;
     const list = $('list');
     list.innerHTML = runs().map(rowHTML).join('');
     let sel = (() => { const h = window.UrlParams.get('run'); return runOf(h) ? h : runs()[0]?.id; })();
@@ -593,7 +618,8 @@
     swiper = linkedSwiper.attach({
       root: $('panes'), list, card: $('card'), key: 'run', noun: 'output', subNoun: 'output',
       ids: () => runs().map(r => r.id), sel: () => sel,
-      subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut,
+      // Versions show every output on the run's card: no tabs, no places.
+      ...(P.versions ? {} : { subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut, places: true }),
       // A tab: filled in its verdict's tone where the payload has verdicts,
       // else in its output's stance (hueOf), as its passages are; the open
       // tab stays primary. A dot under the number marks a note.
@@ -606,10 +632,11 @@
       },
       // Room for a run's meta beside six tabs, and its count where verdicts
       // are counted (rule 15).
-      wide: judged ? 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]' : 'grid-cols-[minmax(0,340px)_minmax(0,1fr)]',
+      // Versions have no tabs, so a row is its title and count, and the card
+      // keeps the room its outputs share.
+      wide: P.versions ? 'grid-cols-[minmax(0,280px)_minmax(0,1fr)]' : judged ? 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]' : 'grid-cols-[minmax(0,340px)_minmax(0,1fr)]',
       listMax: 'max-h-[40dvh]', slideScroll: false, innerClass: 'h-full w-full min-w-0',
       name: id => ({ title: runOf(id).title }),
-      places: true,
       body: (id, el, out) => fill(el, runOf(id), outOf(id, out), false),
       onPick: (id, via, out) => { sel = id; selOut = out ?? null; paintOut(sel, selOut); },
       deck: openDeck,

@@ -11,6 +11,10 @@ A probe keeps its question, what was tried, and what it found. A probe that stan
 
 The folder's README links the term probes to this file and says only what is particular to the folder. Any view of the registry, such as a page that lists the probes or a generated log, belongs to the folder and reads `probes.csv`.
 
+## Status
+
+A probe's [research declaration](manifest.md#research-declarations) gives its `status`: `living`, `measured` or `record`, as the [docs catalog](README.md) defines them. A probe that is no longer maintained is moved to an [`archive/`](../archive/) folder.
+
 ## Sources
 
 A probe that rests on documents from outside the repository cites a [source bundle](source-bundles.md) that holds them, or takes them in as a dated bundle of its own.
@@ -24,7 +28,7 @@ Required in every row:
 | Column | Holds |
 | --- | --- |
 | `probe` | The id: lowercase letters, digits and hyphens, unique in the registry. A write-up's id is its name without `.md`. |
-| `date` | The probe's as-of date, `YYYY-MM-DD`. |
+| `date` | When the inquiry began, `YYYY-MM-DD`. A dated id or path begins with the same date. |
 | `title` | A short topical name, for lists. |
 | `question` | What the probe asks. |
 | `summary` | Its findings, in a sentence or two. |
@@ -34,7 +38,6 @@ Read when present:
 | Column | Holds |
 | --- | --- |
 | `path` | The write-up, relative to the folder: a file, or a file inside a probe's folder. |
-| `standing` | How the probe came out: `worked`, `mixed`, `failed` or `open`. |
 | `tags` | Terms a search might use, separated by `;`. |
 | `bundle` | The source bundle holding the documents the probe cites, as a path. |
 

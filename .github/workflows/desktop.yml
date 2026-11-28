@@ -30,7 +30,7 @@ jobs:
         run: |
           ./desktop/build.ps1 -Publish
           ./desktop/Checks/package-checks.ps1 -PublishedPackageRoot ./desktop/output/app
-      - name: Check laptop view interactions
+      - name: Check Lenovo view interactions
         run: node desktop/Checks/ui-checks.mjs
       - name: Check phone interactions
         run: |
@@ -55,8 +55,8 @@ jobs:
         run: python desktop/Checks/local-activity-checks.py
       - name: Check local file evidence
         run: python desktop/Checks/local-file-checks.py
-      - name: Check laptop inventory
-        run: python desktop/Checks/laptop-inventory-checks.py
+      - name: Check Lenovo inventory
+        run: python desktop/Checks/lenovo-inventory-checks.py
       - name: Check folder exploration
         run: python desktop/Checks/folder-explorer-checks.py
       - name: Check real Git fetch and update integration

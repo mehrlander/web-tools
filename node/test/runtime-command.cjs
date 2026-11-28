@@ -100,3 +100,7 @@ if (replacements.size) {
   }
   syncBuiltinESMExports();
 }
+
+// Observe only when the caller supplies an output directory. Runtime probes
+// above finish before observation, so they do not count as test subprocesses.
+if (process.env.WEB_TOOLS_TEST_OBSERVATIONS) require('../testing/observe.cjs');

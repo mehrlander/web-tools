@@ -152,7 +152,7 @@ registry's `consumer` column says which tool reads each field.
 
 `research` is an optional array of retained research accounts. Each entry has a
 repository-relative Markdown `path`, a short `label`, and `kind` set to `probe`
-or `exploration`. The label names the inquiry; the account holds the findings
+or `exploration`. An optional `status`, `living`, `measured` or `record`, says how the account is kept ([probes.md](probes.md#status)). The label names the inquiry; the account holds the findings
 and links to its materials. A package's `README.md` represents its folder.
 An individual Markdown report represents itself. Do not declare research under
 `docs/`. Existing research elsewhere can be declared without renaming it.
@@ -232,7 +232,7 @@ fields say how and why:
   `courier-bookmark` run executes on a page the session cannot reach; see
   [`courier/README.md`](../courier/README.md). A `computer-use` run's
   script is a prompt rather than code: the person hands it to a computer-use
-  agent on the home laptop, whichever product, pastes the agent's report onto
+  agent on the Lenovo, whichever product, pastes the agent's report onto
   the errand, and does the work themselves only when no agent can.
 - `for` (also read as `task`) names the tracker task the errand serves, as
   `owner/repo:path`. It is a follow reference in the sense of
@@ -286,20 +286,20 @@ token:
   Use it only for what a device alone can say, such as whether iOS keeps the
   tab alive; `node/test/probe-driver.mjs` checks the driver before a person
   is asked to open anything.
-- **`laptop-daemon`** (venue `personal-laptop`) asks Gemini, through the
-  laptop daemon, to do something, usually to answer a prompt. File
+- **`lenovo-daemon`** (venue `lenovo`) asks Gemini, through the
+  Lenovo daemon, to do something, usually to answer a prompt. File
   it with `sessions/tools/errand_runner.py` in web-tools-private. While the
-  laptop is awake, the daemon forwards the errand to Gemini and writes Gemini's
+  Lenovo is awake, the daemon forwards the errand to Gemini and writes Gemini's
   reply to the result file. Declining the errand on the Stage cancels it.
   A request may carry `notify: {"pr": "owner/repo#N"}` (`file --notify-pr`): the
   daemon then comments on that pull request when the errand closes, which wakes
   a session subscribed to it.
-- **`codex-errand`** (venue `personal-laptop`) is a task for Codex on the
-  laptop, for work needing that machine's apps or computer use, taken when the
+- **`codex-errand`** (venue `lenovo`) is a task for Codex on the
+  Lenovo, for work needing that machine's apps or computer use, taken when the
   owner asks Codex to do its errands. File it with
   `sessions/tools/codex_errand.py` in web-tools-private.
-- **`claude-errand`** (venue `anthropic-cloud` or `personal-laptop`) runs the
-  other way: a task Codex or Gemini on the laptop leaves for a Claude session,
+- **`claude-errand`** (venue `anthropic-cloud` or `lenovo`) runs the
+  other way: a task Codex or Gemini on the Lenovo leaves for a Claude session,
   taken when the owner tells a session on that machine to look for errands
   left for Claude. Codex files it with `sessions/tools/agent_errand.py --agent
   claude` in web-tools-private, and the session follows the

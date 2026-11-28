@@ -18,9 +18,9 @@ static class PhoneChecks
             "private host", "Settled", new string('r', 25000), true, true, true);
         var local = new LocalSession("local", "Codex", "Working locally", "working", now, "C:\\private\\workspace", "Checking changes");
         var cloud = new LocalSession("cloud", "Claude", "Cloud choice", "recorded", now, "", "Recorded: choice needed", "Cloud");
-        var snapshot = new LaptopSnapshot(new(now, now, "revision", true, null, [job]),
+        var snapshot = new LenovoSnapshot(new(now, now, "revision", true, null, [job]),
             new("detected", "Process present", now), [], [new("private", "Private place", "C:\\private")],
-            [new("download", "private-file.txt", now, 42)], "Fixture laptop", now,
+            [new("download", "private-file.txt", now, 42)], "Fixture Lenovo", now,
             new([local], []), 8, new([cloud], now, null), []);
         var phone = PhoneActivity.Create(snapshot, now);
         var text = JsonSerializer.Serialize(phone);
@@ -76,7 +76,7 @@ static class PhoneChecks
             Sessions = new([local with { Id = thread },local with { Id = thread, Provider = "Gemini" }],[]),
             Cloud = historical, GeminiInstanceId = instance,
             Changes = [new("cloud:older","journal-id","Claude","Older work","idle",now,"Reply","Cloud",null),
-                new("errand:" + thread,"errand-change","Gemini","A saved errand","complete",now,"Result","Laptop",NavigationPolicy.ErrandUrl(thread,true))]
+                new("errand:" + thread,"errand-change","Gemini","A saved errand","complete",now,"Result","Lenovo",NavigationPolicy.ErrandUrl(thread,true))]
         },now);
         check(linked.Items.Single(i=>i.Provider == "Codex").SessionUrl == "codex://threads/" + thread
             && linked.Items.Single(i=>i.Provider == "Gemini" && i.Kind == "session").SessionUrl == geminiUrl
@@ -95,8 +95,8 @@ static class PhoneChecks
             && i.Provider == j.Provider && i.State == j.State && i.SessionUrl is null)),
             "The phone projects every assistant's queued, claimed, arriving, completed and declined errands without inventing conversation links.");
         check(routed.Items.Where(i => i.Provider != "Gemini").All(i => i.Location == "")
-            && routed.Items.Where(i => i.Provider == "Gemini").All(i => i.Location == "Laptop"),
-            "Only the laptop-daemon method establishes an errand's execution location.");
+            && routed.Items.Where(i => i.Provider == "Gemini").All(i => i.Location == "Lenovo"),
+            "Only the lenovo-daemon method establishes an errand's execution location.");
         check(routed.Items.All(i => i.Url == NavigationPolicy.ErrandUrl(i.Id, i.State is "reply" or "complete" or "declined")),
             "Every assistant's errand links to its matching Web Tools request or result.");
         var cancelled = job with { State = "declined", Reply = "An earlier interim reply", Message = "Cancelled by owner" };

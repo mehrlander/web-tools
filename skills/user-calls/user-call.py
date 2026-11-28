@@ -4,10 +4,13 @@ docs/envelopes/user-call.md; SKILL.md beside this script says how to run it.
 
     user-call.py add < call.json [--store D]              write (validates, stamps)
     user-call.py close <id> <answer> [note] [--store D]   mark it decided
-    user-call.py answers <id> [--store D]                 what the owner answered
+    user-call.py answers <id> [--store D]                 what the owner answered, and notes on the call
     user-call.py list [session] [--store D]               open user calls, newest first
+    user-call.py held [--store D]                         open documentation calls on docs-held branches, by branch
     user-call.py edits --old A --new B                    a documentation call's edits, from two copies
     user-call.py edits --base REF FILE                    the same, from FILE against its text at REF
+                                                          (of a list, FILE.json: one edit per entry whose
+                                                          text or note changed)
     user-call.py link <id> [--store D] [--at REPO@REF]    the address of the call's page, where it is answered
     user-call.py patch <id> [--store D]                   the latest answer's recorded patch, for git apply
     user-call.py review DRAFT FILE --spans [OUT]          the call's edits as line ranges of FILE, E1, E2, ..., the
@@ -27,6 +30,15 @@ out the changes from it and marks the trips inside an edit still unanswered as
 changed. `add` refuses a call whose edits
 the critic's last run did not read, or with a trip left unanswered, maps each
 run's spans onto the call's edits, and drops the kept texts.
+
+A documentation call may edit entries of a list instead of a document: its
+file names lists/<name>.json, with #<id> for one entry, and each edit names its
+entry in `item`, with `from` and `to` the entry's {text, note} before and after.
+`add` reads the list at the call's base (else its file's ref) in a checkout of
+its repo in or beside the project root, and refuses an edit whose entry is not
+there as `from` reads. `review` on a list call gives the critic the call's
+entries as text, the term in bold then the note, and each edit's span is its
+entry by id ({item, edit}) rather than a line range.
 
 The store is found the way the notes skill's note.py finds its own: a checkout
 whose .web-tools.json on origin/main declares "user-calls" (a path relative to
@@ -134,19 +146,24 @@ def check(c):
             errs.append("brief is required, 200 characters at most: one line of what the edits do")
         if len(rec) > 80 or len(why) > 100:
             errs.append("recommend is 80 characters at most and why 100")
+        listed = is_list(c)
         if not re.fullmatch(r"[^/\s]+/[^@:\s]+(@[^:\s]+)?:\S+", str(c.get("file") or "")):
             errs.append("file must read owner/repo[@ref]:path")
-        elif not re.search(r"\.(md|csv)$", c["file"], re.I):
-            errs.append("a documentation call edits a markdown or CSV file; prose inside code is reviewed on its PR")
+        elif not listed and not re.search(r"\.(md|csv)$", c["file"], re.I):
+            errs.append("a documentation call edits a markdown or CSV file, or entries of a list (lists/x.json); "
+                        "prose inside code is reviewed on its PR")
         if "base" in c and not re.fullmatch(r"[^\s:@]+", str(c.get("base") or "")):
             errs.append("base is the ref the edits were made against, such as main")
         edits = c.get("edits") or []
+        if listed:
+            errs += entry_errors(c)
+            edits = []
         if c.get("new") is not None and c.get("new") is not True:
             errs.append("new is true or absent")
         if c.get("new"):
             if edits:
                 errs.append("a new document carries no edits: the page shows it whole")
-        elif not 1 <= len(edits) <= 40:
+        elif not listed and not 1 <= len(edits) <= 40:
             errs.append("edits is 1 to 40 entries")
         for i, e in enumerate(edits):
             if not isinstance(e, dict) or not str(e.get("from") or "").strip() or not isinstance(e.get("to"), str):
@@ -241,6 +258,179 @@ def check(c):
     return errs
 
 
+# A list call's file: a lists/ JSON file, with #<id> when it edits one entry.
+LIST_FILE = r"[^/\s]+/[^@:\s]+(@[^:\s]+)?:(\S+/)?lists/[^/\s#]+\.json(#[^\s#]+)?"
+ENTRY_FIELDS = {"text", "note"}
+
+
+def is_list(c):
+    return bool(re.fullmatch(LIST_FILE, str(c.get("file") or "")))
+
+
+def list_target(c):
+    """(repo, ref, path, item) of a list call's file; item is None without #<id>."""
+    spec, frag = (str(c.get("file") or "").split("#", 1) + [None])[:2]
+    head, path = spec.split(":", 1)
+    repo, ref = (head.split("@", 1) + [None])[:2]
+    return repo, ref or "main", path, frag
+
+
+def entry_errors(c):
+    """A list call's edits: each names its entry and gives the entry's text and
+    note before and after, one edit per entry."""
+    errs, edits, one = [], c.get("edits") or [], list_target(c)[3]
+    if c.get("new"):
+        errs.append("a list call edits entries the list holds; a new entry needs no call")
+    if not 1 <= len(edits) <= 40:
+        errs.append("edits is 1 to 40 entries")
+    if one and len(edits) > 1:
+        errs.append(f"file names the one entry {one}: a call on several entries names the list alone")
+    seen = set()
+    for i, e in enumerate(edits):
+        if not isinstance(e, dict):
+            errs.append(f"edits[{i}] is an object")
+            continue
+        item = e.get("item") or one
+        if not isinstance(item, str) or not item.strip():
+            errs.append(f"edits[{i}] names its entry's id in item")
+        elif one and item != one:
+            errs.append(f"edits[{i}].item is {item!r}, but file names entry {one}")
+        elif item in seen:
+            errs.append(f"edits[{i}]: entry {item} has an edit already; one edit per entry")
+        seen.add(item)
+        sides = [e.get("from"), e.get("to")]
+        if not all(isinstance(x, dict) and set(x) <= ENTRY_FIELDS and isinstance(x.get("text"), str) and x["text"].strip()
+                   and isinstance(x.get("note", ""), str) for x in sides):
+            errs.append(f"edits[{i}].from and .to are the entry before and after, each {{text, note?}}")
+        elif sides[0] == sides[1]:
+            errs.append(f"edits[{i}] changes nothing")
+        elif len(str(e.get("why") or "")) > 100:
+            errs.append(f"edits[{i}].why is one clause, 100 characters at most")
+        elif bool(str(e.get("background") or "").strip()) != bool(str(e.get("proposal") or "").strip()):
+            errs.append(f"edits[{i}] gives a background and a proposal together, or neither")
+        elif any(len(str(e.get(k) or "")) > 160 for k in ("background", "proposal")):
+            errs.append(f"edits[{i}].background and .proposal are 160 characters at most")
+        else:
+            errs += notes(e.get("notes"), f"edits[{i}]")
+    return errs
+
+
+def checkout_of(repo):
+    """A checkout of owner/repo in or beside the project root, found by its
+    origin's address, or None."""
+    root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+    cands = [root]
+    for base in (root, os.path.dirname(root)):
+        try:
+            cands += [os.path.join(base, d) for d in sorted(os.listdir(base))]
+        except OSError:
+            pass
+    for d in cands:
+        r = git(d, "remote", "get-url", "origin", check=False) if os.path.isdir(d) else None
+        url = r.stdout.decode().strip() if r is not None and r.returncode == 0 else ""
+        if re.search(r"[/:]" + re.escape(repo) + r"(\.git)?/?$", url):
+            return d
+    return None
+
+
+def list_at(repo, ref, path):
+    """The list's items at ref, as {id: item}, read from a checkout of repo
+    (origin's ref first); or an error string."""
+    d = checkout_of(repo)
+    if not d:
+        return f"no checkout of {repo} in or beside the project root to read {path} in"
+    for r in (f"origin/{ref}", ref):
+        shown = git(d, "show", f"{r}:{path}", check=False)
+        if shown.returncode == 0:
+            try:
+                doc = json.loads(shown.stdout.decode("utf-8"))
+            except ValueError:
+                return f"{path} at {ref} is not JSON"
+            items = doc.get("items") if isinstance(doc, dict) else None
+            if not isinstance(items, list):
+                return f"{path} at {ref} is not a list: it has no items"
+            return {it["id"]: it for it in items if isinstance(it, dict) and isinstance(it.get("id"), str)}
+    return f"{repo} has no {path} at {ref}"
+
+
+def entry_base_errors(c, items):
+    """Each edit's entry, as the list holds it at the call's base: there, and
+    reading as the edit's `from`."""
+    errs, one = [], list_target(c)[3]
+    for i, e in enumerate(c.get("edits") or []):
+        item, frm = e.get("item") or one, e.get("from") or {}
+        it = items.get(item)
+        if it is None:
+            errs.append(f"edits[{i}]: the list holds no entry {item}")
+        elif any((it.get(k) or "") != (frm.get(k) or "") for k in ENTRY_FIELDS):
+            errs.append(f"edits[{i}].from is not entry {item} as the list holds it")
+    return errs
+
+
+def list_edits(old, new):
+    """A list call's edits from two copies of a list: one per entry both hold
+    whose text or note differs. Entries added or removed are not edits."""
+    items = lambda t: [x for x in (json.loads(t).get("items") or []) if isinstance(x, dict) and x.get("id")]
+    was = {x["id"]: x for x in items(old)}
+    side = lambda x: {k: x[k] for k in ("text", "note") if x.get(k)}
+    return [{"item": x["id"], "from": side(was[x["id"]]), "to": side(x)}
+            for x in items(new) if x["id"] in was and side(was[x["id"]]) != side(x)]
+
+
+ENTRY_RULE = "\n\n* * *\n\n"
+
+
+def entry_text(item, f, show_id=False):
+    """An entry read as text, as kits/call-answer.js reads it: its term,
+    `**<text>**`, the id after it as code where the list's header says show_id,
+    then its note."""
+    f = f if isinstance(f, dict) else {}
+    return (f"**{f.get('text') or ''}**" + (f" · `{item}`" if show_id else "")
+            + (f"\n\n{f['note']}" if f.get("note") else ""))
+
+
+def entry_ids(c):
+    one = list_target(c)[3] if is_list(c) else None
+    return [e.get("item") or one for e in c.get("edits") or [] if isinstance(e, dict)]
+
+
+def list_reading(json_text, ids):
+    """The entries `ids` names, read as one document in that order; and which
+    of them the list holds."""
+    doc = json.loads(json_text)
+    items = {x["id"]: x for x in (doc.get("items") or []) if isinstance(x, dict) and x.get("id")}
+    show = doc.get("show_id") is True
+    return ENTRY_RULE.join(entry_text(i, items[i], show) for i in ids if i in items), [i in items for i in ids]
+
+
+def list_spans_text(path, ids, reading):
+    """The block for the critic's prompt on a list call: each edit's span is
+    its entry, by id, and the entries follow as the critic is to read them."""
+    out = [f"The edits to {path}, one entry each, by id:"]
+    out += [f"E{k}  entry {i}" for k, i in enumerate(ids, 1)]
+    out += ["", "The entries, each its term in bold and then its note:", "", reading, ""]
+    out.append('Tag each trip with its edit, as P<id> · E<n> · <where> · "<quote>" · <clause>, and a trip '
+               "outside every edit with E-. Quote the words exactly as the entry has them. End with "
+               "`Verdict: PASS` when no trip falls inside an edit, and `Verdict: FAIL` otherwise.")
+    return "\n".join(out)
+
+
+def refresh_entries(draft, found):
+    """refresh_edits for a list call: what the session wrote on an edit is
+    carried by the entry it names."""
+    one = list_target(draft)[3]
+    by_item = {e["item"]: e for e in found}
+    dropped = []
+    for k, e in enumerate(draft.get("edits") or [], 1):
+        hit, carry = by_item.get(e.get("item") or one), {x: e[x] for x in CARRY if x in e}
+        if hit is not None:
+            hit.update(carry)
+        elif carry:
+            dropped.append(k)
+    draft["edits"] = found
+    return dropped
+
+
 def notes(ns, at):
     """An edit's notes: what it is for, each a correction or a clarification."""
     if ns is None:
@@ -306,10 +496,12 @@ def review_errors(r):
             errs.append(f"{at}.trips is a list"); trips = []
         spans = run.get("edits")
         if spans is not None and (not isinstance(spans, list) or len(spans) > 40 or not all(
-                isinstance(s, dict) and isinstance(s.get("lines"), list) and len(s["lines"]) == 2
-                and all(isinstance(x, int) and x > 0 for x in s["lines"]) and s["lines"][0] <= s["lines"][1]
+                isinstance(s, dict) and (isinstance(s.get("item"), str) and s["item"] if "item" in s else
+                isinstance(s.get("lines"), list) and len(s["lines"]) == 2
+                and all(isinstance(x, int) and x > 0 for x in s["lines"]) and s["lines"][0] <= s["lines"][1])
                 and (s.get("edit") is None or isinstance(s["edit"], int) and s["edit"] > 0) for s in spans)):
-            errs.append(f"{at}.edits are up to 40 spans the critic was given, each {{lines: [first, last], edit}}")
+            errs.append(f"{at}.edits are up to 40 spans the critic was given, each {{lines: [first, last], edit}}, "
+                        "or for a list {item, edit}")
             spans = None
         inside = [t for t in trips if not (isinstance(t, dict) and t.get("edit") == 0)]
         if (v == "fail") != bool(inside) or (v == "unknown" and trips):
@@ -351,7 +543,10 @@ def review_errors(r):
             if e is not None:
                 if not isinstance(e, int) or isinstance(e, bool) or e < 0 or (spans is not None and e > len(spans)):
                     errs.append(f"{tat}.edit is the span it was tagged with, 1 to {len(spans) if spans else 40}, or 0 for E-")
-                elif not re.search(rf"\bE{e}\b" if e else r"\bE\s?[-–—]|\bE0\b|\boutside\b", report, re.I):
+                elif not (spans and e and spans[e - 1].get("item") and f"`{spans[e - 1]['item']}`" in report) and not (
+                        e == 0 and t.get("where") and f"`{t['where']}`" in report) and not (
+                        re.match(r"lines?\s+\d+", str(t.get("where") or "")) and flat(t["where"]) in flat(report)) and not re.search(
+                        rf"\bE{e}\b" if e else r"\bE\s?[-–—]|\bE0\b|\boutside\b", report, re.I):
                     errs.append(f"{tat}: its tag {f'E{e}' if e else 'E-'} is not in the run's report")
             if "misquoted" in t and not isinstance(t["misquoted"], bool):
                 errs.append(f"{tat}.misquoted is true or false")
@@ -392,8 +587,8 @@ def sections(text):
     out, cur, stated = {}, None, None
     for line in text.splitlines():
         # A session's detail caption, which a headless run appends after its
-        # last section: a stamp in code, after a linked ⌂ in code since
-        # 2026-11-20, then the record's mark.
+        # last section: a stamp in code, after a linked ⌂ in code on
+        # 2026-11-20 and 2026-11-21, then the record's mark.
         if re.match(r"^\s*(?:\[`[^`]*`\]\([^)\s]*\))?`[^`]+`\s*💬", line):
             continue
         m = SECTION.match(line)
@@ -503,10 +698,32 @@ def parse_report(text):
     secs, stated = sections(text)
     run = {"verdict": "unknown", "trips": [], "clear": [], "candidates": [], "preexisting": [], "report": text}
     if "trips" not in secs:
+        # Trip lines in the critic's own form, with no Trips heading over
+        # them (a report on several files, headed by file), are its trips.
+        loose = [x for x in text.split("\n") if trip_of(x)]
+        if loose:
+            secs = {**secs, "trips": loose}
+    if "trips" not in secs:
+        # A stated PASS from a report that names no peeve anywhere has no
+        # trips to list, so it passes; any other report without the section
+        # has no verdict to read.
+        if stated == "pass" and not re.search(r"\b" + PEEVE + r"\b", text):
+            run["verdict"] = "pass"
         return run
-    trips, prose = [], []
+    trips, prose, entry = [], [], None
     for line in secs["trips"]:
         t = trip_of(line) if line.strip() else None
+        if t:
+            trips.append(t)
+            continue
+        # A list's form: an entry's id in code on a bullet of its own, and
+        # under it a bullet per peeve, `P05: "<quote>". <clause>`, the entry
+        # standing for the edit tag (add_run maps it to its span).
+        head = ENTRY_HEAD.match(line)
+        if head:
+            entry = head.group(1)
+            continue
+        t = entry_trip(line, entry) if entry else None
         if t:
             trips.append(t)
         elif line.strip():
@@ -530,6 +747,22 @@ def parse_report(text):
     if stated and stated != run["verdict"] and run["verdict"] != "unknown":
         run["stated"] = stated
     return run
+
+
+ENTRY_HEAD = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+`([^`\s]+)`")
+ENTRY_TRIP = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+\**(" + PEEVE + r")\**(?:\s*\([^)]*\))?\s*:\s*(.*)$")
+
+
+def entry_trip(line, entry):
+    """A trip in a list's form, on the entry `entry`, or None."""
+    m = ENTRY_TRIP.match(line)
+    if not m:
+        return None
+    rest, quote = m.group(2).strip(), ""
+    q = re.match(r'^["“](.+?)["”](?=[.;:,]?(?:\s|$))[.;:,]?\s*(.*)$', rest)
+    if q:
+        quote, rest = q.group(1), q.group(2)
+    return {"peeve": m.group(1), "item": entry, "where": entry, "quote": quote, "clause": rest}
 
 
 LISTY = re.compile(r"^\s*(?:[-*+]|\d+[.)]|\|)\s")
@@ -906,6 +1139,24 @@ def add_run(draft, doc_text, report_text, when=None, spans=None):
     run = parse_report(report_text)
     if spans is not None:
         run["edits"] = [s if s else {"lines": None, "from": ""} for s in spans]
+    # A trip named by its entry takes that entry's span, or E- for an entry
+    # outside every edit; with no spans it stays untagged, inside.
+    items = [s.get("item") for s in spans or [] if s]
+    lined = [s.get("lines") if s else None for s in spans or []]
+    for t in run["trips"]:
+        item = t.pop("item", None)
+        if item is not None and items:
+            t["edit"] = items.index(item) + 1 if item in items else 0
+        # A trip placed by line rather than tagged takes the span holding
+        # that line, or E- for a line outside every span.
+        at = re.match(r"lines?\s+(\d+)", str(t.get("where") or ""))
+        if "edit" not in t and at and any(lined):
+            n = int(at.group(1))
+            t["edit"] = next((k for k, ln in enumerate(lined, 1) if ln and ln[0] <= n <= ln[1]), 0)
+    if run["trips"] and any(t.get("edit") != 0 for t in run["trips"]):
+        run["verdict"] = "fail"
+    elif run["trips"] and run["verdict"] == "fail":
+        run["verdict"] = "pass"
     mark_misquotes(run, doc_text)
     run["at"] = when or stamp()
     run["text"] = doc_text
@@ -1043,6 +1294,10 @@ def file_edits(c):
                 f, base = flat(s.pop("from", None)), s.pop("base", None)
                 if "edit" in s:
                     continue
+                if "item" in s:
+                    ids = entry_ids(c)
+                    s["edit"] = ids.index(s["item"]) + 1 if s["item"] in ids else None
+                    continue
                 if c.get("new"):
                     s["edit"] = 1; continue
                 hit = None
@@ -1064,6 +1319,9 @@ def unread_edits(c):
     text = runs[-1].get("text") if runs else None
     if not isinstance(text, str):
         return []
+    if is_list(c):
+        return [i + 1 for i, (e, item) in enumerate(zip(c.get("edits") or [], entry_ids(c)))
+                if not any(flat(entry_text(item, e.get("to"), sid)) in flat(text) for sid in (False, True))]
     return [i + 1 for i, e in enumerate(c.get("edits") or []) if flat(e.get("to")) not in flat(text)]
 
 
@@ -1104,7 +1362,8 @@ def change_lines(run, n, nxt):
             hint = f"{n}.c{k} {','.join(x.split('.')[1] for x in held) or '<trips>'}"
         first = (blocks(ch["to"]) or [""])[0]
         at = next(((a, z) for b, a, z in db if b == first), None) if first else None
-        e = next((s for s, x in enumerate(spans, 1) if x and at and x["lines"][0] <= at[1] and at[0] <= x["lines"][1]), None)
+        e = next((s for s, x in enumerate(spans, 1) if x and (f"`{x['item']}`" in ch["to"] + ch["from"] if x.get("item")
+                  else x.get("lines") and at and x["lines"][0] <= at[1] and at[0] <= x["lines"][1])), None)
         words = " ".join(str(ch["to"] or ch["from"]).split())
         out.append(f"    c{k}{f' · E{e}' if e else ''}{f' · line {at[0]}' if at else ''} · \"{words[:60]}{'…' if len(words) > 60 else ''}\""
                    + (f"  answers {', '.join(f'{n}.{x}' for x in ch['answers'])}" if ch.get("answers")
@@ -1283,6 +1542,24 @@ class Store:
         text = self.read(f"{cid}.answers.jsonl") or ""
         return [json.loads(l) for l in text.splitlines() if l.strip()]
 
+    def notes(self):
+        """Every note on main in this checkout's notes store, the folder its
+        .web-tools.json declares as "notes" (skills/notes/note.py reads it the same way)."""
+        r = git(self.repo, "show", "origin/main:.web-tools.json", check=False)
+        try:
+            folder = json.loads(r.stdout).get("notes") if r.returncode == 0 else None
+        except ValueError:
+            folder = None
+        folder = folder.strip("/") if isinstance(folder, str) and folder.strip("/") else "notes"
+        r = git(self.repo, "show", f"origin/main:{folder}/notes.jsonl", check=False)
+        out = []
+        for l in (r.stdout.decode("utf-8") if r.returncode == 0 else "").splitlines():
+            try:
+                out.append(json.loads(l))
+            except ValueError:
+                pass
+        return out
+
     def calls(self, prefix=""):
         """Every call on main whose id starts with prefix, as {id: text}, from one archive."""
         r = git(self.repo, "archive", "--format=tar", "origin/main", f"{self.path}/", check=False)
@@ -1332,7 +1609,8 @@ def answer_lines(r, call=None):
     for d in r.get("decisions") or []:
         n = d.get("edit")
         e = edits[n - 1] if isinstance(n, int) and 0 < n <= len(edits) else {}
-        what = e.get("why") or " ".join(str(e.get("from", "")).split())[:60]
+        frm = e.get("from")
+        what = e.get("why") or (f"entry {e.get('item', '')}" if isinstance(frm, dict) else " ".join(str(frm or "").split())[:60])
         out.append(f"  {n}. {d.get('decision', '')}" + (f"  ({what})" if what else ""))
         if d.get("note"):
             out += ["       " + line for line in d["note"].splitlines()]
@@ -1343,9 +1621,27 @@ def answer_lines(r, call=None):
     return out
 
 
+VOTED = {"up": "votes up", "down": "votes down", "": "withdraws a vote"}
+
+
+def note_lines(notes, cid, folder="user-calls"):
+    """The notes whose subject is call `cid`, in any repo and at any ref, oldest
+    first, as printed by `answers` after the answer lines: a FAB note on the
+    call's page (lib/alpineComponents/fab.js) is the owner's usual answer."""
+    tail = f":{folder}/{cid}.json"
+    mine = sorted((n for n in notes if isinstance(n, dict) and str(n.get("about", "")).endswith(tail)),
+                  key=lambda n: str(n.get("at", "")))
+    out = []
+    for n in mine:
+        vote = f"  {VOTED[n['vote']]}" if n.get("vote") in VOTED else ""
+        out.append(f"Note  ({n.get('author', '')} {n.get('at', '')}){vote}")
+        out += ["  " + line for line in str(n.get("text", "")).splitlines()]
+    return out
+
+
 def main(argv):
     argv, at_store = flag(argv, "--store")
-    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "edits", "link", "patch", "review"}:
+    if len(argv) < 2 or argv[1] not in {"add", "close", "answers", "list", "held", "edits", "link", "patch", "review"}:
         sys.exit(__doc__)
     cmd = argv[1]
     if cmd == "review":
@@ -1383,6 +1679,44 @@ def main(argv):
                 sys.exit("user-call: --note takes one line on the latest run, for a draft that holds one")
             runs[-1]["note"] = argv[4].strip()
             shown = [(len(runs), runs[-1])]
+        elif is_list(draft) or argv[3].endswith(".json"):
+            # A list call: the critic reads the call's entries as text, and an
+            # edit's span is its entry, by id.
+            raw = Path(argv[3]).read_text(encoding="utf-8").replace("\r\n", "\n")
+            ref = base_ref or draft.get("base")
+            try:
+                if ref:
+                    old, why = text_at(argv[3], ref)
+                    if old is None:
+                        sys.exit(f"user-call: could not read {argv[3]} at {ref}: "
+                                 + ("a new list has no entries to edit" if why == "new" else why))
+                    dropped = refresh_entries(draft, list_edits(old, raw))
+                    warn(f"edit {k}'s why, background, proposal or notes matched no edit now, so they were dropped"
+                         for k in dropped)
+                ids = entry_ids(draft)
+                text, held = list_reading(raw, ids)
+            except (ValueError, AttributeError) as e:
+                sys.exit(f"user-call: {argv[3]} is not a list: {e}")
+            missing = [k for k, h in enumerate(held, 1) if not h]
+            spans = [{"item": i} for i in ids]
+            if want_spans:
+                if not ids or missing:
+                    sys.exit("user-call: " + (f"edit {', '.join(map(str, missing))} names an entry {argv[3]} does not hold"
+                                              if missing else "the draft holds no edits: give it a base, as \"base\": \"main\", or its edits"))
+                draft_path.write_text(json.dumps(draft, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+                block = list_spans_text(argv[3], ids, text)
+                if out_path:
+                    Path(out_path).write_text(block + "\n", encoding="utf-8")
+                    print(f"wrote the spans of {len(ids)} edit{'s' if len(ids) != 1 else ''} to {out_path}")
+                else:
+                    print(block)
+                return
+            report = Path(argv[4]).read_text(encoding="utf-8") if len(argv) > 4 else sys.stdin.read()
+            if missing:
+                warn([f"edit {', '.join(map(str, missing))} names an entry {argv[3]} does not hold, so this run keeps no spans"])
+            add_run(draft, text, report, spans=None if missing or not ids else spans)
+            runs = draft["review"]["runs"]
+            shown = [(n, r) for n, r in enumerate(runs, 1)][-2:]
         else:
             text = Path(argv[3]).read_text(encoding="utf-8").replace("\r\n", "\n")
             ref, old = base_ref or draft.get("base"), None
@@ -1444,13 +1778,18 @@ def main(argv):
                     sys.exit(f"user-call: {argv[2]} is new at {base}: file the call with \"new\": true and no edits")
                 sys.exit(f"user-call: could not read {argv[2]} at {base}: {shown.stderr.strip()}")
             old_text, new_text = shown.stdout, f.read_text(encoding="utf-8")
+            name = argv[2]
         else:
             argv, old = flag(argv, "--old")
             argv, new = flag(argv, "--new")
             if not old or not new:
                 sys.exit("user-call: edits needs --old and --new, or --base and a file")
             old_text, new_text = Path(old).read_text(encoding="utf-8"), Path(new).read_text(encoding="utf-8")
-        found = edits(old_text, new_text)
+            name = new
+        try:
+            found = list_edits(old_text, new_text) if name.endswith(".json") else edits(old_text, new_text)
+        except ValueError as e:
+            sys.exit(f"user-call: {e}")
         if not found:
             sys.exit("user-call: no change between the two copies")
         print(json.dumps(found, indent=2, ensure_ascii=False))
@@ -1477,6 +1816,10 @@ def main(argv):
                      f"{', '.join(map(str, unread))} as filed: run it again on the document as it stands")
         file_edits(c)
         errs = check(c)
+        if not errs and c.get("kind") == "documentation" and is_list(c):
+            repo, ref, path, _ = list_target(c)
+            items = list_at(repo, c.get("base") or ref, path)
+            errs = [items] if isinstance(items, str) else entry_base_errors(c, items)
         if errs:
             sys.exit("user-call: " + "; ".join(errs))
         cid = f"{c['session']}-{c['slug']}"
@@ -1505,6 +1848,9 @@ def main(argv):
             print("\n".join(answer_lines(r, call)))
         if not rows:
             print(f"user-call: no answers for {argv[2]}")
+        noted = note_lines(store.notes(), argv[2], store.path)
+        if noted:
+            print("\n".join(noted))
     elif cmd == "patch":
         rows = Store(at_store).answers(argv[2])
         last = rows[-1] if rows else {}
@@ -1518,6 +1864,18 @@ def main(argv):
         for c in sorted(calls, key=lambda c: c.get("created", ""), reverse=True):
             if c.get("status") == "open":
                 print(f"{c['id']}: {c['question']}")
+    elif cmd == "held":
+        store = Store(at_store)
+        held = {}
+        for c in (json.loads(t) for t in store.calls().values()):
+            m = re.match(r"([\w.-]+/[\w.-]+)@([^:]*/docs-[^:]+):", str(c.get("file", "")))
+            if c.get("status") == "open" and c.get("kind") == "documentation" and m:
+                held.setdefault(m.group(1) + "@" + m.group(2), []).append(c)
+        for where in sorted(held):
+            print(f"{where}  https://mehrlander.github.io/web-tools/pages/branch.html#gh={where}&base=main")
+            for c in sorted(held[where], key=lambda c: c["id"]):
+                print(f"  {c['id']}: {c['question']}  https://mehrlander.github.io/web-tools/pages/user-call.html"
+                      f"#src=mehrlander/web-tools-private:{store.path}/{c['id']}.json")
 
 
 if __name__ == "__main__":

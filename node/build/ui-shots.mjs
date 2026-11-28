@@ -48,18 +48,18 @@
 // name) and `comps` (every Alpine component, by the name x-data mounts it
 // by), each with its box as fractions of the image.
 //
-// THE OUTPUT, split by visibility like the units tables themselves: public
-// units' shots go to data/ui-units/thumbs/ here, home's to web-tools-private's
-// thumbs/mehrlander/home/ui-units/, the private registry's store for shots of
-// private repos' pages. Each folder gets thumbs.csv, one row per unit, which is
-// what the gallery reads. Shots are not byte-deterministic, so no commit hook
-// owns them: refresh once per session, like pages/thumbs/.
+// THE OUTPUT goes to web-tools-private's thumbs/, beside this checkout, since a
+// unit can show private data: web-tools' units to thumbs/mehrlander/web-tools/
+// ui-units/, home's to thumbs/mehrlander/home/ui-units/. Each folder gets
+// thumbs.csv, one row per unit, which is what the Map view reads under a token.
+// Shots are not byte-deterministic, so no commit hook owns them: refresh once
+// per session, and commit them in that repository.
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, rmSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { launch } from '../render/chromium.mjs';
 import { writeCsv } from './registries-load.mjs';
-import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needToolModules, stageOf, PUBLIC_SIBLINGS, toJpeg, QUALITY } from './ui-recipes.mjs';
+import { HUB, ESTATE, STORES, rowsOf, slug, codedUnits, focusJs, evalFrom, shoot, needToolModules, stageOf, toJpeg, QUALITY } from './ui-recipes.mjs';
 
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
@@ -225,8 +225,7 @@ const worker = async () => {
     const base = slug(w.unit);
     mkdirSync(w.store.thumbs, { recursive: true });
     // A unit whose script reads a private repository is checked with it and
-    // shot without it (shots.csv's shot column, `no-script`), so no private
-    // row reaches a shot in the public store.
+    // shot without it (shots.csv's shot column, `no-script`).
     if (w.r.shot === 'no-script') w.r = { ...w.r, script: '' };
     const row = { unit: w.unit, desk: '', phone: '', shot_at: new Date().toISOString().slice(0, 10),
       recipe: [w.r.page + (w.r.query ? '?' + w.r.query : ''), w.r.script, w.r.click].filter(Boolean).join(' · '),
@@ -235,15 +234,12 @@ const worker = async () => {
       const png = path.join(TMP, `${base}.${kind}.png`);
       const box = png.replace(/\.png$/, '.focus.json');
       let res = { code: 0, err: '', out: '' };
-      // A public unit's shot reads public siblings only (ui-recipes.mjs,
-      // PUBLIC_SIBLINGS), whatever its pane asks for.
-      const env = w.store.name === 'public' ? { SHOT_SIBLINGS: PUBLIC_SIBLINGS.join(',') } : {};
       if (!(REUSE && existsSync(png))) {
         rmSync(png, { force: true });
-        res = await shoot(w.r, size, touch, png, shotJs(w), env);
+        res = await shoot(w.r, size, touch, png, shotJs(w));
         // One retry: three headless browsers at once, against a rate-limited
         // API, now and then lose a shot that the next attempt takes cleanly.
-        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w), env);
+        if (!existsSync(png)) res = await shoot(w.r, size, touch, png, shotJs(w));
         writeFileSync(box, JSON.stringify(evalFrom(res.out)));
       }
       if (!existsSync(png)) { console.log(`  ${w.unit} ${kind}: no shot (${res.code}) ${res.err.split('\n').slice(-2).join(' ').slice(0, 160)}`); continue; }

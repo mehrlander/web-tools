@@ -292,6 +292,8 @@ test('an address asking for Calls on a session with none lands on the overview',
 // pill, and its card is the call form, where the edits are read and answered
 // (owner, 2026-11-21). A call that no longer waits is the row drawn pale, with
 // a check at its end in a slot every row keeps, and no pill saying so.
+// Without RepoMark (as here) a row keeps the repository's name; the marks
+// themselves are drawn by the page, and shot at phone width.
 test('a documentation row is its repo, its path and a pill counting the edits', () => {
   const rows = [...el('docs').querySelectorAll('[data-call-list] [data-call]')];
   assert.deepEqual(rows.map((r) => r.getAttribute('data-call')), ['d0c5e001-readme', 'd0c5e001-old']);
@@ -344,6 +346,23 @@ test("a call's origin is its filing turn and that turn's topic, and a call past 
   await tick(2);
   const o = (slug) => { const x = s.callOrigin(s.callById('a9e0da01-' + slug)); return [x.turn, x.topic]; };
   assert.deepEqual([o('early'), o('mid'), o('beta'), o('late')], [[0, 'Alpha'], [1, 'Alpha'], [2, 'Beta'], [-1, '']]);
+  assert.equal(s.callPlace(s.callById('a9e0da01-late')).place, 'after', 'past the record is its own place');
+});
+
+// A LAUNCHED SESSION (owner, 2026-11-27): work before the owner's first prompt
+// belongs to the launch, named for what launched it, and a session nothing
+// launched keeps that time apart from the time after the record's end.
+test('a call before the first prompt belongs to the launch, or to the time before the first prompt', () => {
+  const s = data('topics'), early = { created: AT('09:30') };
+  assert.deepEqual({ ...s.callPlace(early) }, { turn: -1, place: 'before' });
+  assert.equal(s.callOriginHead(early), '', 'no exchange to name, so no origin line');
+  const was = window.sessionRender.launchOf;
+  window.sessionRender.launchOf = () => ({ at: AT('09:00'), session: 'session_01P', short: '83101b0b', label: 'Launched by 83101b0b' });
+  try {
+    assert.deepEqual({ ...s.callPlace(early) }, { turn: -1, place: 'launch' });
+    assert.equal(s.callOriginHead(early), 'Launched by 83101b0b');
+    assert.deepEqual({ ...s.callPlace(s.callById('a9e0da01-mid')) }, { turn: 1, place: 'turn' }, 'the prompts keep their numbers');
+  } finally { window.sessionRender.launchOf = was; }
 });
 
 test('the list groups the calls under their topics, waiting calls before settled ones', async () => {
@@ -351,7 +370,7 @@ test('the list groups the calls under their topics, waiting calls before settled
   await s.mountCalls();
   const list = el('topics').querySelector('[data-call-list]');
   assert.deepEqual([...list.querySelectorAll('[data-call-group]')].map((h) => h.textContent),
-    ['\u{1F7E2}Alpha', '\u{1F7E3}Beta', "After Gemini's reading"]);
+    ['\u{1F7E2}Alpha', '\u{1F7E3}Beta', "After the record's end"]);
   assert.deepEqual([...list.querySelectorAll('[data-call]')].map((r) => r.dataset.call),
     ['a9e0da01-early', 'a9e0da01-mid', 'a9e0da01-done', 'a9e0da01-beta', 'a9e0da01-late'],
     'within a topic, the waiting calls first, documentation first among them, then the answered one');
@@ -365,11 +384,12 @@ test("a card leads with the turn its call came from, by Gemini's headline, and n
   const s = data('topics');
   s._callSwiper.pick('a9e0da01-mid');
   const find = () => [...el('topics').querySelectorAll('[data-call-strip] [data-call-origin]')]
-    .find((x) => /mid\?/.test(x.parentElement.textContent) && /turn 2/.test(x.textContent));
+    .find((x) => /mid\?/.test(x.parentElement.textContent) && /Filed during/.test(x.textContent));
   await until(find);
   const line = find();
-  assert.ok(line, 'the origin line names the turn');
-  assert.match(line.textContent, /turn 2\s*The mid call is shaped\s*Oct 20/);
+  assert.ok(line, 'the origin line names the exchange');
+  assert.match(line.textContent, /Filed during\s*The mid call is shaped\s*Oct 20/);
+  assert.equal(line.dataset.titleTip, 'Turn 2, opens it in Turns');
   assert.doesNotMatch(line.textContent, /Alpha/, 'the list heading names the topic');
 });
 

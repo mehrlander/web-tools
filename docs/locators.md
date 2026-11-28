@@ -17,7 +17,7 @@ relation. The shapes in use today are all references in this sense:
 | Record | Source | Target | Relation |
 | --- | --- | --- | --- |
 | A note (`web-tools-private/notes/notes.jsonl`, [notes skill](../skills/notes/SKILL.md)) | the note | its `about` locator, plus an optional quote anchor | comments on |
-| A finding (a note carrying `finding`, [findings.js](../lib/kits/findings.js)) | the finding | each subject, followed; each witness, pinned | concludes about; rests on |
+| A finding (a note with a `finding` field, [findings.js](../lib/kits/findings.js)) | the finding | each subject, at its current version | concludes about |
 | A standoff ([annotation.md](annotation.md)) | the standoff file | a document, by character spans and the document's `sha256` | annotates |
 | A text proposal (`home/projects/text/proposals.jsonl`) | one passage id | another passage id | proposes a rewrite of |
 | An errand's `for` field, also read as `task` ([manifest.md](manifest.md#errands-errandsrequests--errandsresults)) | the errand | a tracker task | serves |
@@ -145,20 +145,30 @@ trap).
 
 ## What exists, and what does not yet
 
-**Exists:** the path grammar and its parser, `repo-address.js`, which the notes
-locator reads and extends with `owner/repo#N` and `note:<id>` (`note.py` keeps a
-copy of the patterns, held to the same answers by
-[`notes-kit.test.mjs`](../node/test/notes-kit.test.mjs)); fragment locators in
-the content registry; spans pinned by a document hash in standoffs; quote
-anchors on notes; content-addressed passages; notes addressed to any locator,
-with `note.py show <about>` as the inbound lookup for notes; witnesses pinned
-on findings, checked by [`findings.js`](../lib/kits/findings.js) in the Tending view and `findings.py check`; and the broken
-test with its verdicts in `dead-links.py`. `python/annotate/anchors.py` tests quotes on
-notes and spans in standoffs; the pre-commit hook runs it on what a commit
-changes.
+**Exists:**
+
+- The path grammar and its parser,
+  [`repo-address.js`](../lib/kits/repo-address.js). The notes locator reads it
+  and extends it with `owner/repo#N` and `note:<id>`.
+  [`note.py`](../skills/notes/note.py) keeps a copy of the patterns, and
+  [`notes-kit.test.mjs`](../node/test/notes-kit.test.mjs) checks that the copy
+  gives the same answers.
+- Fragment locators in the [content registry](../lib/kits/content-registry.js).
+- Spans pinned by a document hash in standoffs ([annotation.md](annotation.md)).
+- Quote anchors on notes ([annotate.js](../lib/kits/annotate.js)).
+- Content-addressed passages
+  ([`passages.jsonl`](https://github.com/mehrlander/home/blob/main/projects/text/passages.jsonl)
+  in home).
+- Notes addressed to any locator, with `note.py show <about>` as the inbound
+  lookup for notes.
+- The broken test with its verdicts in
+  [`dead-links.py`](../python/dead-links.py).
+- [`python/annotate/anchors.py`](../python/annotate/anchors.py), which tests
+  quotes on notes and spans in standoffs. The
+  [pre-commit hook](../.githooks/pre-commit) runs it on what a commit changes.
 
 **Does not exist yet:** a declared stance per kind of reference; stored witnesses
-on anything but standoffs and findings; the cascade; an inbound index across kinds of
+on anything but standoffs; the cascade; an inbound index across kinds of
 reference; and one checker applying these tests in place of one tool per kind.
 
 **One fact to resolve before building on this.** Notes address a tracker task by

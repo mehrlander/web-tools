@@ -24,14 +24,14 @@ rows = select([item('record',{sessionUrl:'https://claude.ai/code/session_agent'}
   [usage('record',100000),usage('other',900000,{agentSessionId:'session_agent',usageAt:iso(now-minute)})]);
 check(rows[0].contextTokens === 100000,'An exact record match takes precedence over an unrelated session-link match.');
 rows = select([item('record'),item('session_agent',{sessionUrl:'https://claude.ai/code/session_agent'}),
-  item('record',{identity:'laptop-record',kind:'session',place:'laptop'})],
+  item('record',{identity:'lenovo-record',kind:'session',place:'lenovo'})],
   [usage('record',400000),usage('alias-record',250000,{agentSessionId:'session_agent'}),
     usage('outside-feed',600000,{title:'Indexed title',sessionUrl:'https://claude.ai/code/session_outside'}),
     usage('old-metadata',900000,{usageAt:iso(now-2*60*minute)}),usage('unknown-metadata',null)]);
 check(rows.length === 4 && rows[0].identity === 'cloud:outside-feed' && rows[0].title === 'Indexed title'
   && rows[0].at === now-6*minute && rows[0].url.endsWith('session=outside-feed') && rows[0].sessionUrl.endsWith('session_outside')
   && rows.filter(row => row.kind === 'cloud' && row.usage?.id === 'record').length === 1,
-  'Recent measured metadata fills gaps in a bounded activity feed, while record and agent joins avoid duplicate cloud rows and preserve laptop work.');
+  'Recent measured metadata fills gaps in a bounded activity feed, while record and agent joins avoid duplicate cloud rows and preserve Lenovo work.');
 rows = select([item('record',{at:now-10*minute}),item('session_agent',{at:now-minute,sessionUrl:'https://claude.ai/code/session_agent'})],
   [usage('record',400000,{agentSessionId:'session_agent'})]);
 check(rows.length === 1 && rows[0].id === 'session_agent','Multiple cloud activity identities for the same measured session retain the latest activity row.');
@@ -54,9 +54,9 @@ check(select([item('bad-date',{at:NaN})],[usage('bad-date',123,{usageAt:'2026-02
   'An impossible calendar date cannot establish activity.');
 
 rows = select([item('older',{identity:'same',at:now-10*minute,title:'Earlier title'}),item('newer',{identity:'same',at:now-minute,title:'Latest title'}),
-  item('cloud',{identity:'same',kind:'session',place:'laptop'})]);
+  item('cloud',{identity:'same',kind:'session',place:'lenovo'})]);
 check(rows.length === 2 && rows.some(row => row.title === 'Latest title') && !rows.some(row => row.title === 'Earlier title'),
-  'Repeated identities retain the latest activity while cloud and laptop sessions remain separate.');
+  'Repeated identities retain the latest activity while cloud and Lenovo sessions remain separate.');
 rows = select([item('invalid'),item('zero'),item('known'),item('unknown',{at:now})],
   [usage('invalid','800000'),usage('zero',0),usage('known',123456,{inputTokens:-1,outputTokens:Infinity,cacheReadTokens:2.5,cacheWriteTokens:8})]);
 check(rows.map(row => row.id).join(',') === 'known,zero,unknown,invalid' && rows[0].usage.inputTokens === null && rows[0].usage.outputTokens === null
@@ -107,8 +107,8 @@ check([...doc.querySelectorAll('a.nru-row')].every(anchor => {
     && route.get('view') === 'now' && route.get('session') === anchor.dataset.recentSession
     && [...route.keys()].join(',') === 'view,session' && !anchor.hasAttribute('target') && !anchor.hasAttribute('rel');
 }), 'Hostile external URLs and route-like identity text cannot change the internal Now destination.');
-render(select([item('local-safe',{identity:'session:Claude:local-safe',kind:'session',place:'laptop',sessionUrl:'https://claude.ai/code/session_LocalSafe'}),
-  item('local-unsafe',{identity:'session:Claude:local-unsafe',kind:'session',place:'laptop',sessionUrl:'javascript:alert(1)'})]));
+render(select([item('local-safe',{identity:'session:Claude:local-safe',kind:'session',place:'lenovo',sessionUrl:'https://claude.ai/code/session_LocalSafe'}),
+  item('local-unsafe',{identity:'session:Claude:local-unsafe',kind:'session',place:'lenovo',sessionUrl:'javascript:alert(1)'})]));
 check([...doc.querySelectorAll('a.nru-row')].every(anchor => anchor.getAttribute('href') === '#view=now&session=' + encodeURIComponent(anchor.dataset.recentSession)),
   'Local Claude sessions use their full internal feed identities, independent of provider URLs.');
 render(select([],[usage('metadata-only',123456)]));
@@ -164,9 +164,9 @@ check(measured?.outputTokens === 3000 && measured.totalTokens === 3060 && measur
   'Usage matching sums the four disjoint recorded counters once, without adding context, nested cache splits, iterations, or a supplied total.');
 check([
   item('cloud-record',{key:'codex'}),item('cloud-record',{key:'gemini'}),item('cloud-record',{kind:'errand'}),
-  item('cloud-record',{kind:'session',place:'laptop'}),item('cloud-record',{kind:'cloud',place:'laptop'})
+  item('cloud-record',{kind:'session',place:'lenovo'}),item('cloud-record',{kind:'cloud',place:'lenovo'})
 ].every(source => match(source,[counted]) === null && U.tokenBadge(source,snapshot([counted]),{now}) === ''),
-  'Recorded cloud usage is never attributed to another provider, an errand, or a laptop session that happens to share an ID.');
+  'Recorded cloud usage is never attributed to another provider, an errand, or a Lenovo session that happens to share an ID.');
 check(match(item('cloud-record',{place:''}),[counted])?.outputTokens === 3000,
   'A Claude cloud item remains matchable when its optional place field is empty.');
 measured = match(item('cloud-record',{sessionUrl:'https://claude.ai/code/session_counted'}),

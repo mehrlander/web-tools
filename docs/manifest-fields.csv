@@ -41,6 +41,8 @@ programs[].label,string,app,,no,Display name. Defaults to the name.
 programs[].status,string,app,,no,"""proposed"" for a program offered for adoption, whose charter and `governs` list wait until it is adopted."
 programs[].scope,string,app,,no,"What the program covers, in a few words."
 programs[].icon,string,app,,yes,"A repo-root-relative SVG, drawn in its own colours wherever the program is named, or a `ph-` glyph."
+programs[].emoji,string,session-hook,,no,"An emoji that marks the program where one glyph fits: its standing session's title and session detail caption."
+programs[].session,string,session-hook,,no,"The claude.ai id of the program's standing session, as session_<id>. In that session the session detail caption leads with the program's emoji and label, and the check-in hook arms no check-in."
 programs[].path,string,app,,yes,"The program's folder, repo-root-relative. Its README.md is the charter, stating the program's purpose, standard, measures and reviewers; the program's own material accumulates beside it."
 programs[].formerly,array,app,,no,"Folders the program had before `path`, repo-root-relative. The programs skill counts a note addressed to the charter under one as addressed to the present charter."
 programs[].governs,array,session-hook,,yes,"Repo-root-relative paths the program governs; an entry ending in / covers everything under it. A file belongs to at most one program; the program-files hook names the program when a session edits one."
@@ -126,6 +128,7 @@ research,array,app,,,Retained research accounts outside docs/; Map offers Probes
 research[].path,string,app,,yes,Repository-relative Markdown account; README.md represents the research package beside it.
 research[].label,string,app,,yes,The inquiry named in the Research view.
 research[].kind,string,app,,yes,probe tests our work; exploration gathers outside information.
+research[].status,string,app,,no,"How the account is kept: living (corrected in place), measured (dated observations, corrected by re-probing) or record (preserves a moment, edit=write-once). Omitted, no status is stated; docs/probes.md, Status."
 stores,array,app,,,"Collections of entries this repository holds, other than its CSV registries."
 stores[].path,string,app,,yes,"A repository-relative path, or a glob for a collection kept one file per entry."
 stores[].shape,string,app,,yes,registry or stream.

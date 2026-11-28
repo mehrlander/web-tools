@@ -29,9 +29,10 @@ const activity = { repos: { 'acme/evidence': {
   prReach: '2026-01-01T00:00:00Z',
   openPRs: [{ number: 7, head: 'claude/x', updatedAt: '2026-09-01T00:00:00Z', body: '', draft: true }],
   branchPRs: [],
-  scan: { branches: [{ name: 'claude/x', date: '2099-01-01T00:00:00Z', group: 'active' }] },
+  scan: { branches: [{ name: 'claude/x', date: '2026-09-01T00:00:00Z', group: 'active' }] },
 } } };
-const sessions = { rows: [{ id: 'abcd1234', day: '2026-09-29', state: 'done', repos: [{ name: 'evidence', branch: 'claude/x', lines: 5 }] }] };
+const SID = 'mehrlander/web-tools-private:sessions/2026/09/2026-09-29-abcd1234.json';
+const sessions = { rows: [{ id: 'abcd1234', day: '2026-09-29', state: 'clean', repos: [{ name: 'evidence', branch: 'claude/x', lines: 5 }] }] };
 const store = repo('store', { '.web-tools.json': '{"notes":"notes"}\n', 'notes/.keep': '',
   'state/activity.json': JSON.stringify(activity), 'state/sessions.json': JSON.stringify(sessions) });
 const evidence = repo('evidence', { 'docs/a.md': 'first\n' });
@@ -39,8 +40,16 @@ const env = { ...process.env, ...GIT, FINDINGS_CHECKOUTS: JSON.stringify({ 'acme
 const py = (...a) => execFileSync('python3', [path.join(repoRoot, 'skills/tend/findings.py'), '--store', path.join(store, 'notes'), '--author', 'claude/tend', ...a], { encoding: 'utf8', env, cwd: store });
 const note = (...a) => execFileSync('python3', [path.join(repoRoot, 'skills/notes/note.py'), '--store', path.join(store, 'notes'), ...a], { encoding: 'utf8', env, cwd: store });
 const jfile = (obj) => { const f = path.join(T, 'u' + Math.random().toString(36).slice(2) + '.json'); writeFileSync(f, JSON.stringify(obj)); return f; };
-const edit = (text, msg) => { writeFileSync(path.join(evidence, 'docs/a.md'), text); sh(evidence, 'commit', '-qam', msg); sh(evidence, 'push', '-q', 'origin', 'main'); };
-const blob = () => sh(evidence, 'rev-parse', 'origin/main:docs/a.md');
+// Times are whole seconds, and a commit in the second a finding was assessed
+// is not after it: wait out the second before committing.
+const tick = () => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 1100);
+const edit = (text, msg) => { tick(); writeFileSync(path.join(evidence, 'docs/a.md'), text); sh(evidence, 'commit', '-qam', msg); sh(evidence, 'push', '-q', 'origin', 'main'); };
+const commitState = (file, data, msg) => {
+  sh(store, 'pull', '-q', '--rebase', 'origin', 'main');
+  writeFileSync(path.join(store, 'state', file), JSON.stringify(data));
+  sh(store, 'commit', '-qam', msg); sh(store, 'push', '-q', 'origin', 'main');
+};
+const setActivity = (change, msg) => { change(activity.repos['acme/evidence']); commitState('activity.json', activity, msg); };
 
 const { window } = makeWindow({ html: '<!doctype html><html><body></body></html>' });
 await startAlpine(window, ['lib/alpine-bundle.js', 'lib/kits/notes.js', 'lib/kits/findings.js']);
@@ -50,9 +59,12 @@ const both = (id) => {
   const kit = window.Findings.fold(storeNotes()).find(f => f.id === id);
   assert.equal(kit.status, cli.status, 'kit and CLI disagree on status');
   assert.equal(kit.outstanding, cli.outstanding, 'kit and CLI disagree on outstanding work');
+  assert.equal(kit.assessedAt, cli.assessedAt, 'kit and CLI disagree on the last assessment');
   return cli;
 };
-const check = (id, ...flags) => JSON.parse(py('check', '--json', ...flags)).find(f => f.id === id);
+const check = (id) => JSON.parse(py('check', '--json')).find(f => f.id === id);
+const moved = (id) => check(id).moved.map(m => m.subject);
+const candidate = () => JSON.parse(py('candidates', '--json')).find(x => x.subjects.includes('acme/evidence@claude/x'));
 
 let id;
 const viewWrites = (n) => execFileSync('python3', ['-c', `
@@ -63,20 +75,20 @@ const refused = (u) => {
   try { py('update', id, jfile(u)); } catch (e) { return String(e.stderr || e.message); }
   assert.fail('the update was written');
 };
-const witness = () => window.Findings.fold(storeNotes()).find(f => f.id === id).witnesses[0];
+const DOC = 'acme/evidence@main:docs/a.md';
 
-test('found: open, with work outstanding, every witness holding', () => {
+test('found: open, with work outstanding, and nothing it names changed since', () => {
   id = py('add', jfile({
     kind: 'unreached', title: 'A report never reached main',
-    subjects: ['acme/evidence@claude/x', 'acme/evidence#7'],
+    subjects: ['acme/evidence@claude/x', 'acme/evidence#7', DOC],
     why: 'Two facts in it are missing from docs/a.md.', next: 'Fold the two facts into docs/a.md.',
-    witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob(), why: 'the doc it was compared against' },
-                { ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
   })).split(' ')[0];
   const f = both(id);
   assert.equal(f.status, 'open');
   assert.equal(f.outstanding, true);
   assert.deepEqual(check(id).moved, []);
+  assert.equal(candidate().covered, id);
+  assert.equal(candidate().moved, '');
 });
 
 test('a comment changes nothing', () => {
@@ -86,70 +98,53 @@ test('a comment changes nothing', () => {
   assert.equal(f.comments, 1);
 });
 
-test('evidence outside the subjects changes, and check names it', () => {
+test('a file the finding names is committed to, check names it, and a confirmation clears it', () => {
   edit('first\nsecond\n', 'docs: add a second line');
-  const c = check(id);
-  assert.equal(c.moved.length, 1);
-  assert.equal(c.moved[0].ref, 'acme/evidence@main:docs/a.md');
-  assert.match(c.moved[0].detail, /docs: add a second line/);
+  assert.deepEqual(moved(id), [DOC]);
+  py('update', id, jfile({ text: 'The second line is unrelated; the finding stands.', finding: {} }));
+  assert.deepEqual(check(id).moved, []);
+  assert.equal(both(id).next, 'Fold the two facts into docs/a.md.');
 });
 
-test('a step done is progress: settling with an inherited next is refused', () => {
+test('a step done is progress: settling with an inherited next is refused, and the update is a reassessment', () => {
   assert.match(refused({ text: 'Folded the facts in.', finding: { status: 'settled', did: 'Folded the two facts in' } }),
     /settled with work outstanding \(next: 'Fold the two facts/);
   py('update', id, jfile({ text: 'Folded the facts in; the branch remains.',
-    finding: { did: 'Folded the two facts into docs/a.md', next: 'Retire the report branch.',
-               witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob() }] } }));
+    finding: { did: 'Folded the two facts into docs/a.md', next: 'Retire the report branch.' } }));
   const f = both(id);
   assert.equal(f.status, 'open', 'the step that remains keeps it open');
   assert.equal(f.outstanding, true);
+  assert.deepEqual(check(id).moved, [], 'the commit came before this assessment');
 });
 
 test('a finding never asks: the decision goes to the owner in the reply', () => {
   assert.match(refused({ text: 'One question.', finding: { choice: 'Retire the branch?' } }), /put the decision to the owner in the reply/);
   py('update', id, jfile({ text: 'Retiring the branch needs the owner\'s word.',
-    finding: { kind: 'answer', subjects: ['acme/evidence@claude/x', 'acme/evidence#7', 'acme/store:user-calls/abcd1234-retire-x.json'] } }));
+    finding: { kind: 'answer', subjects: ['acme/evidence@claude/x', 'acme/evidence#7', DOC, 'acme/store:user-calls/abcd1234-retire-x.json'] } }));
   assert.equal(both(id).status, 'open');
 });
 
-test('settled once nothing remains; the refreshed witness holds', () => {
+test('settled once nothing remains, and check reads open findings only', () => {
   py('update', id, jfile({ text: 'Retired the branch.', finding: { status: 'settled', did: 'Retired the report branch', next: '' } }));
   const f = both(id);
   assert.equal(f.status, 'settled');
   assert.equal(f.outstanding, false);
-  assert.deepEqual(check(id).moved, []);
+  assert.equal(check(id), undefined);
   assert.match(refused({ text: 'One more thing.', finding: { next: 'Link it from the index.' } }),
     /settled with work outstanding.*status: "open"/s);
 });
 
-test('a later change makes the settled finding due, by check and by candidates', () => {
+test('a settled finding comes back through candidates when the branch it names is pushed', () => {
   edit('first\nrewritten\n', 'docs: rewrite the second line');
-  const c = check(id);
-  assert.equal(c.status, 'settled');
-  assert.equal(c.moved.length, 1, 'check reads settled findings by default');
-  assert.equal(check(id, '--open'), undefined, '--open leaves settled findings out');
-  // The branch this finding names moved after it was assessed (the cache dates
-  // it 2099), so candidate selection must not treat it as covered.
-  const cand = JSON.parse(py('candidates', '--json')).find(x => x.subjects.includes('acme/evidence@claude/x'));
-  assert.equal(cand.covered, id);
-  assert.ok(cand.moved, 'a covered subject that moved is due again');
-});
-
-test('Handled acknowledges the reviewed change, and only a later change brings it back', () => {
-  const seen = { sha: blob() };
-  assert.equal(window.Findings.compare(witness(), seen).verdict, 'changed');
-  viewWrites(window.Findings.resolution(id, 'Read the rewrite; still fine', 'mehrlander', [window.Findings.ackOf(witness(), seen)]));
-  assert.equal(both(id).status, 'resolved');
-  assert.deepEqual(check(id).moved, [], 'the command line honours the acknowledgment');
-  assert.equal(window.Findings.compare(witness(), seen).verdict, 'ok', 'and so does the view');
-  edit('first\nrewritten again\n', 'docs: rewrite it again');
-  assert.equal(check(id).moved.length, 1, 'a change after Handled surfaces');
-  assert.equal(window.Findings.compare(witness(), { sha: blob() }).verdict, 'changed');
+  assert.equal(candidate().moved, '', 'a change to a file alone raises no candidate');
+  setActivity(e => { e.scan.branches[0].date = '2099-01-01T00:00:00Z'; }, 'the branch moved');
+  assert.equal(candidate().covered, id);
+  assert.ok(candidate().moved, 'a covered branch that moved is due again');
 });
 
 test('attention renewed, then the owner resolves it in the shape the view writes', () => {
-  py('update', id, jfile({ text: 'The doc was rewritten; the facts need placing again.',
-    finding: { status: 'open', next: 'Re-place the two facts in the rewritten doc.', witnesses: [{ ref: 'acme/evidence@main:docs/a.md', sha: blob() }] } }));
+  py('update', id, jfile({ text: 'The branch moved; the facts need placing again.',
+    finding: { status: 'open', next: 'Re-place the two facts in the rewritten doc.' } }));
   let f = both(id);
   assert.equal(f.status, 'open');
   assert.equal(f.outstanding, true);
@@ -159,32 +154,25 @@ test('attention renewed, then the owner resolves it in the shape the view writes
   assert.equal(f.outstanding, false);
 });
 
-test('a pull request the crawl cache lacks reads unverifiable on the command line, unless it merged', () => {
-  const other = py('add', jfile({
-    kind: 'superseded', title: 'An old pull request landed', subjects: ['acme/evidence#99'], why: 'w', evidence: ['merged'],
-    witnesses: [{ ref: 'acme/evidence#99', state: 'merged' }, { ref: 'acme/evidence#98', state: 'closed' },
-                { ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
+test('a pull request the finding names, updated after the assessment, is named by check', () => {
+  const pr = py('add', jfile({
+    kind: 'unreached', title: 'A pull request nobody moves', subjects: ['acme/evidence#7'], why: 'w', next: 'Ask the owner.',
   })).split(' ')[0];
-  const v = check(other).verdicts;
-  // A merge is final, so a merged witness needs no lookup; a closed one can reopen.
-  assert.deepEqual(v.map(x => [x.ref, x.verdict]),
-    [['acme/evidence#99', 'ok'], ['acme/evidence#98', 'unverifiable'], ['acme/evidence#7', 'ok']]);
-  assert.match(v[1].detail, /not in the crawl cache/);
+  assert.deepEqual(check(pr).moved, []);
+  setActivity(e => { e.openPRs[0].updatedAt = '2099-01-01T00:00:00Z'; }, 'the pull request moved');
+  assert.deepEqual(moved(pr), ['acme/evidence#7']);
+  // A pull request the crawl cache does not hold raises nothing.
+  const gone = py('add', jfile({ kind: 'unreached', title: 'An old pull request', subjects: ['acme/evidence#99'], why: 'w', next: 'n' })).split(' ')[0];
+  assert.deepEqual(check(gone).moved, []);
 });
 
-test('an open pull request witness acknowledged as seen comes back when its updated time moves later', () => {
-  const pr = py('add', jfile({
-    kind: 'superseded', title: 'A pull request kept an eye on', subjects: ['acme/evidence#7'], why: 'w', evidence: ['open'],
-    witnesses: [{ ref: 'acme/evidence#7', state: 'open', updated: '2026-09-01T00:00:00Z' }],
-  })).split(' ')[0];
-  const w = window.Findings.fold(storeNotes()).find(f => f.id === pr).witnesses[0];
-  const seen = { state: 'open', updated: '2026-09-01T00:00:00Z' };
-  viewWrites(window.Findings.resolution(pr, 'Handled', 'mehrlander', [window.Findings.ackOf(w, seen)]));
-  activity.repos['acme/evidence'].openPRs[0].updatedAt = '2026-10-01T00:00:00Z';
-  sh(store, 'pull', '-q', '--rebase', 'origin', 'main');
-  writeFileSync(path.join(store, 'state/activity.json'), JSON.stringify(activity));
-  sh(store, 'commit', '-qam', 'the pull request moved'); sh(store, 'push', '-q', 'origin', 'main');
-  assert.ok(check(pr).moved.some(m => m.ref === 'acme/evidence#7' || m === 'acme/evidence#7'), 'a later update surfaces on the command line');
-  const w2 = window.Findings.fold(storeNotes()).find(f => f.id === pr).witnesses[0];
-  assert.equal(window.Findings.compare(w2, { state: 'open', updated: '2026-10-01T00:00:00Z' }).verdict, 'changed', 'and in the kit');
+test('a finding that shares only the session record covers no candidate', () => {
+  // The same session left a second branch that no finding names.
+  setActivity(e => { e.scan.branches.push({ name: 'claude/y', date: '2026-09-02T00:00:00Z', group: 'active' }); }, 'a second branch');
+  sessions.rows[0].repos.push({ name: 'evidence', branch: 'claude/y', lines: 3 });
+  commitState('sessions.json', sessions, 'the session record names it');
+  py('add', jfile({ kind: 'unreached', title: 'The session left work', subjects: [SID], why: 'w', next: 'n' }));
+  const y = JSON.parse(py('candidates', '--json')).find(x => x.subjects.includes('acme/evidence@claude/y'));
+  assert.ok(y.subjects.includes(SID));
+  assert.equal(y.covered, '');
 });

@@ -10,11 +10,12 @@ contract. --new FOLDER writes an empty registry, its header only.
 
 A registry fails when a required column (probe, date, title, question,
 summary) is missing or a row leaves one empty; when two rows share an id or an
-id is not lowercase letters, digits and hyphens; when a date is not
-YYYY-MM-DD, or a dated id or path names another date than its row's; when a
-path names nothing in the folder; when a dated file or folder beside the
-registry is named by no row's path; and when a standing is not worked, mixed,
-failed or open. A declared folder with no probes.csv is counted and passes.
+id is not lowercase letters, digits and hyphens; when a date, the day the
+inquiry began, is not YYYY-MM-DD, or a dated id or path names another date than
+its row's; when a path names nothing in the folder; and when a dated file or
+folder beside the registry is named by no row's path. A declared folder with no
+probes.csv is counted and passes. Any research declaration whose status is not
+living, measured or record fails.
 
 Ported on 2026-11-10 from home's projects/budget-drs/data/design/tools/
 verify-probes.py, whose registry passes unchanged.
@@ -27,18 +28,24 @@ import sys
 from pathlib import Path
 
 REQUIRED = ["probe", "date", "title", "question", "summary"]
-STANDING = {"worked", "mixed", "failed", "open"}
+STATUS = {"living", "measured", "record"}
 SLUG = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 DATED = re.compile(r"^(\d{4}-\d{2}-\d{2})-")
 
 
-def folders(root):
-    """The folders .web-tools.json declares as probe research, by README."""
+def declarations(root):
+    """The research entries in root's .web-tools.json."""
     try:
         entries = json.loads((root / ".web-tools.json").read_text(encoding="utf-8")).get("research") or []
     except (OSError, ValueError, AttributeError):
         return []
+    return entries if isinstance(entries, list) else []
+
+
+def folders(root):
+    """The folders .web-tools.json declares as probe research, by README."""
+    entries = declarations(root)
     return sorted({Path(e["path"]).parent for e in entries
                    if isinstance(e, dict) and e.get("kind") == "probe"
                    and isinstance(e.get("path"), str) and Path(e["path"]).name == "README.md"})
@@ -73,9 +80,6 @@ def check(folder):
             if not target.exists() or folder.resolve() not in target.parents:
                 errs.append(f"{at}: path {path} names nothing in the folder")
             named.add(Path(path).parts[0])
-        standing = (r.get("standing") or "").strip()
-        if standing and standing not in STANDING:
-            errs.append(f"{at}: standing {standing} is not one of {', '.join(sorted(STANDING))}")
     for p in sorted(folder.iterdir()):
         if DATED.match(p.name) and p.name not in named:
             errs.append(f"{p.name} is a dated probe that no row's path names")
@@ -97,6 +101,10 @@ def main():
         print(f"probes: wrote {reg}; declare the folder's README.md under research in .web-tools.json, kind probe")
         return
     failed, without = False, 0
+    for e in declarations(root):
+        if isinstance(e, dict) and "status" in e and e["status"] not in STATUS:
+            failed = True
+            print(f"probes: .web-tools.json research {e.get('path')} has status {e['status']}, not one of {', '.join(sorted(STATUS))}")
     for f in folders(root):
         if not (root / f / "probes.csv").exists():
             without += 1

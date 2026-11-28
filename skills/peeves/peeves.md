@@ -1,14 +1,15 @@
+<!-- Generated from lists/peeves.json by node/build/lists-md.mjs; do not hand-edit. -->
 # Pet peeves
 
-Each entry names a behavior the owner has corrected an assistant for repeatedly, stated so a reviewer can check work against it. The [peeves skill](SKILL.md) says how to use the entries. The commit hook writes [`peeves.csv`](peeves.csv) from this file. Edit this file and do not hand-edit the CSV.
+Each entry names a behavior the owner has corrected an assistant for repeatedly, stated so a reviewer can check work against it. The [peeves skill](SKILL.md) says how to use the entries. Sessions propose changes to [`lists/peeves.json`](../../lists/peeves.json); the owner makes them.
 
 ## Entries
 
 ### Documentation bloat · `P01`
 
-Instructions growing through rationale, duplicated claims, correction notes and comments that explain readable code.
+Instructions growing through rationale, excess detail, history and comments that explain readable code.
 
-**Look for:** a doc edit that adds a paragraph; sentences explaining why a rule exists, what a section is about, or how it came to be written
+**Look for:** non-dispositive content of any kind. UI play-by-play, correction notes, soapboxing. New content not minimally woven in.
 
 **Owner:** web-tools CLAUDE.md (before adding to a doc, ask whether another document owns it)
 
@@ -137,8 +138,6 @@ Adding a mechanism, category or separate interface when an existing one serves t
 When cleaning up, reduce rather than add; do not add rules, guards or documentation for a single incident or a hypothetical, and do not widen the scope (orchestration, fan-outs) without being asked.
 
 **Look for:** a guard script for one mistake; a fan-out nobody asked for; a cleanup that added lines
-
-**Owner:** web-tools CLAUDE.md (wary of improvements for hypothetical problems)
 
 **Area:** process · **Detector:** reader · **Sessions:** 25 · **Status:** guidance
 
