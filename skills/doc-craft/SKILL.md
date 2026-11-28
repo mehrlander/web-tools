@@ -35,4 +35,4 @@ Each changed document then goes to the owner as a user call of kind `documentati
 
 Record every critic run in the [`review`](https://github.com/mehrlander/web-tools/blob/main/docs/envelopes/user-call.md#review) field of the document's call with the `user-calls` skill's `review` command. Give the critic the line ranges that `review --spans` prints. Fix the document's line breaks before the critic's first run.
 
-Revise on request. Merge only after the owner approves the wording. Approval covers each file that [`governing-docs.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/governing-docs.py) counts as documentation.
+Revise on request. Merge only after the owner approves the wording. Until the owner approves, move the documentation edits to a branch `claude/docs-<topic>` off main. Open a draft pull request for that branch titled `Docs held: <topic>`. Link the edits' calls in the pull request's body. Merge the code on the session's working branch without waiting for those calls. Approval covers each file that [`governing-docs.py`](https://github.com/mehrlander/web-tools/blob/main/skills/hooks/governing-docs.py) counts as documentation.
