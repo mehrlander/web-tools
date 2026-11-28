@@ -29,6 +29,12 @@
   output's tab, in a disc on its top-left corner that takes no room in the
   line; the card's own are tinted primary, the others quieter, and a tap on
   one goes to it. A passage and its tab light together (rule 16).
+
+  As versions, a run's card is a row of tabs over one pane: an output to a
+  tab, first and open, its picture (a sketch or an image) over its words, and
+  the run's own input on the last tab; a tap on a picture opens every
+  run's pictures as a deck, full size. A payload's shared input leads the list
+  and the strip as a card of its own.
 -->
 <script type="module">
   const use = new URLSearchParams(location.search).get('use');
@@ -150,8 +156,29 @@
 
   // Offsets arrive in code points; a JS string counts UTF-16 units.
   const u16 = (t, cp) => { let i = 0; for (let n = 0; n < cp && i < t.length; n++) i += t.codePointAt(i) > 0xffff ? 2 : 1; return i; };
+  // An output's picture, by the idea board's rules (docs/idea-board.md,
+  // "Sketches"): an SVG sketch is drawn as an image, so it runs no script; an
+  // HTML one is drawn inline once it loses script, event attributes and
+  // javascript: links; an image is its URL.
+  const svgSrc = s => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(/xmlns=/.test(s) ? s : String(s).replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"'));
+  const clean = html => {
+    const d = new DOMParser().parseFromString(html, 'text/html');
+    d.querySelectorAll('script,iframe,object,embed').forEach(e => e.remove());
+    d.querySelectorAll('*').forEach(e => [...e.attributes].forEach(a => (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) && e.removeAttribute(a.name)));
+    return d.body.innerHTML;
+  };
+  const pictureOf = o => typeof o.sketch === 'string' && o.sketch.trim()
+    ? (/^\s*(<\?xml[^>]*>\s*)?<svg/i.test(o.sketch) ? { src: svgSrc(o.sketch) } : { html: clean(o.sketch) })
+    : typeof o.image === 'string' && o.image.trim() ? { src: o.image.trim() } : null;
   function adopt(p) {
+    // Versions: no output rests on a passage, so each is a whole text, such
+    // as a rewrite of its input, and the card shows them side by side.
+    p.versions = p.runs.every(r => r.outputs.every(o => !o.anchor && !o.anchors?.length));
     for (const r of p.runs) {
+      // A run's own input is optional. As versions the shared one stands
+      // alone; with passages, a run without its own rests on the shared one.
+      r.source ||= (!p.versions && p.source) || { blocks: [] };
+      for (const o of r.outputs) o.picture = pictureOf(o);
       r.blockOf = Object.fromEntries(r.source.blocks.map(b => [b.id, b]));
       const order = Object.fromEntries(r.source.blocks.map((b, i) => [b.id, i]));
       for (const o of r.outputs) {
@@ -179,9 +206,6 @@
     p.tagCh = Math.max(0, ...p.runs.flatMap(r => r.outputs.map(o => (p.tagOf[o.tag]?.label || o.tag || '').length)));
     // Whether any output has flair, which then shares the note's row.
     p.flairy = p.runs.some(r => r.outputs.some(o => o.flair?.length));
-    // Versions: no output rests on a passage, so each is a whole text, such
-    // as a rewrite of its input, and the card shows them side by side.
-    p.versions = p.runs.every(r => r.outputs.every(o => !o.anchor && !o.anchors?.length));
     return p;
   }
 
@@ -235,6 +259,10 @@
   // ── drawing ─────────────────────────────────────────────────────────────
   const P = S.p;
   const runs = () => P.runs;
+  // The shared input, as versions, is a row and a card of its own, first.
+  const SHARED = '#source';
+  const shared = !!(P?.versions && P.source?.blocks?.length);
+  const ids = () => [...(shared ? [SHARED] : []), ...runs().map(r => r.id)];
   const runOf = id => P.runs.find(r => r.id === id);
   const outOf = (run, out) => runOf(run)?.outputs.find(o => o.id === out) || null;
   const tone = v => TONE[P.verdictOf[v]?.tone] || TONE.neutral;
@@ -252,7 +280,12 @@
   // nothing counts what is judged.
   const judged = !!P?.verdicts?.length;
   const doneOf = r => r.outputs.filter(o => stateOf(keyOf(r.id, o.id)).verdict).length;
-  const countOf = r => doneOf(r) + '/' + r.outputs.length;
+  // How many outputs have a verdict, of how many: a check and n/m, quiet
+  // while none has one, green once all have (rules 9 and 18).
+  const countCls = (n, m) => 'inline-flex shrink-0 items-center gap-1 font-mono text-xs tabular-nums '
+    + (!n ? 'text-base-content/35' : n === m ? 'text-success' : 'text-base-content/70');
+  const countHTML = (n, m) => `<i class="${n && n === m ? 'ph-fill' : 'ph'} ph-check-circle text-sm"></i><span>${n}/${m}</span>`;
+  const countTip = (n, m) => `${n} of ${m} outputs have a verdict`;
   const noted = (run, out) => !!stateOf(keyOf(run, out)).note?.trim();
   let swiper = null;
 
@@ -265,11 +298,14 @@
   // title (its meta in the tip), its outputs' tabs (the kit draws them in
   // data-ls-tabs) and, with verdicts, how many have one.
   function rowHTML(r) {
+    if (r === SHARED) return `<div role="option" tabindex="-1" data-run="${SHARED}" aria-selected="false"
+      class="flex min-h-9 cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-0.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
+      <i class="ph ph-file-text shrink-0 text-base-content/60"></i><span class="min-w-0 flex-1 truncate font-medium" data-title-tip="${esc(P.source.blocks.map(b => b.label || b.id).join(' · '))}">Shared input</span></div>`;
     const tip = [r.title, r.meta].filter(Boolean).join(' · ');
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
       class="flex min-h-9 cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-0.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
       <span class="min-w-0 flex-1 truncate font-medium" data-title-tip="${esc(tip)}">${esc(r.title)}</span><span data-ls-tabs></span>
-      ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div>`;
+      ${judged ? `<span data-count data-title-tip="${countTip(doneOf(r), r.outputs.length)}" class="min-w-[8ch] justify-end ${countCls(doneOf(r), r.outputs.length)}">${countHTML(doneOf(r), r.outputs.length)}</span>` : ''}</div>`;
   }
 
   // The tag starts the statement's first line, so a narrow panel's wrapped
@@ -422,28 +458,98 @@
     });
   }
 
-  // A run as versions: its input first, then each output a card, side by
-  // side where the card is wide enough, its verdict and note at its foot
-  // (rule 15). Two items the reader compares share a row (the comparison).
-  function versionsHTML(r, big) {
-    const src = r.source.blocks.map(b => `<section class="rounded-lg bg-base-300/40 px-3.5 py-2.5">
+  // An input's blocks, each its label over its words.
+  const blocksHTML = bs => bs.map(b => `<section class="rounded-lg bg-base-300/40 px-3.5 py-2.5">
         <p class="text-xs font-medium text-base-content/60">${esc(b.label || b.id)}</p>
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(b.text)}</p></section>`).join('');
-    const cols = r.outputs.length > 2 ? '@4xl:grid-cols-3' : r.outputs.length > 1 ? '@3xl:grid-cols-2' : '';
-    const cards = r.outputs.map((o, i) => `<article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}"
-        class="flex min-w-0 flex-col gap-2 rounded-lg border border-base-300 bg-base-100 px-3.5 py-2.5">
-        <p class="flex items-baseline gap-2"><span class="font-semibold">${esc(o.title || 'Output ' + (i + 1))}</span>
+  // The foot clears the corner button, so the last card's note is reachable.
+  const scrollHTML = (scope, big, inner) => `<div data-scope="${esc(scope)}" class="@container h-full min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-2.5 pb-20 [scrollbar-gutter:stable] ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
+      <div class="flex flex-col gap-3">${inner}</div></div>`;
+  // An output's picture at the card's width, on white as an image draws, a
+  // tall one capped so its words stay near; in the deck (full) at the
+  // slide's width, uncapped.
+  function pictureHTML(r, o, full) {
+    const p = o.picture, alt = esc(`${o.title || 'Output ' + (r.outputs.indexOf(o) + 1)}: ${r.title}`);
+    if (!p) return '';
+    const body = p.src
+      ? `<img src="${esc(p.src)}" alt="${alt}" class="block h-auto w-full ${full ? '' : 'max-h-[70dvh] object-contain'}">`
+      : `<div class="overflow-auto ${full ? '' : 'max-h-[70dvh]'}">${p.html}</div>`;
+    if (full) return `<div class="rounded-lg border border-base-300 bg-white p-2">${body}</div>`;
+    return `<button type="button" data-picture="${esc(keyOf(r.id, o.id))}" aria-label="Open ${alt} full size"
+        class="group relative block w-full cursor-pointer rounded-lg border border-base-300 bg-white p-2 text-left hover:border-primary">${body}
+        <i class="ph ph-arrows-out absolute top-1.5 right-1.5 rounded-sm bg-base-100/90 p-0.5 text-base-content/60 group-hover:text-primary"></i></button>`;
+  }
+  // A run as versions: one tab row over one pane, as the session page's
+  // body is (session-brief.js). Each output is a tab, numbered as the list
+  // counts it and named by its title, and the run's own input is the last
+  // tab; the first output is open. An output's pane is its picture, then its
+  // words, then its verdict and note at its foot (rule 15). A run with one
+  // tab has no row.
+  const vtab = new Map();
+  const INPUT_TAB = '#input';
+  const vtabOf = r => { const t = vtab.get(r.id); return t === INPUT_TAB && r.source.blocks.length || r.outputs.some(o => o.id === t) ? t : r.outputs[0]?.id ?? INPUT_TAB; };
+  // A tab's number, filled in its output's verdict's tone, as the list's is.
+  const vnumCls = (run, out) => {
+    const v = stateOf(keyOf(run, out)).verdict;
+    return 'rounded-sm px-1 font-mono tabular-nums ' + (v ? tone(v).mark : 'bg-base-content/10');
+  };
+  function versionsHTML(r, big) {
+    const on = vtabOf(r), hasIn = r.source.blocks.length > 0;
+    const tabs = [...r.outputs.map((o, i) => ({ id: o.id, label: o.title || 'Output ' + (i + 1), n: i + 1 })),
+      ...(hasIn ? [{ id: INPUT_TAB, label: 'Input', icon: 'ph-file-text' }] : [])];
+    const bar = tabs.length < 2 ? '' : `<div class="flex-none px-3 pt-2.5"><div role="tablist" aria-label="${esc(r.title)}"
+        class="tabs tabs-box tabs-xs pointer-coarse:tabs-sm flex-nowrap bg-base-200 p-0.5 min-w-0 max-w-full w-fit overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      ${tabs.map(t => `<button type="button" role="tab" data-vtab="${esc(t.id)}" aria-selected="${t.id === on}"
+          class="tab flex-nowrap gap-1.5 whitespace-nowrap ${t.id === on ? 'tab-active' : ''}">${t.n
+          ? `<span data-vnum="${esc(keyOf(r.id, t.id))}" class="${vnumCls(r.id, t.id)}">${t.n}</span>` : `<i class="ph ${t.icon}"></i>`}<span class="max-w-[16rem] truncate max-sm:max-w-[5.5rem]">${esc(t.label)}</span></button>`).join('')}
+    </div></div>`;
+    const panes = r.outputs.map((o, i) => `<article data-vpane="${esc(o.id)}" data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}"
+        class="flex min-w-0 flex-col gap-2${o.id === on ? '' : ' hidden'}">
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-semibold">${esc(o.title || 'Output ' + (i + 1))}</span>
           <span class="font-mono text-xs tabular-nums text-base-content/50">${o.text.length.toLocaleString()} characters</span></p>
-        <p class="flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(o.text)}</p>
-        ${controls(r, o, false)}</article>`).join('');
-    // The foot clears the corner button, so the last card's note is reachable.
-    return `<div data-scope="${esc(r.id)}" class="@container h-full min-h-0 overflow-y-auto overscroll-contain px-3 pt-2.5 pb-20 [scrollbar-gutter:stable] ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
-      <div class="flex flex-col gap-3">${src}<div class="grid gap-3 ${cols}">${cards}</div></div></div>`;
+        ${pictureHTML(r, o, false)}
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(o.text)}</p>
+        ${controls(r, o, false)}</article>`).join('')
+      + (hasIn ? `<div data-vpane="${INPUT_TAB}" class="flex flex-col gap-3${on === INPUT_TAB ? '' : ' hidden'}">${blocksHTML(r.source.blocks)}</div>` : '');
+    return `<div data-vrun="${esc(r.id)}" class="flex h-full min-h-0 flex-col">${bar}${scrollHTML(r.id, big, panes)}</div>`;
+  }
+  // A tab opens its pane at its top, in every card that shows the run.
+  function pickVtab(t) {
+    const run = t.closest('[data-vrun]')?.dataset.vrun, id = t.dataset.vtab;
+    if (!run) return;
+    vtab.set(run, id);
+    for (const card of document.querySelectorAll(`[data-vrun="${CSS.escape(run)}"]`)) {
+      for (const b of card.querySelectorAll('[data-vtab]')) {
+        const on = b.dataset.vtab === id;
+        b.classList.toggle('tab-active', on); b.setAttribute('aria-selected', String(on));
+      }
+      for (const p of card.querySelectorAll('[data-vpane]')) p.classList.toggle('hidden', p.dataset.vpane !== id);
+      const sc = card.querySelector('[data-scope]');
+      if (sc) sc.scrollTop = 0;
+    }
+  }
+
+  // Every run's pictures as one deck, run by run, at the one tapped, each
+  // over its words; over an open deck it is a level down.
+  function openPictures(key) {
+    const all = P.runs.flatMap(r => r.outputs.filter(o => o.picture).map(o => ({ r, o })));
+    const start = Math.max(0, all.findIndex(x => keyOf(x.r.id, x.o.id) === key));
+    const named = ({ r, o }) => ({ title: r.title, subtitle: o.title || 'Output ' + (r.outputs.indexOf(o) + 1) });
+    const top = swipeDeck.top();
+    const opts = {
+      count: all.length, start, ...named(all[start]), icon: 'ph-image', innerClass: 'w-full min-w-0',
+      index: i => ({ ...named(all[i]), group: all[i].r.id }),
+      render: (i, slide) => {
+        const { r, o } = all[i];
+        slide.innerHTML = `<div class="flex flex-col gap-3 text-xl leading-8">${pictureHTML(r, o, true)}<p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(o.text)}</p></div>`;
+      },
+    };
+    return top ? swipeDeck.drill(top, opts) : swipeDeck.open(opts);
   }
 
   // A card already showing the run keeps its input where it was and glides.
   function fill(el, r, o, big) {
-    if (P.versions) { el.innerHTML = versionsHTML(r, big); return; }
+    if (P.versions) { el.innerHTML = r ? versionsHTML(r, big) : scrollHTML(SHARED, big, blocksHTML(P.source.blocks)); return; }
     const was = el.querySelector(':scope > [data-scope]');
     const y = was?.dataset.scope === r.id ? was.querySelector('[data-pane="in"]').scrollTop : null;
     el.innerHTML = cardHTML(r, o, big);
@@ -504,7 +610,11 @@
     for (const b of document.querySelectorAll(`mark[data-run="${CSS.escape(run)}"] [data-badge="${CSS.escape(out)}"]`))
       b.className = BADGE + ' ' + badgeTone(run, out, b.closest('[data-flag]')?.dataset.flag === out, b.dataset.role);
     const count = $('list')?.querySelector(`[data-run="${CSS.escape(run)}"] [data-count]`);
-    if (count) count.textContent = countOf(runOf(run));
+    if (count) {
+      const n = doneOf(runOf(run)), m = runOf(run).outputs.length;
+      count.className = 'min-w-[8ch] justify-end ' + countCls(n, m); count.innerHTML = countHTML(n, m); count.dataset.titleTip = countTip(n, m);
+    }
+    for (const b of document.querySelectorAll(`[data-vnum="${CSS.escape(k)}"]`)) b.className = vnumCls(run, out);
     swiper?.tabs(run);
   }
 
@@ -561,7 +671,7 @@
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <i class="ph ph-list-checks shrink-0 text-xl text-primary"></i>
         <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Inspection')}">${esc(P.title || 'Inspection')}</h1>
-        ${judged ? `<span class="min-w-[7ch] shrink-0 font-mono text-xs tabular-nums text-base-content/60">${done}/${total}</span>` : ''}
+        ${judged ? `<span data-title-tip="${countTip(done, total)}" class="min-w-[10ch] ${countCls(done, total)}">${countHTML(done, total)}</span>` : ''}
       </div>
       <div class="flex min-w-0 items-center gap-2">${status}
         ${S.target ? `<button type="button" id="save" class="btn btn-sm btn-primary min-w-[6.5rem] shrink-0 gap-1" ${n && !S.saving ? '' : 'disabled'}>
@@ -581,13 +691,14 @@
     $('root').innerHTML = `<div id="panes"><div id="list" role="listbox" aria-label="Runs" class="[scrollbar-gutter:stable]"></div><div id="card"></div></div>
       ${P.versions ? '' : `<section id="out" aria-label="Output" class="@container flex-none rounded-lg border border-base-300 bg-base-100 px-3.5 py-2"></section>`}`;
     const list = $('list');
-    list.innerHTML = runs().map(rowHTML).join('');
-    let sel = (() => { const h = window.UrlParams.get('run'); return runOf(h) ? h : runs()[0]?.id; })();
+    list.innerHTML = ids().map(id => rowHTML(id === SHARED ? id : runOf(id))).join('');
+    let sel = (() => { const h = window.UrlParams.get('run'); return runOf(h) ? h : ids()[0]; })();
     let selOut = null, deck = null;
 
     // The deck holds the strip's cards, in the strip's order.
     const named = c => {
       const r = runOf(c.id);
+      if (!r) return { title: 'Shared input', subtitle: '' };
       return { title: r.title, subtitle: [c.n > 1 ? `output ${c.j + 1} of ${c.n}` : '', r.meta].filter(Boolean).join(' · ') };
     };
     const openDeck = () => {
@@ -617,7 +728,7 @@
 
     swiper = linkedSwiper.attach({
       root: $('panes'), list, card: $('card'), key: 'run', noun: 'output', subNoun: 'output',
-      ids: () => runs().map(r => r.id), sel: () => sel,
+      ids, sel: () => sel,
       // Versions show every output on the run's card: no tabs, no places.
       ...(P.versions ? {} : { subs: id => runOf(id).outputs.map(o => o.id), selSub: () => selOut, places: true }),
       // A tab: filled in its verdict's tone where the payload has verdicts,
@@ -636,7 +747,7 @@
       // keeps the room its outputs share.
       wide: P.versions ? 'grid-cols-[minmax(0,280px)_minmax(0,1fr)]' : judged ? 'grid-cols-[minmax(0,380px)_minmax(0,1fr)]' : 'grid-cols-[minmax(0,340px)_minmax(0,1fr)]',
       listMax: 'max-h-[40dvh]', slideScroll: false, innerClass: 'h-full w-full min-w-0',
-      name: id => ({ title: runOf(id).title }),
+      name: id => ({ title: runOf(id)?.title || 'Shared input' }),
       body: (id, el, out) => fill(el, runOf(id), outOf(id, out), false),
       onPick: (id, via, out) => { sel = id; selOut = out ?? null; paintOut(sel, selOut); },
       deck: openDeck,
@@ -645,6 +756,10 @@
 
     document.addEventListener('click', e => {
       if (e.target.closest('#save')) return save();
+      const pic = e.target.closest('[data-picture]');
+      if (pic) return openPictures(pic.dataset.picture);
+      const vt = e.target.closest('[data-vtab]');
+      if (vt) return pickVtab(vt);
       const f = e.target.closest('[data-fold]');
       if (f) return openFold(f);
       const v = e.target.closest('[data-verdict]'), item = e.target.closest('[data-item]');
