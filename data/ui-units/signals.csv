@@ -148,7 +148,7 @@ web-tools:pages/drop/word-frequencies.html,web-tools,205,0,0,0,0,0,0,0,0,0,0,0,0
 web-tools:pages/entities.html,web-tools,418,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,1,0,look,,,
 web-tools:pages/gist-editor.html,web-tools,242,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,,,,
 web-tools:pages/guides/code-layers.html,web-tools,672,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,1,2,1,0,branch-brief;branch-status;brief;chat-render;cm6;cm6-merge;compression;console;data-payload;data-shelf;export;github-links;io;messaging;pdf;persistence;portable-align;proof;repo-activity-cache;repo-address;repo-checks;repo-config-cache;repo-proposals;repo-sessions-cache;review-target;shorter-payload;source-peek;surface;swipe-deck;text-diff;traffic;treemap;url-params;vanilla-demo;wring;wsl;wsl-core;xlsx,,,
-web-tools:pages/idea-board.html,web-tools,475,1,1,0,0,0,0,0,0,0,0,0,3,0,0,0,0,0,1,5,call-marks;dictate;gz-payload;io;swipe-deck;title-tip,,,
+web-tools:pages/idea-board.html,web-tools,37,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,,,,
 web-tools:pages/image-board.html,web-tools,339,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,4,repo-address;title-tip,,,
 web-tools:pages/index.html,web-tools,1263,0,0,0,0,0,0,0,0,0,0,5,0,0,0,0,0,0,2,0,wring,,,
 web-tools:pages/inquiry.html,web-tools,261,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,annotate;gz-payload,,,
