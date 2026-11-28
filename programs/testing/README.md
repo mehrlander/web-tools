@@ -7,18 +7,19 @@ Testing checks that the owner's code and data do what they claim, with evidence 
 | Area | Covers |
 | --- | --- |
 | Suite | what the tests are and what each protects, starting from web-tools' [`node/test/`](../../node/test/) and its registries [`docs/tests.csv`](../../docs/tests.csv) and [`docs/tests-authored.csv`](../../docs/tests-authored.csv), shown in the Map view's [Tests tab](https://mehrlander.github.io/web-tools/app/?view=map&tab=tests) |
-| Venues | which checks run in which [venue](../../docs/machines.md), such as GitHub's runners, the Home laptop and Anthropic's cloud; who starts each check and why; and whether one check runs in more than one venue |
+| Venues | which checks run in which [venue](../../docs/machines.md), such as GitHub's runners, the Lenovo laptop and Anthropic's cloud; who starts each check and why; and whether one check runs in more than one venue |
 
 ## Processes
 
-A process is a recurring question or duty the program answers for. A session hands one to the program's manager, an agent briefed by [`manager.md`](manager.md).
+A process is a recurring question or duty the program answers for; [`manager.md`](manager.md) says how the manager answers each one.
 
 The program owns checking procedures and assesses whether the checks provide the required evidence. Development sessions supply intended behavior and changed paths, then apply the program's procedures.
 
 | Process | Starts when |
 | --- | --- |
 | Pull request checks | the owner or a session asks why a pull request lacks a green check, failed a check, or ran in one venue and not another |
-| Coverage | the owner or a session asks which automated checks guard a file, page, kit or component, and where each check runs |
+| Main status | the owner or a session asks whether main is green, or what is failing on it |
+| Coverage | the owner or a session asks which automated checks guard a file, page, kit or component, or where a named check runs |
 | Cost and selection | a change needs a checking plan, or observations need review for checking cost and missed failures |
 
 ## Measures
