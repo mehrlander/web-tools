@@ -30,8 +30,9 @@
   line; the card's own are tinted primary, the others quieter, and a tap on
   one goes to it. A passage and its tab light together (rule 16).
 
-  As versions, a run's card holds its outputs side by side, each output's
-  picture (a sketch or an image) over its words; a tap on a picture opens every
+  As versions, a run's card is a row of tabs over one pane: an output to a
+  tab, first and open, its picture (a sketch or an image) over its words, and
+  the run's own input on the last tab; a tap on a picture opens every
   run's pictures as a deck, full size. A payload's shared input leads the list
   and the strip as a card of its own.
 -->
@@ -279,7 +280,12 @@
   // nothing counts what is judged.
   const judged = !!P?.verdicts?.length;
   const doneOf = r => r.outputs.filter(o => stateOf(keyOf(r.id, o.id)).verdict).length;
-  const countOf = r => doneOf(r) + '/' + r.outputs.length;
+  // How many outputs have a verdict, of how many: a check and n/m, quiet
+  // while none has one, green once all have (rules 9 and 18).
+  const countCls = (n, m) => 'inline-flex shrink-0 items-center gap-1 font-mono text-xs tabular-nums '
+    + (!n ? 'text-base-content/35' : n === m ? 'text-success' : 'text-base-content/70');
+  const countHTML = (n, m) => `<i class="${n && n === m ? 'ph-fill' : 'ph'} ph-check-circle text-sm"></i><span>${n}/${m}</span>`;
+  const countTip = (n, m) => `${n} of ${m} outputs have a verdict`;
   const noted = (run, out) => !!stateOf(keyOf(run, out)).note?.trim();
   let swiper = null;
 
@@ -299,7 +305,7 @@
     return `<div role="option" tabindex="-1" data-run="${esc(r.id)}" aria-selected="false"
       class="flex min-h-9 cursor-pointer items-center gap-2 border-b border-base-200 px-2.5 py-0.5 outline-none hover:bg-base-200 focus-visible:outline-2 focus-visible:outline-[var(--color-primary)] aria-selected:bg-primary/10">
       <span class="min-w-0 flex-1 truncate font-medium" data-title-tip="${esc(tip)}">${esc(r.title)}</span><span data-ls-tabs></span>
-      ${judged ? `<span data-count class="min-w-[5ch] shrink-0 text-right font-mono text-xs tabular-nums text-base-content/60">${countOf(r)}</span>` : ''}</div>`;
+      ${judged ? `<span data-count data-title-tip="${countTip(doneOf(r), r.outputs.length)}" class="min-w-[8ch] justify-end ${countCls(doneOf(r), r.outputs.length)}">${countHTML(doneOf(r), r.outputs.length)}</span>` : ''}</div>`;
   }
 
   // The tag starts the statement's first line, so a narrow panel's wrapped
@@ -452,14 +458,12 @@
     });
   }
 
-  // A run as versions: its input first, then each output a card, side by
-  // side where the card is wide enough, its verdict and note at its foot
-  // (rule 15). Two items the reader compares share a row (the comparison).
+  // An input's blocks, each its label over its words.
   const blocksHTML = bs => bs.map(b => `<section class="rounded-lg bg-base-300/40 px-3.5 py-2.5">
         <p class="text-xs font-medium text-base-content/60">${esc(b.label || b.id)}</p>
         <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(b.text)}</p></section>`).join('');
   // The foot clears the corner button, so the last card's note is reachable.
-  const scrollHTML = (scope, big, inner) => `<div data-scope="${esc(scope)}" class="@container h-full min-h-0 overflow-y-auto overscroll-contain px-3 pt-2.5 pb-20 [scrollbar-gutter:stable] ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
+  const scrollHTML = (scope, big, inner) => `<div data-scope="${esc(scope)}" class="@container h-full min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pt-2.5 pb-20 [scrollbar-gutter:stable] ${big ? 'text-xl leading-8' : 'text-base leading-7'}">
       <div class="flex flex-col gap-3">${inner}</div></div>`;
   // An output's picture at the card's width, on white as an image draws, a
   // tall one capped so its words stay near; in the deck (full) at the
@@ -475,17 +479,54 @@
         class="group relative block w-full cursor-pointer rounded-lg border border-base-300 bg-white p-2 text-left hover:border-primary">${body}
         <i class="ph ph-arrows-out absolute top-1.5 right-1.5 rounded-sm bg-base-100/90 p-0.5 text-base-content/60 group-hover:text-primary"></i></button>`;
   }
+  // A run as versions: one tab row over one pane, as the session page's
+  // body is (session-brief.js). Each output is a tab, numbered as the list
+  // counts it and named by its title, and the run's own input is the last
+  // tab; the first output is open. An output's pane is its picture, then its
+  // words, then its verdict and note at its foot (rule 15). A run with one
+  // tab has no row.
+  const vtab = new Map();
+  const INPUT_TAB = '#input';
+  const vtabOf = r => { const t = vtab.get(r.id); return t === INPUT_TAB && r.source.blocks.length || r.outputs.some(o => o.id === t) ? t : r.outputs[0]?.id ?? INPUT_TAB; };
+  // A tab's number, filled in its output's verdict's tone, as the list's is.
+  const vnumCls = (run, out) => {
+    const v = stateOf(keyOf(run, out)).verdict;
+    return 'rounded-sm px-1 font-mono tabular-nums ' + (v ? tone(v).mark : 'bg-base-content/10');
+  };
   function versionsHTML(r, big) {
-    // Pictures want the room: at most two cards to a row where any has one.
-    const cols = r.outputs.length > 2 && !r.outputs.some(o => o.picture) ? '@4xl:grid-cols-3' : r.outputs.length > 1 ? '@3xl:grid-cols-2' : '';
-    const cards = r.outputs.map((o, i) => `<article data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}"
-        class="flex min-w-0 flex-col gap-2 rounded-lg border border-base-300 bg-base-100 px-3.5 py-2.5">
-        <p class="flex items-baseline gap-2"><span class="font-semibold">${esc(o.title || 'Output ' + (i + 1))}</span>
+    const on = vtabOf(r), hasIn = r.source.blocks.length > 0;
+    const tabs = [...r.outputs.map((o, i) => ({ id: o.id, label: o.title || 'Output ' + (i + 1), n: i + 1 })),
+      ...(hasIn ? [{ id: INPUT_TAB, label: 'Input', icon: 'ph-file-text' }] : [])];
+    const bar = tabs.length < 2 ? '' : `<div class="flex-none px-3 pt-2.5"><div role="tablist" aria-label="${esc(r.title)}"
+        class="tabs tabs-box tabs-xs pointer-coarse:tabs-sm flex-nowrap bg-base-200 p-0.5 min-w-0 max-w-full w-fit overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      ${tabs.map(t => `<button type="button" role="tab" data-vtab="${esc(t.id)}" aria-selected="${t.id === on}"
+          class="tab flex-nowrap gap-1.5 whitespace-nowrap ${t.id === on ? 'tab-active' : ''}">${t.n
+          ? `<span data-vnum="${esc(keyOf(r.id, t.id))}" class="${vnumCls(r.id, t.id)}">${t.n}</span>` : `<i class="ph ${t.icon}"></i>`}<span class="max-w-[16rem] truncate max-sm:max-w-[5.5rem]">${esc(t.label)}</span></button>`).join('')}
+    </div></div>`;
+    const panes = r.outputs.map((o, i) => `<article data-vpane="${esc(o.id)}" data-item="${esc(keyOf(r.id, o.id))}" data-out="${esc(o.id)}"
+        class="flex min-w-0 flex-col gap-2${o.id === on ? '' : ' hidden'}">
+        <p class="flex flex-wrap items-baseline gap-x-2"><span class="font-semibold">${esc(o.title || 'Output ' + (i + 1))}</span>
           <span class="font-mono text-xs tabular-nums text-base-content/50">${o.text.length.toLocaleString()} characters</span></p>
         ${pictureHTML(r, o, false)}
-        <p class="flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(o.text)}</p>
-        ${controls(r, o, false)}</article>`).join('');
-    return scrollHTML(r.id, big, `${blocksHTML(r.source.blocks)}<div class="grid gap-3 ${cols}">${cards}</div>`);
+        <p class="whitespace-pre-wrap [overflow-wrap:anywhere]">${esc(o.text)}</p>
+        ${controls(r, o, false)}</article>`).join('')
+      + (hasIn ? `<div data-vpane="${INPUT_TAB}" class="flex flex-col gap-3${on === INPUT_TAB ? '' : ' hidden'}">${blocksHTML(r.source.blocks)}</div>` : '');
+    return `<div data-vrun="${esc(r.id)}" class="flex h-full min-h-0 flex-col">${bar}${scrollHTML(r.id, big, panes)}</div>`;
+  }
+  // A tab opens its pane at its top, in every card that shows the run.
+  function pickVtab(t) {
+    const run = t.closest('[data-vrun]')?.dataset.vrun, id = t.dataset.vtab;
+    if (!run) return;
+    vtab.set(run, id);
+    for (const card of document.querySelectorAll(`[data-vrun="${CSS.escape(run)}"]`)) {
+      for (const b of card.querySelectorAll('[data-vtab]')) {
+        const on = b.dataset.vtab === id;
+        b.classList.toggle('tab-active', on); b.setAttribute('aria-selected', String(on));
+      }
+      for (const p of card.querySelectorAll('[data-vpane]')) p.classList.toggle('hidden', p.dataset.vpane !== id);
+      const sc = card.querySelector('[data-scope]');
+      if (sc) sc.scrollTop = 0;
+    }
   }
 
   // Every run's pictures as one deck, run by run, at the one tapped, each
@@ -569,7 +610,11 @@
     for (const b of document.querySelectorAll(`mark[data-run="${CSS.escape(run)}"] [data-badge="${CSS.escape(out)}"]`))
       b.className = BADGE + ' ' + badgeTone(run, out, b.closest('[data-flag]')?.dataset.flag === out, b.dataset.role);
     const count = $('list')?.querySelector(`[data-run="${CSS.escape(run)}"] [data-count]`);
-    if (count) count.textContent = countOf(runOf(run));
+    if (count) {
+      const n = doneOf(runOf(run)), m = runOf(run).outputs.length;
+      count.className = 'min-w-[8ch] justify-end ' + countCls(n, m); count.innerHTML = countHTML(n, m); count.dataset.titleTip = countTip(n, m);
+    }
+    for (const b of document.querySelectorAll(`[data-vnum="${CSS.escape(k)}"]`)) b.className = vnumCls(run, out);
     swiper?.tabs(run);
   }
 
@@ -626,7 +671,7 @@
       <div class="flex min-w-0 flex-1 items-center gap-2">
         <i class="ph ph-list-checks shrink-0 text-xl text-primary"></i>
         <h1 class="line-clamp-2 min-w-0 text-lg leading-snug font-semibold" data-title-tip="${esc(P.title || 'Inspection')}">${esc(P.title || 'Inspection')}</h1>
-        ${judged ? `<span class="min-w-[7ch] shrink-0 font-mono text-xs tabular-nums text-base-content/60">${done}/${total}</span>` : ''}
+        ${judged ? `<span data-title-tip="${countTip(done, total)}" class="min-w-[10ch] ${countCls(done, total)}">${countHTML(done, total)}</span>` : ''}
       </div>
       <div class="flex min-w-0 items-center gap-2">${status}
         ${S.target ? `<button type="button" id="save" class="btn btn-sm btn-primary min-w-[6.5rem] shrink-0 gap-1" ${n && !S.saving ? '' : 'disabled'}>
@@ -713,6 +758,8 @@
       if (e.target.closest('#save')) return save();
       const pic = e.target.closest('[data-picture]');
       if (pic) return openPictures(pic.dataset.picture);
+      const vt = e.target.closest('[data-vtab]');
+      if (vt) return pickVtab(vt);
       const f = e.target.closest('[data-fold]');
       if (f) return openFold(f);
       const v = e.target.closest('[data-verdict]'), item = e.target.closest('[data-item]');

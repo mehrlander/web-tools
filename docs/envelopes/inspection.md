@@ -30,7 +30,7 @@ The page reads `#gz=` before `?src=`:
 | `source` | Optional: the input every run shares, such as one brief given to every entrant, shaped as a run's `source` |
 | `runs` | In order |
 
-Without `verdicts`, each output has only a note field.
+Without `verdicts`, each output has only a note field. With them, each row of the run list ends with a check and a count, such as 1/2: how many of the run's outputs have a verdict, of how many. The page's heading counts every run's outputs the same way.
 
 A verdict may also have an `icon`, a Phosphor class such as `ph-check`. Its `tone` is `success`, `error`, `warning`, `info` or `neutral`. The tone colours the verdict's button when chosen. It also colours the tab and the number of each output given that verdict.
 
@@ -51,11 +51,11 @@ An **output** has an `id` unique in its run and a `text`, and may have:
 | `sketch` | A picture: a complete SVG document or an HTML fragment, under the idea board's [sketch rules](../idea-board.md#sketches) |
 | `image` | A picture, in place of `sketch`: a URL or a `data:` URI |
 
-**Versions.** When no output in the payload has an `anchor` or `anchors`, the page shows each run's input first and then its outputs side by side as cards. Each card is headed by its `title`, or by "Output" and its number where it has none. Its verdict and note sit at its foot.
+**Versions.** When no output in the payload has an `anchor` or `anchors`, a run's card is a row of tabs over one pane. Each output has a tab, numbered and named by its `title`, or by "Output" and its number where it has none. The first output's tab is open when the card is shown. An output's pane is headed by its `title`, and its verdict and note sit at its foot.
 
-An output with a `sketch` or an `image` shows that picture at the card's full width, above its `text`, which then serves as commentary on the picture. Tapping the picture opens every picture in the payload, one per screen, full size, in a reader with previous and next controls.
+An output with a `sketch` or an `image` shows that picture at the pane's full width, above its `text`, which then serves as commentary on the picture. Tapping the picture opens every picture in the payload, one per screen, full size, in a reader with previous and next controls.
 
-A shared `source` has its own entry: the first row of the run list and the first card of the strip, the swipeable cards that follow the list's selection. A run's own `source` stays above its outputs. [`pages/demos/inspection-versions.json`](../../pages/demos/inspection-versions.json) is a payload in this shape: one brief given to two methods, and the diagram each method drew.
+A shared `source` has its own entry: the first row of the run list and the first card of the strip, the swipeable cards that follow the list's selection. A run's own `source` is the last tab, named Input, and shows its blocks in order. [`pages/demos/inspection-versions.json`](../../pages/demos/inspection-versions.json) is a payload in this shape: one brief given to two methods, and the diagram each method drew.
 
 ## Answers
 
