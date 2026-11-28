@@ -304,6 +304,11 @@ token:
   left for Claude. Codex files it with `sessions/tools/agent_errand.py --agent
   claude` in web-tools-private, and the session follows the
   [`claude-errands`](../skills/claude-errands/SKILL.md) skill.
+- **`agent-ticket`** (no venue) is the owner's request for a change, which
+  the Gemini daemon, Claude or Codex may take, as `run.args.open_to` allows.
+  The viewer's Submit ticket files one. How a taker works a ticket and hands
+  one back is in web-tools-private
+  [errands/README.md, "Tickets"](https://github.com/mehrlander/web-tools-private/blob/main/errands/README.md#tickets).
 
 A session can also send an errand as a reception link, with no file in
 `errands/requests`: `npm run -s reception-link -- <fn.js> --note "<what is wanted>"`
