@@ -33,7 +33,6 @@
         "./facets",
         "./apple-shortcuts-actions",
         "./sessions",
-        "./find-session",
         "./tend",
         "./notes",
         "./claude-errands",
@@ -91,8 +90,7 @@
         "./agents/source-historian.md",
         "./agents/novice-reader.md",
         "./agents/counterexample-hunter.md",
-        "./agents/closer.md",
-        "./agents/session-finder.md"
+        "./agents/closer.md"
       ],
       "keywords": [
         "conventions",

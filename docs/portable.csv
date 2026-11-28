@@ -1,7 +1,6 @@
 kind,command,path,title,role,use
 skill,/portable:default,skills/default/SKILL.md,default,,plugin
 skill,/portable:sessions,skills/sessions/SKILL.md,sessions,,plugin
-skill,/portable:find-session,skills/find-session/SKILL.md,find-session,,plugin
 skill,/portable:load-skill,skills/load-skill/SKILL.md,load-skill,,plugin
 skill,/portable:web-tools-app,skills/web-tools-app/SKILL.md,web-tools-app,,plugin
 skill,/portable:tree,skills/tree/SKILL.md,tree,,plugin
@@ -88,7 +87,6 @@ agent,,skills/agents/source-historian.md,Source historian,,plugin
 agent,,skills/agents/novice-reader.md,Novice reader,,plugin
 agent,,skills/agents/counterexample-hunter.md,Counterexample hunter,,plugin
 agent,,skills/agents/closer.md,Closer,,plugin
-agent,,skills/agents/session-finder.md,Session finder,,plugin
 dir,,skills,Plugin source,"the portable plugin's source tree: every skill it carries and the hook bundle, also served as static files that load-skill fetches",plugin
 script,,skills/tasks/build-board.py,build-board.py,regenerate a tracker's board.md from task frontmatter; ships inside the plugin,plugin
 script,,skills/in-flight/in-flight.py,in-flight.py,classify a branch estate into live / merged / unrelated / undecidable and reconcile tracker claims against it; ships inside the plugin,plugin

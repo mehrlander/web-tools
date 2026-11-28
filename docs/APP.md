@@ -122,5 +122,5 @@ Use `x-blob` with an `owner/repo[@ref]:path` address for exact files. It derives
 ## Use from a Claude session
 
 - **Browse:** `…/app/?repo=owner/repo`, optionally with `&ref=` or `&view=files&path=<dir>`. The bare app URL opens the estate.
-- **Stage 📨:** create a `#stage=` link using [stage.md](stage.md).
+- **Stage 🗂️:** create a `#stage=` link using [stage.md](stage.md).
 - **Configure:** edit the repo's `.web-tools.json` using [manifest.md](manifest.md).

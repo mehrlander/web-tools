@@ -2,7 +2,7 @@
 name: web-tools-app
 description: >-
   Use the Web Tools app, the hosted page that browses any GitHub repo and
-  moves files between repos: mint a browse link, mint a stage link (the 📨
+  moves files between repos: mint a browse link, mint a stage link (the 🗂️
   #stage= fileset transport), author a repo's .web-tools.json manifest
   (landing, pins, stage.files, stage.targets), or run a cross-repo file
   transfer. Loads docs/APP.md from mehrlander/web-tools. Use when the user
@@ -24,7 +24,7 @@ artifact).
 ## What it enables (before you fetch)
 
 - **Browse link:** `…/app/?repo=owner/repo[&ref=…][&view=files&path=<dir>]`. Public repos need no auth; private repos and branches need the viewer's stored token.
-- **Stage link 📨:** `…/app/#stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3`, a cross-repo fileset to view, copy or download as one bundle, transfer into another repo, or review as a diff. Refs are pointers (content stays behind the viewer's token). The full grammar is in `docs/stage.md`.
+- **Stage link 🗂️:** `…/app/#stage=owner/repo[@ref]:path1,path2;owner2/repo2:path3`, a cross-repo fileset to view, copy or download as one bundle, transfer into another repo, or review as a diff. Refs are pointers (content stays behind the viewer's token). The full grammar is in `docs/stage.md`.
 - **Manifest:** a repo's root `.web-tools.json` (`landing`, `pins`, `stage.files`, `stage.targets`) configures how the app presents it.
 
 ## Who can open a stage link

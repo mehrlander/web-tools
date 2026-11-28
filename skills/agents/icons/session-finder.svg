@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="1.5 1.75 29 29" role="img" aria-label="session-finder agent">
-  <title>session-finder agent</title>
-  <desc>A compass, a ring around a diamond needle, for the agent that finds earlier sessions in the archive. Drawn on the project icons' box and rules (home's projects/*/icon.svg): solid ink in one colour, no strokes, and every gap at least 2.5 units.</desc>
-  <g fill="#0891b2">
-    <path fill-rule="evenodd" d="M16 3 A13 13 0 1 1 15.99 3 Z M16 5.5 A10.5 10.5 0 1 0 16.01 5.5 Z"/>
-    <path d="M16 8.5 L19.4 16 L16 23.5 L12.6 16 Z"/>
-  </g>
-</svg>
