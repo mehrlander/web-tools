@@ -1801,8 +1801,11 @@ def main(argv):
         where = at or "mehrlander/web-tools-private"
         rel = f"{store.path}/{argv[2]}.json"
         board = c.get("board") if isinstance(c.get("board"), dict) else {}
-        page = ("user-call.html#src=" if c.get("kind") != "pick"
-                else "idea-board.html#user-call=" if "ideas" in board else "image-board.html#user-call=")
+        # An idea board opens in the app, in a takeover over the content program.
+        if c.get("kind") == "pick" and "ideas" in board:
+            print("https://mehrlander.github.io/web-tools/app/?view=program&program=content&pick=" + where + ":" + rel)
+            return
+        page = "user-call.html#src=" if c.get("kind") != "pick" else "image-board.html#user-call="
         print("https://mehrlander.github.io/web-tools/pages/" + page + where + ":" + rel)
         return
     if cmd == "add":

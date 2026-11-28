@@ -55,6 +55,8 @@ class GitAuthenticationChecks(unittest.TestCase):
         stack.enter_context(patch.object(repos.shutil, 'which', return_value='fixture-gh'))
         stack.enter_context(patch.object(repos.time, 'monotonic', side_effect=lambda: self.clock))
         stack.enter_context(patch.object(repos, 'run_bounded', side_effect=self.process))
+        # The fixture names Git calls 'git'; repository-process-checks.py covers which binary is chosen.
+        stack.enter_context(patch.object(repos, 'GIT_EXECUTABLE', 'git'))
         stack.enter_context(redirect_stdout(self.output))
         stack.enter_context(redirect_stderr(self.errors))
 

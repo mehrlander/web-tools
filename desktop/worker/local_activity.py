@@ -19,6 +19,8 @@ import time
 
 import lenovo_inventory as inventory
 import local_sessions
+import local_session_store as session_store
+import local_session_collect as session_collect
 import repositories
 
 TARGET = 'state/local-work.json'
@@ -109,7 +111,7 @@ def observe(entry, state, comparisons=None):
             'notice': source.get('notice'), 'state': 'ready' if row['changed'] is not None else 'unavailable'}
 
 
-def build(root, state, profile, legacy=True, limit=1024):
+def build(root, state, profile, legacy=True, limit=1024, durable=False):
     roots = [('repositories', Path(root), 4), ('code', Path(profile) / 'Code', 2)]
     if legacy: roots.append(('threads', Path(profile) / 'Documents/Codex', 5))
     entries, loose, complete = discover(roots)
@@ -120,16 +122,22 @@ def build(root, state, profile, legacy=True, limit=1024):
     with ThreadPoolExecutor(max_workers=8) as pool:
         rows = list(pool.map(lambda e: observe(e, state, comparisons), entries))
     records, coverage = [], []
-    for reader in (local_sessions.codex, local_sessions.gemini):
-        try:
-            found, status = reader(profile, entries, limit)
-            records.extend(found)
-            coverage.append(status)
-        except (sqlite3.Error, OSError, ValueError, TypeError):
-            coverage.append({'provider': reader.__name__, 'state': 'unavailable'})
+    if durable:
+        saved, status = session_collect.collect(profile, entries, state, limit=limit)
+        coverage.append(status)
+        summaries = saved
+    else:
+        for reader in (local_sessions.codex, local_sessions.gemini):
+            try:
+                found, status = reader(profile, entries, limit)
+                records.extend(found)
+                coverage.append(status)
+            except (sqlite3.Error, OSError, ValueError, TypeError):
+                coverage.append({'provider': reader.__name__, 'state': 'unavailable'})
+        summaries = [session_store.summary(p, r) for p, r in records]
     for row in rows:
-        row['sessions'] = [{'id': r['short'], 'provider': r['assistant'], 'title': r['title'], 'ended': r['ended']}
-                           for _, r in records if any(p['checkout'] == row['id'] for p in r['repos'])]
+        row['sessions'] = [{key: r[key] for key in ('id', 'provider', 'title', 'ended')}
+                           for r in summaries if any(p.get('checkout') == row['id'] for p in r.get('repos') or [])]
     # Stashes belong to the shared Git store, not each worktree.
     stores = {}
     for row in rows:
@@ -139,8 +147,7 @@ def build(root, state, profile, legacy=True, limit=1024):
     return {'schema': 1, 'observedAt': stamp(), 'machine': os.environ.get('COMPUTERNAME', 'Lenovo'),
             'coverage': {'complete': complete, 'roots': [r[0] for r in roots], 'sessions': coverage},
             'checkouts': rows, 'stores': list(stores.values()), 'standalone': loose,
-            'sessions': [{'id': r['short'], 'provider': r['assistant'], 'title': r['title'],
-                          'ended': r['ended'], 'capture': r['capture'], 'path': p} for p, r in records]}, records
+            'sessions': summaries}, records
 
 
 def replace_files(repository, base, files):
@@ -230,7 +237,23 @@ def publish(repository, files, branch, subject):
         inventory.git(repository, 'fetch', '--quiet', '--no-tags', '--no-prune', '--no-prune-tags', '--no-recurse-submodules', '--no-auto-maintenance',
                       '--no-write-fetch-head', '--refmap=', 'origin', f'+refs/heads/{branch}:refs/remotes/origin/{branch}')
         base = inventory.text(repository, 'rev-parse', f'refs/remotes/origin/{branch}')
-        tree = replace_files(repository, base, files)
+        candidates = []
+        for path, body in files.items():
+            if path.startswith('sessions/'):
+                value = json.loads(body)
+                if value.get('format') == local_sessions.FORMAT:
+                    if path != local_sessions.record_path(value):
+                        raise ValueError('Candidate path does not match its session identity')
+                    candidates.append((path, value))
+        additions = dict(files)
+        if candidates:
+            # Re-read the fetched tip on every retry, so a concurrent collector
+            # cannot erase evidence published since this pass began.
+            for path, _ in candidates:
+                additions.pop(path)
+            additions.update({path: session_store.encode(record) for path, record in
+                              session_store.reconcile(repository, base, candidates, inventory.git)})
+        tree = replace_files(repository, base, additions)
         if tree == inventory.text(repository, 'rev-parse', base + '^{tree}'): return 'unchanged'
         commit = inventory.text(repository, 'commit-tree', tree, '-p', base,
                                 data=(subject + '\n\nCo-Authored-By: Codex <codex@openai.com>\n').encode())
@@ -242,20 +265,26 @@ def publish(repository, files, branch, subject):
     raise inventory.InventoryError('Publication unavailable; no working files changed')
 
 
-def run(root, state, profile, push=False, legacy=True, limit=1024):
-    snapshot, records = build(root, state, profile, legacy, limit)
-    encode = lambda obj: (json.dumps(obj, ensure_ascii=True, sort_keys=True) + '\n').encode()
+def run(root, state, profile, push=False, legacy=True, limit=32):
+    snapshot, _ = build(root, state, profile, legacy, limit, durable=True)
+    encode = session_store.encode
     # Persist locally before any network operation, so a failed publish can retry.
     state.mkdir(parents=True, exist_ok=True)
     temporary = state / 'local-work.next'
     temporary.write_bytes(encode(snapshot))
     temporary.replace(state / 'local-work.json')
-    result = {'checkouts': len(snapshot['checkouts']), 'sessions': len(records), 'observedAt': snapshot['observedAt']}
+    result = {'checkouts': len(snapshot['checkouts']), 'sessions': len(snapshot['sessions']), 'observedAt': snapshot['observedAt']}
     if push:
         repository = root / 'web-tools-private'
         # Conversations go to the captured store's main, consumed by Sessions.
         # Observation metadata stays with the existing background inventory.
-        if records: result['records'] = publish(repository, {p: encode(r) for p, r in records}, 'main', 'Capture local conversations')
+        published = 0
+        for batch in session_store.pending(state):
+            outcome = publish(repository, {p: encode(r) for p, r, _ in batch}, 'main', 'Capture local conversations')
+            if outcome in ('published', 'unchanged'):
+                session_store.acknowledge(state, batch)
+                published += len(batch)
+        result['records'] = published
         result['snapshot'] = publish(repository, {TARGET: encode(snapshot)}, 'background', 'Observe local work')
     return result
 
@@ -267,7 +296,7 @@ def main():
     parser.add_argument('--profile', type=Path, default=Path.home())
     parser.add_argument('--publish', action='store_true')
     parser.add_argument('--no-legacy', action='store_true')
-    parser.add_argument('--limit', type=int, default=1024)
+    parser.add_argument('--limit', type=int, default=32, help='Threads attempted per pass; durable cursors continue later')
     args = parser.parse_args()
     print(json.dumps(run(args.root, args.state, args.profile, args.publish, not args.no_legacy, max(1, min(args.limit, 1024)))))
 

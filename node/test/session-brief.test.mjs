@@ -428,6 +428,11 @@ test('an empty list says which kind of empty it is', async () => {
   // dimmed files glyph.
   assert.match(mount({ short: 'a', schema: 2 }).filesNote, /predates file-attention capture/);
   assert.match(mount({ short: 'b', schema: 4, files: {} }).filesNote, /No files were opened/);
+  for (const format of ['local-conversation/1', 'local-conversation/2']) {
+    const local = mount({ short: 'local', schema: 2, format, files: {} });
+    assert.equal(local.fileRows.length, 0);
+    assert.equal(local.filesNote, 'No file paths are listed in this local record.');
+  }
 });
 
 test('a host resolver gives a file\'s card a real link to the file', async () => {
