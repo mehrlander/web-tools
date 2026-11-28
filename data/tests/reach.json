@@ -2,8 +2,8 @@
   "schema": "web-tools-test-run/1",
   "source": {
     "repo": "mehrlander/web-tools",
-    "checkout_sha": "eb62ef7cc6f5c31853b6f3298e75bfb1a03501db",
-    "head_sha": "eb62ef7cc6f5c31853b6f3298e75bfb1a03501db",
+    "checkout_sha": "a1ed249a54b9ec32e576b6ef455c13423602d33e",
+    "head_sha": "a1ed249a54b9ec32e576b6ef455c13423602d33e",
     "base_sha": null,
     "dirty": false
   },
@@ -17,7 +17,7 @@
   "mode": "full",
   "complete": true,
   "exit_code": 0,
-  "finished_at": "2026-11-28T07:28:24.329Z",
+  "finished_at": "2026-11-28T07:39:36.950Z",
   "tests": [
     {
       "path": "node/test/acronym-hint.test.mjs",
@@ -15386,6 +15386,7 @@
         "lib/gh-api.js",
         "lib/kits/guide-render.js",
         "lib/kits/md-diff.js",
+        "lib/kits/md-doc.js",
         "lib/kits/swipe-deck.js",
         "lib/kits/traffic.js",
         "node/repo-root.mjs",
