@@ -1,4 +1,4 @@
-// kits/dock-split.js — the drag handle between two panes.
+// kits/drag-splitter.js — the drag handle between two panes.
 //
 // Driven over jsdom with synthetic pointer and key events. What is pinned is
 // the part that is easy to get wrong and invisible when it is: where the
@@ -18,7 +18,7 @@ import path from 'node:path';
 import { makeWindow } from './bootstrap.mjs';
 import { repoRoot } from './bootstrap.mjs';
 
-const src = readFileSync(path.join(repoRoot, 'lib/kits/dock-split.js'), 'utf8');
+const src = readFileSync(path.join(repoRoot, 'lib/kits/drag-splitter.js'), 'utf8');
 
 function mount() {
   const { window } = makeWindow({
@@ -38,7 +38,7 @@ function wire(window, over = {}) {
   const handle = window.document.getElementById('h');
   let pct = 30;
   const seen = { change: [], commit: [] };
-  const ctl = window.dockSplit.attach(handle, {
+  const ctl = window.dragSplitter.attach(handle, {
     axis: 'col', from: 'end',
     bounds: () => BOUNDS,
     value: () => pct,
@@ -119,10 +119,10 @@ test('pointercancel ends the drag as cleanly as pointerup, and clears the docume
   const window = mount();
   const w = wire(window);
   press(window, w.handle, 700);
-  assert.ok(window.document.documentElement.classList.contains('dk-dragging'));
-  assert.ok(window.document.documentElement.classList.contains('dk-dragging-col'));
+  assert.ok(window.document.documentElement.classList.contains('drag-splitter-dragging'));
+  assert.ok(window.document.documentElement.classList.contains('drag-splitter-dragging-col'));
   window.dispatchEvent(new window.Event('pointercancel', { bubbles: true }));
-  assert.ok(!window.document.documentElement.classList.contains('dk-dragging'),
+  assert.ok(!window.document.documentElement.classList.contains('drag-splitter-dragging'),
     'a cancelled drag that leaves the cursor locked reads as a frozen page');
   movePointer(window, 100);
   assert.equal(w.pct, 30, 'and stops tracking');
@@ -163,8 +163,8 @@ test('destroy leaves the handle as it found it', () => {
   const window = mount();
   const w = wire(window);
   w.ctl.destroy();
-  assert.ok(!w.handle.classList.contains('dk-split'));
-  assert.equal(w.handle.querySelector('.dk-readout'), null);
+  assert.ok(!w.handle.classList.contains('drag-splitter'));
+  assert.equal(w.handle.querySelector('.drag-splitter-readout'), null);
   press(window, w.handle, 700);
   movePointer(window, 600);
   assert.equal(w.pct, 30, 'a destroyed splitter drags nothing');

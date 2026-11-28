@@ -17,7 +17,7 @@
     await gh.load('kits/repo-address.js');
     await gh.load('kits/guide-render.js');   // house markdown type for both sides
     await gh.load('kits/swipe-deck.js');     // the strip under linked-swiper
-    await gh.load('kits/dock-split.js');
+    await gh.load('kits/drag-splitter.js');
     await gh.load('kits/linked-swiper.js');  // an edit ladder's steps, a list over a strip
     await gh.load('alpine-bundle.js');
   </script>
@@ -419,7 +419,7 @@
           this.$refs.llist.innerHTML = this.listHtml(ids);
           if (!this._ls) {
             this._ls = linkedSwiper.attach({
-              root: this.$refs.lroot, list: this.$refs.llist, card: this.$refs.lcard, key: 'step',
+              root: this.$refs.lroot, list: this.$refs.llist, detail: this.$refs.lcard, key: 'step',
               ids: () => this.stepIds(), sel: () => this.lsel, noun: 'step', listMax: 'max-h-[22vh]',
               name: id => id === '0' ? { code: this.para || 'passage', title: 'as written' } : { code: 'step ' + this.stepAt(id).i + ' of ' + this.steps.length, title: this.stepTitle(id) },
               body: id => this.cardHtml(id),

@@ -81,6 +81,7 @@
     "test:ask-fill": "node node/test/chat-render-ask-fill.mjs",
     "test:deck-split": "node node/test/deck-split-drag.mjs",
     "test:stage-split": "node node/test/stage-split-drag.mjs",
+    "test:list-split": "node node/test/linked-swiper-split-touch.mjs",
     "test:peek-link": "node node/test/peek-head-link.mjs",
     "test:land": "node node/test/land-geometry.mjs",
     "test:toss-multiparam": "node node/test/toss-multiparam.mjs",

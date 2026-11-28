@@ -16,7 +16,7 @@
   // app's markup and kits are imitated or loaded so each option can be seen
   // and, for D, swiped. Data is read at main, so it shows the tab's data today.
   await import('https://mehrlander.github.io/web-tools/lib/entry.js');
-  for (const k of ['kits/csv.js', 'kits/swipe-deck.js', 'kits/dock-split.js', 'kits/linked-swiper.js']) await gh.load(k);
+  for (const k of ['kits/csv.js', 'kits/swipe-deck.js', 'kits/drag-splitter.js', 'kits/linked-swiper.js']) await gh.load(k);
 
   const SHA = 'main';
   const RAW = p => `https://raw.githubusercontent.com/mehrlander/web-tools/${SHA}/${p}`;

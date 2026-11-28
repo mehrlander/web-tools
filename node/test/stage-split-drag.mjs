@@ -6,7 +6,7 @@
 //
 // Container queries and real pointer hit-testing are the behavior here, so the
 // logic-level stage test cannot establish it. This check drives the built app,
-// moves the seam, verifies persistence, then narrows the viewport and verifies
+// moves the splitter, verifies persistence, then narrows the viewport and verifies
 // that the divider leaves the single-column phone layout.
 
 import http from 'node:http';
@@ -48,7 +48,7 @@ await page.route('**/*', route => {
 
 const geometry = () => page.evaluate(() => {
   const frame = document.querySelector('[x-ref="splitFrame"]');
-  const seam = document.querySelector('[x-ref="splitHandle"]');
+  const splitter = document.querySelector('[x-ref="splitHandle"]');
   const aside = document.querySelector('[x-ref="splitAside"]');
   const out = frame?.firstElementChild;
   const box = el => {
@@ -56,27 +56,27 @@ const geometry = () => page.evaluate(() => {
     return r && { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height };
   };
   return {
-    frame: box(frame), seam: box(seam), aside: box(aside), out: box(out),
-    seamDisplay: seam && getComputedStyle(seam).display,
+    frame: box(frame), splitter: box(splitter), aside: box(aside), out: box(out),
+    splitterDisplay: splitter && getComputedStyle(splitter).display,
     stored: Number(localStorage.getItem('stageAsidePct')) || 0,
-    value: Number(seam?.getAttribute('aria-valuenow')) || 0,
+    value: Number(splitter?.getAttribute('aria-valuenow')) || 0,
   };
 });
 
 try {
   await page.goto(`${origin}/app/index.html?view=stage`, { waitUntil: 'domcontentloaded' });
-  await page.waitForSelector('[x-ref="splitHandle"].dk-split', { timeout: 30000 });
+  await page.waitForSelector('[x-ref="splitHandle"].drag-splitter', { timeout: 30000 });
   await page.waitForTimeout(500);
 
   const before = await geometry();
-  ok('the wide Stage renders two panes and a splitter', before.seamDisplay === 'flex'
-     && before.out.right < before.aside.left, `display ${before.seamDisplay}`);
-  ok('the splitter sits between Out and Staged', before.out.right < before.seam.left
-     && before.seam.right < before.aside.left,
-     `out ${before.out.right}, seam ${before.seam.left}-${before.seam.right}, aside ${before.aside.left}`);
+  ok('the wide Stage renders two panes and a drag-splitter', before.splitterDisplay === 'flex'
+     && before.out.right < before.aside.left, `display ${before.splitterDisplay}`);
+  ok('the drag-splitter sits between Out and Staged', before.out.right < before.splitter.left
+     && before.splitter.right < before.aside.left,
+     `out ${before.out.right}, splitter ${before.splitter.left}-${before.splitter.right}, aside ${before.aside.left}`);
 
-  const seam = await page.$('[x-ref="splitHandle"]');
-  const box = await seam.boundingBox();
+  const splitter = await page.$('[x-ref="splitHandle"]');
+  const box = await splitter.boundingBox();
   await page.mouse.move(box.x + box.width / 2, box.y + Math.min(140, box.height / 2));
   await page.mouse.down();
   await page.mouse.move(box.x - 150, box.y + Math.min(140, box.height / 2), { steps: 12 });
@@ -92,8 +92,8 @@ try {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(250);
   const narrow = await geometry();
-  ok('the splitter leaves the narrow single-column layout', narrow.seamDisplay === 'none',
-     `display ${narrow.seamDisplay}`);
+  ok('the drag-splitter leaves the narrow single-column layout', narrow.splitterDisplay === 'none',
+     `display ${narrow.splitterDisplay}`);
   ok('Staged follows Out in that single column', narrow.aside.top >= narrow.out.bottom,
      `Out bottom ${narrow.out.bottom}, Staged top ${narrow.aside.top}`);
 } finally {
