@@ -26,9 +26,9 @@ A bake-off judges a method by what it produces. It either gives several candidat
 Inputs: the task, the candidates (skills, tools, prompts or processes), and two or more subjects.
 
 1. **Vet every candidate.** Read its files. Report what it installs, which hosts it reaches and what it writes outside its output folder. Run the candidates whose reports raise no concern. Show the owner every report. A candidate left out can then be run at the owner's request.
-2. **Add baselines.** Run a session given no method, and any method Claude already has for the task. A candidate is worth adopting only if it does better than these.
+2. **Add baselines.** Run a session given no method, and any method Claude already has for the task.
 3. **Fix the brief.** Every run gets the same brief, its own folder and no installs beyond what vetting cleared. Each run logs its steps, minutes, tool calls and tokens.
-4. **Choose subjects that differ** in the ways the method's real use will differ. One subject cannot separate a method from a fit to that subject.
+4. **Choose subjects that differ** in the ways the method's real use will differ.
 5. **Grade against the subjects' source material.** One grader agent per subject builds a checklist of facts from that material. It scores each output against the checklist, then ranks the outputs. The grader sees each candidate's name.
 6. **Show everything.** The owner sees, for each candidate, its vetting report, every run's full log and output, and the grader's checklist, scores and reasoning. Use an [`inspection/1`](../../docs/envelopes/inspection.md) payload with one run per candidate and one output per subject. The owner's verdicts and notes then save back for the session to read.
 7. **Recommend.** The write-up gives the method, a results table, the findings and the caveats, such as runs per candidate and the grader's model. It ends with the session's recommendation to adopt or drop each candidate. Where that decision is the owner's, file a [user call](../../skills/user-calls/SKILL.md) carrying the recommendation.
