@@ -243,9 +243,10 @@ function scratch() {
   // `entries` rewrites the transcript whole; null leaves it as it stands. The
   // run is a cloud session's unless `remote` gives the variable another value,
   // or null for unset, whatever machine the suite itself runs on.
-  const run = (entries, payload, remote = 'true') => {
+  const run = (entries, payload, remote = 'true', extra = {}) => {
     if (entries) writeFileSync(transcript, entries.join('\n') + '\n');
-    const env = { ...process.env, TMPDIR: dir, CLAUDE_CODE_REMOTE: remote, OWNER_TZ: ZONE };
+    const env = { ...process.env, TMPDIR: dir, CLAUDE_CODE_REMOTE: remote, OWNER_TZ: ZONE,
+      WEB_TOOLS_PROGRAMS: path.join(dir, 'no-programs.json'), ...extra };
     if (remote === null) delete env.CLAUDE_CODE_REMOTE;
     const done = spawnSync('python3', [HOOK], {
       input: JSON.stringify({ transcript_path: transcript, session_id: SESSION, ...payload }), env, encoding: 'utf8' });
@@ -776,4 +777,17 @@ test('it is registered on its four entries, each of its own, through the plugin 
   assert.deepEqual(before.flatMap(e => e.hooks.map(h => path.basename(h.command.split('"')[1] || h.command))), ['session-activity.py']);
   assert.equal(execFileSync('bash', [GUARD], { input: JSON.stringify({ tool_name: UPDATE_TRIGGER[0],
     tool_input: { trigger_id: TRIG, run_once_at: '2026-11-16T21:10:00Z' } }), encoding: 'utf8' }).trim(), '');
+});
+
+test('a program\'s standing session is never armed', () => {
+  const s = scratch();
+  try {
+    const programs = path.join(s.dir, 'programs.json');
+    writeFileSync(programs, JSON.stringify({ programs: [{ name: 'testing', emoji: '🛡️', session: 'session_01Abc' }] }));
+    const ask = (remote) => s.run([typed('one'), reply(ago(MIN), 815_600)],
+      { hook_event_name: 'UserPromptSubmit', prompt: 'What next?' }, 'true',
+      { CLAUDE_CODE_REMOTE_SESSION_ID: remote, WEB_TOOLS_PROGRAMS: programs });
+    assert.equal(ask('cse_01Abc'), '', 'the program session is asked for nothing');
+    assert.match(ask('cse_01Xyz'), /^No check-in is pending/, 'another session is armed as before');
+  } finally { s.done(); }
 });
