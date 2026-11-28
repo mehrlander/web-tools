@@ -2913,6 +2913,13 @@ function app(){ return {
   programSeen: false,
   programName: '',
   programTab: '',   // '' is the program's first tab (Areas where it has a charter)
+  // The idea board open in the Program view's takeover (alpineComponents/idea-board.js),
+  // an owner/repo@ref:path address: &board= names the board's file, &pick= a pick call
+  // that names one. Seeded from the URL for the reason detailSpec is: deepLinkParams
+  // rebuilds the query and re-stamps both from these fields alone. Read only here, as
+  // &detail= is, so Back past a closed board does not open it again.
+  programBoard: new URLSearchParams(location.search).get('board') || '',
+  programPick: new URLSearchParams(location.search).get('pick') || '',
   programArea: '',  // an area's name, picked on a wide pane; '' is every area
   // The hub's own manifest, read once for the sidebar's Programs where the
   // config cache has not given one (signed out, or the hub not the open repo).
@@ -6811,6 +6818,8 @@ function app(){ return {
         p.set('program', this.programName);
         if (this.programTab && this.programTab !== PROGRAM_TABS[0]) p.set('tab', this.programTab);
         else if (this.programArea) p.set('area', this.programArea);
+        if (this.programPick) p.set('pick', this.programPick);
+        else if (this.programBoard) p.set('board', this.programBoard);
       } },
     // The repo's Files view: its tree beside the file it opens
     // (alpineComponents/file-browser.js). It was folded into Search until
@@ -6974,7 +6983,7 @@ function app(){ return {
               'sq', 'smode', 'srepo', 'sref', 'spath', 'sfile', 'skind', 'sitem', 'sset', 'sscope', 'sextra',
               'session', 'list', 'topic', 'lens', 'grain', 'find', 'next',
               'aq', 'discussion', 'ascope', 'arepo', 'astate', 'alaunched',
-              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h', 'program', 'area',
+              'ctxlens', 'ctxsort', 'ctxtopic', 'ctxsource', 'setintent', 'h', 'program', 'area', 'board', 'pick',
               'app', 'on', 'appRepo', 'appPath', 'appRef', 'appLabel', 'appIcon'],
 
   routeFor(view){ return this.VIEWS.find(r => r.key === view); },
@@ -8028,13 +8037,22 @@ function app(){ return {
   // when drawn (program.js, tabOf), so a tab kept from another program, as
   // the switcher keeps it, costs nothing. An area is one program's, so only
   // an address that names it keeps one.
+  // The open board stays while the program does and goes with it.
   goProgram(name, tab, area){
     const n = String(name || '').trim();
     if (!n) return this.goMap('programs');
+    if (this.programName && n !== this.programName) { this.programBoard = ''; this.programPick = ''; }
     this.programName = n;
     this.programTab = PROGRAM_TABS.includes(tab) && tab !== PROGRAM_TABS[0] ? tab : '';
     this.programArea = !this.programTab && area ? String(area) : '';
     this.programSeen = true; this.view = 'program'; this.syncUrl();
+  },
+  // The board takeover opened or closed (program.js, openBoard): stamped while
+  // it is open and dropped when it closes, as the branch takeover's &detail= is.
+  setProgramBoard(board = '', pick = ''){
+    if (this.programBoard === board && this.programPick === pick) return;
+    this.programBoard = board; this.programPick = pick;
+    this.syncUrl();
   },
   // A tab tap from inside program(): stamped, so back and forward walk the
   // tabs. A tab leaves the picked area behind, as the address does.
