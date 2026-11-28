@@ -14,7 +14,7 @@ import subprocess
 import time
 from urllib.parse import urlsplit
 
-from repository_process import run_bounded
+from repository_process import GIT_EXECUTABLE, run_bounded
 from repository_cache import discover_cached, load_comparisons, save_comparisons, load_legacy, MAX_COMMITS
 
 
@@ -62,7 +62,7 @@ def git(path, *args, timeout=20, strip=True):
                               *[part for url in sorted(github_urls) for part in ('-c', 'http.' + url + '.followRedirects=false')],
                               '-c', 'http.https://github.com/.extraheader=',
                               '--config-env=http.https://github.com/.extraheader=' + auth_name]
-        result = run_bounded(['git', '--no-optional-locks', '-c', 'core.fsmonitor=false',
+        result = run_bounded([GIT_EXECUTABLE, '--no-optional-locks', '-c', 'core.fsmonitor=false',
                                  '-c', 'credential.interactive=never', *authentication, '-C', str(path), *args],
                                 env=env, timeout=deadline - time.monotonic())
         return (result.stdout.strip() if strip else result.stdout) if result is not None and result.returncode == 0 else None

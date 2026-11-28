@@ -49,13 +49,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Check local work evidence and summaries
-        run: |
-          python desktop/Checks/work-summary-checks.py
-          python desktop/Checks/local-activity-checks.py
-          python desktop/Checks/local-file-checks.py
-          python desktop/Checks/lenovo-inventory-checks.py
-          python desktop/Checks/folder-explorer-checks.py
+      - name: Check local work summaries
+        run: python desktop/Checks/work-summary-checks.py
+      - name: Check local activity evidence
+        run: python desktop/Checks/local-activity-checks.py
+      - name: Check local file evidence
+        run: python desktop/Checks/local-file-checks.py
+      - name: Check Lenovo inventory
+        run: python desktop/Checks/lenovo-inventory-checks.py
+      - name: Check folder exploration
+        run: python desktop/Checks/folder-explorer-checks.py
       - name: Check real Git fetch and update integration
         run: python desktop/Checks/repository-checks.py
       - name: Check repository observation caching

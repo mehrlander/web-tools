@@ -101,3 +101,9 @@ test('a page with no closing body still gets the kit, at the end', async () => {
   const out = await withLook('<p>bare fragment of html', 'steps=W10', 'main');
   assert.ok(out.startsWith('<p>bare fragment of html<script>window.Land'));
 });
+
+test('showAddress adds the look kit to addressHtml\'s output, not addressHtml to the kit\'s', () => {
+  // A source scan: lifting showAddress would need the whole renderer.
+  const show = SRC.slice(SRC.indexOf('async function showAddress('));
+  assert.equal((show.match(/withLook\(addressHtml\(/g) || []).length, 2, 'both the top-mode and the framed render');
+});
