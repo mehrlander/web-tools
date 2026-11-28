@@ -131,4 +131,4 @@ def read(state):
         return {'schemaVersion': 1, 'updatedAt': meta(db, 'updatedAt'), 'periods': periods, 'tokenDays': days,
                 'codexTokenStatus': meta(db, 'codexTokenStatus', 'unavailable'),
                 'claudeTokenStatus': meta(db, 'claudeTokenStatus', 'waiting'),
-                'tokenSources': {'codex': 'Account-reported dates', 'claude': 'Laptop Claude Code logs, UTC dates, partial account coverage'}}
+                'tokenSources': {'codex': 'Account-reported dates', 'claude': 'Lenovo Claude Code logs, UTC dates, partial account coverage'}}

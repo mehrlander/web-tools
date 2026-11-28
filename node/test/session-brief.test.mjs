@@ -69,7 +69,7 @@ class FakeGH {
     // the blob sha GitHub reports beside it, without a second fixture.
     if (p === PATH) return { text: JSON.stringify({ ...record, ...(window.__recordPatch || {}), readFrom: this.repo }),
                              sha: window.__recordSha || undefined };
-    // Gemini's topics file, on the branch the laptop daemon writes, and only
+    // Gemini's topics file, on the branch the Lenovo daemon writes, and only
     // there: a read of it from main is a bug, and it 404s like one.
     if (p === TOPICS_PATH && this.ref === 'background' && window.__topicsDoc) {
       if (window.__topicsDelay) await new Promise(r => setTimeout(r, window.__topicsDelay));

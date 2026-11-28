@@ -377,7 +377,7 @@ def snapshot(root, state):
         group['mainSync'] = main_sync_observation(sources[repo_key], group['checkouts'])
         for row in group['checkouts']:
             row.pop('head', None)
-    return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Laptop'), 'observedAt': stamp(),
+    return {'schemaVersion': 1, 'machineName': os.environ.get('COMPUTERNAME', 'Lenovo'), 'observedAt': stamp(),
             'repositories': sorted(groups.values(), key=lambda g: g['name'].lower()), 'refreshing': [],
             'notice': None if root.is_dir() else 'Repositories folder unavailable.'}
 
@@ -483,12 +483,12 @@ def main():
     parser.add_argument('--checkout', action='append')
     parser.add_argument('--update-main', action='store_true')
     mode.add_argument('--local-files', action='store_true')
-    mode.add_argument('--publish-laptop-files', action='store_true')
+    mode.add_argument('--publish-lenovo-files', dest='publish_lenovo_files', action='store_true')
     args = parser.parse_args()
     if args.update_main and not args.fetch_key:
         parser.error('--update-main requires --fetch')
-    if args.publish_laptop_files:
-        from laptop_inventory import InventoryError, publish
+    if args.publish_lenovo_files:
+        from lenovo_inventory import InventoryError, publish
         # Preserve Activity within the worker budget before the slower file walk.
         try:
             from local_activity import run
@@ -498,7 +498,7 @@ def main():
         try:
             value = publish(args.root)
         except (InventoryError, OSError, ValueError, subprocess.TimeoutExpired):
-            value = {'state': 'unavailable', 'path': 'state/laptop-files.tsv'}
+            value = {'state': 'unavailable', 'path': 'state/lenovo-files.tsv'}
         value['activity'] = activity
         print(json.dumps(value))
         return

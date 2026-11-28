@@ -5,7 +5,7 @@ import {JSDOM} from 'jsdom';
 const read=path=>readFileSync(new URL(path,import.meta.url),'utf8');
 const dom=new JSDOM(read('../phone/index.html'),{url:'https://fixture.example.ts.net/',runScripts:'outside-only',pretendToBeVisual:true});
 const w=dom.window,doc=w.document,now=new Date().toISOString(),at=days=>new Date(Date.now()-days*86400000).toISOString();
-const job=(id,provider,state,days=0)=>({id,key:'errand:'+id,kind:'errand',provider,state,title:id,detail:'',location:provider==='Claude'?'Cloud':'Laptop',createdAt:at(days),at:now,claimedAt:state==='claimed'?now:null,url:'https://mehrlander.github.io/web-tools/app/?view=stage&errand='+id});
+const job=(id,provider,state,days=0)=>({id,key:'errand:'+id,kind:'errand',provider,state,title:id,detail:'',location:provider==='Claude'?'Cloud':'Lenovo',createdAt:at(days),at:now,claimedAt:state==='claimed'?now:null,url:'https://mehrlander.github.io/web-tools/app/?view=stage&errand='+id});
 let snapshot={schemaVersion:1,observedAt:now,syncedAt:now,queueAvailable:true,recordsConnected:true,items:[
   job('gemini-wait','Gemini','queued',1),{...job('claude-first','Claude','queued',3),title:'Inspect public dashboards'},
   {...job('codex-wait','Codex','queued',2),title:'Review budget files'},
@@ -60,10 +60,10 @@ click('[data-er-handoff=codex-wait]');
 check(clipboardAttempts.length===beforeCopyCalls+1,'A tap writes its ready-made work prompt directly, before any asynchronous read can lose the iPhone gesture.');
 await flush();
 const codexPrompt=clipboardWrites.at(-1);
-check(codexPrompt.includes('codex-wait')&&codexPrompt.includes('Review budget files')&&codexPrompt.includes('Codex')&&codexPrompt.includes('Laptop')
+check(codexPrompt.includes('codex-wait')&&codexPrompt.includes('Review budget files')&&codexPrompt.includes('Codex')&&codexPrompt.includes('Lenovo')
   &&codexPrompt.includes('mehrlander/web-tools-private@background:errands/requests/codex-wait.json')
   &&codexPrompt.includes('codex_errand.py'),
-  'The Codex handoff identifies the exact saved errand, its laptop venue and its documented runner.');
+  'The Codex handoff identifies the exact saved errand, its Lenovo venue and its documented runner.');
 check(/(?:re.?read|recheck|check|inspect)/i.test(codexPrompt)&&/claim/i.test(codexPrompt)
   &&/(?:duplicate|already|no longer|still waiting)/i.test(codexPrompt),
   'The handoff requires a current-state check before work and guards against taking an already handled errand.');
@@ -75,10 +75,10 @@ check(cloudPrompt.includes('Claude')&&cloudPrompt.includes('Cloud')&&cloudPrompt
   &&cloudPrompt.includes('agent_errand.py --agent claude'),
   'The Claude handoff preserves its cloud venue and selects the Claude runner for the exact request.');
 const claudeRequest=snapshot.items.find(item=>item.id==='claude-first');
-claudeRequest.location='Laptop';await w.NowErrands.refresh();
+claudeRequest.location='Lenovo';await w.NowErrands.refresh();
 click('[data-er-menu=claude-first]');click('[data-er-handoff=claude-first]');await flush();
-check(clipboardWrites.at(-1).includes('Laptop')&&!clipboardWrites.at(-1).includes('Cloud'),
-  'A laptop Claude errand does not receive a cloud-only handoff.');
+check(clipboardWrites.at(-1).includes('Lenovo')&&!clipboardWrites.at(-1).includes('Cloud'),
+  'A Lenovo Claude errand does not receive a cloud-only handoff.');
 claudeRequest.location='Cloud';
 const codexRequest=snapshot.items.find(item=>item.id==='codex-wait'),originalTitle=codexRequest.title;
 codexRequest.title='Review </textarea><img src=x onerror=alert(1)> & <script>bad()</script>';
@@ -146,7 +146,7 @@ check(!doc.querySelector('.erl-menu [data-er-handoff]'),'Taken-on errands do not
 click('[data-er-pick=codex-claimed]');
 check(contexts.at(-1)?.id==='codex-claimed','Opening an errand shares the selected saved item with the active view header.');
 check(doc.querySelector('.erl-panel').textContent.includes('continued execution is not confirmed')||doc.querySelector('.erl-panel').textContent.includes('Continued execution is not confirmed'),'A claim does not masquerade as running work.');
-check(doc.querySelector('.erl-panel').textContent.includes('Taken on')&&doc.querySelector('.erl-panel').textContent.includes('Laptop'),'Claim time and execution venue are available in detail.');
+check(doc.querySelector('.erl-panel').textContent.includes('Taken on')&&doc.querySelector('.erl-panel').textContent.includes('Lenovo'),'Claim time and execution venue are available in detail.');
 doc.querySelector('.erl-panel').dispatchEvent(new w.KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
 check(doc.querySelector('.erl-panel').hidden&&doc.activeElement.dataset.erPick==='codex-claimed','Escape closes detail and restores row focus without scrolling.');
 check(contexts.at(-1)===null,'Closing an errand detail clears its header context.');

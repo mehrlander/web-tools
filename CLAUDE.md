@@ -2,7 +2,7 @@
 
 [docs/CONVERSATION.md](docs/CONVERSATION.md), [docs/QUALIFIED-WRITING.md](docs/QUALIFIED-WRITING.md) and [doc-craft](skills/doc-craft/SKILL.md) are the whole cross-repo contract: how a session's work reaches a reader, how the prose carrying it is written, and how documentation is edited. Everything below is web-tools-specific.
 
-**Delivery is the plugin, here as everywhere.** At startup and compaction, the `portable` plugin's `invoke-default` hook adds one instruction to the session's context, to invoke `/portable:default`, which loads all three, unless a checkout's CLAUDE.md already imports them. This file imports none of them, on purpose: an import would make the hub the one repo that could not notice the plugin path failing. If the conventions are missing from a session here, either the hook did not add its instruction or the session did not act on it, and that is worth knowing rather than papering over. Three one-line defaults: this sandbox is one machine among several ([docs/machines.md](docs/machines.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead; be wary of improvements addressing hypothetical problems. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
+**Delivery is the plugin, here as everywhere.** At startup and compaction, the `portable` plugin's `invoke-default` hook adds one instruction to the session's context, to invoke `/portable:default`, which loads all three, unless a checkout's CLAUDE.md already imports them. This file imports none of them, on purpose: an import would make the hub the one repo that could not notice the plugin path failing. If the conventions are missing from a session here, either the hook did not add its instruction or the session did not act on it, and that is worth knowing rather than papering over. Two one-line defaults: this sandbox is one machine among several ([docs/machines.md](docs/machines.md)); before adding to a doc, ask whether the app derives it, the suite enforces it, or another document owns it, and link instead. What travels to other repos is indexed in [`docs/portable.csv`](docs/portable.csv); the distribution channel is the plugin marketplace ([docs/MARKETPLACE.md](docs/MARKETPLACE.md)).
 
 ## The Web Tools app
 
@@ -12,10 +12,7 @@
 
 The mechanisms, what each reaches and misses, and the rule for picking one are **not restated here**. They live as data in [`docs/showing-mechanisms.csv`](docs/showing-mechanisms.csv) and render in the app's **Map view, Showing tab**; the frame and the record are in [`docs/showing.md`](docs/showing.md).
 
-**So do not decide it by reading. Run it:** `npm run showing` reads the branch's
-changed files and prints the render line to paste, or an honest no-link with the
-reason ([`python/showing.py`](python/showing.py)). No script supplies the honesty
-rule: where no link reaches a change, say so and send a headless screenshot.
+**So do not decide it by reading. Run it:** `npm run session-render-links`. It runs [`python/showing.py`](python/showing.py) in each repo checkout beside this one whose branch is ahead of main. For each page or file that branch changed, it prints a render link; where no link reaches the change, it prints a `No render link:` line giving the reason. In that case, also send a headless screenshot. The script is [`python/session-render-links.py`](python/session-render-links.py).
 
 ## Per-session refresh: thumbnails
 

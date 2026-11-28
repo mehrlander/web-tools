@@ -172,7 +172,7 @@ test('records waiting an hour with no topic written: behind, stuck or asleep by 
     t.otherRecord(ago(100 * MIN));
     t.otherRecord(ago(10 * MIN));
     const asleep = context(t.run());
-    assert.match(asleep, /\nGemini is behind: no session topics written since 8:14am \(2h\) while session records have waited since 8:34am, and nothing from the daemon at all since 8:14am: the laptop is asleep or the daemon stopped\.\n/);
+    assert.match(asleep, /\nGemini is behind: no session topics written since 8:14am \(2h\) while session records have waited since 8:34am, and nothing from the daemon at all since 8:14am: the Lenovo is asleep or the daemon stopped\.\n/);
     assert.doesNotMatch(asleep, /passed over/, 'behind covers this session too');
     t.jobs(ago(20 * MIN), { 'pr-checks': { fired: minute(ago(20 * MIN)) } });
     assert.match(context(t.run({ source: 'compact' })), /while session records have waited since 8:34am, though the daemon committed other work at 9:54am \(scheduled: update daemon run state\), so its topic reader is the part stopped or stuck\./);

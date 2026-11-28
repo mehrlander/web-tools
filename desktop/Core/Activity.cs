@@ -11,8 +11,8 @@ public record Errand(string Id, string Title, string Note, string State,
     public string Venue { get; init; } = "";
     public DateTimeOffset? ClaimedAt { get; init; }
     public string Location => Venue switch {
-        "personal-laptop" => "Laptop", "anthropic-cloud" => "Cloud",
-        "" when Provider == "Gemini" => "Laptop", _ => ""
+        "lenovo" => "Lenovo", "anthropic-cloud" => "Cloud",
+        "" when Provider == "Gemini" => "Lenovo", _ => ""
     };
     public bool IsOpen => State is "queued" or "claimed" or "reply";
 }
@@ -37,7 +37,7 @@ public record DaemonSignal(string State, string Detail, DateTimeOffset? LastLogA
 public record Place(string Id, string Name, string Detail);
 public record RecentFile(string Id, string Name, DateTimeOffset ModifiedAt, long Bytes);
 public record LocalSession(string Id, string Provider, string Title, string State,
-    DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Laptop",
+    DateTimeOffset UpdatedAt, string Workspace, string Detail = "", string Location = "Lenovo",
     SessionCheckpoint? Checkpoint = null, SessionTurn? Turn = null, LocalWork? Work = null, string? SourceUrl = null,
     List<LocalSession>? Members = null, int MemberCount = 1, string? ActivityId = null);
 public record WorkSegment(string Id, string Headline, string Summary, DateTimeOffset At,
@@ -64,7 +64,7 @@ public record ActivityEvent(string Id, string Provider, string Title, string Sta
     DateTimeOffset At, string Detail, string Location, string SessionId);
 public record ActivityChange(string Key, string Id, string Provider, string Title, string State,
     DateTimeOffset At, string Detail, string Location, string? Url, string? SessionUrl = null);
-public record LaptopSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
+public record LenovoSnapshot(ActivitySnapshot Activity, DaemonSignal Daemon,
     List<ApplicationSignal> Applications, List<Place> Places, List<RecentFile> Downloads,
     string MachineName, DateTimeOffset SeenThrough, SessionSnapshot Sessions, double ScanMilliseconds,
     CloudSnapshot Cloud, List<ActivityEvent> Events, List<ActivityChange>? Changes = null,
@@ -97,7 +97,7 @@ public static class Activity
         if (!ValidId(id) || request.ValueKind != JsonValueKind.Object) return null;
         var run = Child(request, "run");
         var provider = Text(run, "method") switch {
-            "laptop-daemon" => "Gemini", "codex-errand" => "Codex", "claude-errand" => "Claude", _ => null
+            "lenovo-daemon" => "Gemini", "codex-errand" => "Codex", "claude-errand" => "Claude", _ => null
         };
         if (provider is null) return null;
         var created = Date(request, "createdAt");

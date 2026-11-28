@@ -29,7 +29,7 @@ KINDS = ("answer", "unreached", "overlap", "superseded")
 LEGACY_KINDS = ("settled",)          # the first records' word for superseded
 FIELDS = ("kind", "subjects", "why", "next", "choice", "evidence")
 CLOSED = {"settled", "resolved"}
-DONE_STATES = {"merged", "done", "clean"}
+DONE_STATES = {"merged", "clean"}  # 🟣 and ⚫; ⚪ (standby) claims no finished work
 NON_CLAUDE = ("codex/", "gemini/", "grok/", "agent/", "feat/", "copilot/", "fix/")
 
 
@@ -288,7 +288,7 @@ def candidates(store_repo):
             if (idle or 0) >= 30:
                 add_c("sinking", [loc], f"idle {idle}d, {p.get('behindBy')} commits behind")
             if p["head"].startswith(NON_CLAUDE) and not p.get("draft") and (idle or 0) >= 3:
-                add_c("unreviewed-laptop", [loc], f"{p['head'].split('/')[0]} PR marked ready, idle {idle}d")
+                add_c("unreviewed-lenovo", [loc], f"{p['head'].split('/')[0]} PR marked ready, idle {idle}d")
     return out, act
 
 

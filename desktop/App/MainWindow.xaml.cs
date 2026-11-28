@@ -20,8 +20,8 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private readonly DispatcherTimer loadingTimer = new() { Interval = TimeSpan.FromMilliseconds(100) };
     private readonly HttpClient companion = CompanionAccess.Client();
-    private LaptopSnapshot? snapshot;
-    private bool refreshing, laptopReady, closing, laptopSelected, webNavigating;
+    private LenovoSnapshot? snapshot;
+    private bool refreshing, lenovoReady, closing, lenovoSelected, webNavigating;
     private DateTimeOffset refreshStarted, navigationStarted, restartAttempt;
     private double syncMilliseconds;
     private string? webError;
@@ -50,7 +50,7 @@ public partial class MainWindow : Window
         loadingTimer.Tick += (_, _) => {
             var now = DateTimeOffset.UtcNow;
             var loading = refreshing && snapshot is null && now - refreshStarted > TimeSpan.FromMilliseconds(700)
-                || webNavigating && !laptopSelected && now - navigationStarted > TimeSpan.FromMilliseconds(700);
+                || webNavigating && !lenovoSelected && now - navigationStarted > TimeSpan.FromMilliseconds(700);
             LoadingProgress.Visibility = loading ? Visibility.Visible : Visibility.Collapsed;
         };
     }
@@ -60,8 +60,8 @@ public partial class MainWindow : Window
         try {
             CompanionAccess.Start();
             var environment = await CoreWebView2Environment.CreateAsync(userDataFolder: Path.Combine(UserSettings.DataDirectory, "browser"));
-            await LaptopView.EnsureCoreWebView2Async(environment);
-            var local = LaptopView.CoreWebView2;
+            await LenovoView.EnsureCoreWebView2Async(environment);
+            var local = LenovoView.CoreWebView2;
             local.SetVirtualHostNameToFolderMapping("desktop.web-tools.local", Path.Combine(AppContext.BaseDirectory, "ui"), CoreWebView2HostResourceAccessKind.DenyCors);
             local.NavigationStarting += (_, a) => {
                 if (NavigationPolicy.IsLocal(a.Uri)) return;
@@ -72,12 +72,12 @@ public partial class MainWindow : Window
                 a.Handled = true;
                 if (NavigationPolicy.IsExternalPage(a.Uri)) OpenExternal(a.Uri);
             };
-            local.WebMessageReceived += LaptopMessage;
+            local.WebMessageReceived += LenovoMessage;
             local.NavigationCompleted += async (_, a) => {
-                laptopReady = a.IsSuccess;
-                if (laptopReady) await SendSnapshot();
+                lenovoReady = a.IsSuccess;
+                if (lenovoReady) await SendSnapshot();
             };
-            LaptopView.Source = new Uri(NavigationPolicy.LocalUrl);
+            LenovoView.Source = new Uri(NavigationPolicy.LocalUrl);
             _ = Refresh();
             timer.Start();
             loadingTimer.Start();
@@ -85,7 +85,7 @@ public partial class MainWindow : Window
             var web = WebView.CoreWebView2;
             web.Settings.IsWebMessageEnabled = false;
             // Seed the existing Web Tools login from GitHub CLI. No token enters
-            // the laptop view, settings, diagnostics, command arguments or logs.
+            // the Lenovo view, settings, diagnostics, command arguments or logs.
             try {
                 var token = await Commands.Text("gh", ["auth", "token", "--hostname", "github.com"], timeoutSeconds: 8);
                 if (token.Length > 0) await web.AddScriptToExecuteOnDocumentCreatedAsync(
@@ -106,15 +106,16 @@ public partial class MainWindow : Window
             };
             web.NavigationCompleted += (_, a) => {
                 webNavigating = false;
-                webError = a.IsSuccess ? null : "The hosted Web Tools page could not be reached (" + a.WebErrorStatus + "). Laptop activity remains available.";
-                if (!a.IsSuccess && !laptopSelected) ShowWebError();
+                webError = a.IsSuccess ? null : "The hosted Web Tools page could not be reached (" + a.WebErrorStatus + "). Lenovo activity remains available.";
+                if (!a.IsSuccess && !lenovoSelected) ShowWebError();
                 WriteDiagnostics();
             };
             web.SourceChanged += (_, _) => {
                 if (NavigationPolicy.IsWebTools(web.Source)) settings.WebUrl = web.Source;
             };
             WebView.Source = new Uri(NavigationPolicy.IsWebTools(settings.WebUrl) ? settings.WebUrl : NavigationPolicy.AppUrl);
-            if (Environment.GetCommandLineArgs().Contains("--laptop")) SelectLaptop(true);
+            var cliArgs = Environment.GetCommandLineArgs();
+            if (cliArgs.Contains("--lenovo") || cliArgs.Contains("--laptop")) SelectLenovo(true);
         } catch (Exception ex) {
             webError = "The desktop browser could not initialize. Check that Microsoft Edge WebView2 Runtime is installed. " + ex.Message;
             ShowWebError();
@@ -173,12 +174,12 @@ public partial class MainWindow : Window
 
     private Task SendSnapshot()
     {
-        if (laptopReady && snapshot is not null && !closing)
-            LaptopView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "snapshot", data = snapshot }, Json));
+        if (lenovoReady && snapshot is not null && !closing)
+            LenovoView.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(new { type = "snapshot", data = snapshot }, Json));
         return Task.CompletedTask;
     }
 
-    private async void LaptopMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    private async void LenovoMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         if (!NavigationPolicy.IsLocal(e.Source) || closing) return;
         try {
@@ -200,21 +201,21 @@ public partial class MainWindow : Window
                 case "change-link":
                     var change = snapshot?.Changes?.Find(c => c.Key == id);
                     if (change?.Url is { } changeUrl && NavigationPolicy.IsWebTools(changeUrl)) {
-                        settings.WebUrl = changeUrl; WebView.CoreWebView2?.Navigate(changeUrl); SelectLaptop(false);
+                        settings.WebUrl = changeUrl; WebView.CoreWebView2?.Navigate(changeUrl); SelectLenovo(false);
                     }
                     break;
-                case "web": SelectLaptop(false); break;
+                case "web": SelectLenovo(false); break;
                 case "files":
                     var filesUrl = NavigationPolicy.FilesUrl(CompanionAccess.Load().PhoneUrl);
                     if (filesUrl is null) throw new InvalidOperationException("Private Files is unavailable. Configure the private phone address first.");
                     OpenExternal(filesUrl); break;
                 case "activity":
                     settings.WebUrl = NavigationPolicy.AppUrl + "?view=sessions";
-                    WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false); break;
+                    WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLenovo(false); break;
                 case "cloud-session":
                     if (snapshot?.Cloud.Items.Any(s => s.Id == id) == true) {
                         settings.WebUrl = NavigationPolicy.AppUrl + "?view=sessions&session=" + Uri.EscapeDataString(id);
-                        WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false);
+                        WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLenovo(false);
                     }
                     break;
                 case "session-folder":
@@ -225,33 +226,33 @@ public partial class MainWindow : Window
                     var job = snapshot?.Activity.Errands.Find(j => j.Id == id);
                     if (job is not null) {
                         settings.WebUrl = NavigationPolicy.ErrandUrl(id, job.State is "reply" or "complete" or "failed" or "declined");
-                        WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLaptop(false);
+                        WebView.CoreWebView2?.Navigate(settings.WebUrl); SelectLenovo(false);
                     }
                     break;
                 case "output":
                     if (Activity.ValidId(id) && snapshot?.Activity.Errands.Any(j => j.Id == id) == true)
-                        OpenFolder(LaptopSignals.Outbox(id));
+                        OpenFolder(LenovoSignals.Outbox(id));
                     break;
                 case "place":
-                    if (LaptopSignals.PlacePaths(settings.RepositoriesRoot).TryGetValue(id, out var path)) OpenFolder(path);
+                    if (LenovoSignals.PlacePaths(settings.RepositoriesRoot).TryGetValue(id, out var path)) OpenFolder(path);
                     break;
             }
         } catch (Exception ex) { MessageBox.Show(this, ex.Message, "Web Tools Desktop", MessageBoxButton.OK, MessageBoxImage.Information); }
     }
 
-    private void SelectLaptop(bool selected)
+    private void SelectLenovo(bool selected)
     {
-        laptopSelected = selected;
+        lenovoSelected = selected;
         WebView.Visibility = selected ? Visibility.Hidden : Visibility.Visible;
-        LaptopView.Visibility = selected ? Visibility.Visible : Visibility.Hidden;
+        LenovoView.Visibility = selected ? Visibility.Visible : Visibility.Hidden;
         WebTab.Background = selected ? Brushes.Transparent : Brushes.White;
-        LaptopTab.Background = selected ? Brushes.White : Brushes.Transparent;
+        LenovoTab.Background = selected ? Brushes.White : Brushes.Transparent;
         ErrorPanel.Visibility = !selected && webError is not null ? Visibility.Visible : Visibility.Collapsed;
         WriteDiagnostics();
     }
 
-    private void ShowWeb(object sender, RoutedEventArgs e) => SelectLaptop(false);
-    private void ShowLaptop(object sender, RoutedEventArgs e) => SelectLaptop(true);
+    private void ShowWeb(object sender, RoutedEventArgs e) => SelectLenovo(false);
+    private void ShowLenovo(object sender, RoutedEventArgs e) => SelectLenovo(true);
     private void OpenBrowser(object sender, RoutedEventArgs e) => OpenExternal(WebView.Source?.AbsoluteUri ?? NavigationPolicy.AppUrl);
     private void RetryWeb(object sender, RoutedEventArgs e) {
         ErrorPanel.Visibility = Visibility.Collapsed;
@@ -269,14 +270,14 @@ public partial class MainWindow : Window
 
     private void HandleKeys(object sender, KeyEventArgs e)
     {
-        if (Keyboard.Modifiers == ModifierKeys.Alt && !laptopSelected) {
+        if (Keyboard.Modifiers == ModifierKeys.Alt && !lenovoSelected) {
             var key = e.Key == Key.System ? e.SystemKey : e.Key;
             if (key == Key.Left && WebView.CanGoBack) { WebView.GoBack(); e.Handled = true; }
             if (key == Key.Right && WebView.CanGoForward) { WebView.GoForward(); e.Handled = true; }
         }
         if (Keyboard.Modifiers != ModifierKeys.Control) return;
-        if (e.Key == Key.D1) { SelectLaptop(false); e.Handled = true; }
-        if (e.Key == Key.D2) { SelectLaptop(true); e.Handled = true; }
+        if (e.Key == Key.D1) { SelectLenovo(false); e.Handled = true; }
+        if (e.Key == Key.D2) { SelectLenovo(true); e.Handled = true; }
     }
 
     private void ShowWebError() { ErrorText.Text = webError; ErrorPanel.Visibility = Visibility.Visible; }
@@ -294,8 +295,8 @@ public partial class MainWindow : Window
         try {
             Directory.CreateDirectory(Path.GetDirectoryName(diagnosticsPath)!);
             File.WriteAllText(diagnosticsPath, JsonSerializer.Serialize(new {
-                tab = laptopSelected ? "laptop" : "web", webUrl = WebView.Source?.AbsoluteUri,
-                webError, laptopReady, activity = snapshot, observedAt = DateTimeOffset.UtcNow
+                tab = lenovoSelected ? "lenovo" : "web", webUrl = WebView.Source?.AbsoluteUri,
+                webError, lenovoReady, activity = snapshot, observedAt = DateTimeOffset.UtcNow
             }, Json));
         } catch { }
     }
@@ -310,6 +311,6 @@ public partial class MainWindow : Window
         settings.Height = bounds.Height;
         settings.Maximized = WindowState == WindowState.Maximized;
         try { settings.Save(); } catch { }
-        WebView.Dispose(); LaptopView.Dispose(); companion.Dispose();
+        WebView.Dispose(); LenovoView.Dispose(); companion.Dispose();
     }
 }

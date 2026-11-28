@@ -434,7 +434,8 @@ test('the Gemini mark opens a form in the footer and files nothing; Ask files th
   assert.equal(req.repo, 'me/store');
   assert.match(req.path, /^errands\/requests\/daemon-\d{4}-\d{2}-\d{2}-call-check-[a-z0-9]+\.json$/);
   assert.equal(req.data.run.op, 'call-check');
-  assert.equal(req.data.run.method, 'laptop-daemon');
+  assert.equal(req.data.run.method, 'lenovo-daemon');
+  assert.equal(req.data.run.venue, 'lenovo');
   assert.equal(req.data.run.args.call, 's1-merge-7');
   assert.equal(req.data.run.args.question, 'Is the preset still needed?', 'the question rides, trimmed');
   assert.match(req.data.title, /^Gemini question: /);

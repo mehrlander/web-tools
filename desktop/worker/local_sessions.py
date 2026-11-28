@@ -52,7 +52,7 @@ def record(provider, identity, title, started, ended, prompts, replies, tools, c
         raise ValueError('Session date unavailable')
     rec = {'schema': 5, 'format': 'local-conversation/1', 'session_id': identity, 'short': short,
            'assistant': provider, 'engine': 'codex' if provider == 'codex' else 'antigravity',
-           'venue': 'laptop', 'title': title, 'day': day, 'started': stamp(started), 'ended': stamp(ended),
+           'venue': 'lenovo', 'title': title, 'day': day, 'started': stamp(started), 'ended': stamp(ended),
            'opening_ask': prompts[0]['text'] if prompts else '', 'prompts': prompts, 'replies': replies,
            'exchanges': len(prompts), 'prompts_stored': len(prompts), 'replies_total': len(replies),
            'replies_stored': len(replies), 'assistant_messages': len(replies), 'tools': dict(tools),

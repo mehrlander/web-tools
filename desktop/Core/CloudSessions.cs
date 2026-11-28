@@ -22,7 +22,7 @@ public static class CloudSessions
             var day = Activity.Text(row, "day");
             var capture = Activity.Child(row, "capture");
             if (captures.Count < 4096 && assistant is "codex" or "gemini"
-                && Activity.Text(row, "venue") == "laptop"
+                && Activity.Text(row, "venue") == "lenovo"
                 && Activity.Text(capture, "state") is "prose" or "partial"
                 && System.Text.RegularExpressions.Regex.IsMatch(id, "^[a-f0-9]{16}$")
                 && DateOnly.TryParseExact(day, "yyyy-MM-dd", out _)) {

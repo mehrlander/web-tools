@@ -32,7 +32,7 @@ const activity = { repos: { 'acme/evidence': {
   scan: { branches: [{ name: 'claude/x', date: '2026-09-01T00:00:00Z', group: 'active' }] },
 } } };
 const SID = 'mehrlander/web-tools-private:sessions/2026/09/2026-09-29-abcd1234.json';
-const sessions = { rows: [{ id: 'abcd1234', day: '2026-09-29', state: 'done', repos: [{ name: 'evidence', branch: 'claude/x', lines: 5 }] }] };
+const sessions = { rows: [{ id: 'abcd1234', day: '2026-09-29', state: 'clean', repos: [{ name: 'evidence', branch: 'claude/x', lines: 5 }] }] };
 const store = repo('store', { '.web-tools.json': '{"notes":"notes"}\n', 'notes/.keep': '',
   'state/activity.json': JSON.stringify(activity), 'state/sessions.json': JSON.stringify(sessions) });
 const evidence = repo('evidence', { 'docs/a.md': 'first\n' });

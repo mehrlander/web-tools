@@ -34,7 +34,7 @@ internal sealed class StereoBridgeClient : IDisposable
     private static double Seconds(JsonElement value, string key) => value.TryGetProperty(key, out var field) && field.TryGetDouble(out var number) && double.IsFinite(number)
         ? Math.Clamp(number, 0, 604800) : 0;
     private static StereoSnapshot Unavailable() => new(1, Environment.MachineName, DateTimeOffset.UtcNow,
-        false, false, "", "", "", "", "unknown", 0, 0, false, false, false, "Stereo Bridge is unavailable. Open Stereo Bridge on the laptop.");
+        false, false, "", "", "", "", "unknown", 0, 0, false, false, false, "Stereo Bridge is unavailable. Open Stereo Bridge on the Lenovo.");
 
     public async Task<StereoSnapshot> Read(CancellationToken stop)
     {
@@ -74,7 +74,7 @@ internal sealed class StereoBridgeClient : IDisposable
                 "previous" => status.CanGoPrevious,
                 "next" => status.CanGoNext,
                 "play-pause" => status.CanPlayPause,
-                _ => true // Volume keys affect the laptop's selected audio output.
+                _ => true // Volume keys affect the Lenovo's selected audio output.
             };
             if (!allowed) return (409, false, "That control is unavailable for the current player.");
             using var response = await client.PostAsync(new Uri(origin!, "api/action/" + action), null, stop);
