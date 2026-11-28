@@ -40,6 +40,18 @@ before any owner message, the context before any response. The line closes
 with ‹⋯› as a code span linking PROGRAM below, after ✍️, so that every line
 ends on the same mark.
 
+THE PROGRAM SESSION. A program's standing session, the one whose cloud id a
+program declaration in web-tools' .web-tools.json names as its `session`, gets
+the program's emoji and label after the time, as `🎙️ Sessions`, and its closing
+‹⋯› links that program's page rather than the Sessions program's. The cloud id is
+CLAUDE_CODE_REMOTE_SESSION_ID, as `cse_<id>`, matched against a declared
+`session_<id>` by the part after the first underscore; it is the id a claude.ai
+link carries, which a /clear does not change. The declarations are read from
+the plugin marketplace's clone of web-tools, which tracks main, so a declaration
+reaches every session without a pull; WEB_TOOLS_PROGRAMS names another file, for
+the tests. standing() below is the lookup, and check-in.py loads it to arm no
+check-in in such a session.
+
 THE SIGN-OFF is read from the session's user calls in the archive checkout,
 `user-calls/<short>-<slug>.json` (the user-calls skill, skills/user-calls/SKILL.md,
 holds the schema). A documentation call names its document as
@@ -124,6 +136,7 @@ import time
 OWNER_TZ = os.environ.get("OWNER_TZ") or "America/Los_Angeles"
 PAGES = "https://mehrlander.github.io/web-tools/pages/"
 PROGRAM = "https://mehrlander.github.io/web-tools/app/?view=program&program=sessions"
+PROGRAMS = os.path.join("~", ".claude", "plugins", "marketplaces", "web-tools", ".web-tools.json")
 PILL_GAP = " \u00a0"
 TAIL = 400_000
 USAGE = ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens")
@@ -158,6 +171,27 @@ def save(path, state):
     with open(scratch, "w", encoding="utf-8") as fh:
         json.dump(state, fh)
     os.replace(scratch, path)
+
+
+# ── The program session ─────────────────────────────────────────────────────
+
+def standing(environ):
+    """The program whose declared `session` is this cloud session, or None."""
+    remote = str(environ.get("CLAUDE_CODE_REMOTE_SESSION_ID") or "")
+    key = remote.split("_", 1)[1] if "_" in remote else ""
+    if not key:
+        return None
+    path = os.path.expanduser(environ.get("WEB_TOOLS_PROGRAMS") or PROGRAMS)
+    try:
+        with open(path, encoding="utf-8") as fh:
+            programs = json.load(fh).get("programs") or []
+    except (OSError, ValueError, AttributeError):
+        return None
+    for program in programs:
+        declared = str(program.get("session") or "") if isinstance(program, dict) else ""
+        if "_" in declared and declared.split("_", 1)[1] == key and program.get("name"):
+            return program
+    return None
 
 
 # ── The checkouts, and what moved in them ───────────────────────────────────
@@ -633,7 +667,10 @@ def main():
     if waiting:
         deck = f"{PAGES}session.html#id={session[:8]}" + (f"&user-call={call}" if call else "")
         parts.append(f"[✍️{waiting}]({deck})")
-    parts.append(f"[`‹⋯›`]({PROGRAM})")
+    program = standing(os.environ)
+    if program:
+        parts.insert(0, " ".join(filter(None, [program.get("emoji"), program.get("label") or program["name"]])))
+    parts.append(f"[`‹⋯›`]({PROGRAM.rsplit('=', 1)[0]}={program['name'] if program else 'sessions'})")
 
     state["waiting"] = waiting
     save(path, state)
