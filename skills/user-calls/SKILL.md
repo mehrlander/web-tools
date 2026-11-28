@@ -12,7 +12,7 @@ description: >-
 
 ## Premise
 
-Complex decisions can benefit from rich supporting context. A user call puts a question on a page in the Web Tools app, with the files it concerns rendered beside it. The owner answers there, and the page saves the answer next to the call, where the session reads it. [doc-craft](../doc-craft/SKILL.md) files a user call for each changed document, and [design-sprint](../design-sprint/SKILL.md) one for each idea board.
+Complex decisions can benefit from rich supporting context. A user call puts a question on a page in the Web Tools app, with the files it concerns rendered beside it. The owner answers there, in the page's form or in a note from its FAB sidebar. The form saves the answer next to the call, and the session reads both with `answers`. [doc-craft](../doc-craft/SKILL.md) files a user call for each changed document, and [design-sprint](../design-sprint/SKILL.md) one for each idea board.
 
 ## Goal and output
 
@@ -25,7 +25,7 @@ Say "user call": "call" alone also means an API call or a tool call.
 ```
 python3 user-call.py add < call.json             # validate, stamp, commit to main; prints the call's path
 python3 user-call.py link <id> [--at REPO@REF]   # the address of the call's page
-python3 user-call.py answers <id>                # what the owner answered, with each edit's decision and note
+python3 user-call.py answers <id>                # what the owner answered, with each edit's decision and note, then the notes on the call
 python3 user-call.py patch <id> | git apply      # a documentation answer's patch, in a checkout of the file's repo
 python3 user-call.py close <id> <answer> [note]
 python3 user-call.py list [session]              # open calls, newest first

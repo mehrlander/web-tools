@@ -109,8 +109,10 @@
     {
       "name": "sessions",
       "label": "Sessions",
-      "scope": "replies and render links, the plugin, hooks and scheduled jobs",
+      "scope": "replies and render links, session records and history, the plugin, hooks and scheduled jobs",
       "icon": "programs/sessions/icon.svg",
+      "emoji": "🎙️",
+      "session": "session_01Ug8CX9xPk1ZyngCSXmxb2a",
       "path": "programs/sessions",
       "formerly": ["programs/surfacing"],
       "governs": [
@@ -132,6 +134,7 @@
         "docs/subjects.csv",
         "pages/branch.html",
         "pages/session.html",
+        "pages/standing.html",
         "pages/approve.html",
         "pages/data-view.html",
         "pages/shorter.html",
@@ -203,6 +206,8 @@
       "label": "Testing",
       "scope": "the suite and where each check runs",
       "icon": "programs/testing/icon.svg",
+      "emoji": "🛡️",
+      "session": "session_01Ug8CX8pNWnUqVDjwo1PrRi",
       "path": "programs/testing",
       "governs": [
         "docs/tests.csv",
@@ -240,8 +245,10 @@
     {
       "name": "alignment",
       "label": "Alignment",
-      "scope": "how the estate fits together: repositories, registries, maps, repeated prose, lists, session records and history",
+      "scope": "how the estate fits together: repositories, registries, maps, repeated prose and lists",
       "icon": "programs/alignment/icon.svg",
+      "emoji": "🗂️",
+      "session": "session_01Ug8CX9c2PcM1454jNwGA5H",
       "path": "programs/alignment",
       "formerly": ["programs/organization"],
       "governs": [
@@ -305,6 +312,8 @@
       "label": "Content",
       "scope": "writing rules, docs and pages",
       "icon": "programs/content/icon.svg",
+      "emoji": "🌱",
+      "session": "session_01Ug8CX8EkCAFrqStmn38YoP",
       "path": "programs/content",
       "governs": [
         "docs/QUALIFIED-WRITING.md",
@@ -351,6 +360,8 @@
       "label": "Discovery",
       "scope": "research, probes and outside sources",
       "icon": "programs/discovery/icon.svg",
+      "emoji": "🏔️",
+      "session": "session_01Ug8CX8xBZW2Tc9WYVN3zPH",
       "path": "programs/discovery",
       "governs": [
         "research/",
