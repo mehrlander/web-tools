@@ -26,6 +26,9 @@ const record = {
             { at: '2026-11-01T12:00:00Z', text: 'Third ask' }],
   replies: [{ at: '2026-11-01T10:40:00Z', text: 'Done.\n\n🟢 **Ready to continue:** next step.' },
             { at: '2026-11-01T11:40:00Z', text: 'Look.\n\n👁️‍🗨️ **Have a look:** the page.' }],
+  // Tokens are enough for session-render to append its closing summary card,
+  // stamped '\uffff\uffff', which is no turn and no window's end.
+  tokens: { output: 10, input: 20 },
   calls: [
     call('2026-11-01T10:05:00Z', 'Write', { file_path: '/home/user/web-tools/pages/a.html' }),
     call('2026-11-01T10:06:00Z', 'Edit', { file_path: '/home/user/web-tools/docs/A.md' }),
@@ -52,6 +55,7 @@ test('turns are the Turns tab cards, numbered from 1', () => {
   assert.equal(t.ask, 'Second ask');
   assert.equal(t.closing.key, 'look');
   assert.equal(T.of(record, 3).to, '');
+  assert.equal(T.of(record, 3).total, 3);
   assert.equal(T.at(record, '2026-11-01T11:30:00Z'), 2);
   assert.equal(T.at(record, '2026-11-01T11:00:00Z'), 2);
   assert.equal(T.at(record, '2026-10-31T00:00:00Z'), 0);

@@ -272,12 +272,21 @@
           const g = new window.GH({ token: window.TOKEN, repo: slug, ref: v.branch || 'main' });
           const q = 'commits?per_page=1&path=' + encodeURIComponent(v.path)
             + (this.turn.to ? '&until=' + encodeURIComponent(this.turn.to) : '');
-          let c = null, ref = v.branch || 'main';
-          try { c = (await g.req(q + '&sha=' + encodeURIComponent(ref)))?.[0]; }
-          catch { ref = 'main'; c = (await g.req(q + '&sha=main').catch(() => null))?.[0]; }
+          // A failed read leaves the branch's head, not main: main is the
+          // answer only for a file with no branch, or one whose branch is gone
+          // (merged and deleted), and then only if main holds the file.
+          const ref = v.branch || 'main';
+          const c = (await g.req(q + '&sha=' + encodeURIComponent(ref)).catch(() => null))?.[0];
           const when = c?.commit?.committer?.date || '';
           if (c && when >= this.turn.from.slice(0, 19)) { v.ref = c.sha; v.pin = c.sha.slice(0, 7); }
-          else { v.ref = ref; v.pin = ref === 'main' ? 'main' : 'head'; }
+          else {
+            const has = (r) => g.req('contents/' + v.path.split('/').map(encodeURIComponent).join('/') + '?ref=' + encodeURIComponent(r))
+              .then(() => true, (e) => e?.status === 404 ? false : null);
+            let at = ref, there = await has(ref);
+            if (there === false && ref !== 'main' && await has('main')) { at = 'main'; there = true; }
+            v.ref = at; v.pin = at === 'main' ? 'main' : 'head';
+            v.missing = there === false;
+          }
           if (!confs.has(slug)) confs.set(slug, g.get('.web-tools.json').then((r) => JSON.parse(r.text)).catch(() => null));
           const conf = await confs.get(slug);
           v.url = v.kind === 'page'
@@ -335,6 +344,11 @@
       body(id, el) {
         const v = this.views.find((x) => x.key === id);
         if (!v) return '';
+        if (v.missing) {
+          el.innerHTML = '<div class="flex flex-col gap-1 px-4 py-6 text-base" data-at="missing"><span class="font-semibold">Not at ' + window.esc(v.ref) + '</span>'
+            + '<span class="font-mono text-sm text-base-content/60">' + window.esc(this.owner + '/' + v.repo + ':' + v.path) + '</span></div>';
+          return;
+        }
         if (!v.url) { el.innerHTML = '<div class="flex h-full items-start justify-center pt-12"><span class="loading loading-dots loading-md opacity-40"></span></div>'; return; }
         const f = document.createElement('iframe');
         f.src = v.url;
