@@ -69,7 +69,8 @@ function scratch({ archive = true } = {}) {
       input: JSON.stringify({ hook_event_name: 'UserPromptSubmit', transcript_path: transcript,
         session_id: SESSION, cwd: root, ...payload }),
       env: { ...ENV, TMPDIR: dir, CLAUDE_PROJECT_DIR: root, SESSIONS_STORE: '',
-        SESSION_CAPTION_NOW: String(NOW / 1000), OWNER_TZ: 'America/Los_Angeles', ...env },
+        SESSION_CAPTION_NOW: String(NOW / 1000), OWNER_TZ: 'America/Los_Angeles',
+        WEB_TOOLS_PROGRAMS: path.join(dir, 'no-programs.json'), ...env },
       encoding: 'utf8',
     }).trim();
   };
@@ -524,4 +525,25 @@ test('it is registered on both events, through the plugin root', () => {
   assert.equal(prompt.matcher, '');
   assert.equal(bash.matcher, 'Bash', 'after a Bash call and no other tool');
   for (const entry of [prompt, bash]) assert.match(entry.hooks[0].command, /^python3 "\$\{CLAUDE_PLUGIN_ROOT\}\/hooks\//);
+});
+
+test('a program\'s standing session leads with its emoji and label, and ‹⋯› links its program', () => {
+  const s = scratch();
+  try {
+    const programs = path.join(s.dir, 'programs.json');
+    writeFileSync(programs, JSON.stringify({ programs: [
+      { name: 'content', emoji: '🌱' },
+      { name: 'testing', label: 'Testing', emoji: '🛡️', session: 'session_01Abc' }] }));
+    const as = (remote) => JSON.parse(s.run([typed('Hi.'), reply(120_000)], { prompt: 'Hi.' },
+      { CLAUDE_CODE_REMOTE_SESSION_ID: remote, WEB_TOOLS_PROGRAMS: programs }))
+      .hookSpecificOutput.additionalContext.split('\n')[0];
+    const mine = as('cse_01Abc');
+    assert.ok(mine.startsWith(`\`${STAMP}\` 🛡️ Testing 💬[`), mine);
+    assert.ok(mine.endsWith('[`‹⋯›`](https://mehrlander.github.io/web-tools/app/?view=program&program=testing)'), mine);
+    const other = as('cse_01Xyz');
+    assert.ok(!other.includes('Testing'), 'another session carries no program mark');
+    assert.ok(other.endsWith(` ${MARK}`), other);
+    const unset = as('');
+    assert.ok(unset.endsWith(` ${MARK}`), 'outside a cloud session nothing matches');
+  } finally { s.done(); }
 });
