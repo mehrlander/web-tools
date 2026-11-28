@@ -7,4 +7,3 @@ Proposals that would change a mapped part go in [`future/`](../future/), apart f
 | Map | Data | Check |
 | --- | --- | --- |
 | [The estate's pages](pages.md) | [`pages.csv`](pages.csv), [`page-jobs.csv`](page-jobs.csv) | [`pages-map.mjs`](pages-map.mjs)` --check` |
-| [Text boundaries](boundaries.md), drawn by [`boundaries.html`](boundaries.html) | [`boundaries.csv`](boundaries.csv) | [`boundaries-map.mjs`](boundaries-map.mjs)` --check` |
