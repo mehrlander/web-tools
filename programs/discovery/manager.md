@@ -32,3 +32,21 @@ Inputs: the task, the candidates (skills, tools, prompts or processes), and two 
 5. **Grade against the subjects' source material.** One grader agent per subject builds a checklist of facts from that material. It scores each output against the checklist, then ranks the outputs. The grader sees each candidate's name.
 6. **Show everything.** The owner sees, for each candidate, its vetting report, every run's full log and output, and the grader's checklist, scores and reasoning. Use an [`inspection/1`](../../docs/envelopes/inspection.md) payload with one run per candidate and one output per subject. The owner's verdicts and notes then save back for the session to read.
 7. **Recommend.** The write-up gives the method, a results table, the findings and the caveats, such as runs per candidate and the grader's model. It ends with the session's recommendation to adopt or drop each candidate. Where that decision is the owner's, file a [user call](../../skills/user-calls/SKILL.md) carrying the recommendation.
+Name any of the three sources you could not read.
+
+## Research inventory
+
+The question is which probes, explorations and gathering runs exist, listed by repository, kind (`probe` or `exploration`), status (`living`, `measured` or `record`) or date. A gathering run is a [scour](../../skills/scour/SKILL.md) or [wayback](../../skills/wayback/SKILL.md) run that fetched outside material. The caller names the filters; with none, list everything. Three sources answer the question:
+
+- **Cached declarations:** [`state/configs.json`](https://github.com/mehrlander/web-tools-private/blob/main/state/configs.json) in web-tools-private copies each repository's `.web-tools.json` as of its `generatedAt` time. Its `research` arrays give each declaration's path, label, kind and status. A checkout's own manifest on `origin/main` supersedes the copy.
+- **Probe registries:** a declared probes folder's `probes.csv` gives one row per probe ([`probes.md`](../../docs/probes.md)).
+- **Undeclared work and runs:** the folders that Prior work's second source names, and the `roster.json` or capture list each gathering run keeps.
+
+Return one line for each item, newest first, or one `none found` line:
+
+```
+<probe | exploration | undeclared | run> · <repo:path> · <date or commit[:8]> · <status or none> · <label>
+none found · <repositories searched>
+```
+
+Give the `generatedAt` time of `state/configs.json`, and name any of the three sources you could not read.
