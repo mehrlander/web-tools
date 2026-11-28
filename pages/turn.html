@@ -24,7 +24,8 @@
     #id=<short or stem>&at=<ISO>     the turn whose window holds the instant,
                                      as the session-detail caption's 💬 links it
 
-  The ✕ and the Session quick link go to this turn on session.html. A record
+  The ✕ and the Session quick link go to this turn's card in session.html's
+  Turns tab (`turn=<n>`), where the same view sits compact under the card. A record
   whose last Stop predates `at`, or no record yet, reads as not published,
   with a reload: the caption link is tapped in that window often.
 
@@ -38,10 +39,8 @@
   for each file one GitHub commits read, for the commit it stood at when the
   turn ended. turn-views.js's header states what the record cannot say.
 
-  Notes: a draft is kept in this browser per session and turn until Send,
-  which appends one note per draft through kits/notes.js. Each note is about
-  the file on its branch (owner/repo@branch:path, the locator session-brief's
-  Views tab gives its selection) and names the session and turn in its text.
+  The files, their cards and the note bar are kits/turn-view.js, which the
+  session page's Turns tab also draws, compact, under each card.
 
   Boot is session.html's: the pre-build, then the kits by name; the ready gate
   is the same promise for the same reason (pages/branch.html has the account).
@@ -71,7 +70,7 @@
     }
     try {
       for (const k of ['kits/repo-address.js', 'kits/closing-state.js', 'kits/proof.js', 'kits/swipe-deck.js',
-                       'kits/chat-render.js', 'kits/session-render.js', 'kits/turn-views.js',
+                       'kits/chat-render.js', 'kits/session-render.js', 'kits/turn-views.js', 'kits/turn-view.js',
                        'kits/guide-render.js', 'kits/linked-swiper.js', 'kits/title-tip.js']) {
         await gh.load(k);
       }
@@ -148,47 +147,9 @@
       <span>No page or document changed in this turn</span><span x-show="otherCount" x-text="' · ' + plural(otherCount, 'other file')"></span>
     </div>
 
-    <!-- THE CARDS: the files over a strip, one card per file (rule 11). -->
-    <div x-show="turn.files.length" class="flex min-h-0 grow flex-col px-2 pt-2">
-      <div x-ref="root" class="min-h-0 grow">
-        <div x-ref="list" role="listbox" aria-label="Pages and documents this turn changed" data-at="files"></div>
-        <div x-ref="card" data-at="card"></div>
-      </div>
-    </div>
-
-    <!-- THE NOTE, on the card in view: one line and a check, as the look kit's
-         dock has it; drafts wait here until Send. -->
-    <footer x-show="turn.files.length" class="shrink-0 border-t border-base-300 px-3 py-2 flex flex-col gap-1.5" data-at="composer">
-      <div x-show="cardDrafts.length || cardSent.length" class="flex max-h-24 flex-col gap-1.5 overflow-y-auto">
-      <template x-for="d in cardDrafts" :key="d.id">
-        <div class="flex items-start gap-2 rounded-lg bg-info/10 py-1 pl-2 pr-1 text-base">
-          <i class="ph ph-chat-circle-text mt-0.5 opacity-60"></i>
-          <span class="min-w-0 flex-1 whitespace-pre-wrap [overflow-wrap:anywhere]" x-text="d.text"></span>
-          <button type="button" class="btn btn-ghost btn-xs btn-square" @click="drop(d.id)" aria-label="Remove this note"><i class="ph ph-x"></i></button>
-        </div>
-      </template>
-      <template x-for="s in cardSent" :key="s.id">
-        <div class="flex items-start gap-2 rounded-lg bg-success/10 py-1 px-2 text-base">
-          <i class="ph ph-check-circle mt-0.5 text-success"></i>
-          <span class="min-w-0 flex-1 line-clamp-2 [overflow-wrap:anywhere]" x-text="s.text.split('\n\n')[0]"></span>
-          <span class="shrink-0 font-mono text-xs text-base-content/50" x-text="s.at.slice(5, 10)"></span>
-        </div>
-      </template>
-      </div>
-      <div class="flex items-center gap-2">
-        <input x-ref="field" x-model="typing" @keydown.enter.prevent="add()" @keydown.stop
-               :placeholder="'Note on ' + (current ? current.name : 'this card')" aria-label="A note on the card in view"
-               class="input input-sm input-bordered min-w-0 flex-1 text-base">
-        <button type="button" @click="add()" aria-label="Add the note"
-                class="btn btn-sm btn-square" :class="typing.trim() ? 'btn-success' : 'btn-ghost opacity-40'"><i class="ph ph-check"></i></button>
-        <button type="button" @click="send()" :disabled="sending || !drafts.length" data-at="send"
-                class="btn btn-sm btn-primary min-w-20 tabular-nums">
-          <span x-show="sending" class="loading loading-spinner loading-xs"></span>
-          <span x-text="drafts.length ? 'Send ' + drafts.length : 'Send'"></span>
-        </button>
-      </div>
-      <div x-show="status" class="text-xs text-base-content/70" role="status" x-text="status"></div>
-    </footer>
+    <!-- THE FILES: kits/turn-view.js in its full form, the same view the
+         session page's Turns tab draws compact under each card. -->
+    <div x-show="turn.files.length" x-ref="view" class="flex min-h-0 grow flex-col"></div>
   </div>
   </template>
 
@@ -199,8 +160,7 @@
   document.addEventListener('alpine:init', () => {
     Alpine.data('turnPage', () => ({
       input: '', want: null, busy: false, err: '', askOpen: false,
-      record: null, turn: null, pending: false, path: '', views: [], at: 0, typing: '', drafts: [], sent: [], sending: false, status: '',
-      _swiper: null,
+      record: null, turn: null, pending: false, path: '',
 
       async init() {
         // The turn arrows and a reader's edit change the hash alone; the
@@ -254,13 +214,8 @@
           const t = window.TurnViews.of(rec, this.want.n);
           if (!t) throw new Error('Session ' + this.want.id + ' has ' + window.TurnViews.count(rec) + ' turns; there is no turn ' + this.want.n + '.');
           this.turn = t;
-          this.drafts = this.loadDrafts();
-          this.views = t.files.map((f) => ({ ...f, name: f.path.split('/').pop(), ref: '', pin: '', url: '' }));
-          this.at = Math.min(this.want.card, Math.max(0, this.views.length - 1));
           document.title = 'Turn ' + t.n + ' · ' + this.short;
-          this.$nextTick(() => this.mount());
-          this.resolveRefs();
-          this.loadSent();
+          this.$nextTick(() => this.mountView());
         } catch (e) {
           this.err = e?.message || String(e);
         } finally { this.busy = false; }
@@ -283,7 +238,7 @@
           .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       },
       get sessionUrl() {
-        return SITE + 'pages/session.html#id=' + this.short + (this.turn ? '&pane=turns&card=' + (this.turn.n - 1) : '');
+        return SITE + 'pages/session.html#id=' + this.short + (this.turn ? '&turn=' + this.turn.n : '');
       },
       // The row of ways out: the session, the reply conventions, the program.
       get quick() {
@@ -296,185 +251,19 @@
       turnUrl(n) { return '#id=' + this.short + '&turn=' + n; },
       get otherCount() { return (this.turn?.other || []).length; },
       plural(n, w) { return n + ' ' + w + (n === 1 ? '' : 's'); },
-      get current() { return this.views[this.at] || null; },
-      get cardDrafts() { const v = this.current; return v ? this.drafts.filter((d) => d.key === v.key) : []; },
-      get cardSent() { const v = this.current; return v ? this.sent.filter((s) => s.about === this.aboutOf(v)) : []; },
-
-      // ── Each file's commit at the turn's end ─────────────────────────────
-      // The last commit on the branch touching the path before the next turn
-      // opened. One that predates this turn means the edit was not committed
-      // by then, and the card shows the branch as it is now.
-      async resolveRefs() {
-        const confs = new Map();
-        await Promise.all(this.views.map(async (v) => {
-          const slug = this.owner + '/' + v.repo;
-          const g = new window.GH({ token: window.TOKEN, repo: slug, ref: v.branch || 'main' });
-          const q = 'commits?per_page=1&path=' + encodeURIComponent(v.path)
-            + (this.turn.to ? '&until=' + encodeURIComponent(this.turn.to) : '');
-          // A failed read leaves the branch's head, not main: main is the
-          // answer only for a file with no branch, or one whose branch is gone
-          // (merged and deleted), and then only if main holds the file.
-          const ref = v.branch || 'main';
-          const c = (await g.req(q + '&sha=' + encodeURIComponent(ref)).catch(() => null))?.[0];
-          const when = c?.commit?.committer?.date || '';
-          if (c && when >= this.turn.from.slice(0, 19)) { v.ref = c.sha; v.pin = c.sha.slice(0, 7); }
-          else {
-            const has = (r) => g.req('contents/' + v.path.split('/').map(encodeURIComponent).join('/') + '?ref=' + encodeURIComponent(r))
-              .then(() => true, (e) => e?.status === 404 ? false : null);
-            let at = ref, there = await has(ref);
-            if (there === false && ref !== 'main' && await has('main')) { at = 'main'; there = true; }
-            v.ref = at; v.pin = at === 'main' ? 'main' : 'head';
-            v.missing = there === false;
-          }
-          if (!confs.has(slug)) confs.set(slug, g.get('.web-tools.json').then((r) => JSON.parse(r.text)).catch(() => null));
-          const conf = await confs.get(slug);
-          v.url = v.kind === 'page'
-            ? ((window.GuideRender?.pageTargets?.(slug, v.ref, [v.path], conf?.showing) || [])[0]?.url || '')
-            : SITE + 'pages/data-view.html?src=' + slug + '@' + v.ref + ':' + v.path;
-          this._swiper?.mount();
-          if (this.$refs.list) this.$refs.list.innerHTML = this.rows();
-          window.linkedSwiper?.mark(this.$refs.list, 'view', this.current?.key);
-        }));
-      },
-
-      // ── The list over the strip ──────────────────────────────────────────
-      rows() {
-        const esc = window.esc;
-        return this.views.map((v) => {
-          const n = this.drafts.filter((d) => d.key === v.key).length;
-          const dir = v.path.includes('/') ? v.path.slice(0, v.path.lastIndexOf('/') + 1) : '';
-          return '<div data-view="' + esc(v.key) + '" role="option" tabindex="-1" class="flex cursor-pointer items-center gap-2 border-b border-base-200 px-3 py-1.5 last:border-0 hover:bg-base-200/60 aria-selected:bg-primary/10">'
-            + '<i class="ph ' + (v.kind === 'page' ? 'ph-browser' : 'ph-file-text') + ' shrink-0 text-base text-base-content/50"></i>'
-            + '<span class="min-w-0 flex-1 truncate text-sm"><span class="text-base-content/50">' + esc(dir) + '</span>' + esc(v.name) + '</span>'
-            + (n ? '<span class="badge badge-info badge-sm shrink-0 gap-1"><i class="ph ph-chat-circle-text"></i>' + n + '</span>' : '')
-            // The commit shows in the card's head; a row speaks only when its
-            // card is not the file as the turn left it.
-            + (v.pin === 'head' || v.pin === 'main' ? '<span class="shrink-0 font-mono text-xs text-warning">now</span>' : '')
-            + '</div>';
-        }).join('');
-      },
-      mount() {
-        const root = this.$refs.root, list = this.$refs.list, card = this.$refs.card;
-        if (!root || !this.views.length || !window.linkedSwiper) return;
-        list.innerHTML = this.rows();
-        this._swiper = window.linkedSwiper.attach({
-          root, list, card, key: 'view', noun: 'card', listMax: 'max-h-[22vh]',
-          ids: () => this.views.map((v) => v.key),
-          sel: () => this.current?.key,
-          head: ({ i, n, tight }) => this.head(i, n, tight),
-          body: (id, el) => this.body(id, el),
-          innerClass: 'h-full w-full', slidePad: 'p-0',
-          onPick: (id) => {
-            const i = this.views.findIndex((v) => v.key === id);
-            if (i >= 0) { this.at = i; this.stamp(); }
-          },
-          deck: () => this.deck(),
+      // The files, their cards and the note bar are the shared view's.
+      mountView() {
+        if (!this.$refs.view || !window.TurnView) return;
+        window.TurnView.mount(this.$refs.view, {
+          record: this.record, path: this.path, n: this.turn.n, store: STORE, mode: 'full',
+          start: this.want.card, onPick: (i) => this.stamp(i),
         });
       },
-      head(i, n, tight) {
-        const v = this.views[i], esc = window.esc;
-        if (!v) return '';
-        const link = (href, icon, tip) => href ? '<a href="' + esc(href) + '" target="_blank" rel="noopener" class="btn btn-xs btn-ghost btn-square"'
-          + ' data-title-tip="' + esc(tip) + '" aria-label="' + esc(tip) + '"><i class="ph ' + icon + ' text-base"></i></a>' : '';
-        return window.linkedSwiper.head({ code: v.pin === 'head' || v.pin === 'main' ? 'now' : v.pin, title: v.path.split('/').slice(-2).join('/') }, i, n, 'card', { deck: true, tight })
-          + link(window.RepoAddress.github.blob(this.owner + '/' + v.repo, v.ref || v.branch || 'main', v.path), 'ph-github-logo', 'On GitHub')
-          + link(v.url, 'ph-arrow-square-out', 'Open in a new tab');
-      },
-      body(id, el) {
-        const v = this.views.find((x) => x.key === id);
-        if (!v) return '';
-        if (v.missing) {
-          el.innerHTML = '<div class="flex flex-col gap-1 px-4 py-6 text-base" data-at="missing"><span class="font-semibold">Not at ' + window.esc(v.ref) + '</span>'
-            + '<span class="font-mono text-sm text-base-content/60">' + window.esc(this.owner + '/' + v.repo + ':' + v.path) + '</span></div>';
-          return;
-        }
-        if (!v.url) { el.innerHTML = '<div class="flex h-full items-start justify-center pt-12"><span class="loading loading-dots loading-md opacity-40"></span></div>'; return; }
-        const f = document.createElement('iframe');
-        f.src = v.url;
-        f.className = 'block h-full w-full border-0 bg-base-100';
-        f.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-popups allow-forms');
-        f.setAttribute('aria-label', v.path);
-        el.replaceChildren(f);
-      },
-      // The cards full screen, the swipe deck's takeover; closing returns to
-      // the strip at the card last read (rule 11).
-      deck() {
-        if (!window.swipeDeck) return;
-        const host = this, list = this.views;
-        let h = null;
-        h = window.swipeDeck.open({
-          count: list.length, start: this.at, innerClass: 'h-full w-full min-w-0',
-          index: (i) => ({ title: list[i].path.split('/').slice(-2).join('/'), subtitle: list[i].pin,
-                           icon: list[i].kind === 'page' ? 'ph-browser' : 'ph-file-text' }),
-          icon: 'ph-cards-three', title: list[this.at].name, subtitle: 'turn ' + this.turn.n + ' · ' + this.short,
-          onSlide: (i) => { h?.setTitle?.(list[i].name); host.at = i; host._swiper?.show(list[i].key); host.stamp(); },
-          render: (i, slide) => host.body(list[i].key, slide),
-        });
-      },
-      stamp() {
+      stamp(i) {
         if (!/^https?:$/.test(location.protocol)) return;
         const h = new URLSearchParams(location.hash.replace(/^#/, ''));
-        h.set('card', String(this.at));
+        h.set('card', String(i));
         history.replaceState(history.state, '', '#' + h.toString());
-      },
-
-      // ── Notes ────────────────────────────────────────────────────────────
-      draftKey() { return 'turn-notes:' + this.short + ':' + this.turn.n; },
-      loadDrafts() { try { return JSON.parse(localStorage.getItem(this.draftKey()) || '[]'); } catch { return []; } },
-      keep() {
-        try { localStorage.setItem(this.draftKey(), JSON.stringify(this.drafts)); this.status = ''; }
-        catch { this.status = 'This browser would not keep the note; Send before leaving.'; }
-        if (this.$refs.list) { this.$refs.list.innerHTML = this.rows(); window.linkedSwiper?.mark(this.$refs.list, 'view', this.current?.key); }
-      },
-      add() {
-        const text = this.typing.trim(), v = this.current;
-        if (!text || !v) { this.$refs.field?.focus(); return; }
-        this.drafts = [...this.drafts, { id: 'd' + Date.now().toString(36), key: v.key, text, at: new Date().toISOString() }];
-        this.typing = '';
-        this.keep();
-      },
-      drop(id) { this.drafts = this.drafts.filter((d) => d.id !== id); this.keep(); },
-      aboutOf(v) { return this.owner + '/' + v.repo + (v.branch ? '@' + v.branch : '') + ':' + v.path; },
-      where(v) {
-        const i = this.views.indexOf(v);
-        return 'Written on turn ' + this.turn.n + ' of session ' + this.short + ' (' + STORE + ':' + this.path + ')'
-          + ', card ' + (i + 1) + ' of ' + this.views.length + (v.pin ? ', at ' + v.pin : '') + '.';
-      },
-      async notesApi() {
-        if (!window.TOKEN) throw new Error('no GitHub token is saved in this browser');
-        if (!window.GH.toBase64) await gh.load('gh-store.js');
-        if (!window.Notes) await gh.load('kits/notes.js');
-        return new window.GH({ token: window.TOKEN, repo: STORE, ref: 'main' });
-      },
-      // The notes this turn already sent, found by the turn's own words in
-      // their text, so a card shows what it was told.
-      async loadSent() {
-        try {
-          const reg = await this.notesApi();
-          const tag = 'turn ' + this.turn.n + ' of session ' + this.short + ' ';
-          this.sent = (await window.Notes.load(reg)).filter((n) => String(n.text).includes(tag));
-        } catch { this.sent = []; }
-      },
-      async send() {
-        if (this.sending || !this.drafts.length) return;
-        this.sending = true; this.status = 'Sending…';
-        try {
-          const reg = await this.notesApi();
-          const author = await window.Notes.author(reg);
-          const list = this.drafts.slice();
-          const notes = list.map((d) => {
-            const v = this.views.find((x) => x.key === d.key);
-            return window.Notes.make({ about: this.aboutOf(v), author, text: d.text + '\n\n' + this.where(v) });
-          });
-          const all = await window.Notes.append(reg, notes);
-          this.drafts = this.drafts.filter((d) => !list.some((x) => x.id === d.id));
-          this.keep();
-          const ids = new Set(notes.map((n) => n.id));
-          this.sent = [...this.sent, ...all.filter((n) => ids.has(n.id))];
-          this.status = 'Sent ' + this.plural(list.length, 'note') + '.';
-        } catch (e) {
-          this.status = 'Not sent: ' + (e?.message || String(e));
-        } finally { this.sending = false; }
       },
     }));
   });
