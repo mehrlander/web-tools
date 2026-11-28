@@ -42,8 +42,8 @@ substituting the current repo in URL templates.
 * **Wakes.** A wake is a turn the reader did not start. Reply to one only when it brings news. Otherwise end the turn without text or, where the harness requires output, with one line naming the wake, such as `Stop hook:`. A reply to a wake ends on a state only if the state changed.
 
 * **Session detail caption.** Use the latest line the `session-detail-caption` hook supplied:
-  `` `11/14 10:14am` 💬[22](…/pages/session.html#id=<short>) `816k` `1d 2h` [✍️1](…) [`‹⋯›`](…/app/?view=program&program=sessions) ``
-  The stamp is when the hook printed the line, in the owner's time zone. `22` counts the owner's messages. `<short>` is the session id's first eight characters. `816k` is the context in tokens. `1d 2h` is the time since the owner's first message. `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page. `‹⋯›` links the Sessions program page. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
+  `` `11/14 10:14am` 💬[22](…/pages/turn.html#id=<short>&at=<instant>) `816k` `1d 2h` [✍️1](…) [`‹⋯›`](…/app/?view=program&program=sessions) ``
+  The stamp is when the hook printed the line, in the owner's time zone. `22` counts the owner's messages. It links the turn page for the owner's latest message. `<short>` is the session id's first eight characters. `<instant>` is the time that message arrived, in UTC. `816k` is the context in tokens. `1d 2h` is the time since the owner's first message. `✍️1` counts documentation edits awaiting the owner's sign-off and links the session page. `‹⋯›` links the Sessions program page. On a turn the owner did not start, the hook names what started it after the count, as `💬[22](…) PR event`.
 
 ## A reply that changed files
 
