@@ -169,6 +169,29 @@ test('summarize marks a session another session launched, from its first prompt 
   assert.ok(S.ROW_V >= 26, 'a new field reaches the stored rows only through a version bump');
 });
 
+// The sessions this one started. The child's record cannot name its parent, so
+// the parent's create_session call is the edge: its input gives the title and
+// tags, its result the id the platform assigned. The Standing sessions page
+// finds the standing sessions and their workers from this field alone.
+test('summarize lists the sessions a record started, from its create_session calls', () => {
+  const call = (name, input, body) => ({ at: '2026-11-26T06:00:53Z', name, input, body });
+  const started = S.summarize(record({ calls: [
+    call('mcp__claude-code-remote__create_session', { title: '🎙️ Sessions', tags: ['program-session', 'program:sessions'] },
+      '{"ccr":{"id":"session_01Ug8CX9xPk1ZyngCSXmxb2a", "title":"🎙️ Sessions"}}'),
+    call('mcp__claude-code-remote__create_session', { title: 'worker' }, '{"ccr":{"id":"session_01ABC"}}'),
+    // Refused, or cut before the id: no edge rather than a guessed one.
+    call('mcp__claude-code-remote__create_session', { title: 'refused' }, 'Error: permission denied'),
+    call('mcp__claude-code-remote__send_message', { session_id: 'session_01XYZ' }, '{"status":"delivered"}'),
+  ] }), 'x');
+  assert.deepEqual(started.spawned, [
+    ['session_01Ug8CX9xPk1ZyngCSXmxb2a', '🎙️ Sessions', ['program-session', 'program:sessions'], '2026-11-26T06:00:53Z'],
+    ['session_01ABC', 'worker', [], '2026-11-26T06:00:53Z'],
+  ]);
+  assert.equal('spawned' in S.summarize(record(), 'x'), false, 'present only where non-empty');
+  assert.deepEqual(S.leanRow(started).spawned, started.spawned, 'and kept by the stored row');
+  assert.ok(S.ROW_V >= 28);
+});
+
 test('summarize carries each repo position against main, keeping null apart from absent', () => {
   // Record schema 13. The recorder writes null where git could not answer (a
   // shallow clone past the fork point, most often) and leaves the keys out of
@@ -903,11 +926,12 @@ const stateOf = (replies, over = {}) => S.closingState({ replies, ...over });
 
 test('the state is the marker the reply closed with, as a key rather than a glyph', () => {
   assert.equal(stateOf([reply('1', 'Shipped it.\n\n🟣 **Merged:** the branch is in.')]), 'merged');
-  assert.equal(stateOf([reply('1', '⚪ **Clean exit.** Nothing left here.')]), 'clean');
+  assert.equal(stateOf([reply('1', '⚫ **Clean exit.** Nothing left here.')]), 'clean');
   // Two spellings of one state: ⚪ and ⚪️ differ by a variation selector, and
   // both are in the store. A glyph on the row would carry the difference onto
   // the screen; a key cannot.
-  assert.equal(stateOf([reply('1', '⚪️ **Clean exit.** Nothing left here.')]), 'clean');
+  assert.equal(stateOf([reply('1', '⚪ **Standing by.** Nothing asked yet.')]), 'standby');
+  assert.equal(stateOf([reply('1', '⚪️ **Standing by.** Nothing asked yet.')]), 'standby');
   assert.equal(stateOf([reply('1', '🛵 **Needs you:** tap the link.')]), 'needs');
   assert.equal(stateOf([reply('1', '✴️ **Needs you:** tap the link.')]), 'needs');
   assert.equal(stateOf([reply('1', '✴ **Needs you:** tap the link.')]), 'needs');
@@ -944,13 +968,19 @@ test('a quoted vocabulary is not a state: a list marker fails the pattern', () =
     '- 🔴 **Closed:** the branch closed unmerged.',
   ].join('\n');
   assert.equal(stateOf([reply('1', doc)]), '', 'no state, rather than the last one quoted');
-  assert.equal(stateOf([reply('1', doc + '\n\n⚪ **Clean exit.** The doc is updated.')]), 'clean',
+  assert.equal(stateOf([reply('1', doc + '\n\n⚫ **Clean exit.** The doc is updated.')]), 'clean',
     'and its own closing line still reads, under the quotation');
 });
 
 test('the last candidate wins, which is where a closing state sits', () => {
   assert.equal(stateOf([reply('1', '🟡 **Pending:** first.\n\nmore\n\n🆚 **Choice needed:** last.')]),
     'choice');
+});
+
+test('a row built before ⚪ and ⚫ changed meaning is re-read', () => {
+  // At 26 a row holds `clean` for ⚪ and `done` for ⚫. Its record's sha never
+  // moves again, so only the version can heal it.
+  assert.ok(S.ROW_V >= 27, 'the closing-state keys changed meaning on 2026-11-25');
 });
 
 test('a record with no replies falls back to the tail, and empty means empty', () => {
@@ -979,9 +1009,9 @@ test('the message is the passage from the marker down, not the whole reply', () 
   // What sits above the marker is the work being reported, and the card that
   // renders these is not a transcript of the session.
   const st = S.closingStates({ replies: [
-    reply('1', 'I rebuilt the index and the check passes.\n\n⚪ **Clean exit.** Nothing left here.'),
+    reply('1', 'I rebuilt the index and the check passes.\n\n⚫ **Clean exit.** Nothing left here.'),
   ] });
-  assert.equal(st[0][1], '⚪ **Clean exit.** Nothing left here.');
+  assert.equal(st[0][1], '⚫ **Clean exit.** Nothing left here.');
   assert.ok(!st[0][1].includes('rebuilt'), 'the work above it is not the message');
 });
 
@@ -1041,7 +1071,7 @@ test('a state carries the user prompts since the one before it', () => {
               { at: '2026-08-05T12:40:00Z' }, { at: '2026-08-05T13:00:00Z' }],
     replies: [
       reply('2026-08-05T11:00:00Z', '🟡 **Pending:** waiting.'),
-      reply('2026-08-05T11:10:00Z', '⚪ **Clean exit.** nobody spoke between these.'),
+      reply('2026-08-05T11:10:00Z', '⚫ **Clean exit.** nobody spoke between these.'),
       reply('2026-08-05T12:35:00Z', '🟢 **Ready:** one prompt later.'),
       reply('2026-08-05T13:10:00Z', '🆚 **Choice needed:** two prompts later.'),
     ],
@@ -1068,7 +1098,7 @@ test('the gap survives a truncated passage, which rides after it', () => {
 test('the row carries the sequence beside the tip', () => {
   const row = S.summarize(record({ replies: [
     reply('2026-08-05T14:00:00Z', '🟡 **Pending:** waiting.'),
-    reply('2026-08-05T16:00:00Z', '⚪ **Clean exit.** Done.'),
+    reply('2026-08-05T16:00:00Z', '⚫ **Clean exit.** Done.'),
   ] }), 'sha1');
   assert.equal(row.state, 'clean');
   assert.equal(row.states.length, 2);
@@ -1080,7 +1110,7 @@ test('the row carries the sequence beside the tip', () => {
 
 test('the row carries it, so the pane draws a glyph without opening the record', () => {
   const row = S.summarize(record({
-    replies: [reply('2026-08-05T16:00:00Z', 'Done.\n\n⚪ **Clean exit.** Merged and verified.')],
+    replies: [reply('2026-08-05T16:00:00Z', 'Done.\n\n⚫ **Clean exit.** Merged and verified.')],
   }), 'sha1');
   assert.equal(row.state, 'clean');
   // It is a SEPARATE axis from the branch rollup the rail draws: this row's
@@ -1200,7 +1230,7 @@ test('startupCutOf reads the harness wrapper, and says nothing when it cannot', 
 test('buildCache stores lean rows: the prose keys are absent, the scalars stay', () => {
   const p = 'sessions/2026/08/2026-08-05-b8fae678.json';
   const cache = S.buildCache(null, { [p]: { record: record({
-    replies: [reply('2026-08-05T16:00:00Z', 'Done.\n\n⚪ **Clean exit.** Merged.')],
+    replies: [reply('2026-08-05T16:00:00Z', 'Done.\n\n⚫ **Clean exit.** Merged.')],
   }), sha: 'x' } }, null, 'now');
   const row = cache.rows[0];
   for (const k of S.PROSE_KEYS) assert.ok(!(k in row), k + ' left the stored row');
