@@ -43,7 +43,6 @@ docs/environment/capabilities.md,skills/sandbox-traps/SKILL.md,17,true,a push ca
 docs/loader.md,node/README.md,15,,the build still honors use ref an explicit ref falls through to the network so a built page can be re pinned for review,10,225
 README.md,node/README.md,15,,claude md claude md the pre build the build on commit hook under verification stays independent says how to repair the tree it leaves,10,225
 docs/environment/container.md,skills/sandbox-traps/SKILL.md,14,true,a file's apparent first commit is the graft boundary rather than its creation and git log s finds nothing earlier;a rewritten history a rewrite replaces commits a shallow clone omits them,10,225
-programs/content/manager.md,skills/outlining/assessment.md,12,,the house policy what earns space h critical https mehrlander github io web tools app view map tab policy h critical,10,225
 pages/wsl-sync/IMPORT.md,sites/lawfilesext.leg.wa.gov/IMPORT.md,12,,import provenance imported from mehrlander wa bills https github com mehrlander wa bills at commit c3a9f4a on 2026 05 07 files,10,225
 docs/APP.md,skills/web-tools-app/SKILL.md,11,true,a stage holding only pasted text mints as gz which carries the text in the link and needs no token,10,225
 data/column-primitives/2026-09-10-first-population.md,docs/column-primitives.md,11,,as the claim itself call where the authored decision is which document a line points at;checking as of holds a date and checks pattern holds a regular expression,10,225
@@ -78,6 +77,7 @@ README.md,lib/kits/README.md,5,,the kits tab https mehrlander github io web tool
 skills/load-skill/SKILL.md,skills/web-tools-app/SKILL.md,4,,mcp github get file contents with owner mehrlander repo web tools path;invocable in sessions started from a branch that contains it,10,225
 skills/html-style/references/mechanics.md,skills/look-markers/SKILL.md,4,,html https github com mehrlander web tools blob main lib kits demos;js https github com mehrlander web tools blob main lib,10,225
 programs/discovery/manager.md,skills/tend/SKILL.md,4,,json https github com mehrlander web tools private blob background state;readme md https github com mehrlander web tools private blob main,10,225
+programs/content/manager.md,skills/outlining/assessment.md,4,,https mehrlander github io web tools app view map tab policy h critical,10,225
 programs/alignment/current/pages.md,programs/alignment/future/pages.md,4,,html https github com mehrlander wa bills blob main wsl api data;github com mehrlander wa bills blob main wsl api tools,10,225
 lib/kits/README.md,node/README.md,4,,load and build are one contract in docs loader md docs loader md,10,225
 docs/house-policies.md,skills/tree/SKILL.md,4,,conversation md https github com mehrlander web tools blob main docs conversation md,10,225

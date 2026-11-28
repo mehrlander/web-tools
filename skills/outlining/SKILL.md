@@ -1,6 +1,6 @@
 ---
 name: outlining
-description: "Use when asked to outline a document, lay out its structure or pull its key points; to inventory the claims a text makes, presupposed ones included, before editing or fact-checking it; to read a reply, document or transcript as the questions it answers, for a question margin or to see what a conversation settled and left open; to judge whether a document is too detailed or too thin; or to assess a document, or an edit to one, for its higher-order concerns: premise, scope, audience, level of detail, flow, organization and placement. Settles the unit, grain and dimension, then produces entries tied to the source and checks their coverage."
+description: "Use when asked to outline a document, lay out its structure or pull its key points; to inventory the claims a text makes, presupposed ones included, before editing or fact-checking it; to read a reply, document or transcript as the questions it answers, for a question margin or to see what a conversation settled and left open; or to judge whether a document is too detailed or too thin. Also use to assess a document, or an edit to one, for its higher-order concerns: premise, scope, audience, level of detail, flow, organization and placement. Settles the unit, grain and dimension, then produces entries tied to the source and checks their coverage."
 ---
 
 # Outlining
@@ -23,7 +23,7 @@ An outline succeeds on fidelity (each entry says what its source says), complete
 
 ## Process
 
-1. **Survey (phase one).** Build the profile, then propose the entry criteria (unit, grain, dimension) for the user to approve or adjust: a line for a short source, a plan for a long one. A measurement compared across readers or documents fixes the criteria in advance and skips the approval, and so does an assessment.
+1. **Survey (phase one).** Build the profile, then propose the entry criteria (unit, grain, dimension) for the user to approve or adjust: a line for a short source, a plan for a long one. A measurement compared across readers or documents fixes the criteria in advance and skips the approval. An assessment ([`assessment.md`](assessment.md)) also fixes its criteria in advance.
 2. **Produce the outline and crosswalk (phase two).** Emit entries at the chosen grain, each with its source span; the spans are the crosswalk. Leave out material that matches no criterion. A long source can fan out along the splits the profile found and be merged; step 3 checks the result whatever the strategy.
 3. **Check coverage.** Emit the regions that match the criteria but reach no entry.
 4. **Check validity.** Emit the discards the intent wanted. Any such discard means the criteria were too narrow: back to phase one.
